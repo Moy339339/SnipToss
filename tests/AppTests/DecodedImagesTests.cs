@@ -220,8 +220,9 @@ public sealed class DecodedImagesTests : IDisposable
         // photo.heic and photo.tif are the same picture; rotated.heic carries irot (90° counter-clockwise),
         // moving the green block from top-left to bottom-left
         var photo = await DecodedImages.GetAsync(CopyIn("photo.heic"));
-        // The HEIF Image Extensions are not installed on the machine running the tests: reporting the missing extension is correct
-        if (photo.Problem == "heif") return;
+        // The HEIF Image Extensions are not installed on the machine running the tests ("heif"), or HEIF is but the HEVC Video Extensions
+        // are not ("hevc", as on Windows Server CI runners): reporting the missing extension is correct
+        if (photo.Problem is "heif" or "hevc") return;
         Assert.Null(photo.Problem);
         var png = Read(photo.File!);
         Assert.Equal((320, 240), (png.W, png.H));
