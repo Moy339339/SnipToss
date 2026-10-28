@@ -18,7 +18,7 @@ concurrency:
 jobs:
   verify:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
@@ -45,3 +45,5 @@ jobs:
           name: e2e-results
           path: tests/e2e/.results/
           retention-days: 7
+          # .results starts with a dot: without this the upload skips it as hidden and finds nothing
+          include-hidden-files: true

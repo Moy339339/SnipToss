@@ -446,7 +446,12 @@ test("with the composer open, clicking the places being drawn opens the color ba
   await app.page.locator(".stage").click({ position: { x: 5, y: 5 } });
   await app.page.keyboard.press("c");
   const box = (await app.page.locator(".zoom-media").boundingBox())!;
-  for (const x of [0.3, 0.7]) await app.page.mouse.click(box.x + box.width * x, box.y + box.height * 0.6);
+  // The second pin goes above the first: the note box's top edge sits on the first pin's row, and a click there lands on the box (a pixel or two off while it opens)
+  for (const [x, y] of [
+    [0.3, 0.6],
+    [0.7, 0.4],
+  ])
+    await app.page.mouse.click(box.x + box.width * x, box.y + box.height * y);
   const drafts = app.page.locator(".annot-badge.is-draft");
   await expect(drafts).toHaveCount(2);
   await app.page.locator(".composer-text").fill("左边那处改圆角，右边那处去掉");

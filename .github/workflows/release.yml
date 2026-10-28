@@ -1,6 +1,6 @@
-# Release pipeline (ADR-0002): push a v* tag -> run the full checks on Windows (same as ci.yml) -> scripts/publish.ps1 -> draft Release (with the portable zip and SHA256SUMS.txt).
-# A person reviews the draft before publishing it. Versions with a "-" (1.0.0-beta.N) are marked pre-release (the updater's beta channel). Signing is still to come.
-# The tag must match the version in the root package.json: v1.0.0-beta.65
+# Release pipeline (ADR-0002): push a v* tag -> run the full checks on Windows (same as ci.yml) -> scripts/publish.ps1 -> draft Release (with the installer, the portable zip and SHA256SUMS.txt).
+# A person reviews the draft before publishing it. Versions with a "-" (1.1.0-beta.1) are marked pre-release (the updater's beta channel). Signing is still to come.
+# The tag must match the version in the root package.json: v1.0.0
 name: Release
 
 on:
@@ -30,6 +30,13 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      # The installer needs Inno Setup 6 (installer/SnipToss.iss); install a pinned 6.x when the runner image doesn't have one
+      - name: Inno Setup 6
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup --version=6.7.1 -y --no-progress }
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { throw 'Inno Setup 6 is not available' }
+
       - name: Tag matches the version
         shell: pwsh
         run: |
@@ -46,7 +53,9 @@ jobs:
 
       - name: Release packages (self-contained win-x64 + portable zip + SHA256)
         shell: pwsh
-        run: pwsh -File scripts/publish.ps1 -NoUi
+        run: |
+          pwsh -File scripts/publish.ps1 -NoUi
+          if (-not (Test-Path "dist/release/SnipToss-$env:VERSION-win-x64-setup.exe")) { throw 'The installer was not built' }
 
       - name: Draft Release
         shell: pwsh
@@ -65,3 +74,5 @@ jobs:
           name: e2e-results
           path: tests/e2e/.results/
           retention-days: 7
+          # .results starts with a dot: without this the upload skips it as hidden and finds nothing
+          include-hidden-files: true

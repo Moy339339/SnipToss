@@ -2,7 +2,7 @@
 // first half = drawing tools (Pin, Rectangle, Pen, Arrow, starting outside the frame, middle-button pan, Hand),
 // the composer (category, Save / Cancel, position, Enter on a button), video time
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, type App } from "./harness";
 
@@ -21,9 +21,11 @@ type Shape = {
   to?: number[];
 };
 type Note = { id: string; body: string; category: string; anchor: { shapes?: Shape[]; shape?: Shape; time?: { start: number; end?: number } } };
-/** All notes in a notes file (with their anchor) */
-const notes = (app: App, file: string): Note[] =>
-  JSON.parse(readFileSync(join(app.project, ".sniptoss", "annotations", file), "utf8")).annotations;
+/** All notes in a notes file (with their anchor); none while the file has not been written yet (expect.poll does not retry a callback that throws) */
+const notes = (app: App, file: string): Note[] => {
+  const path = join(app.project, ".sniptoss", "annotations", file);
+  return existsSync(path) ? JSON.parse(readFileSync(path, "utf8")).annotations : [];
+};
 const byBody = (app: App, file: string, body: string) => notes(app, file).find((a) => a.body === body);
 /**
  * Position of the box note (k3f9a2) in the test material: until the app rewrites the file it is in the old format (pizhu/3 `shape`);

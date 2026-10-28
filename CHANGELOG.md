@@ -1,10 +1,10 @@
 # Changelog
 
-All notable changes are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/). Until 1.0 the app ships as `1.0.0-beta.N` (shown as "Beta N" in the app).
+All notable changes are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
 The annotation data format has its own version (`"schema": "sniptoss/5"`); its history is in [docs/annotation-format.md](docs/annotation-format.md).
 
-## [Unreleased] — 1.0.0
+## [1.0.0] — 2026-10-29
 
 First public release.
 
@@ -36,6 +36,4 @@ First public release.
 - Portable version: with a `data` folder next to the app, all data stays in it and the registry is never touched.
 - Command-line tool `sniptoss` (list, review, resolve, wontfix); its messages follow the system display language.
 
-### Changed
-
-- Renamed from pizhu to SnipToss: `.pizhu/` folders, settings and registry entries are migrated automatically.
+[1.0.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.0.0

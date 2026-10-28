@@ -155,7 +155,11 @@ export const test = base.extend<{ app: App }>({
         await expect(page.locator(".lib-row").first()).toBeVisible();
       },
       clipboard: () => page.evaluate(() => (window as unknown as { __e2eClipboard: { text: string | null } }).__e2eClipboard.text),
-      annotations: (file) => JSON.parse(readFileSync(join(project, ".sniptoss", "annotations", file), "utf8")).annotations,
+      // A file not written yet reads as no notes: expect.poll does not retry a callback that throws, so waiting for the first save would fail at once
+      annotations: (file) => {
+        const path = join(project, ".sniptoss", "annotations", file);
+        return existsSync(path) ? JSON.parse(readFileSync(path, "utf8")).annotations : [];
+      },
     review: () => (existsSync(join(project, ".sniptoss", "REVIEW.md")) ? readFileSync(join(project, ".sniptoss", "REVIEW.md"), "utf8") : ""),
       allowLogErrors: (expected) => void allowed.push(expected),
     });

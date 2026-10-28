@@ -110,10 +110,11 @@ test("tools can be mixed: rectangles, arrows (switched from the toolbar) and rec
   await expect(composer(app)).toBeVisible();
   // Tools work as usual while the note box is open (they used to be forced to Select), and switching from the toolbar works too
   await expect(app.page.locator(".annot-layer")).toHaveClass(/tool-rect/);
+  // Both go above the first place: the note box's top edge sits on that row, and a stroke started there lands on the box (a pixel or two off while it opens)
   await toolBtn(app, "箭头").click();
-  await drag(app, at(box, 0.4, 0.5), at(box, 0.5, 0.7));
+  await drag(app, at(box, 0.6, 0.25), at(box, 0.7, 0.4));
   await toolBtn(app, "选择").click();
-  await drag(app, at(box, 0.7, 0.5), at(box, 0.85, 0.7));
+  await drag(app, at(box, 0.75, 0.22), at(box, 0.9, 0.4));
   await expect(draftBadges(app)).toHaveCount(3);
   await expect(app.page.locator(".composer-places")).toContainText("3 处");
 

@@ -514,6 +514,8 @@ test("Marquee select: rows inside the box are selected without changing the canv
 });
 
 test("Dragging a marquee to the top edge of the list scrolls it up automatically, and rows that scroll out of view are still selected", async ({ app }) => {
+  // The list scrolls a step per frame: on a machine without a GPU (CI runners draw a few frames a second) three screens take well over ten seconds
+  test.setTimeout(90_000);
   const big = join(app.temp, "big");
   manyImages(big, 600);
   app.host.entries = [{ path: big, pinned: false }];
@@ -530,7 +532,7 @@ test("Dragging a marquee to the top edge of the list scrolls it up automatically
   // Hold until it has scrolled three screens before releasing (rows scrolled out of view are no longer rendered,
   // which is what shows they are still selected). A fixed one-second wait is not enough: when frames render slowly it does not
   // scroll a full screen, every selected row is still rendered and the test fails
-  await expect.poll(() => list(app).evaluate((el) => el.scrollTop), { timeout: 10_000 }).toBeLessThan(Math.max(0, top - 3 * l.height) + 1);
+  await expect.poll(() => list(app).evaluate((el) => el.scrollTop), { timeout: 45_000 }).toBeLessThan(Math.max(0, top - 3 * l.height) + 1);
   await app.page.mouse.up();
   expect(await list(app).evaluate((el) => el.scrollTop)).toBeLessThan(top);
   const picked = app.page.locator(".scope-switch .seg.is-on");
