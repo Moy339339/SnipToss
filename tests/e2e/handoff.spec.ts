@@ -47,9 +47,10 @@ test("The first note in a project (.sniptoss was just created) shows no toast (i
 test("Show Snapshot in Folder on a note's context menu selects that note's snapshot in File Explorer", async ({ app }) => {
   await app.open();
   await drawRect(app, "标题换粗体");
+  // Wait by the text: right after saving the note may not be on disk yet, and a poll callback that throws is not retried
+  await expect.poll(() => notes(app, "assets__hero.png.json").find((n) => n.body === "标题换粗体")?.snapshot).toBeTruthy();
   const a = notes(app, "assets__hero.png.json").find((n) => n.body === "标题换粗体")!;
-  await expect.poll(() => notes(app, "assets__hero.png.json").find((n) => n.id === a.id)?.snapshot).toBeTruthy();
-  const shot = notes(app, "assets__hero.png.json").find((n) => n.id === a.id)!.snapshot!;
+  const shot = a.snapshot!;
   await card(app, a.id).click({ button: "right" });
   await app.page.getByRole("menuitem", { name: "在文件夹中显示截图" }).click();
   expect(app.host.revealed.at(-1)).toBe(join(app.project, ".sniptoss", ...shot.split("/")));
