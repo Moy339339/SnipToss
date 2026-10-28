@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sniptoss:annotation-file:5",
+  "title": "SnipToss notes file sniptoss/5",
+  "description": "The format of .sniptoss/annotations/*.json in a project; see docs/annotation-format.md. One file per item (or per folder). Unknown fields are allowed and are kept as they are when the app reads and rewrites the file. This schema describes what a file written by the app looks like; reading is more lenient (a missing anchor, replies, author or time is filled in), see \"Reading rules\" in the format document. One rule the schema cannot express: note ids must be unique within a file.",
+  "type": "object",
+  "required": ["schema", "material", "annotations"],
+  "properties": {
+    "schema": { "const": "sniptoss/5", "description": "Format version. Older versions pizhu/1–sniptoss/4 are converted when read: anchor.shape becomes an anchor.shapes with one entry. For sniptoss/6 and newer, this version of the app only reads and never writes" },
+    "material": { "$ref": "#/$defs/material" },
+    "annotations": { "type": "array", "items": { "$ref": "#/$defs/annotation" } }
+  },
+  "$defs": {
+    "material": {
+      "type": "object",
+      "description": "What the notes refer to: one item, or a whole folder (kind = folder: every item inside, subfolders included)",
+      "required": ["path", "kind"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1, "description": "Forward-slash path relative to the folder that contains .sniptoss; for a folder, \".\" = the folder that holds .sniptoss itself" },
+        "kind": { "type": "string", "minLength": 1, "description": "image | video | pdf | slides | folder (other kinds may be added later)" },
+        "sha256": { "type": "string", "description": "SHA-256 of the item when the first note was written (lowercase hex). Every note also records its own (material_sha256); the per-note value takes precedence, and older notes without one use this. Folders have none" },
+        "width": { "type": "number", "exclusiveMinimum": 0, "description": "Pixel width of the image or video" },
+        "height": { "type": "number", "exclusiveMinimum": 0, "description": "Pixel height of the image or video" },
+        "duration": { "type": "number", "exclusiveMinimum": 0, "description": "Video only: duration in seconds" },
+        "pages": {
+          "type": "array",
+          "description": "pdf / slides only: size of each page",
+          "items": {
+            "type": "object",
+            "required": ["width", "height"],
+            "properties": { "width": { "type": "number", "exclusiveMinimum": 0 }, "height": { "type": "number", "exclusiveMinimum": 0 } }
+          }
+        }
+      }
+    },
+    "annotation": {
+      "type": "object",
+      "required": ["id", "status", "category", "body", "anchor", "author", "created_at", "updated_at", "replies"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "description": "The app generates 6 lowercase alphanumeric characters; agents use it to write a status back (sniptoss resolve <id>)" },
+        "status": { "enum": ["open", "resolved", "wontfix"], "description": "open = not handled yet | resolved = done | wontfix = won't fix" },
+        "category": { "enum": ["change", "remove", "add", "question"], "description": "change = Change | remove = Remove | add = Add | question = Question" },
+        "body": { "type": "string", "description": "The comment text as written" },
+        "anchor": { "$ref": "#/$defs/anchor" },
+        "snapshot": { "type": "string", "description": "Snapshot, relative to .sniptoss/ (snapshots/<id>.png)" },
+        "author": { "type": "string" },
+        "created_at": { "type": "string", "description": "ISO 8601 time" },
+        "updated_at": { "type": "string", "description": "ISO 8601 time" },
+        "handed_off_at": { "type": "string", "description": "Optional (since 2026-10-20): the time of the most recent copy out (Copy as Text, Copy as Images), ISO 8601; does not change updated_at" },
+        "material_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Optional: SHA-256 of the item when this note was written (lowercase hex); different from the item's current one = this note was written on an earlier version and its position is given by the snapshot (docs/annotation-format.md, \"Notes written on an earlier version\")" },
+        "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$", "description": "Optional: a color set for this note's mark alone; absent = the mark color from Settings. Affects only how it is drawn, not the content of the comment" },
+        "replies": { "type": "array", "items": { "$ref": "#/$defs/reply" } }
+      }
+    },
+    "anchor": {
+      "type": "object",
+      "description": "Where the note sits on the item. All empty {} = a comment on the whole image / whole video / whole folder; on a video, one with only time is a timestamped comment",
+      "properties": {
+        "page": { "type": "integer", "minimum": 1, "description": "pdf / slides only: page number, starting at 1" },
+        "time": {
+          "type": "object",
+          "description": "Video only: seconds; no end when only a single time is marked",
+          "required": ["start"],
+          "properties": { "start": { "type": "number", "minimum": 0 }, "end": { "type": "number", "minimum": 0 } }
+        },
+        "shapes": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/shape" },
+          "description": "Which places this comment marks (since sniptoss/5; before that a single shape); the comment applies to every place; the order is the drawing order. Absent = no position given"
+        }
+      }
+    },
+    "unit": { "type": "number", "minimum": 0, "maximum": 1, "description": "Normalized coordinate: 0–1, origin at the top-left corner (only the part inside the frame is recorded, so it is always within 0–1)" },
+    "point": { "type": "array", "prefixItems": [{ "$ref": "#/$defs/unit" }, { "$ref": "#/$defs/unit" }], "minItems": 2, "maxItems": 2 },
+    "shape": {
+      "type": "object",
+      "description": "Shape of a mark. An unknown type (a shape added later) is not an error; a reading program skips it and draws nothing",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string" },
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Optional: a color set for this place alone; absent = this note's color, and if that is absent too, the mark color from Settings. In files written by the app, every place carries a color when the places differ in color, and none does when they are all the same"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "rect" } } },
+          "then": {
+            "required": ["x", "y", "w", "h"],
+            "properties": { "x": { "$ref": "#/$defs/unit" }, "y": { "$ref": "#/$defs/unit" }, "w": { "$ref": "#/$defs/unit" }, "h": { "$ref": "#/$defs/unit" } }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "point" } } },
+          "then": { "required": ["x", "y"], "properties": { "x": { "$ref": "#/$defs/unit" }, "y": { "$ref": "#/$defs/unit" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "arrow" } } },
+          "then": { "required": ["from", "to"], "properties": { "from": { "$ref": "#/$defs/point" }, "to": { "$ref": "#/$defs/point" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "path" } } },
+          "then": {
+            "required": ["points"],
+            "properties": {
+              "points": { "type": "array", "items": { "$ref": "#/$defs/point" }, "description": "Freehand points" },
+              "breaks": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "description": "A new segment starts at these indexes, not joined to the previous point (a stroke that leaves the frame and comes back)" }
+            }
+          }
+        }
+      ]
+    },
+    "reply": {
+      "type": "object",
+      "required": ["author", "body", "at"],
+      "properties": { "author": { "type": "string" }, "body": { "type": "string" }, "at": { "type": "string", "description": "ISO 8601 time" } }
+    }
+  }
+}

@@ -1,0 +1,2546 @@
+/* The interface tokens, base pieces and main layout. The origin of each value is in docs/design-rules.md (rule numbers are given in the comments);
+   a value not in the table needs a rule added first, and node scripts/check-design.mjs checks this. The note layer, menus and floating layers are in workspace.css */
+
+:root {
+  /* ---------- Colors (Sy1: one value, one role) ---------- */
+  /* The background must match the shell's (Bg in app/MainWindow.cs), otherwise a color difference shows at startup */
+  --bg: #141416; /* window background, canvas area, recessed places */
+  --surface: #1b1b1e; /* side panels, toolbar */
+  --surface-2: #232327; /* raised things: cards, menus, tooltips, the composer */
+  --hover: #2a2a2f;
+  --hover-over: rgba(
+    255,
+    255,
+    255,
+    0.07
+  ); /* hover of a small button within a row: laid over the row's own hover / selected background, visible on either */
+  --border: #2c2c31;
+  --border-strong: #3a3a40;
+  --text: #e8e8ea;
+  --text-2: #a9a9b0;
+  --muted: #92929a; /* G2: on the side panel background 5.6:1, on the hover background 4.6 and on a selected row 4.6 (the earlier #8a8a92 had only 4.1 on hover and selected backgrounds) */
+  --accent: #5b8cff; /* interactive lines and text: progress, focus, the vertical line on the item that is open, the line for dragging a side panel */
+  /* Solid interactive fill with white text and white shapes on it: primary button, current tool, checked checkbox, switch that is on.
+     One step darker than --accent so white text passes 4.5:1 (G2; on #5b8cff it is only 3.16). Hover and pressed states are above 4.5 too */
+  --accent-fill: #386be0;
+  --accent-fill-hover: #3b6fe8;
+  --accent-fill-active: #3567dc;
+  --accent-soft: rgba(91, 140, 255, 0.14);
+  --accent-edge: rgba(91, 140, 255, 0.35); /* the outline of a selected row: in grayscale selected and hover can still be told apart (G3) */
+  --hit: rgba(
+    91,
+    140,
+    255,
+    0.3
+  ); /* the background of a search hit's text (notes panel search): the 14% of --accent-soft is not visible on a card */
+  --mark: #ff6a3d; /* F5 annotation orange: only for the annotations themselves. Users can change it in Settings (App.tsx writes it here) */
+  --danger: #ff5f5f;
+  --warn: #ffc46b;
+  --close: #c42b1c; /* the red when hovering the window's close button, as the system does */
+  /* four categories */
+  --cat-change: #b39dff; /* purple: blue is kept for interaction (F5); the earlier #8fb0ff of "Change" sat next to the blue primary button and looked like a link */
+  --cat-remove: #ff9090;
+  --cat-add: #6fdc9f;
+  --cat-question: #ffc861;
+  --floating: rgba(
+    24,
+    24,
+    27,
+    0.88
+  ); /* things laid over the canvas: zoom bar, playback rate hint, pixel readout (with an 8px blur added behind) */
+  --scrim: rgba(20, 20, 22, 0.82); /* covers the whole window during drag and drop */
+  --backdrop: rgba(0, 0, 0, 0.5); /* dims the window behind dialogs */
+  --disabled: 0.4; /* a disabled control fades to this much as a whole */
+  --dim: 0.5; /* marks and badges on the canvas that are not at this moment (video): faded but still recognizable */
+  --casing: rgba(
+    0,
+    0,
+    0,
+    0.5
+  ); /* the 1px dark edge under lines laid over the canvas and around badges: orange stays distinguishable on red, magenta and yellow (S10) */
+  --checker: #dcdcdc; /* the checkerboard behind transparent images, alternating with white squares (like image editing software) */
+
+  /* ---------- Type (S2: five levels, line heights in whole pixels; font weights only 400 / 600) ---------- */
+  /* Latin text uses Segoe UI Variable; CJK fonts follow the interface language (the :lang rules below, ADR-0001 item 11): the same Han character has different glyphs in Simplified, Traditional and Japanese,
+     and with the wrong font the Han characters in a Japanese interface take the mainland China form. Notes the user writes in another script also fall back to these fonts */
+  --font-cjk: "Microsoft YaHei UI";
+  --font-ui: "Segoe UI Variable Text", "Segoe UI", var(--font-cjk), system-ui, sans-serif;
+  --font-code: "Cascadia Mono", Consolas, var(--font-cjk), monospace;
+  --fs-micro: 11px; /* G1: only for pure digits and Latin text */
+  --fs-caption: 12px;
+  --lh-caption: 16px;
+  --lh-note: 18px; /* 12px running text */
+  --fs-body: 13px;
+  --lh-body: 20px;
+  --fs-title: 15px;
+  --lh-title: 22px;
+  --fs-heading: 18px;
+  --lh-heading: 26px;
+  --fs-display: 30px; /* only for the logo: the product name under Settings → About (the library header's 15 × 2) */
+
+  /* ---------- Sizes (S4) ---------- */
+  --h-xs: 20px; /* badges, labels */
+  --h-sm: 24px; /* inline actions, card actions */
+  --h-md: 28px; /* tool buttons, tabs, list rows, search box */
+  --h-lg: 32px; /* buttons, inputs, menu items, play button, well */
+  --h-bar: 32px; /* menu bar, bottom bar */
+  --h-header: 44px; /* the title bar of the three columns */
+  --h-transport: 48px;
+
+  /* ---------- Radii (S6: concentric) ---------- */
+  --r-tag: 4px;
+  --r-control: 6px;
+  --r-group: 8px;
+  --r-menu: 10px;
+  --r-dialog: 12px;
+
+  /* ---------- Shadows (S7: light from directly above) ---------- */
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.55);
+  --shadow-on-media: 0 1px 4px rgba(0, 0, 0, 0.5);
+
+  /* ---------- Motion (S8) ---------- */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 120ms;
+  --dur: 160ms;
+  --dur-slow: 200ms;
+
+  /* ---------- Window size ---------- */
+  /* Use these when sizing a floating layer by the window; do not write 100vw / 100vh directly: the interface size (the CSS zoom on html, with --ui-scale set by App.tsx) would enlarge 100vw once more,
+     and at 125% with the window at its minimum, the Settings dialog would be wider than the window */
+  --vw: calc(100vw / var(--ui-scale, 1));
+  --vh: calc(100vh / var(--ui-scale, 1));
+
+  color-scheme: dark;
+  font-family: var(--font-ui);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+/* On touch screens a two-finger pinch does not enlarge the whole interface (scrolling works as usual); canvas zoom is done in ZoomView itself */
+html {
+  touch-action: pan-x pan-y;
+}
+
+body {
+  user-select: none;
+  cursor: default;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: default;
+}
+
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+kbd {
+  display: inline-block;
+  min-width: var(--h-xs);
+  height: var(--h-xs);
+  padding: 0 6px;
+  border-radius: var(--r-tag);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+  color: var(--text-2);
+  /* G1: keycaps may also contain CJK text (the localized "Hold H", "Wheel"), so 12 and not 11 */
+  font: 400 var(--fs-caption) / var(--h-xs) var(--font-ui);
+  text-align: center;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* 8 wide: it fits exactly in the 8 of spare space at the right of the side panel (scrollbar-gutter of .lib-list and .panel-body), with a 4 wide thumb showing */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background-clip: content-box;
+}
+:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.24);
+}
+
+.fade-in {
+  animation: fade-in var(--dur) var(--ease) both;
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.muted {
+  color: var(--muted);
+}
+.text-danger {
+  color: var(--danger);
+}
+.text-warn {
+  color: var(--warn);
+}
+
+.error {
+  padding: 8px 12px;
+  border-radius: var(--r-group);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-note);
+  user-select: text;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: var(--h-lg);
+  padding: 0 12px;
+  border-radius: var(--r-control);
+  white-space: nowrap;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.btn-small {
+  gap: 6px;
+  height: var(--h-md);
+  padding: 0 12px;
+}
+/* The dropdown in Settings (interface language): a small arrow on the right, same as the zoom bar */
+.set-select {
+  min-width: 160px;
+  justify-content: space-between;
+  padding: 0 8px 0 12px;
+}
+.set-select svg {
+  width: 12px;
+  height: 12px;
+  color: var(--muted);
+}
+.btn:disabled {
+  opacity: var(--disabled);
+}
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* The primary button is set apart by its blue background, and its text keeps the regular weight (like WinUI's accent button): 600 white text in the notes panel is one level heavier than all other text, making the button look one size larger */
+.btn-primary {
+  background: var(--accent-fill);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--accent-fill-hover);
+}
+.btn-primary:active {
+  background: var(--accent-fill-active);
+}
+.btn-secondary {
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  color: var(--text);
+}
+.btn-secondary:hover {
+  background: var(--hover);
+}
+.btn-ghost {
+  color: var(--text-2);
+}
+.btn-ghost:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.btn-danger {
+  color: var(--danger);
+}
+/* Remove and Delete in confirm dialogs: red text + a light red background (Sy1, the dangerous confirm button). Text on background 4.8:1 */
+.btn-danger-soft {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+  font-weight: 600;
+}
+.btn-danger-soft:hover {
+  background: color-mix(in srgb, var(--danger) 22%, transparent);
+}
+
+/* Icon-only buttons. The toolbar, title bar and control bar share one look and differ only in size */
+.icon-btn,
+.text-btn,
+.hdr-btn,
+.tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: var(--r-control);
+  color: var(--text-2);
+  white-space: nowrap;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.icon-btn:hover,
+.text-btn:hover,
+.hdr-btn:hover,
+.tool-btn:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--text);
+}
+.icon-btn {
+  width: var(--h-lg);
+  height: var(--h-lg);
+}
+.icon-btn:disabled {
+  opacity: var(--disabled);
+  pointer-events: none;
+}
+
+/* ---------- Main layout ---------- */
+
+.app-frame {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.layout {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: var(--left-drag, var(--left-size)) minmax(0, 1fr) var(--right-drag, var(--right-size));
+  transition: grid-template-columns var(--dur-slow) var(--ease);
+}
+.layout.is-resizing {
+  transition: none;
+  cursor: col-resize;
+}
+.layout.is-resizing * {
+  cursor: col-resize !important;
+  user-select: none;
+}
+
+.sidebar,
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--surface);
+}
+.sidebar {
+  border-right: 1px solid var(--border);
+}
+.panel {
+  border-left: 1px solid var(--border);
+}
+.layout.left-collapsed .sidebar,
+.layout.right-collapsed .panel {
+  border-color: transparent;
+}
+/* During the collapse animation the content does not get squeezed: it keeps its minimum width and is clipped by the side panel.
+   The narrowest side panels 180 / 240 (Panels.tsx) include a 1px outline, and the content is 1 less than that, otherwise 1px on the right is clipped when dragged to the narrowest */
+.sidebar > * {
+  min-width: 179px;
+}
+.panel > * {
+  min-width: 239px;
+}
+
+/* The title bars of the three columns have the same height, and the lines at their lower edges join into one (S4) */
+.ws-header,
+.panel-header,
+.stage-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: calc(
+    var(--h-header) + 1px
+  ); /* + the line at the lower edge: the line does not eat into the content area, and a 32 control has 6 above and below (S4) */
+  border-bottom: 1px solid var(--border);
+}
+.ws-header {
+  padding: 0 16px;
+}
+.ws-title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* When Windows "Animation effects" is off (Settings → Accessibility → Visual effects): the interface plays no transitions or animations and jumps straight to the end state (accessibility).
+   The duration stays 0.01ms rather than 0: animation and transition end events still fire, so anything that finishes up through them does not hang */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0.01ms;
+    --dur: 0.01ms;
+    --dur-slow: 0.01ms;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Windows high contrast (forced-colors, accessibility): background colors and shadows are removed by the system and replaced with the system colors. Many of our borders are drawn with shadows
+   and selection relies on background color: here outlines are used instead (taking no space, not disturbing the layout), so clickable things have boundaries, and selected / on ones use the system accent color (Highlight) */
+@media (forced-colors: active) {
+  .btn,
+  .hdr-btn,
+  .tool-btn,
+  .icon-btn,
+  .act,
+  .seg,
+  .dock-all,
+  .zoom-label,
+  .zoom-btn,
+  .titlebar-action,
+  .search-filter,
+  .win-btn,
+  .checkbox,
+  .switch {
+    outline: 1px solid ButtonText;
+    outline-offset: -1px;
+  }
+  /* Separators in menus and the knob of switches were drawn with background colors: draw them with system colors, and use the accent color when a switch is on */
+  .menu-sep {
+    forced-color-adjust: none;
+    background: GrayText;
+  }
+  .switch-knob {
+    forced-color-adjust: none;
+    background: ButtonText;
+  }
+  .switch.is-on .switch-knob {
+    background: Highlight;
+  }
+  .menu,
+  .settings,
+  .sheet,
+  .confirm,
+  .composer,
+  .toast,
+  .tooltip,
+  .tour-card,
+  .hint {
+    outline: 1px solid CanvasText;
+  }
+  /* The tour's highlight box: the outer shadow (dimming, blue ring) is removed and replaced with a box in the accent color */
+  .tour-hole {
+    outline: 2px solid Highlight;
+  }
+  .lib-row.is-selected,
+  .card.is-selected,
+  .seg.is-on,
+  .tool-btn.is-on,
+  .hdr-btn.is-on,
+  .icon-btn.is-on,
+  .act.is-on,
+  .titlebar-action.is-on,
+  .search-filter.is-on,
+  .lib-pin.is-on,
+  .checkbox.is-on,
+  .switch.is-on,
+  .settings-tab.is-on,
+  .menubar-item.is-open {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+  .lib-list:focus-visible .lib-row.is-cursor {
+    outline: 1px dashed Highlight;
+    outline-offset: -1px;
+  }
+  /* The item open on the canvas (a vertical line on the left) and the line at the left of a selected note card: these were drawn with background colors */
+  .lib-row.is-current::before,
+  .group-head.is-current::before {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+  :focus-visible {
+    outline: 2px solid Highlight !important;
+  }
+}
+
+/* CJK fonts follow the interface language (the lang of html follows it, App.tsx): Microsoft JhengHei for Traditional Chinese, Yu Gothic for Japanese (Meiryo UI when missing), Malgun Gothic for Korean */
+:root:lang(zh-TW) {
+  --font-cjk: "Microsoft JhengHei UI";
+}
+:root:lang(ja) {
+  --font-cjk: "Yu Gothic UI", "Meiryo UI";
+}
+:root:lang(ko) {
+  --font-cjk: "Malgun Gothic";
+}
+
+/* The product mark (Wordmark.tsx): icon + product name (message brand.name: the Chinese names in Chinese, SnipToss in other languages). The text uses a bundled Noto Sans SC Medium subset
+   (scripts/build-brand-font.mjs, only the few characters of the product name, about 4KB, inlined into the CSS by Vite so it does not flash). This font has a single weight (fixed at Medium when subsetted), so font-weight 400 = use it as is,
+   without letting the browser embolden it. The letter spacing is opened up a little: 15px Chinese text packed together looks dark */
+@font-face {
+  font-family: "SnipToss Brand";
+  src: url("./assets/brand-name.woff2") format("woff2");
+  font-display: block;
+}
+.brand {
+  display: flex;
+  align-items: center;
+}
+.wordmark {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+.wordmark-mark {
+  display: block;
+  flex: none;
+}
+.wordmark-mark svg {
+  display: block;
+}
+.wordmark-name {
+  font-family: "SnipToss Brand", var(--font-ui);
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  color: var(--text);
+  white-space: nowrap;
+}
+/* The English name SnipToss: Latin letters need no extra letter spacing (the extra spacing is for Chinese) */
+:root:not(:lang(zh)) .wordmark-name {
+  letter-spacing: 0;
+}
+/* On 1x screens the icon drawn on the pixel grid is used (edges stay sharp); on high-DPI screens the pixel version would be scaled by a fractional factor and blur, so switch back to the vector master */
+.wordmark .is-vector {
+  display: none;
+}
+@media (min-resolution: 1.1dppx) {
+  .wordmark .is-pixel {
+    display: none;
+  }
+  .wordmark .is-vector {
+    display: block;
+  }
+}
+/* Settings → About: everything doubled in size */
+.wordmark.is-about {
+  gap: 16px;
+}
+.wordmark.is-about .wordmark-name {
+  font-size: var(--fs-display);
+  line-height: 1;
+}
+
+/* Bottom bar: the same height on both sides (S4), with the text on the 16 line (S5) */
+.sidebar-footer,
+.panel-footer {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: calc(
+    var(--h-bar) + 1px
+  ); /* + the line at the top edge: exactly 32 inside, so text lands on whole pixels and on the same center line as the control bar's controls */
+  border-top: 1px solid var(--border);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  color: var(--muted);
+}
+.sidebar-footer {
+  justify-content: space-between;
+  padding: 0 16px;
+}
+.panel-footer {
+  padding: 0 8px;
+}
+.panel-footer > span {
+  min-width: 0;
+  padding: 0 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.footer-stats {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Version number: users check by it whether they have the latest version; it turns red when the UI and the app were not installed together */
+.app-version {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+.app-version.is-mismatch {
+  color: var(--danger);
+}
+/* Where the notes are stored: a click opens it in File Explorer */
+.footer-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  height: var(--h-sm);
+  padding: 0 8px;
+  border-radius: var(--r-control);
+  color: var(--muted);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+/* The 14 icon sits in a 16 wide cell (1 on each side), gap 8: in the same column as the "Select all" checkbox above, with "Saved in" lined up with the "Select all" text */
+.panel-footer .footer-link {
+  gap: 8px;
+  padding: 0 12px;
+}
+.panel-footer .footer-link svg {
+  box-sizing: content-box;
+  padding: 0 1px;
+}
+.footer-link:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.footer-link svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.footer-link span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The "hand off to AI" strip at the bottom of the notes panel: 44 high (like the title bars of the three columns), and the "Select all" and buttons inside are compact 28 (= 8 + 28 + 8):
+   they are actions under the list, the same size as the list rows and the library's search box; a 32 blue block holding only 13px text looks empty and one size larger than the text beside it.
+   The "Select all" checkbox sits on the notes panel's content line 20, in the same column as the checkboxes on the entries; buttons are 8 from the panel edge (S5).
+   The bottom bar right below drops its top line, and the two merge into one block */
+/* When one row is not enough (long languages such as German and Russian: "Select all" + two copy buttons exceed the panel width) the two buttons wrap to a second row, right-aligned, without squeezing out "Select all" */
+.panel-dock {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: center;
+  gap: 6px 8px;
+  min-height: calc(var(--h-header) + 1px); /* + the line at the top edge, like the title bars of the three columns */
+  padding: 6px 8px;
+  border-top: 1px solid var(--border);
+}
+.panel-dock + .panel-footer {
+  border-top-color: transparent;
+}
+/* When some notes are checked, an extra row appears above the bottom action strip (like Gmail's toolbar after checking): on the left "N selected" sits on content line 20 (8 + 12, in the same column as the "Select all" checkbox),
+   on the right the bulk status buttons (28 high, 8 from the panel edge), wrapping to the next row when there is no room. It merges with the action strip below: it draws its own top line and the strip's line is removed */
+.panel-batch {
+  flex: none;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 8px 0;
+  border-top: 1px solid var(--border);
+}
+.batch-count {
+  margin-right: auto;
+  padding-left: 12px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* The two buttons, delete and "N selected" fit on one row at the default width (320): the buttons keep only 6 on each side (65 + 99 + 99 + 24 + 3 × 4 = 299, 303 available) */
+.panel-batch .btn {
+  padding: 0 6px;
+}
+/* Delete is icon-only (the hover text says how many it deletes), 24 square like the icon buttons on cards: at 320 wide "N selected" + the two status buttons already take about 272, and a 28 one would not fit on the row */
+.panel-batch .batch-delete {
+  width: var(--h-sm);
+  height: var(--h-sm);
+  padding: 0;
+  justify-content: center;
+}
+.panel-batch + .panel-dock {
+  border-top-color: transparent;
+}
+.dock-all {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: var(--h-md);
+  padding: 0 12px;
+  border-radius: var(--r-control);
+  color: var(--text-2);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.dock-all:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.dock-all-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The two buttons keep only 8 on each side (.btn-small has 12): at the default width 320 "Select all" + two buttons fit on one row (74 + 103 + 103 + 2 × 8 = 296, 303 available.
+   "Copy as Text" is 8 wider than the shorter label it replaced, and with 12 "Select all" would be squeezed to "Se…") */
+/* Fills the width left to the right of "Select all", with the buttons right-aligned; if they do not fit the whole group moves to the next row, and if the group still does not fit (Russian) the buttons wrap within it, each row right-aligned */
+.dock-buttons {
+  flex: 1 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px 8px;
+}
+.dock-images,
+.dock-copy {
+  flex: none;
+  padding: 0 8px;
+}
+/* "Copied" and the original text are stacked in the same cell, so the button width does not jump */
+.dock-copy-label {
+  display: grid;
+  justify-items: center;
+}
+.dock-copy-label > * {
+  grid-area: 1 / 1;
+}
+.dock-copy-label .is-hidden {
+  visibility: hidden;
+}
+
+/* ---------- Title bar (TitleBar.tsx): the top row of the window = menu bar + drag area on the blank part + the three window buttons ---------- */
+
+/* The system title bar is removed (DropSystemTitleBar in MainWindow, using WM_NCCALCSIZE), and this strip is the title bar: the blank part is app-region: drag,
+   while clickable things (menus, window buttons) and floating layers that can cover it (menus, dialogs) are always no-drag, otherwise a press would drag the window */
+.titlebar {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  height: calc(
+    var(--h-bar) + 1px
+  ); /* + the line at the lower edge: the 28 menu names have 2 above and below, and the three window buttons are exactly 46 × 32 */
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+/* While a menu is open (useDismiss in Menu.tsx) the whole strip is not a drag region: a press in a drag region is taken by the system to drag the window and the page never sees it, so the menu could not be dismissed.
+   Same as Windows' own menus: with one open, clicking the title bar only closes the menu and does not drag the window */
+.menu-open .titlebar {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+/* In full screen the whole strip is not a drag region either (like browser full screen): full screen is a maximize that covers the taskbar, and the system would treat dragging its title bar as "drag down to restore" and a double-click as restore,
+   leaving the window at normal size while the interface still thinks it is in full screen */
+.titlebar.is-fullscreen {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+.menubar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0 8px;
+}
+/* There is no other text in the title bar, so menu names use the body font size; one level lighter in color, as they are part of the window's frame and should not compete with the content */
+.menubar-item {
+  height: var(--h-md);
+  padding: 0 8px;
+  border-radius: var(--r-control);
+  color: var(--text-2);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+.menubar-item:hover,
+.menubar-item.is-open {
+  background: var(--hover);
+  color: var(--text);
+}
+/* The mnemonic letter (F): hidden normally; shown after a lone Alt or while a menu opened by keyboard is up, hinting which letter to press next */
+.menubar-key {
+  display: none;
+  color: var(--muted);
+}
+.menubar.show-keys .menubar-key {
+  display: inline;
+}
+.menubar.is-armed .menubar-key {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+/* Latin-script languages: the mnemonic letter is within the word (&Datei) and is underlined when shown (like Windows apps) */
+.menubar.show-keys .menubar-mnemonic {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.menubar.is-armed .menubar-mnemonic {
+  color: var(--accent);
+}
+/* The menu name highlighted after a lone Alt (← → move it, ↓ / Enter opens it) */
+.menubar-item.is-hot {
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+/* "Capture" at the right of the title bar: icon + text, the same height as menu items; it belongs to the whole app, not to any one item.
+   A split button: main button + a small arrow on the right, each hovered on its own, with no rounded corners at the seam (S6: joined parts merge into one block) */
+.titlebar-split {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  margin-right: 8px;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+.titlebar-split .menu-root {
+  display: flex;
+}
+.titlebar-action {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--h-md);
+  padding: 0 8px;
+  border-radius: var(--r-control) 0 0 var(--r-control);
+  color: var(--text-2);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+.titlebar-action:hover,
+.titlebar-action.is-on {
+  background: var(--hover);
+  color: var(--text);
+}
+/* Update available (updates.ts): a block of its own (not a split button), text in the accent color, set slightly apart from "Capture" */
+.titlebar-update {
+  margin-right: 4px;
+  border-radius: var(--r-control);
+}
+.titlebar-update,
+.titlebar-update:hover {
+  color: var(--accent);
+}
+.titlebar-more {
+  justify-content: center;
+  width: var(--h-sm);
+  padding: 0;
+  border-radius: 0 var(--r-control) var(--r-control) 0;
+}
+.titlebar-more svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Minimize / maximize / close: size, glyphs and the close red all follow the system (46 × title bar height, 10px line glyphs) */
+.win-btns {
+  flex: none;
+  display: flex;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+.win-btn {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  color: var(--text-2);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.win-btn:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.win-btn:active {
+  background: var(--border-strong);
+}
+.win-close:hover,
+.win-close:active {
+  background: var(--close);
+  color: #fff;
+}
+/* Pulling the top edge up changes the height: WebView2 covers the whole window and the system does not receive the mouse here, so the press is handed to the system (see MainWindow.StartResize) */
+.win-resize {
+  position: absolute;
+  top: 0;
+  z-index: 1;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+.win-resize.is-top {
+  left: 8px;
+  right: 8px;
+  height: 4px;
+  cursor: ns-resize;
+}
+.win-resize.is-topleft,
+.win-resize.is-topright {
+  width: 8px;
+  height: 8px;
+}
+.win-resize.is-topleft {
+  left: 0;
+  cursor: nwse-resize;
+}
+.win-resize.is-topright {
+  right: 0;
+  cursor: nesw-resize;
+}
+
+/* ---------- Library (LibraryPanel.tsx) ---------- */
+
+.search {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--h-md);
+  margin: 8px 8px 0;
+  padding: 0 4px 0 8px;
+  border-radius: var(--r-control);
+  background: var(--bg);
+  /* The outline uses an inset shadow and takes no space: the icon lands exactly on the 16 line (S5) */
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--muted);
+  transition: box-shadow var(--dur-fast) var(--ease);
+}
+.search:focus-within {
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.search svg {
+  flex: none;
+}
+.search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: none;
+}
+.search input::placeholder {
+  color: var(--muted);
+}
+.search-clear {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--h-xs);
+  height: var(--h-xs);
+  border-radius: var(--r-tag);
+  color: var(--muted);
+}
+.search-clear:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.search-clear svg {
+  width: 12px;
+  height: 12px;
+}
+/* The library's "show only items with open notes": when on it looks like the notes panel's switch (light background + outline) */
+.search-filter {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--h-xs);
+  height: var(--h-xs);
+  border-radius: var(--r-tag);
+  color: var(--muted);
+}
+.search-filter:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.search-filter.is-on {
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  color: var(--text);
+}
+.search-filter svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* No padding on the right; that 8 goes to the scrollbar (always occupied, so row widths do not jump as the list gets longer or shorter): the right edge of rows aligns with the search box (S5, container edge 8) */
+/* 4 is left free on the right: the left line (.sash-left) straddles the side panel's edge, and if it covered the right half of the scrollbar, grabbing the thumb would often turn into dragging the side panel */
+.lib-list {
+  position: relative;
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding: 8px 0 8px 8px;
+  margin-right: 4px;
+  outline: none;
+}
+/* The marquee box (LibraryPanel sets its position and size directly while dragging): light blue background + a 1px blue line (like the system marquee; the line must be solid so the extent is clear); above the rows, not blocking the mouse */
+.marquee {
+  display: none;
+  position: absolute;
+  z-index: 2;
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  pointer-events: none;
+}
+/* Row: expand arrow 16 + 4 + icon 16 + 6 + text. Indent 20 = a child row's arrow sits exactly under the parent row's icon */
+/* Indent per level: 20 for the first three levels, then 8 for each level below (at 20 per level a 260 wide side panel shows only a sliver of the name by level 7) */
+.lib-row,
+.lib-note {
+  --indent: calc(4px + min(var(--depth, 0), 3) * 20px + max(var(--depth, 0) - 3, 0) * 8px);
+}
+.lib-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: var(--h-md);
+  padding: 4px 4px 4px var(--indent);
+  border-radius: var(--r-control);
+}
+.lib-row:hover {
+  background: var(--hover);
+}
+/* Selected: light blue background + a light blue outline. With a background only, in grayscale it looks the same as hover (G3, the luminance differs by only 4%).
+   The outline is split into four sides, and when several consecutive selected rows merge into one block the top and bottom sides at the seams are removed, so only the outer frame is outlined */
+.lib-row.is-selected {
+  --edge-t: 1px;
+  --edge-b: 1px;
+  background: var(--accent-soft);
+  box-shadow:
+    inset 1px 0 0 var(--accent-edge),
+    inset -1px 0 0 var(--accent-edge),
+    inset 0 var(--edge-t) 0 var(--accent-edge),
+    inset 0 calc(-1 * var(--edge-b)) 0 var(--accent-edge);
+}
+/* Consecutive selected rows merge into one block with no rounded notch at the seam (a project row has an 8 gap above it and does not merge) */
+.lib-row-wrap:has(+ .lib-row-wrap > .lib-row.is-selected:not(.is-project)) > .lib-row.is-selected {
+  --edge-b: 0px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.lib-row-wrap:has(> .lib-row.is-selected) + .lib-row-wrap > .lib-row.is-selected:not(.is-project) {
+  --edge-t: 0px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+/* Project (the folder where notes are stored): a top-level group, two lines (name + location); 8 between projects and 0 between the rows inside a project (S3, tight inside and loose outside) */
+.lib-row.is-project {
+  min-height: var(--h-header);
+}
+.lib-row.is-project .lib-name {
+  font-weight: 600;
+}
+/* Two-line rows (name + gray text: where the project is, or the folder of a file added on its own): the arrow, icon, and the count and buttons on the right line up with the center of the first line (the name),
+   not the middle of the two lines, which would make the name float above the icon. The name line is 20 high: the 16 arrow, icon and "New" move down 2, the 20 count stays, and the 24 buttons move up 2 */
+.lib-row.has-sub > .lib-twisty,
+.lib-row.has-sub > .kind,
+.lib-row.has-sub > .lib-new {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+.lib-row.has-sub > .badge {
+  align-self: flex-start;
+}
+.lib-row.has-sub > .lib-actions {
+  align-self: flex-start;
+  margin-top: -2px;
+}
+/* 8 of space above a project: put on the layer wrapping it (so it is counted when row heights are measured; virtual scrolling, LibraryPanel) */
+.lib-row-wrap.has-gap {
+  padding-top: 8px;
+}
+/* Keyboard cursor: shown only while the list has focus, so there is no extra frame when using the mouse. The focus color is the same as elsewhere (--accent),
+   1px rather than 2px: rows sit next to each other and a 2px frame is too heavy */
+.lib-list:focus-visible .lib-row.is-cursor {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* The item open on the canvas but not among the selected rows (Ctrl-clicked off in a multi-selection): a thin vertical line on the left (an inset shadow would bend into a bracket along the rounded corner) */
+.lib-row.is-current::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+.lib-twisty {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+}
+/* 16 (the ink is about 8 × 5): at 12 the ink is only 6 × 4 and gray, and hardly looks clickable */
+.lib-twisty svg {
+  width: 16px;
+  height: 16px;
+  transform: rotate(-90deg);
+  transition: transform var(--dur) var(--ease);
+}
+.lib-twisty.is-open svg {
+  transform: none;
+}
+/* Item kinds are told apart by shape alone, always --text-2: a yellow folder and a blue video would make the library look like an IDE's file explorer (F2),
+   and a column of colored icons grabs more attention than the canvas; blue is for interaction only (F5) */
+.kind {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--text-2);
+}
+.kind-missing {
+  color: var(--muted);
+}
+.lib-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  margin-left: 2px;
+}
+.lib-name,
+.lib-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lib-sub {
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  color: var(--muted);
+}
+/* "New" in the list: blue text, no dot, since an orange dot + gray number is already the open count (F5: the same shape must not mean two things) */
+.lib-new {
+  flex: none;
+  margin-left: 4px;
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  color: var(--accent);
+  white-space: nowrap;
+}
+/* The gray text at the end of a folder entry (unsupported files, skipped folders): aligned with the icon on the line above (past the 16 expand arrow + 4 gap) */
+.lib-note {
+  display: flex;
+  flex-direction: column;
+  padding: 0 8px 4px calc(var(--indent) + 20px);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  color: var(--muted);
+}
+.lib-row.is-missing .lib-name {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+/* Open count: a small annotation-orange dot + gray number. Not a solid orange circle, which is the number on a note card: one means "how many", the other "which one" */
+.badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: var(--h-xs);
+  margin-left: 4px;
+  padding: 0 4px;
+  color: var(--text-2);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  font-variant-numeric: tabular-nums;
+}
+.badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mark);
+}
+/* Buttons at the right of a row (project: pin to top, remove; entry: remove): appear on hover and cover the open count; the pin of a pinned project is always shown */
+.lib-actions {
+  display: none;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  margin-left: 4px;
+}
+.lib-row.has-actions:hover .lib-actions,
+.lib-row.is-pinned .lib-actions {
+  display: flex;
+}
+.lib-row.has-actions:hover .badge,
+.lib-row.is-pinned:not(:hover) .lib-act:not(.lib-pin) {
+  display: none;
+}
+.lib-act {
+  display: grid;
+  place-items: center;
+  width: var(--h-sm);
+  height: var(--h-sm);
+  border-radius: var(--r-control);
+  color: var(--muted);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.lib-act svg {
+  width: 14px;
+  height: 14px;
+}
+.lib-act:hover {
+  background: var(--hover-over);
+  color: var(--text);
+}
+.lib-pin.is-on {
+  color: var(--accent);
+}
+/* Between pinned projects and the rest: 8 above and below */
+.lib-sep {
+  height: 1px;
+  margin: 0 8px 8px; /* the 8 above comes from has-gap on the layer around the project row */
+  background: var(--border);
+}
+.lib-empty {
+  padding: 32px 8px;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+  text-align: center;
+}
+.lib-empty-title {
+  font-weight: 600;
+}
+.lib-empty p {
+  margin: 8px 0 0;
+  font-size: var(--fs-caption);
+  line-height: var(--lh-note);
+}
+/* Add Files and Add Folder, always present at the top of the library: the icons land on content line 16 (the buttons have 8 of padding of their own, so they shift out by 8) */
+.lib-header-actions {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  margin-right: -8px;
+}
+.list-empty {
+  padding: 24px 8px;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  text-align: center;
+}
+
+/* ---------- The toolbar above the canvas (StageHeader.tsx) ---------- */
+
+.stage-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg);
+  container-type: inline-size;
+}
+.stage-header {
+  gap: 4px;
+  padding: 0 8px;
+  background: var(--surface);
+}
+.hdr-btn {
+  gap: 6px;
+  height: var(--h-lg);
+  min-width: var(--h-lg);
+  padding: 0 8px;
+}
+.hdr-btn.is-on {
+  color: var(--text);
+}
+.hdr-btn:disabled {
+  opacity: var(--disabled);
+  pointer-events: none;
+}
+/* The small dropdown arrow in a button: one gray level lighter (via color, not by changing the opacity of the whole, G1) */
+.hdr-btn svg:last-child:not(:first-child) {
+  width: 12px;
+  color: var(--muted);
+}
+/* The left and right blocks are equally wide (flex 1 1 0), so the tool group lands in the exact center of the canvas column */
+.hdr-left {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.hdr-file {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 0 4px;
+  overflow: hidden;
+}
+.hdr-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hdr-meta {
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+/* Tool group: a 32 high well around 28 high buttons, padding 2, radius 6 + 2 = 8 (S6) */
+.hdr-tools {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: var(--h-lg);
+  padding: 2px;
+  border-radius: var(--r-group);
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.tool-btn {
+  position: relative;
+  gap: 6px;
+  height: var(--h-md);
+  min-width: var(--h-md);
+  padding: 0 6px;
+}
+.tool-btn.is-on,
+.tool-btn.is-on:hover {
+  background: var(--accent-fill);
+  color: #fff;
+}
+.tool-btn:disabled {
+  opacity: var(--disabled);
+}
+.tool-text {
+  padding: 0 8px 0 6px;
+}
+.hdr-sep {
+  flex: none;
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--border-strong);
+}
+/* Large enough for its own buttons: when there is no room the tool group yields to the left, rather than pushing the right-hand buttons under the tool group (where the "?" used to be covered) */
+.hdr-right {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: max-content;
+}
+/* "⋯": appears only when the canvas area is narrow and holds Undo, Redo, Settings and Shortcuts */
+.hdr-more {
+  display: none;
+}
+/* When the canvas area is narrow the toolbar gives way: text is hidden first, then the file info */
+@container (max-width: 820px) {
+  .tool-text span,
+  .hdr-meta {
+    display: none;
+  }
+  .tool-text {
+    padding: 0 6px;
+  }
+}
+/* Narrower still (in a 944 wide window with both side panels open the canvas area is only 364): secondary buttons fold into "⋯", leaving the annotation tools and the two side panel toggles.
+   By then the file name is squeezed so that not a single character shows (video has one more "Timestamped" button, leaving only 35 on the left, not even enough for the side panel toggle plus the name's padding), so it is hidden;
+   the control bar hides the volume slider (the mute button and ↑ ↓ still adjust it), otherwise the far right sticks out of the control bar by 4 */
+@container (max-width: 480px) {
+  .hdr-wide,
+  .hdr-file,
+  .volume-slider {
+    display: none;
+  }
+  .hdr-more {
+    display: flex;
+  }
+}
+
+/* ---------- Canvas area ---------- */
+
+.stage {
+  anchor-name: --stage; /* the toast is centered on the canvas area (workspace.css) */
+  position: relative;
+  flex: 1;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 24px;
+  overflow: hidden;
+  background: var(--bg);
+}
+/* Covers the canvas area when a note written on an older version is selected: the snapshot from back then (EarlierShot, ADR-0008). Opaque, so the current picture does not show through;
+   placed before the composer (before Composer in the DOM), so the composer is still on top when editing this note */
+.earlier-shot {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px 24px;
+  background: var(--bg);
+}
+.earlier-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 12px;
+  max-width: 100%;
+  padding: 4px 4px 4px 12px;
+  border-radius: var(--r-group);
+  background: var(--surface-2);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+}
+.earlier-title {
+  font-weight: 600;
+  color: var(--text);
+}
+.earlier-note {
+  color: var(--muted);
+}
+.earlier-img {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+}
+.earlier-none {
+  margin: auto;
+  color: var(--muted);
+}
+.stage-empty {
+  color: var(--muted);
+  text-align: center;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+/* The explanation when the list is empty: centered if it fits; in a short window it flows from the top and scrolls (otherwise both ends are clipped by .stage and the add buttons are not visible in the smallest window) */
+.stage-empty.is-welcome {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  padding: 24px;
+  overflow-y: auto;
+}
+.stage-empty.is-welcome > .welcome {
+  margin: auto;
+}
+.stage-empty-title {
+  margin-bottom: 4px;
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  color: var(--text);
+}
+.stage-empty .muted {
+  max-width: 420px;
+  font-size: var(--fs-caption);
+  line-height: var(--lh-note);
+}
+.stage-empty-action {
+  margin-top: 16px;
+}
+/* Two buttons side by side (when a system extension is missing: go to the Microsoft Store + show in File Explorer), wrapping when narrow */
+.stage-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  column-gap: 8px;
+}
+/* The explanation in the middle of the canvas when the list is empty (Welcome.tsx): main sentence → three steps → buttons → small print. The three steps sit in one row and switch to a column automatically when the canvas area is narrow */
+.welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 640px;
+  padding: 0 24px;
+}
+.welcome-lead,
+.welcome-step-body,
+.welcome-foot {
+  font-size: var(--fs-caption);
+  line-height: var(--lh-note);
+}
+.welcome-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 24px;
+  width: 100%;
+  margin: 32px 0;
+  padding: 0;
+  list-style: none;
+}
+.welcome-steps li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+/* Step numbers use a neutral gray circle: annotation orange is for the annotations themselves and blue for interaction only (F5) */
+.welcome-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--h-sm);
+  height: var(--h-sm);
+  margin-bottom: 4px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  color: var(--text-2);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+}
+.welcome-step-title {
+  color: var(--text);
+}
+.welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.welcome-foot {
+  margin: 24px 0 0;
+}
+
+/* ---------- Zoomable canvas (ZoomView.tsx) ---------- */
+
+.zoom-view {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+.zoom-view.is-panning,
+.stage.tool-hand .zoom-view.is-panning {
+  cursor: grabbing;
+}
+.stage.tool-hand .zoom-view {
+  cursor: grab;
+}
+.zoom-content {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+.zoom-content.is-ready {
+  opacity: 1;
+  /* A thin outline + shadow, so the picture is set apart from its surroundings (especially needed when the item has its own dark margins); multiplied by --inv-zoom to cancel the zoom, so the thickness on screen stays the same */
+  box-shadow:
+    0 0 0 calc(1px * var(--inv-zoom, 1)) rgba(255, 255, 255, 0.07),
+    0 calc(8px * var(--inv-zoom, 1)) calc(40px * var(--inv-zoom, 1)) rgba(0, 0, 0, 0.5);
+}
+.zoom-media {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* Once one item pixel covers 3 or more screen pixels: no interpolation, so the pixel grid is visible (to mark precisely you zoom in, and smooth interpolation hides where the edges are) */
+.zoom-content.is-pixelated .zoom-media {
+  image-rendering: pixelated;
+}
+/* An image with transparency (SVG, PNG with alpha): a light checkerboard is laid behind it so dark icons and lines are visible on the dark canvas area too (screenshots get the same, annotate.ts).
+   The squares scale inversely with --inv-zoom and stay 8px on screen */
+.zoom-media.is-transparent {
+  background: repeating-conic-gradient(var(--checker) 0 25%, #fff 0 50%) 0 0 / calc(16px * var(--inv-zoom, 1))
+    calc(16px * var(--inv-zoom, 1));
+}
+/* The zoom bar at the lower right: a well over the picture, 16 from the right edge of the canvas area, aligned with the rightmost icons of the toolbar and control bar (S5).
+   The toast sits just above it (anchor --zoom-bar, workspace.css) */
+.zoom-control {
+  anchor-name: --zoom-bar;
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: var(--h-lg);
+  padding: 2px;
+  border-radius: var(--r-group);
+  background: var(--floating);
+  box-shadow:
+    inset 0 0 0 1px var(--border),
+    var(--shadow-pop);
+  backdrop-filter: blur(8px);
+}
+.zoom-btn,
+.zoom-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--h-md);
+  border-radius: var(--r-control);
+  color: var(--text-2);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.zoom-btn {
+  width: var(--h-md);
+}
+.zoom-label {
+  gap: 2px;
+  min-width: 64px;
+  padding: 0 6px 0 8px;
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  font-variant-numeric: tabular-nums;
+}
+.zoom-label svg {
+  width: 12px;
+  height: 12px;
+  color: var(--muted);
+}
+.zoom-btn:hover,
+.zoom-label:hover,
+.zoom-label.is-on {
+  background: var(--hover);
+  color: var(--text);
+}
+/* The "show / hide canvas marks" cell at the far left of the zoom bar. When hidden it widens and spells out "Marks hidden", with a light background + outline (like a selected cell in a well, G3):
+   when no marks are visible on the canvas, it is obvious at a glance that they are hidden rather than absent */
+.zoom-marks.is-on {
+  gap: 6px;
+  width: auto;
+  padding: 0 8px 0 6px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  color: var(--text);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  white-space: nowrap;
+}
+.zoom-sep {
+  flex: none;
+  width: 1px;
+  height: 16px;
+  margin: 0 2px;
+  background: var(--border-strong);
+}
+
+/* ---------- The ambient background around the canvas (Ambient.tsx) ---------- */
+
+.ambient {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  /* S8 exception: slower, so it does not flash when switching items */
+  transition: opacity 360ms var(--ease);
+}
+.ambient.is-on {
+  opacity: 1;
+}
+.ambient canvas {
+  position: absolute;
+  /* Blur fades the edges to semi-transparent, so spread it out an extra margin to cover that */
+  left: -80px;
+  top: -80px;
+  width: calc(100% + 160px);
+  height: calc(100% + 160px);
+  object-fit: cover;
+  filter: blur(48px) saturate(1.35) brightness(0.6);
+}
+/* Vignette + darkened bottom: the picture stands out more and the text on the control bar stays legible */
+.ambient::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to top, rgba(10, 10, 12, 0.75), transparent 160px),
+    radial-gradient(ellipse at center, transparent 35%, rgba(10, 10, 12, 0.55));
+}
+
+/* ---------- Video player (VideoPlayer.tsx) ---------- */
+
+.stage:has(.video-player) {
+  padding: 16px 16px 0;
+}
+.video-player {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.video-area {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+/* The video's canvas area itself is 16 from the edge, with the zoom bar against its right side and 8 above the control bar */
+.video-area .zoom-control {
+  right: 0;
+  bottom: 8px;
+}
+.hud {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  padding: 8px 16px;
+  border-radius: var(--r-group);
+  background: var(--floating);
+  backdrop-filter: blur(8px);
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  opacity: 0;
+  scale: 0.96;
+  transition:
+    opacity var(--dur) var(--ease),
+    scale var(--dur) var(--ease);
+  pointer-events: none;
+}
+.hud.is-on {
+  opacity: 1;
+  scale: 1;
+}
+
+/* The control bar extends 8 outward on each side: its buttons land on the same vertical line as the toolbar's buttons (S5).
+   The controls sit in the lower 32, on the same center line as the text of the bottom bars on both sides: the bottom row of the window is aligned */
+.transport {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--h-transport);
+  margin: 0 -8px;
+  padding-top: 16px;
+}
+.text-btn {
+  height: var(--h-lg);
+  min-width: 40px;
+  padding: 0 8px;
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  font-variant-numeric: tabular-nums;
+}
+.timecode {
+  flex: none;
+  padding: 0 4px;
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.track {
+  position: relative;
+  flex: 1;
+  height: var(--h-lg);
+  touch-action: none;
+}
+.track-rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 4px;
+  translate: 0 -50%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  transition: height var(--dur-fast) var(--ease);
+}
+.track:hover .track-rail {
+  height: 6px;
+}
+.track-fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left;
+  transform: scaleX(0);
+  background: var(--accent);
+}
+.track-head {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--shadow-on-media);
+  /* A small 8 dot shows even at rest: stopped at 0 seconds before anything has played, the playhead is still visible; on hover it grows to 12 to be easy to grab */
+  scale: calc(8 / 12);
+  transition: scale var(--dur-fast) var(--ease);
+  pointer-events: none;
+}
+.track:hover .track-head,
+.track:active .track-head {
+  scale: 1;
+}
+/* Where a note sits on the control bar: a 4px orange stroke above the track (a dot for a moment, a bar for a range). Clickable: selects it and seeks there */
+.track-mark {
+  position: absolute;
+  top: 50%;
+  min-width: 6px;
+  height: 6px;
+  margin-top: -12px;
+  border-radius: 999px;
+  background: var(--mark);
+  cursor: pointer;
+  transition: box-shadow var(--dur-fast) var(--ease);
+}
+/* 6px is too hard to hit, so expand outward by a margin as the click area */
+.track-mark::before {
+  content: "";
+  position: absolute;
+  inset: -6px -2px -4px;
+}
+.track-mark.is-selected {
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 0 0 3px #fff;
+}
+/* The time above the control bar: follows the mouse on hover, drag and click, and the playhead on keyboard jumps (.is-on, fading out 1 second after the hand stops).
+   One size larger than the timecode at the lower left, readable while dragging; its lower edge is at the control bar's upper edge (the orange note stroke above the track plus another 4), floating up into the gap above it to the picture */
+.track-tip {
+  position: absolute;
+  bottom: 100%;
+  translate: -50% 0;
+  padding: 4px 8px;
+  border-radius: var(--r-control);
+  background: var(--floating);
+  backdrop-filter: blur(8px);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+  pointer-events: none;
+}
+.track:hover .track-tip,
+.track-tip.is-on {
+  opacity: 1;
+}
+/* Volume: a thin track like the control bar's (the lit part = the volume), with the round knob enlarging on hover */
+.volume-slider {
+  flex: none;
+  width: 64px;
+  height: var(--h-lg);
+  margin: 0 8px 0 0;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+.volume-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--accent) var(--fill), rgba(255, 255, 255, 0.12) var(--fill));
+}
+.volume-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--shadow-on-media);
+  scale: calc(8 / 12);
+  transition: scale var(--dur-fast) var(--ease);
+}
+.volume-slider:hover::-webkit-slider-thumb {
+  scale: 1;
+}
+.volume-slider:focus-visible {
+  outline: none;
+}
+.volume-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 0 0 4px var(--accent);
+}
+
+/* ---------- Notes panel ---------- */
+/* Two vertical lines in the notes panel (S5): 20 (entry 8 from the edge + padding 12) holds the checkbox, the tab text and the bottom bar's icon;
+   44 (20 + checkbox 16 + 8) holds the text: the entry number, body and replies, and at the bottom "N selected" and "Saved in" */
+
+.panel-header {
+  gap: 8px;
+  padding: 0 8px;
+}
+/* What the notes panel lists: "This video | Entire project (| Selected)", a well (like the tool group, 32 high, options 28). Text 13, and the number is the open count (one gray level lighter, monospaced).
+   Options have 10 on each side = well padding 2 + 8: the first cell's text lands on the notes panel's content line 20 (S5; check-design registers this exception).
+   When the panel is narrow the options can shrink, the text is ellipsized, and the number stays */
+.scope-switch {
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+  min-width: 0;
+  margin-right: auto;
+}
+.scope-switch .seg {
+  min-width: 0;
+  padding: 0 10px;
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+.scope-switch .seg:disabled {
+  opacity: var(--disabled);
+}
+.seg-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.seg-count {
+  flex: none;
+  font-size: var(--fs-caption);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+/* The "also show resolved" switch: on = like the selected cell in a well (light background + an outline, G3: not by color alone) */
+.icon-btn.is-on,
+.icon-btn.is-on:hover {
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  color: var(--text);
+}
+
+/* Same as the library: the 8 on the right goes to the scrollbar, and the right edge of entries stays aligned with the tabs and the bottom buttons.
+   Entries are only 2 apart (so hover, selected and checked backgrounds do not stick together), and grouping relies on the entries' own padding: 8 inside an entry, 12 + 2 + 12 between entries (S3, tight inside and loose outside) */
+.panel-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding: 8px 0 8px 8px;
+}
+.panel-empty {
+  padding: 32px 16px;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+  color: var(--text-2);
+  text-align: center;
+}
+.panel-empty-action {
+  margin-top: 12px;
+}
+/* Text found by a notes panel search on a card (Highlight.tsx): only a background is laid down, and the text color and weight stay the same */
+.hit {
+  border-radius: 2px;
+  background: var(--hit);
+  color: inherit;
+}
+.panel-empty p {
+  margin: 4px 0 0;
+  font-size: var(--fs-caption);
+  line-height: var(--lh-note);
+  color: var(--muted);
+}
+
+/* When the notes panel lists several items (a project, a folder or several items selected on the left): grouped by item.
+   Entries within a group are 2 apart, and groups are a further 16 apart: from the last entry's text of one group to the next group's title text is about 30, versus about 22 between entries in a group (S3, tight inside and loose outside) */
+.annot-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.annot-group + .annot-group {
+  margin-top: 16px;
+}
+/* Group title: the checkbox (checks the whole group) at 20 and the item name at 44, on the same two lines as the entries (S5). It sticks to the top while scrolling, so it is clear which item the entries below belong to;
+   top −8 = covers the notes panel's top padding and sits against the panel's top edge. A click switches the canvas to this item */
+.group-head {
+  position: sticky;
+  top: -8px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--h-md);
+  padding: 0 12px;
+  border-radius: var(--r-control);
+  background: var(--surface);
+  transition: background-color var(--dur-fast) var(--ease);
+}
+.group-head:not(.is-current):hover {
+  background: var(--hover);
+}
+/* The one open on the canvas: a vertical line on the left, the same look as "currently open" in the library */
+.group-head.is-current::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+/* This group has no entries at all in the current tab: the checkbox is not shown but its space is kept */
+.group-head .card-check:disabled {
+  visibility: hidden;
+}
+/* When the name and the gray text after it (the containing folder / project) do not fit, the gray text is ellipsized first */
+.group-name,
+.group-hint {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.group-name {
+  flex: 0 1 auto;
+  font-weight: 600;
+}
+.group-hint {
+  flex: 0 1000 auto;
+  font-size: var(--fs-caption);
+  color: var(--muted);
+}
+.group-count {
+  flex: none;
+  margin-left: auto;
+  font-size: var(--fs-caption);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+/* A group with nothing in it, and "N more items have no notes" below: the text sits on the 44 line (8 + 24 + 12) */
+.group-empty,
+.group-rest {
+  margin-left: 24px;
+  padding: 4px 12px;
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  color: var(--muted);
+}
+.group-rest {
+  margin-top: 16px;
+}
+/* The group of folder comments: clicking its title opens nothing, and no hover background appears */
+.group-head.is-folder:not(.is-current):hover {
+  background: var(--surface);
+}
+/* The group whose item is gone (deleted, renamed, moved away): clicking its title opens nothing and no hover background appears; the name uses the secondary color, followed by a yellow "item not found" */
+.group-head.is-missing:hover {
+  background: var(--surface);
+}
+.group-head.is-missing .group-name {
+  color: var(--text-2);
+}
+/* Sections within a group (ADR-0008; sections must be clearly separated and collapsible): canvas marks → overall comments → older versions, each with a title row,
+   and the whole row is a button that collapses / expands. The collapse arrow is at 20 (the checkbox column) and the name at 44 (like the card text), the count follows the name one gray level lighter, and a line extends to the right,
+   so the start of a section is obvious at a glance. 28 high, radius like list rows; an extra 8 between sections (S3, tight inside and loose outside: 2 between cards) */
+.note-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: var(--h-md);
+  padding: 0 12px;
+  border-radius: var(--r-control);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  color: var(--text-2);
+  text-align: left;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+.note-section:hover {
+  background: var(--hover);
+}
+.note-section:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+/* Between the last card of one section and the next section's title (a group's first section follows the group title directly, with no extra space) */
+.card + .note-section,
+.note-section-hint + .note-section,
+.note-section + .note-section {
+  margin-top: 8px;
+}
+.note-section-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.note-section-count {
+  flex: none;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.note-section-rule {
+  flex: 1 1 0;
+  min-width: 16px;
+  height: 1px;
+  background: var(--border);
+}
+/* The explanation under the older-versions section title: text on the 44 line (8 + 24 + 12, like the line for a group with nothing in it) */
+.note-section-hint {
+  margin: 0 0 4px 24px;
+  padding: 0 12px;
+  font-size: var(--fs-caption);
+  line-height: var(--lh-note);
+  color: var(--muted);
+}
+/* The row under the search box while filtering, "Showing canvas marks only" and "Clear filter": icon at 20, text at 44 (like cards), and "Clear filter" right-aligned in blue text (interactive) */
+.filter-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--h-md);
+  margin: 4px 8px 0;
+  padding: 0 4px 0 12px;
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  color: var(--text-2);
+}
+.filter-bar svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin: 0 1px;
+  color: var(--muted);
+}
+.filter-bar-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.filter-bar-clear {
+  flex: none;
+  margin-left: auto;
+  height: var(--h-sm);
+  padding: 0 8px;
+  border-radius: var(--r-control);
+  color: var(--accent);
+  white-space: nowrap;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+.filter-bar-clear:hover {
+  background: var(--hover);
+}
+/* With "This image" selected, the line at the top, "N folder comments in the containing folder; View entire project": the whole row is clickable and switches to "Entire project" */
+.folder-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: var(--h-md);
+  margin-bottom: 8px;
+  padding: 0 12px;
+  border-radius: var(--r-control);
+  font-size: var(--fs-caption);
+  color: var(--text-2);
+  text-align: left;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+.folder-hint:hover {
+  background: var(--hover);
+}
+.folder-hint svg {
+  flex: none;
+  color: var(--muted);
+}
+/* When the narrow panel has no room, the leading text is ellipsized first and "View entire project" does not wrap */
+.folder-hint-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.folder-hint-go {
+  flex: none;
+  margin-left: auto;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* Note entries: laid flat on the panel rather than as separate cards, since a panel full of frames (every entry with a background and an outline) looks fragmented (F2);
+   like the comment panels of Frame.io and Figma, and the same grammar as the library list on the left: a background floats up on hover; the selected entry gets the same background plus an annotation-orange outline (F5),
+   at least no weaker than hover (--surface-2 would be darker than hover, inverting the hierarchy).
+   Checked entries get no background: several checked in a row would become a stack of blue cards, so checking is shown by the blue checkbox and "N selected" at the bottom.
+   Padding 12 left and right: the body text lands on the 20 line; 12 above and 8 below: the lower half of the body's 20 line height already has about 4 of space, so the ink has 12 above and below.
+   --card-bg gives the action strip floating at the top right (.card-actions) the same background */
+.card {
+  --card-bg: transparent;
+  position: relative;
+  display: block;
+  flex: none;
+  width: 100%;
+  padding: 12px 12px 8px;
+  border: 0;
+  border-radius: var(--r-group);
+  background: var(--card-bg);
+  text-align: left;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+.card:hover {
+  --card-bg: var(--hover);
+}
+.card.is-selected {
+  --card-bg: var(--hover);
+  box-shadow: inset 0 0 0 1px var(--mark);
+}
+/* Done / Won't fix: the text drops one color level and the number turns gray. The opacity of the whole is not changed (G1: a semi-transparent block makes text fall back to grayscale antialiasing and look disabled) */
+.card.status-resolved .card-body,
+.card.status-wontfix .card-body {
+  color: var(--text-2);
+}
+/* The body drops to --text-2, and the AI's reply drops one more level so the two differ in color (S2: 12 and 13 next to each other must differ by one color level) */
+.card.status-resolved .reply,
+.card.status-wontfix .reply {
+  color: var(--muted);
+}
+.card.status-resolved .chip,
+.card.status-wontfix .chip,
+.card.status-resolved .card-time,
+.card.status-wontfix .card-time {
+  color: var(--muted);
+}
+/* When the notes panel is narrow the whole block wraps, instead of squeezing "Change" and "Overall" into one character per line */
+.card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+}
+.card-head > * {
+  flex: none;
+  white-space: nowrap;
+}
+/* Checkbox (Checkbox.tsx): 16 × 16, radius 4. Unchecked is an outline in --muted (4.6:1 on the card background, passing the 3:1 non-text contrast);
+   checked is a white check on blue: checking is an interactive state and belongs to --accent (F5), not to be confused with the orange numbers */
+.checkbox {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--r-tag);
+  box-shadow: inset 0 0 0 1px var(--muted);
+  color: #fff;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+.checkbox.is-on {
+  background: var(--accent-fill);
+  box-shadow: none;
+}
+.card-check:hover .checkbox,
+.dock-all:hover .checkbox {
+  box-shadow: inset 0 0 0 1px var(--text-2);
+}
+.card-check:hover .checkbox.is-on,
+.dock-all:hover .checkbox.is-on {
+  background: var(--accent-fill-hover);
+  box-shadow: none;
+}
+/* The checkbox on a card: looks 16, with the clickable area extended by 4 on every side (by a pseudo-element), so it need not be aimed at too precisely */
+.card-check {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-tag);
+}
+.card-check::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}
+.card-check:focus-visible,
+.dock-all:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* Number: the same orange circle as the marks on the canvas */
+.card-num {
+  display: grid;
+  place-items: center;
+  min-width: var(--h-xs);
+  height: var(--h-xs);
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--mark);
+  color: #fff;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.card.status-resolved .card-num,
+.card.status-wontfix .card-num {
+  background: var(--border-strong);
+}
+/* Numbers of overall comments and older-version notes: a gray square, not like the orange circle on the canvas, since there is no corresponding mark on the canvas (otherwise one could not find where "2" is on the canvas, ADR-0008) */
+.card-num.is-plain {
+  border-radius: var(--r-tag);
+  background: var(--hover-over);
+  color: var(--text-2);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+/* Category: text in the category color only, with no background (a column of entries looks less fragmented). No dot: right after the orange number, "big circle, small circle, text" would crowd together,
+   and since the text is already in the category color the dot would say it twice. The options in the composer are gray text normally and the color can only come from the dot, so it stays there */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  height: var(--h-xs);
+}
+.chip-change {
+  color: var(--cat-change);
+}
+.chip-remove {
+  color: var(--cat-remove);
+}
+.chip-add {
+  color: var(--cat-add);
+}
+.chip-question {
+  color: var(--cat-question);
+}
+/* A video's time: at the start of the body, one size smaller, one gray level lighter, with monospaced digits */
+.card-time {
+  margin-right: 8px;
+  font-size: var(--fs-caption);
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+/* Tags (overall comment, done / won't fix): small gray blocks. The background uses --hover-over (7% white overlay), so it still shows as a block when the entry's background changes on hover or selection */
+.tag,
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  height: var(--h-xs);
+  padding: 0 6px;
+  border-radius: var(--r-tag);
+  background: var(--hover-over);
+  color: var(--text-2);
+}
+.status-tag {
+  margin-left: auto;
+}
+/* Has been copied out: a line of faint text at the right of the title row, "Copied 10:32", on the left when shown next to "Done"; the action strip covers it on hover (like the date at the right of a Gmail list) */
+.card-handed {
+  margin-left: auto;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.card-handed + .status-tag {
+  margin-left: 0;
+}
+/* This note's marks are hidden on the canvas: a crossed-out eye (gray) after the category, visible without hovering */
+.card-mark-hidden {
+  display: grid;
+  place-items: center;
+  height: var(--h-xs);
+  color: var(--muted);
+}
+.card-mark-hidden svg {
+  width: 14px;
+  height: 14px;
+}
+.tag-warn {
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
+  color: var(--warn);
+}
+/* The body and replies start at the 44 line, in the same column as the number: the checkbox occupies a column of its own on the left, like "a column of icons, a column of text" in the library.
+   If the body went back to 20 under the checkbox, the title row's text would be at 82 and the body at 20, so each entry's left edge would step up and down and a stack of entries would look jagged and rough */
+.card-body,
+.reply {
+  margin-left: 24px;
+}
+.card-body {
+  margin-top: 8px;
+  text-wrap: pretty;
+  user-select: text;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.reply {
+  margin-top: 8px;
+  padding-left: 8px;
+  border-left: 2px solid var(--border-strong);
+  color: var(--text-2);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-note);
+  user-select: text;
+}
+.reply-author {
+  font-weight: 600;
+  margin-right: 6px;
+}
+/* Actions: float at the right of the title row on hover (or when reached with Tab), like Gmail's list. They do not expand the entry: expanding a row underneath moved the entries below by 32,
+   so the whole column jumped as the mouse swept down and clicks easily missed.
+   Only two buttons (Copy as Text, "⋯"), 66 wide including the fade: even with the notes panel at its narrowest 240 they do not cover the category and "Overall" (S5).
+   top 10 = padding 12 − (button 24 − title row 20) / 2, on the same center line as the title row; right 6 = padding 12 − outward extension 6 (button padding 4 + glyph inset 2),
+   so the glyph edge of "⋯" aligns with the right edge of the body (S5 optical correction). A layer with the same background as the entry sits under it with a 16 fade on the left, so a covered "Done" is not cut off abruptly.
+   While the "⋯" menu is open the mouse moves into the menu and the entry is no longer hovered, but the action strip stays: otherwise the button would vanish while the menu is still hanging there */
+.card-actions {
+  position: absolute;
+  top: 10px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-left: 16px;
+  border-radius: var(--r-control);
+  background: linear-gradient(var(--card-bg), var(--card-bg)), var(--surface);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 16px);
+  mask-image: linear-gradient(to right, transparent, black 16px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+.card:hover .card-actions,
+.card-actions:has(:focus-visible),
+.card-actions:has(.is-on) {
+  opacity: 1;
+  pointer-events: auto;
+}
+.act {
+  display: grid;
+  place-items: center;
+  width: var(--h-sm);
+  height: var(--h-sm);
+  border-radius: var(--r-control);
+  color: var(--text-2);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.act:hover,
+.act.is-on {
+  background: var(--hover-over);
+  color: var(--text);
+}
+.card-draft {
+  box-shadow: none;
+  outline: 1px dashed var(--mark);
+  outline-offset: -1px;
+  color: var(--text-2);
+}
+
+/* ---------- Side panels: drag to resize, collapse ---------- */
+
+.sash {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 9px;
+  z-index: 30;
+  cursor: col-resize;
+  touch-action: none;
+}
+.sash-left {
+  left: calc(var(--left-drag, var(--left-size)) - 5px);
+}
+.sash-right {
+  right: calc(var(--right-drag, var(--right-size)) - 5px);
+}
+.sash::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 3px;
+  background: transparent;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+/* Lights up only after a short wait on hover, so it does not flicker when the mouse passes */
+.sash:hover::after {
+  background: var(--accent);
+  transition-delay: 250ms;
+}
+.sash.is-active::after {
+  background: var(--accent);
+  transition-delay: 0ms;
+}

@@ -1,0 +1,26 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.vite/
+# Data created by annotating inside examples
+examples/**/.sniptoss/
+examples/**/.pizhu/
+app/bin/
+app/obj/
+examples/demo/
+# Test build output, plus the screenshots and traces left by failed e2e runs
+tests/**/bin/
+tests/**/obj/
+tests/e2e/.results/
+# The app built for the real-shell smoke tests (npm run e2e:shell) and the screenshots from failures
+tests/shell/.app/
+tests/shell/.app-r2r/
+tests/shell/.results/
+tests/perf/.results/
+tests/soak/.results/
+test-results/
+playwright-report/
+# Files shared into the sandbox, and the results, when testing the installer there (tests/sandbox/run.ps1)
+tests/sandbox/.run/
+tests/sandbox/.cache/

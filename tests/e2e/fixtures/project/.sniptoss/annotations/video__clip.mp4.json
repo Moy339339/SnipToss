@@ -1,0 +1,27 @@
+{
+  "schema": "pizhu/3",
+  "material": {
+    "path": "video/clip.mp4",
+    "kind": "video",
+    "sha256": "ee7033a381718d4ef7449c5a8eb441e278512f3d7cec6cefffd25c1959cd1f43",
+    "width": 320,
+    "height": 180,
+    "duration": 3
+  },
+  "annotations": [
+    {
+      "id": "p0c7xe",
+      "status": "open",
+      "category": "remove",
+      "body": "这段水印去掉",
+      "anchor": {
+        "time": { "start": 1.5, "end": 2.5 },
+        "shape": { "type": "point", "x": 0.9, "y": 0.9 }
+      },
+      "author": "user",
+      "created_at": "2026-10-13T02:22:00Z",
+      "updated_at": "2026-10-13T02:22:00Z",
+      "replies": []
+    }
+  ]
+}

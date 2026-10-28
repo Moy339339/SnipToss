@@ -1,0 +1,24 @@
+# Dependency updates (supply-chain security): npm and NuGet are checked weekly, GitHub Actions monthly; minor versions are grouped into one PR, major versions get their own.
+# It only opens PRs; a person decides whether to merge. After upgrading a dependency, rerun node scripts/build-notices.mjs (third-party notices; publish.ps1 checks them before a release)
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      npm-minor:
+        patterns: ["*"]
+        update-types: [minor, patch]
+  - package-ecosystem: nuget
+    directories: [/app, /tests/AppTests]
+    schedule:
+      interval: weekly
+    groups:
+      nuget-minor:
+        patterns: ["*"]
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

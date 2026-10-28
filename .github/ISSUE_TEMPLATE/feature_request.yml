@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest an improvement or a new feature
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: Describe the task and what gets in the way today. The problem matters more than a specific solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help
+      description: How you imagine it working, and anything you've tried instead.
+  - type: input
+    id: agent
+    attributes:
+      label: Which AI tools do you hand notes to?
+      placeholder: e.g. Claude Code, Codex, a web-based AI, a chat app

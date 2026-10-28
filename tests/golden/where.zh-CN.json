@@ -1,0 +1,265 @@
+[
+  {
+    "name": "Grid: top left, with pixels",
+    "shape": {
+      "type": "point",
+      "x": 0.1,
+      "y": 0.1
+    },
+    "size": {
+      "width": 1000,
+      "height": 500
+    },
+    "text": "位置 画面左上（横 10%、纵 10%），x=100 y=50 px"
+  },
+  {
+    "name": "Grid: center, size unknown so percentages only",
+    "shape": {
+      "type": "point",
+      "x": 0.5,
+      "y": 0.5
+    },
+    "size": null,
+    "text": "位置 画面中央（横 50%、纵 50%）"
+  },
+  {
+    "name": "Grid: right, middle",
+    "shape": {
+      "type": "point",
+      "x": 0.9,
+      "y": 0.6
+    },
+    "size": null,
+    "text": "位置 画面右侧居中（横 90%、纵 60%）"
+  },
+  {
+    "name": "Grid: bottom, middle",
+    "shape": {
+      "type": "point",
+      "x": 0.5,
+      "y": 0.95
+    },
+    "size": {
+      "width": 1920,
+      "height": 1080
+    },
+    "text": "位置 画面下方居中（横 50%、纵 95%），x=960 y=1026 px"
+  },
+  {
+    "name": "Exactly on the thirds (1/3, 2/3) counts as the middle cell",
+    "shape": {
+      "type": "point",
+      "x": 0.3333333333333333,
+      "y": 0.6666666666666666
+    },
+    "size": {
+      "width": 1920,
+      "height": 1080
+    },
+    "text": "位置 画面中央（横 33%、纵 67%），x=640 y=720 px"
+  },
+  {
+    "name": "Region: an ordinary box",
+    "shape": {
+      "type": "rect",
+      "x": 0.1234,
+      "y": 0.0555,
+      "w": 0.4,
+      "h": 0.1
+    },
+    "size": {
+      "width": 1920,
+      "height": 1080
+    },
+    "text": "区域 画面左上（横 12%–52%、纵 6%–16%），x=237 y=60 宽=768 高=108 px"
+  },
+  {
+    "name": "Region: spans the width",
+    "shape": {
+      "type": "rect",
+      "x": 0,
+      "y": 0.85,
+      "w": 1,
+      "h": 0.15
+    },
+    "size": {
+      "width": 1920,
+      "height": 1080
+    },
+    "text": "区域 横贯画面下部（横 0%–100%、纵 85%–100%），x=0 y=918 宽=1920 高=162 px"
+  },
+  {
+    "name": "Region: spans the height",
+    "shape": {
+      "type": "rect",
+      "x": 0.05,
+      "y": 0,
+      "w": 0.2,
+      "h": 1
+    },
+    "size": null,
+    "text": "区域 纵贯画面左侧（横 5%–25%、纵 0%–100%）"
+  },
+  {
+    "name": "Region: covers most of the frame",
+    "shape": {
+      "type": "rect",
+      "x": 0.1,
+      "y": 0.1,
+      "w": 0.8,
+      "h": 0.8
+    },
+    "size": {
+      "width": 1920,
+      "height": 1080
+    },
+    "text": "区域 覆盖画面大部分（横 10%–90%、纵 10%–90%），x=192 y=108 宽=1536 高=864 px"
+  },
+  {
+    "name": "Region: width of exactly 0.66 counts as spanning",
+    "shape": {
+      "type": "rect",
+      "x": 0.1,
+      "y": 0.4,
+      "w": 0.66,
+      "h": 0.1
+    },
+    "size": {
+      "width": 1920,
+      "height": 1080
+    },
+    "text": "区域 横贯画面中部（横 10%–76%、纵 40%–50%），x=192 y=432 宽=1267 高=108 px"
+  },
+  {
+    "name": "Rounding: pixels at exactly .5 round up (2.5 → 3, not banker's rounding to 2)",
+    "shape": {
+      "type": "rect",
+      "x": 0.5,
+      "y": 0.5,
+      "w": 0.1,
+      "h": 0.1
+    },
+    "size": {
+      "width": 5,
+      "height": 5
+    },
+    "text": "区域 画面中央（横 50%–60%、纵 50%–60%），x=3 y=3 宽=1 高=1 px"
+  },
+  {
+    "name": "Rounding: percentages at exactly .5 round up (12.5 → 13)",
+    "shape": {
+      "type": "rect",
+      "x": 0.125,
+      "y": 0.375,
+      "w": 0.25,
+      "h": 0.125
+    },
+    "size": null,
+    "text": "区域 画面左侧居中（横 13%–38%、纵 38%–50%）"
+  },
+  {
+    "name": "Rounding: negative .5 rounds toward the larger value (-2.5 → -2)",
+    "shape": {
+      "type": "point",
+      "x": -0.0025,
+      "y": 0.5
+    },
+    "size": {
+      "width": 1000,
+      "height": 1000
+    },
+    "text": "位置 画面左侧居中（横 0%、纵 50%），x=-2 y=500 px"
+  },
+  {
+    "name": "Outside the frame: percentages clamped to 0–100, pixels as they are",
+    "shape": {
+      "type": "rect",
+      "x": -0.1,
+      "y": 0.9,
+      "w": 0.3,
+      "h": 0.2
+    },
+    "size": {
+      "width": 1000,
+      "height": 1000
+    },
+    "text": "区域 画面左下（横 0%–20%、纵 90%–100%），x=-100 y=900 宽=300 高=200 px"
+  },
+  {
+    "name": "Arrow: start and end",
+    "shape": {
+      "type": "arrow",
+      "from": [
+        0.1,
+        0.9
+      ],
+      "to": [
+        0.5,
+        0.5
+      ]
+    },
+    "size": {
+      "width": 1000,
+      "height": 500
+    },
+    "text": "箭头 从画面左下（横 10%、纵 90%）指向画面中央（横 50%、纵 50%），从 (100, 450) 到 (500, 250) px"
+  },
+  {
+    "name": "Arrow: size unknown",
+    "shape": {
+      "type": "arrow",
+      "from": [
+        0.8,
+        0.2
+      ],
+      "to": [
+        0.2,
+        0.75
+      ]
+    },
+    "size": null,
+    "text": "箭头 从画面右上（横 80%、纵 20%）指向画面左下（横 20%、纵 75%）"
+  },
+  {
+    "name": "Pen: described by its bounding box",
+    "shape": {
+      "type": "path",
+      "points": [
+        [
+          0.7,
+          0.1
+        ],
+        [
+          0.9,
+          0.3
+        ],
+        [
+          0.75,
+          0.25
+        ]
+      ]
+    },
+    "size": {
+      "width": 1920,
+      "height": 1080
+    },
+    "text": "画笔标记 画面右上（横 70%–90%、纵 10%–30%），x=1344 y=108 宽=384 高=216 px"
+  },
+  {
+    "name": "Pen: a single point",
+    "shape": {
+      "type": "path",
+      "points": [
+        [
+          0.3,
+          0.3
+        ]
+      ]
+    },
+    "size": {
+      "width": 800,
+      "height": 600
+    },
+    "text": "画笔标记 画面左上（横 30%–30%、纵 30%–30%），x=240 y=180 宽=0 高=0 px"
+  }
+]

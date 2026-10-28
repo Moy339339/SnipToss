@@ -1,0 +1,29 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+
+[*.{cs,csproj,props,targets}]
+indent_size = 4
+
+# C# code analysis (Directory.Build.props enables the recommended level): switch off the rules that only police style and catch no bugs
+[*.cs]
+# Underscores in names: test names use underscores to separate words, and P/Invoke keeps the Win32 names (NCCALCSIZE_PARAMS)
+dotnet_diagnostic.CA1707.severity = none
+# "Use a concrete type instead of the interface" buys only a little performance
+dotnet_diagnostic.CA1859.severity = none
+
+[tests/**.cs]
+# Inline array arguments in tests read more directly
+dotnet_diagnostic.CA1861.severity = none
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{ps1,psm1}]
+indent_size = 4

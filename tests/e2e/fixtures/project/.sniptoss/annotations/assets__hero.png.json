@@ -1,0 +1,48 @@
+{
+  "schema": "pizhu/3",
+  "material": {
+    "path": "assets/hero.png",
+    "kind": "image",
+    "sha256": "4a55b5f936fd0481bd9dcb1b355e441ee181b5f1c2104fe1d310b9bb02adaec1",
+    "width": 640,
+    "height": 360
+  },
+  "annotations": [
+    {
+      "id": "k3f9a2",
+      "status": "open",
+      "category": "change",
+      "body": "标题字太细了，换成粗一点的黑体",
+      "anchor": {
+        "shape": {
+          "type": "rect",
+          "x": 0.1333,
+          "y": 0.0796,
+          "w": 0.4,
+          "h": 0.1
+        }
+      },
+      "author": "user",
+      "created_at": "2026-10-13T02:20:00Z",
+      "updated_at": "2026-10-14T13:06:00.157Z",
+      "replies": []
+    },
+    {
+      "id": "done01",
+      "status": "resolved",
+      "category": "remove",
+      "body": "右下角水印删掉",
+      "anchor": {},
+      "author": "user",
+      "created_at": "2026-10-13T02:21:00Z",
+      "updated_at": "2026-10-13T03:00:00Z",
+      "replies": [
+        {
+          "author": "codex",
+          "body": "已删",
+          "at": "2026-10-13T03:00:00Z"
+        }
+      ]
+    }
+  ]
+}

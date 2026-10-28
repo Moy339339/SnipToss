@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023", "DOM"],
+    "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "sourceMap": false
+  },
+  "include": [
+    "./**/*.ts",
+    "../perf/**/*.ts",
+    "../soak/**/*.ts",
+    "../../playwright.shell.config.ts",
+    "../../playwright.perf.config.ts",
+    "../../playwright.soak.config.ts"
+  ]
+}

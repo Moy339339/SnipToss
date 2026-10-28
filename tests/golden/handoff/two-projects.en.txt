@@ -1,0 +1,56 @@
+Please change the items as described in the notes below (1 folder, 2 items; 9 notes in all).
+2 of them are already resolved (marked “resolved”) and are for reference only; don't change anything for them unless the user says otherwise.
+Notes marked “Whole folder” apply to every item in that folder (including subfolders), not to one particular file.
+Where a note marks several places, the comment applies to every one of them.
+Categories: “Change” means modify the marked content as described; “Remove” means remove the marked content; “Add” means add content at the marked spot.
+For notes that have a snapshot, look at the snapshot first (the position is marked on it). Each position starts with a rough location in the frame, followed in parentheses by percentages measured from the top-left corner; px values are pixels of the original item, with the origin at the top left; video times are minutes:seconds.milliseconds (hours:minutes:seconds.milliseconds for one hour or longer).
+The files are in these project folders:
+- “EP003”: E:\work\EP003
+- “poster”: \\nas\share\poster
+File and snapshot paths below are relative to the project folder, with the full path in parentheses after each file; if the project folder has moved, find the files by their relative paths.
+
+## Whole folder: assets  ·  Folder comment: applies to every item in the folder (including subfolders)
+Folder: assets/ in project “EP003” (full path: E:\work\EP003\assets)
+
+1. Change · Whole folder
+这个文件夹里的图统一换成暖色调
+
+## 第1条.mp4  ·  Video 1080×1920 · 00:32.500
+File: 片头/第1条.mp4 in project “EP003” (full path: E:\work\EP003\片头\第1条.mp4)
+
+1. (resolved: done) Question · Region: top left of the frame (x 10%–40%, y 20%–30%), x=108 y=384 w=324 h=192 px
+这里是不是少了字幕？
+
+### Timestamped notes (about a moment or range in the video, no specific location)
+
+1. Change · 00:12.500
+标题字太细了
+Snapshot: .sniptoss/snapshots/v00001.png
+
+### Overall notes (about the whole file, no specific location)
+
+1. Change
+整体节奏偏慢，配乐换轻快一点
+
+### Notes on an earlier version (the file was replaced after these were written: locations refer to the file as it was then, so go by the snapshots)
+
+1. Remove · 01:05.250–01:10.000 · Region: bottom right of the frame (x 70%–95%, y 85%–95%), x=756 y=1632 w=270 h=192 px
+这段水印去掉
+Snapshot: .sniptoss/snapshots/v00002.png
+
+## 主视觉.png  ·  Image 1920×1080
+File: 海报/主视觉.png in project “poster” (full path: \\nas\share\poster\海报\主视觉.png)
+
+1. Change · Arrow: from top left of the frame (x 20%, y 30%) to center of the frame (x 45%, y 50%), from (384, 324) to (864, 540) px
+箭头指的按钮改成品牌蓝
+
+2. Add · Freehand mark: middle left of the frame (x 10%–50%, y 60%–65%), x=192 y=648 w=768 h=54 px
+这里加一行副标题
+
+3. (resolved: won't fix) Change · Point: top right of the frame (x 90%, y 10%), x=1728 y=108 px
+不用改
+
+4. Change · 3 places — Region: bottom left of the frame (x 10%–30%, y 80%–88%), x=192 y=864 w=384 h=86 px; Region: bottom center of the frame (x 40%–60%, y 80%–88%), x=768 y=864 w=384 h=86 px; Point: bottom right of the frame (x 85%, y 85%), x=1632 y=918 px
+这几个按钮都改成圆角
+
+Re-export after the changes; keep the file names

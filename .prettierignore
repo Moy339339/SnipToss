@@ -1,0 +1,11 @@
+**/dist/
+**/node_modules/
+app/bin/
+app/obj/
+tests/**/bin/
+tests/**/obj/
+examples/
+design/
+package-lock.json
+# The docs are laid out by hand (long paragraphs, tables); keep Prettier off them
+*.md

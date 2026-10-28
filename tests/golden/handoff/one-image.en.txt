@@ -1,0 +1,16 @@
+Please change this image as described in the 2 notes below.
+Categories: “Change” means modify the marked content as described; “Remove” means remove the marked content.
+Every note has a snapshot with the position marked on it; look at the snapshot before making the change. Each position starts with a rough location in the frame, followed in parentheses by percentages measured from the top-left corner; px values are pixels of the original item, with the origin at the top left; video times are minutes:seconds.milliseconds (hours:minutes:seconds.milliseconds for one hour or longer).
+All files are in the project folder “a” (currently at E:\a).
+File and snapshot paths below are relative to the project folder, with the full path in parentheses after each file; if the project folder has moved, find the files by their relative paths.
+
+## 海报.png  ·  Image 1920×1080
+File: 海报.png (full path: E:\a\海报.png)
+
+1. Change · Region: top left of the frame (x 10%–40%, y 20%–30%), x=192 y=216 w=576 h=108 px
+标题字太细了
+Snapshot: .sniptoss/snapshots/aaaaaa.png
+
+2. Remove · Region: top left of the frame (x 10%–40%, y 20%–30%), x=192 y=216 w=576 h=108 px
+右下角的图标去掉
+Snapshot: .sniptoss/snapshots/bbbbbb.png

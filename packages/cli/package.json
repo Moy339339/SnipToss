@@ -1,0 +1,15 @@
+{
+  "name": "@sniptoss/cli",
+  "version": "0.1.0",
+  "private": true,
+  "author": "MoyGoldenAge <jujuw3939@outlook.com>",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "sniptoss": "dist/index.js"
+  },
+  "dependencies": {
+    "@sniptoss/core": "*",
+    "intl-messageformat": "^12.1.3"
+  }
+}

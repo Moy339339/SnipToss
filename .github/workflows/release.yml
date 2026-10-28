@@ -1,0 +1,67 @@
+# Release pipeline (ADR-0002): push a v* tag -> run the full checks on Windows (same as ci.yml) -> scripts/publish.ps1 -> draft Release (with the portable zip and SHA256SUMS.txt).
+# A person reviews the draft before publishing it. Versions with a "-" (1.0.0-beta.N) are marked pre-release (the updater's beta channel). Signing is still to come.
+# The tag must match the version in the root package.json: v1.0.0-beta.65
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Tag matches the version
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ("v$version" -ne $env:GITHUB_REF_NAME) { throw "Tag $env:GITHUB_REF_NAME does not match the package.json version $version" }
+          "VERSION=$version" >> $env:GITHUB_ENV
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - run: npm run verify
+        shell: pwsh
+
+      - name: Release packages (self-contained win-x64 + portable zip + SHA256)
+        shell: pwsh
+        run: pwsh -File scripts/publish.ps1 -NoUi
+
+      - name: Draft Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The installer: publish.ps1 builds it when Inno Setup 6 is installed on the runner
+          $files = @(Get-ChildItem dist/release -File -Filter "SnipToss-$env:VERSION-*" | ForEach-Object FullName) + 'dist/release/SHA256SUMS.txt'
+          $flags = @('--draft', '--generate-notes', '--title', "SnipToss $env:VERSION")
+          if ($env:VERSION -match '-') { $flags += '--prerelease' }
+          gh release create $env:GITHUB_REF_NAME @files @flags
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: e2e-results
+          path: tests/e2e/.results/
+          retention-days: 7

@@ -1,0 +1,75 @@
+// oxlint instead of ESLint: the project is on TypeScript 7 (native compiler, no JS API), and typescript-eslint only supports up to 6.0.
+// oxlint uses the same rule names as ESLint and also honors eslint-disable comments in the code. Run: npm run lint
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "jsx-a11y", "unicorn", "oxc"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "env": { "browser": true, "node": true, "es2024": true },
+  "rules": {
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "error",
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrors": "none" }],
+    // The full-width space is a deliberate separator in the UI (Tooltip splits shortcut keys on it), so only check the code itself
+    "no-irregular-whitespace": ["error", { "skipComments": true, "skipStrings": true, "skipRegExps": true, "skipTemplates": true }],
+
+    // The new JSX transform needs no import React
+    "react/react-in-jsx-scope": "off",
+    // The React Compiler family (reading/writing a ref during render, assigning to a ref in a prop, setState synchronously in an effect, wrong dependencies): all fixed, now errors.
+    // When a callback must read the latest value without re-attaching a listener, use useEffectEvent; to adjust state from the previous render, compare during render (seenProject in panelScope.ts)
+    "react/refs": "error",
+    "react/immutability": "error",
+    "react/set-state-in-effect": "error",
+    "react/exhaustive-effect-dependencies": "error",
+    "react/memo-dependencies": "error",
+    // A menu button's trigger={() => <MoreIcon />} is a render function that Menu calls directly (props.trigger(isOpen)), not a component that gets mounted, so it is not rebuilt on every render
+    "react/no-unstable-nested-components": ["warn", { "allowAsProps": true }],
+
+    // Accessibility: clear errors are blocked outright; the rest start as warnings and become errors once fixed
+    "jsx-a11y/alt-text": "error",
+    "jsx-a11y/aria-props": "error",
+    "jsx-a11y/aria-role": "error",
+    "jsx-a11y/role-has-required-aria-props": "error",
+    "jsx-a11y/no-autofocus": "off",
+    // The custom-drawn checkbox, radio, switch, dialog, status region and image deliberately use role: keyboard and focus are managed by hand (useDialogFocus / trapTab in Menu.tsx, the Checkbox component).
+    // Native <dialog> / <input> / <output> would bring in the browser's default styling and behavior (top layer, built-in Esc), which clashes with the existing focus and close rules
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "jsx-a11y/no-noninteractive-element-interactions": "warn",
+    "jsx-a11y/interactive-supports-focus": "warn",
+    "jsx-a11y/media-has-caption": "off",
+    "jsx-a11y/control-has-associated-label": "warn",
+    "jsx-a11y/click-events-have-key-events": "warn",
+    "jsx-a11y/no-static-element-interactions": "warn",
+    "jsx-a11y/label-has-associated-control": "warn",
+
+    // Style-only rules that catch no bugs
+    "unicorn/consistent-function-scoping": "off",
+    "unicorn/no-array-sort": "off",
+    "unicorn/prefer-add-event-listener": "off",
+    // chrome.webview.postMessage has no targetOrigin parameter
+    "unicorn/require-post-message-target-origin": "off",
+    "no-underscore-dangle": "off"
+  },
+  "overrides": [
+    {
+      // The `use` callback of a Playwright fixture is mistaken for React's `use` Hook; when it depends on no other fixture, write ({}, use) (Playwright reads dependencies from destructuring)
+      "files": ["tests/e2e/**", "tests/shell/**"],
+      "rules": { "react-hooks/rules-of-hooks": "off", "no-empty-pattern": "off" }
+    }
+  ],
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "app/bin/**",
+    "app/obj/**",
+    "examples/**",
+    "design/**",
+    "tests/**/bin/**",
+    "tests/**/obj/**",
+    "tests/e2e/.results/**",
+    "tests/shell/.results/**",
+    "tests/shell/.app/**"
+  ]
+}

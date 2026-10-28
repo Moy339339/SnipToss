@@ -1,0 +1,33 @@
+name: Translation fix
+description: A word or sentence in the interface is wrong, unnatural or cut off in your language
+labels: [i18n]
+body:
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options:
+        - 简体中文
+        - 繁體中文
+        - English
+        - 日本語
+        - 한국어
+        - Français
+        - Deutsch
+        - Español
+        - Italiano
+        - Português (Brasil)
+        - Русский
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where and what
+      description: Where it appears (menu, dialog, settings page…), the current text, and what it should say. A screenshot helps.
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        You can also fix it directly: the texts are in `i18n/locales/<language>.json`. Run `node scripts/check-catalog.mjs` before sending a pull request.

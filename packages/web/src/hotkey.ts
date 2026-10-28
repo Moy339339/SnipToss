@@ -1,0 +1,71 @@
+// Recording the Screen Capture shortcut (Settings → Screen Capture): a key pressed in the browser → the notation the shell's GlobalHotKey
+// accepts, with the same rules as the shell.
+
+/**
+ * A keyboard key (e.code) → the notation accepted by the shell's GlobalHotKey.TryParse (WPF Key names). It used to accept only letters,
+ * digits and F1~F24
+ */
+const NAMED_KEYS: Record<string, string> = {
+  PrintScreen: "PrintScreen",
+  Space: "Space",
+  ArrowLeft: "Left",
+  ArrowRight: "Right",
+  ArrowUp: "Up",
+  ArrowDown: "Down",
+  Insert: "Insert",
+  Home: "Home",
+  End: "End",
+  PageUp: "PageUp",
+  PageDown: "PageDown",
+  Pause: "Pause",
+};
+
+/** The human-readable form, like shortcuts elsewhere in the UI (same as the shell's GlobalHotKey.Pretty): "Ctrl+Alt+A" → "Ctrl Alt A" */
+export const prettyKeys = (hotkey: string) => hotkey.split("+").join(" ");
+
+const KEYCAP_NAMES = /\b(Ctrl|Shift|Enter|Esc|Delete|Backspace|Space|Home|End)\b/g;
+/**
+ * Key names on keycaps follow the UI language (messages keycap.*, matching Windows in each language and the wording in running text:
+ * German Strg, Umschalt; French Maj, Entrée…). Only these whole words are replaced; letters, F keys, arrow keys and symbols are untouched.
+ * Shortcuts on the right of menus, the shortcut list and the Screen Capture shortcut description all go through this (the text used to
+ * say Strg while the keycap said Ctrl)
+ */
+export const keycaps = (text: string, t: (id: string) => string) => text.replace(KEYCAP_NAMES, (k) => t(`keycap.${k}`));
+
+/**
+ * Keys used for typing and selecting text (with Shift it selects text, Shift+Insert pastes): not accepted with Shift alone, same as the
+ * shell's GlobalHotKey.UsedForText
+ */
+const TEXT_KEYS = new Set(["Space", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown", "Insert"]);
+
+/**
+ * A browser key → the shortcut notation; unsupported keys return undefined. text = keys used for typing and selecting text (letters,
+ * digits, Space, arrow keys, Home / End, page keys, Insert)
+ */
+export function hotkeyKey(code: string): { key: string; text: boolean } | undefined {
+  const letter = /^Key([A-Z])$/.exec(code);
+  if (letter) return { key: letter[1], text: true };
+  const digit = /^Digit(\d)$/.exec(code);
+  if (digit) return { key: digit[1], text: true };
+  const pad = /^Numpad(\d)$/.exec(code);
+  if (pad) return { key: `NumPad${pad[1]}`, text: true };
+  if (/^F([1-9]|1[0-9]|2[0-4])$/.test(code)) return { key: code, text: false };
+  if (NAMED_KEYS[code]) return { key: NAMED_KEYS[code], text: TEXT_KEYS.has(code) };
+  return undefined;
+}
+
+/**
+ * Whether the pressed combination can be a global shortcut: it needs Ctrl, Alt or Win; with only Shift it can pair only with keys not used
+ * for typing or selecting text, such as F keys, PrintScreen and Pause: once Shift+A is registered as a global shortcut, no program can type
+ * a capital A and Shift+← cannot select text. Same rule as the shell's GlobalHotKey.Set.
+ * Returns the shortcut notation; undefined if it is incomplete (only a modifier pressed, or no modifier); "shiftOnly" if it is not allowed
+ */
+export function hotkeyFrom(
+  e: Pick<KeyboardEvent, "code" | "ctrlKey" | "altKey" | "shiftKey" | "metaKey">,
+): string | "shiftOnly" | undefined {
+  const k = hotkeyKey(e.code);
+  const mods = [e.ctrlKey && "Ctrl", e.altKey && "Alt", e.shiftKey && "Shift", e.metaKey && "Win"].filter(Boolean) as string[];
+  if (!k || mods.length === 0) return undefined;
+  if (!e.ctrlKey && !e.altKey && !e.metaKey && k.text) return "shiftOnly";
+  return [...mods, k.key].join("+");
+}

@@ -1,0 +1,9 @@
+<Project>
+  <!-- Shared by all C# projects (app/, tests/). Code analysis: the analyzers built into .NET, at the recommended level;
+       on CI (environment variable CI=true, set by GitHub Actions) warnings are errors, while local builds only report them and do not block -->
+  <PropertyGroup>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <TreatWarningsAsErrors Condition="'$(CI)' == 'true'">true</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+</Project>

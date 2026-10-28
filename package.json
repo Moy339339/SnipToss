@@ -1,0 +1,50 @@
+{
+  "name": "sniptoss",
+  "version": "1.0.0",
+  "private": true,
+  "author": "MoyGoldenAge <jujuw3939@outlook.com>",
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "packages/core",
+    "packages/cli",
+    "packages/web"
+  ],
+  "scripts": {
+    "build": "tsc -b packages/core packages/cli && npm run build -w @sniptoss/web",
+    "build:app": "pwsh -NoProfile -File scripts/build-app.ps1",
+    "dev:web": "npm run dev -w @sniptoss/web",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage",
+    "test:app": "pwsh -NoProfile -File scripts/test-app.ps1",
+    "typecheck": "tsc -b packages/core packages/cli && npm run typecheck -w @sniptoss/web && tsc -p tests/e2e && tsc -p tests/shell",
+    "e2e": "npm run build && playwright test",
+    "e2e:shell": "npm run build && pwsh -NoProfile -File scripts/build-app.ps1 -Out tests/shell/.app -TestHooks && playwright test -c playwright.shell.config.ts",
+    "perf": "npm run build && pwsh -NoProfile -File scripts/build-app.ps1 -Out tests/shell/.app-r2r -TestHooks -Publish && playwright test -c playwright.perf.config.ts",
+    "soak": "npm run build && pwsh -NoProfile -File scripts/build-app.ps1 -Out tests/shell/.app -TestHooks && playwright test -c playwright.soak.config.ts",
+    "stress": "npm run build && playwright test -c playwright.stress.config.ts",
+    "lint": "oxlint -c .oxlintrc.json packages scripts tests",
+    "format": "prettier --write \"packages/*/{src,test}/**/*.{ts,tsx,css}\" \"scripts/**/*.mjs\" \"*.{json,ts}\"",
+    "format:check": "prettier --check \"packages/*/{src,test}/**/*.{ts,tsx,css}\" \"scripts/**/*.mjs\" \"*.{json,ts}\"",
+    "verify": "npm run typecheck && npm run lint && npm run format:check && npm test && node scripts/check-design.mjs && node scripts/check-i18n.mjs && node scripts/check-english.mjs && npm run test:app && npm run e2e"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@resvg/resvg-js": "^2.6.2",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "@vitest/coverage-v8": "^5.0.4",
+    "ajv": "^8.20.0",
+    "oxlint": "^1.88.0",
+    "prettier": "^3.9.10",
+    "subset-font": "^2.9.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.4"
+  }
+}

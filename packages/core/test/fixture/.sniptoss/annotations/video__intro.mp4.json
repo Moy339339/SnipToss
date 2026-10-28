@@ -1,0 +1,17 @@
+{
+  "schema": "pizhu/1",
+  "material": { "path": "video/intro.mp4", "kind": "video", "sha256": "1111", "width": 1280, "height": 720, "duration": 63.2 },
+  "annotations": [
+    {
+      "id": "p0c7xe",
+      "status": "open",
+      "category": "remove",
+      "body": "这段水印去掉",
+      "anchor": { "time": { "start": 12.5, "end": 15.0 }, "shape": { "type": "point", "x": 0.9, "y": 0.9 } },
+      "author": "user",
+      "created_at": "2026-10-13T10:22:00Z",
+      "updated_at": "2026-10-13T10:22:00Z",
+      "replies": []
+    }
+  ]
+}

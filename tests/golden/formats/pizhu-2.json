@@ -1,0 +1,32 @@
+{
+  "schema": "pizhu/2",
+  "material": { "path": "video/intro.mp4", "kind": "video", "width": 1280, "height": 720, "duration": 63.2 },
+  "annotations": [
+    {
+      "id": "p0c7xe",
+      "status": "open",
+      "category": "remove",
+      "body": "这段水印去掉",
+      "anchor": {
+        "time": { "start": 12.5, "end": 15 },
+        "shape": { "type": "path", "points": [[0.8, 0.8], [0.9, 0.85], [0.95, 0.9], [0.1, 0.1]], "breaks": [3] }
+      },
+      "snapshot": "snapshots/p0c7xe.png",
+      "author": "user",
+      "created_at": "2026-10-15T09:00:00Z",
+      "updated_at": "2026-10-15T09:00:00Z",
+      "replies": []
+    },
+    {
+      "id": "ar0w01",
+      "status": "wontfix",
+      "category": "question",
+      "body": "这里为什么闪一下？",
+      "anchor": { "time": { "start": 30 }, "shape": { "type": "arrow", "from": [0.1, 0.2], "to": [0.3, 0.25] } },
+      "author": "user",
+      "created_at": "2026-10-15T09:01:00Z",
+      "updated_at": "2026-10-15T10:00:00Z",
+      "replies": [{ "author": "claude", "body": "是转场，保留", "at": "2026-10-15T10:00:00Z" }]
+    }
+  ]
+}

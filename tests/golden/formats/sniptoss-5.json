@@ -1,0 +1,56 @@
+{
+  "schema": "sniptoss/5",
+  "material": {
+    "path": "assets/hero.png",
+    "kind": "image",
+    "sha256": "9f2c1b7e0d4a6c3f8b5e2d1a0c9f8e7d6b5a4c3f2e1d0c9b8a7f6e5d4c3b2a19",
+    "width": 1920,
+    "height": 1080
+  },
+  "annotations": [
+    {
+      "id": "mny4s1",
+      "status": "open",
+      "category": "change",
+      "body": "这几处的按钮都改成圆角",
+      "anchor": {
+        "shapes": [
+          { "type": "rect", "x": 0.12, "y": 0.08, "w": 0.4, "h": 0.1, "color": "#5b8cff" },
+          { "type": "point", "x": 0.5, "y": 0.5, "color": "#ffc233" },
+          { "type": "arrow", "from": [0.7, 0.2], "to": [0.8, 0.3], "color": "#5b8cff" },
+          { "type": "path", "points": [[0.1, 0.8], [0.15, 0.85], [0.2, 0.8], [0.25, 0.85]], "breaks": [2], "color": "#5b8cff" }
+        ]
+      },
+      "snapshot": "snapshots/mny4s1.png",
+      "author": "user",
+      "created_at": "2026-10-25T12:00:00Z",
+      "updated_at": "2026-10-25T12:00:00Z",
+      "handed_off_at": "2026-10-25T12:30:00Z",
+      "material_sha256": "9f2c1b7e0d4a6c3f8b5e2d1a0c9f8e7d6b5a4c3f2e1d0c9b8a7f6e5d4c3b2a19",
+      "color": "#5b8cff",
+      "replies": []
+    },
+    {
+      "id": "one5pt",
+      "status": "resolved",
+      "category": "remove",
+      "body": "去掉这个水印",
+      "anchor": { "shapes": [{ "type": "point", "x": 0.9, "y": 0.9 }] },
+      "author": "user",
+      "created_at": "2026-10-25T12:01:00Z",
+      "updated_at": "2026-10-25T12:05:00Z",
+      "replies": [{ "author": "codex", "body": "已去掉", "at": "2026-10-25T12:04:00Z" }]
+    },
+    {
+      "id": "all5no",
+      "status": "open",
+      "category": "question",
+      "body": "整体偏暗吗？",
+      "anchor": {},
+      "author": "user",
+      "created_at": "2026-10-25T12:02:00Z",
+      "updated_at": "2026-10-25T12:02:00Z",
+      "replies": []
+    }
+  ]
+}

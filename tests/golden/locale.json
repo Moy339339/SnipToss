@@ -1,0 +1,43 @@
+{
+  "_": "用哪种语言（docs/adr/0001-i18n.md 第 5 条）：界面 packages/web/src/i18n.tsx 和外壳 app/Locale.cs 各有一份实现，跑这同一份（packages/web/test/i18n.test.ts、tests/AppTests/LocaleTests.cs）。followSystem 是「跟随系统」能选到的语言，哪种语言整个程序都翻好了就加进来，两边的常量照着改",
+  "followSystem": ["zh-CN", "zh-TW", "en", "ja", "ko", "fr", "de", "es", "it", "pt-BR", "ru"],
+  "match": [
+    ["zh-CN", "zh-CN"],
+    ["zh-Hans-CN", "zh-CN"],
+    ["zh-SG", "zh-CN"],
+    ["zh", "zh-CN"],
+    ["zh-TW", "zh-TW"],
+    ["zh-HK", "zh-TW"],
+    ["zh-MO", "zh-TW"],
+    ["zh-Hant-TW", "zh-TW"],
+    ["ZH-hant", "zh-TW"],
+    ["en-US", "en"],
+    ["en-GB", "en"],
+    ["en_US", "en"],
+    ["ja-JP", "ja"],
+    ["ko-KR", "ko"],
+    ["fr-CA", "fr"],
+    ["de-AT", "de"],
+    ["es-MX", "es"],
+    ["it-IT", "it"],
+    ["pt-PT", "pt-BR"],
+    ["pt-BR", "pt-BR"],
+    ["pt", "pt-BR"],
+    ["ru-RU", "ru"],
+    ["nl-NL", "en"],
+    ["", "en"],
+    [null, "en"]
+  ],
+  "resolve": [
+    { "pref": "fr", "system": "ja-JP", "want": "fr", "why": "设置里选了就用选的，翻没翻完都用（开发、校对时用）" },
+    { "pref": "zh-CN", "system": "en-US", "want": "zh-CN" },
+    { "pref": "system", "system": "zh-Hans-CN", "want": "zh-CN" },
+    { "pref": null, "system": "zh-CN", "want": "zh-CN", "why": "没写 = 跟随系统（设置文件只记改过的项）" },
+    { "pref": "system", "system": "en-US", "want": "en", "why": "英文整套翻好了（Beta 58 起）" },
+    { "pref": "system", "system": "en-GB", "want": "en" },
+    { "pref": "system", "system": "ja-JP", "want": "ja", "why": "二级语言整套翻好了（Beta 59 起）" },
+    { "pref": "system", "system": "nl-NL", "want": "en", "why": "不支持的语言用英文" },
+    { "pref": "xx", "system": "zh-TW", "want": "zh-TW", "why": "不认识的值（被手改坏了）按跟随系统" },
+    { "pref": "FR", "system": "zh-CN", "want": "zh-CN", "why": "语言代码要原样写对，大小写不同也算不认识" }
+  ]
+}

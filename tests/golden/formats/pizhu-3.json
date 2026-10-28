@@ -1,0 +1,17 @@
+{
+  "schema": "pizhu/3",
+  "material": { "path": "assets/ui", "kind": "folder" },
+  "annotations": [
+    {
+      "id": "r0ot01",
+      "status": "open",
+      "category": "change",
+      "body": "这一批整体偏暗，全部提亮",
+      "anchor": {},
+      "author": "user",
+      "created_at": "2026-10-17T08:00:00Z",
+      "updated_at": "2026-10-17T08:00:00Z",
+      "replies": []
+    }
+  ]
+}

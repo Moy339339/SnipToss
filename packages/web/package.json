@@ -1,0 +1,23 @@
+{
+  "name": "@sniptoss/web",
+  "version": "0.1.0",
+  "private": true,
+  "author": "MoyGoldenAge <jujuw3939@outlook.com>",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@sniptoss/core": "*",
+    "intl-messageformat": "^12.1.3",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-intl": "^12.1.4"
+  },
+  "devDependencies": {
+    "@formatjs/icu-messageformat-parser": "^3.5.21"
+  }
+}
