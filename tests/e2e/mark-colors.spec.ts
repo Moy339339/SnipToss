@@ -325,7 +325,7 @@ test("with the composer open, right-clicking one place and picking its mark colo
   await app.open();
   await app.page.locator(".stage").click({ position: { x: 5, y: 5 } });
   await app.page.keyboard.press("c");
-  const box = (await app.page.locator(".zoom-media").boundingBox())!;
+  const box = await app.media();
   for (const x of [0.3, 0.7]) await app.page.mouse.click(box.x + box.width * x, box.y + box.height * 0.35);
   const drafts = app.page.locator(".annot-badge.is-draft");
   await expect(drafts).toHaveCount(2);
@@ -445,7 +445,7 @@ test("with the composer open, clicking the places being drawn opens the color ba
   await app.open();
   await app.page.locator(".stage").click({ position: { x: 5, y: 5 } });
   await app.page.keyboard.press("c");
-  const box = (await app.page.locator(".zoom-media").boundingBox())!;
+  const box = await app.media();
   // The second pin goes above the first: the note box's top edge sits on the first pin's row, and a click there lands on the box (a pixel or two off while it opens)
   for (const [x, y] of [
     [0.3, 0.6],

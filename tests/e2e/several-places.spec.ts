@@ -16,7 +16,7 @@ const byBody = (app: App, body: string) => notes(app).find((a) => a.body === bod
 
 const composer = (app: App) => app.page.locator(".composer");
 const draftBadges = (app: App) => app.page.locator(".annot-badge.is-draft");
-const media = async (app: App) => (await app.page.locator(".zoom-media").boundingBox())!;
+const media = (app: App) => app.media();
 const at = (box: { x: number; y: number; width: number; height: number }, fx: number, fy: number) =>
   [box.x + box.width * fx, box.y + box.height * fy] as const;
 const toolBtn = (app: App, name: string) => app.page.locator(`.hdr-tools .tool-btn[aria-label="${name}"]`);

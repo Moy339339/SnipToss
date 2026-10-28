@@ -95,7 +95,7 @@ test("When an item is overwritten while the app is open, marks leave the canvas 
 
   await focusStage(app);
   await app.page.keyboard.press("c");
-  const box = (await app.page.locator(".zoom-media").boundingBox())!;
+  const box = await app.media();
   await app.page.mouse.click(box.x + box.width * 0.6, box.y + box.height * 0.6);
   await app.page.locator(".composer-text").fill("新版上的意见");
   await app.page.locator(".composer-text").press("Enter");

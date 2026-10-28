@@ -19,7 +19,7 @@ const focusStage = (app: App) => app.page.locator(".stage").click({ position: { 
 const setRow = (app: App, label: string) =>
   app.page.locator(".set-row", { has: app.page.locator(".set-label", { hasText: new RegExp(`^${escape(label)}$`) }) });
 const composer = (app: App) => app.page.locator(".composer");
-const media = async (app: App) => (await app.page.locator(".zoom-media").boundingBox())!;
+const media = (app: App) => app.media();
 const at = (box: { x: number; y: number; width: number; height: number }, fx: number, fy: number) =>
   [box.x + box.width * fx, box.y + box.height * fy] as const;
 /** Whether focus is inside the Settings dialog */

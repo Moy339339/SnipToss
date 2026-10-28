@@ -28,7 +28,7 @@ const notes = (app: App, file: string) =>
     material: { width?: number; height?: number };
     annotations: { body: string; snapshot?: string }[];
   };
-const media = async (app: App) => (await app.page.locator(".zoom-media").boundingBox())!;
+const media = (app: App) => app.media();
 const at = (box: { x: number; y: number; width: number; height: number }, fx: number, fy: number) =>
   [box.x + box.width * fx, box.y + box.height * fy] as const;
 

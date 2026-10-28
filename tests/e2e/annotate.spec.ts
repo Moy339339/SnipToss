@@ -39,7 +39,7 @@ const k3 = (app: App) => {
 const focusStage = (app: App) => app.page.locator(".stage").click({ position: { x: 5, y: 5 } });
 const composer = (app: App) => app.page.locator(".composer");
 /** Where the canvas content (the material itself) is on screen */
-const media = async (app: App) => (await app.page.locator(".zoom-media").boundingBox())!;
+const media = (app: App) => app.media();
 /** A relative position on the content → screen coordinates */
 const at = (box: { x: number; y: number; width: number; height: number }, fx: number, fy: number) =>
   [box.x + box.width * fx, box.y + box.height * fy] as const;

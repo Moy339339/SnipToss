@@ -100,8 +100,13 @@ export interface App {
   open(): Promise<void>;
   /** The text that "Copy as Text" copied */
   clipboard(): Promise<string | null>;
-  /** Reads one notes file of the project */
+  /** Reads one notes file of the project; [] while it has not been written yet */
   annotations(file: string): { id: string; status: string; body: string; replies: unknown[] }[];
+  /**
+   * Where the canvas content (the item itself) is on screen. Right after switching items it is briefly 0 × 0 at the corner of the
+   * canvas area, so this waits until it has a size (measuring too early sends a click outside the canvas)
+   */
+  media(): Promise<{ x: number; y: number; width: number; height: number }>;
   /**
    * Current content of .sniptoss/REVIEW.md; "" if it has not been written yet
    * (editing notes does not wait for it, so polling must not fail on a missing file)
@@ -159,6 +164,11 @@ export const test = base.extend<{ app: App }>({
       annotations: (file) => {
         const path = join(project, ".sniptoss", "annotations", file);
         return existsSync(path) ? JSON.parse(readFileSync(path, "utf8")).annotations : [];
+      },
+      media: async () => {
+        const el = page.locator(".zoom-media");
+        await expect.poll(async () => ((await el.boundingBox())?.width ?? 0) > 1 && ((await el.boundingBox())?.height ?? 0) > 1).toBe(true);
+        return (await el.boundingBox())!;
       },
     review: () => (existsSync(join(project, ".sniptoss", "REVIEW.md")) ? readFileSync(join(project, ".sniptoss", "REVIEW.md"), "utf8") : ""),
       allowLogErrors: (expected) => void allowed.push(expected),
