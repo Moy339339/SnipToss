@@ -55,6 +55,7 @@ jobs:
         shell: pwsh
         run: |
           pwsh -File scripts/publish.ps1 -NoUi
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           if (-not (Test-Path "dist/release/SnipToss-$env:VERSION-win-x64-setup.exe")) { throw 'The installer was not built' }
 
       - name: Draft Release
