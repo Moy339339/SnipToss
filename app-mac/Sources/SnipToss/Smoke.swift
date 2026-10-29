@@ -40,7 +40,7 @@ final class SmokeRun {
 
     /// What the page says about itself: the title, the first words, how many library rows there are, the image on the canvas and, when
     /// the tour card is up, the text and style of each of its parts (a card that is drawn but empty is a rendering problem, not a missing string)
-    private static let probeScript = """
+    static let probeScript = """
         (() => {
           const media = document.querySelector('.zoom-media');
           const card = document.querySelector('.tour-card');

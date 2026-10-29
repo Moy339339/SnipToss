@@ -39,27 +39,12 @@ final class KeyExperiment: NSObject {
             top.submenu = probe
             bar.addItem(top)
         }
-        let setup = """
-            (() => {
-              document.body.insertAdjacentHTML('beforeend',
-                '<textarea id="probe-a" style="position:fixed;left:8px;top:8px;width:200px;height:40px;z-index:99999"></textarea>' +
-                '<textarea id="probe-b" style="position:fixed;left:8px;top:60px;width:200px;height:40px;z-index:99999"></textarea>');
-              document.getElementById('probe-a').value = 'hello world';
-              window.__keys = [];
-              window.__prevent = '';
-              window.addEventListener('keydown', (e) => {
-                window.__keys.push(e.key + (e.metaKey ? ' meta' : ''));
-                if (window.__prevent && e.key === window.__prevent) e.preventDefault();
-              }, true);
-              document.getElementById('probe-a').focus();
-              return true;
-            })()
-            """
-        web.evaluateJavaScript(setup) { [self] _, _ in
+
+        web.evaluateJavaScript(Scripts.setup) { [self] _, _ in
             step("selectAll") { [self] in
                 key("a", code: 0)
             } read: { [self] next in
-                eval("(() => { const a = document.getElementById('probe-a'); return a.selectionStart + '-' + a.selectionEnd; })()") { [self] value in
+                eval(Scripts.readSelection) { [self] value in
                     report["selectAll"] = ["selection": value ?? "?", "expected": "0-11"]
                     next()
                 }
@@ -70,11 +55,11 @@ final class KeyExperiment: NSObject {
                     report["copy"] = ["pasteboard": NSPasteboard.general.string(forType: .string) ?? "(none)", "expected": "hello world"]
                     next()
                 } then: { [self] in
-                    eval("document.getElementById('probe-b').focus()") { [self] _ in
+                    eval(Scripts.focusB) { [self] _ in
                         step("paste") { [self] in
                             key("v", code: 9)
                         } read: { [self] next in
-                            eval("document.getElementById('probe-b').value") { [self] value in
+                            eval(Scripts.readB) { [self] value in
                                 report["paste"] = ["value": value ?? "?", "expected": "hello world"]
                                 next()
                             }
@@ -95,22 +80,22 @@ final class KeyExperiment: NSObject {
             done(report)
             return
         }
-        eval("document.getElementById('probe-b').blur(); document.body.focus(); window.__keys = []; true") { [self] _ in
+        eval(Scripts.blurB) { [self] _ in
             menuFired = 0
             step("orderPlain") { [self] in
                 key("b", code: 11)
             } read: { [self] next in
-                eval("window.__keys.join(',')") { [self] keys in
+                eval(Scripts.readKeys) { [self] keys in
                     report["orderPageIgnores"] = ["pageKeydowns": keys ?? "?", "menuFired": menuFired]
                     next()
                 }
             } then: { [self] in
-                eval("window.__keys = []; window.__prevent = 'b'; true") { [self] _ in
+                eval(Scripts.preventB) { [self] _ in
                     menuFired = 0
                     step("orderPrevented") { [self] in
                         key("b", code: 11)
                     } read: { [self] next in
-                        eval("window.__keys.join(',')") { [self] keys in
+                        eval(Scripts.readKeys) { [self] keys in
                             report["orderPagePrevents"] = ["pageKeydowns": keys ?? "?", "menuFired": menuFired]
                             next()
                         }
@@ -126,12 +111,11 @@ final class KeyExperiment: NSObject {
     /// selected (the menu ran anyway) or not (the page was first and its preventDefault stopped the menu)? And the probe item asked
     /// directly, to tell "the menu item does not fire" from "the key never reached the menu"
     private func aboutSelectAll(done: @escaping ([String: Any]) -> Void) {
-        let reset = "(() => { const a = document.getElementById('probe-a'); a.focus(); a.setSelectionRange(11, 11); window.__keys = []; window.__prevent = 'a'; return true; })()"
-        eval(reset) { [self] _ in
+        eval(Scripts.resetForSelectAll) { [self] _ in
             step("selectAllPrevented") { [self] in
                 key("a", code: 0)
             } read: { [self] next in
-                eval("(() => { const a = document.getElementById('probe-a'); return a.selectionStart + '-' + a.selectionEnd + ' / ' + window.__keys.join(','); })()") {
+                eval(Scripts.readSelectionAndKeys) {
                     [self] value in
                     report["selectAllPagePrevents"] = ["selectionAndKeydowns": value ?? "?", "ifMenuRanAnyway": "0-11", "ifPageFirst": "11-11"]
                     next()
@@ -174,5 +158,42 @@ final class KeyExperiment: NSObject {
         for type in [NSEvent.EventType.keyDown, .keyUp] {
             if let event = makeEvent(type, chars, code: code) { NSApp.sendEvent(event) }
         }
+    }
+}
+
+extension KeyExperiment {
+    /// Every script the experiment sends to the page. One place so that a unit test can check that each one parses: a quote slipped out
+    /// of one of them twice, and the experiment then ran against a page that had thrown a syntax error
+    enum Scripts {
+        static let setup = """
+            (() => {
+              document.body.insertAdjacentHTML('beforeend',
+                '<textarea id="probe-a" style="position:fixed;left:8px;top:8px;width:200px;height:40px;z-index:99999"></textarea>' +
+                '<textarea id="probe-b" style="position:fixed;left:8px;top:60px;width:200px;height:40px;z-index:99999"></textarea>');
+              document.getElementById('probe-a').value = 'hello world';
+              window.__keys = [];
+              window.__prevent = '';
+              window.addEventListener('keydown', (e) => {
+                window.__keys.push(e.key + (e.metaKey ? ' meta' : ''));
+                if (window.__prevent && e.key === window.__prevent) e.preventDefault();
+              }, true);
+              document.getElementById('probe-a').focus();
+              return true;
+            })()
+            """
+        static let readSelection = "(() => { const a = document.getElementById('probe-a'); return a.selectionStart + '-' + a.selectionEnd; })()"
+        static let focusB = "document.getElementById('probe-b').focus()"
+        static let readB = "document.getElementById('probe-b').value"
+        static let blurB = "document.getElementById('probe-b').blur(); document.body.focus(); window.__keys = []; true"
+        static let readKeys = "window.__keys.join(',')"
+        static let preventB = "window.__keys = []; window.__prevent = 'b'; true"
+        static let resetForSelectAll =
+            "(() => { const a = document.getElementById('probe-a'); a.focus(); a.setSelectionRange(11, 11); window.__keys = []; window.__prevent = 'a'; return true; })()"
+        static let readSelectionAndKeys =
+            "(() => { const a = document.getElementById('probe-a'); return a.selectionStart + '-' + a.selectionEnd + ' / ' + window.__keys.join(','); })()"
+
+        static let all = [
+            setup, readSelection, focusB, readB, blurB, readKeys, preventB, resetForSelectAll, readSelectionAndKeys,
+        ]
     }
 }
