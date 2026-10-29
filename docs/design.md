@@ -2,7 +2,7 @@
 
 ## The problem
 
-People have change requests for what Claude Code and Codex generate (images, video, web pages, mini programs, PDFs, PPTs, …).
+People have change requests for what Claude Code and Codex generate (images, video, web pages, PDFs, PPTs, …).
 The agent has to learn **quickly and precisely** which item, which position / time / element, and what it should become.
 The priority is that agents can read the result efficiently; the interface should make marking things up smooth for people:
 fast, no stutter, no flash, with the polish of mature software.
@@ -113,7 +113,7 @@ Codex / Claude Code ◀──── read REVIEW.md and snapshots (the "Copy as T
 
 ## What is supported
 
-Principle: **everything can degrade to "one picture + a position + text"**; types that can supply more structure (time, page number, web element, mini program page path) record it in addition,
+Principle: **everything can degrade to "one picture + a position + text"**; types that can supply more structure (time, page number, web element) record it in addition,
 and the more precise the information an agent gets, the more precise its changes.
 
 | Type | How it is shown | How the position is recorded | Extra information for the agent | Phase |
@@ -123,7 +123,6 @@ and the more precise the information an agent gets, the more precise its changes
 | **Screenshots** (clipboard paste, a grab of one window, an Android phone screenshot via adb) as items | Saved as `.sniptoss/captures/*.png` and annotated as an image | Same as images | Source (which window / which phone / when) | Right after 2 |
 | Video (mp4 webm mov m4v mkv) | Native + a custom player bar | Time point / time range + a region of the canvas | Timecode, snapshot of that frame | 3 |
 | **Web pages**: local html, a local dev server (localhost), live URLs | An embedded real browser (a second WebView2) in which click, press and scroll work normally | "Pick element" mode picks an element, or a free rectangle | CSS selector, element text, URL, viewport size, scroll position, element snapshot | 4 |
-| **Mini programs** (WeChat native) | Connect to WeChat DevTools and grab the simulator view, see below | Page + region / element | Page path (e.g. `pages/index/index`), page parameters, the wxml of the framed component | Together with Screenshots |
 | PDF | pdf.js | Page + region | Page number | 5 |
 | PPT / PPTX | PowerPoint installed on the computer exports each slide as an image | Slide + region | Slide number; mapped to the shape name where possible (PowerPoint can read the position of each shape) | 5 |
 | Word | Word installed on the computer exports a PDF | Page + region | Page number | After 5 |
@@ -151,16 +150,6 @@ and the more precise the information an agent gets, the more precise its changes
   with file names like `capture-2026-10-22_14-03-05.png` (Gregorian calendar, fixed format, no language, no spaces; older builds used `截图批注 2026-10-22 14-03-05.png`, which cleanup still recognizes).
   A screen capture is temporary and one-off: it does not go into the library, and there is no retrieving it afterwards.
 - Input methods are turned off on the capture overlay (`InputMethod.IsInputMethodEnabled`) and turned on only in the box you type into: with a Chinese input method on, R / A / B would be swallowed as pinyin.
-
-**Mini programs** (WeChat native first; uni-app / Taro possibly later):
-
-1. **Connect to the DevTools (the main route)**: WeChat's official `miniprogram-automator` connects through the automation port to a WeChat DevTools that is **already open**
-   (`cli auto --project <project> --auto-port 9420`; in the DevTools, "Settings → Security Settings → Service Port" must be on).
-   In SnipToss, "Grab mini program": `miniProgram.currentPage()` gives the page path and parameters, and `miniProgram.screenshot()` gives the simulator view directly
-   (returned as base64, so no window grab and no border), which is saved as a screenshot item to annotate. When a region is drawn, `page.$$()` then fetches the position and size of each element,
-   finds which component the box encloses and records its wxml fragment, so the agent can go to the specific `.wxml` file and line.
-2. **Screenshot fallback**: when the automation port is not open, grab the DevTools window, or use adb to grab the screen of a real Android phone, and annotate it as an image; the page path is entered by hand.
-3. What uni-app / Taro can build as an H5 version goes through the web page mode directly.
 
 ## Shortcuts
 
@@ -208,9 +197,9 @@ The focus is Codex and Claude Code, but other AIs will come, so **the core is no
 1. ✅ **Skeleton**: data format, `core`, CLI, desktop shell, browsing items
 2. ✅ **Image and video notes**: point / box / pen / arrow / overall comment, writing comments, saving JSON, generating snapshots and `REVIEW.md`; video with time points / time ranges;
    undo and redo; Copy as Text (three layers: one note / the current item / the whole project); the library grouped by project; settings; context menu integration; live sync of changes made outside
-   Next: **Screen Capture** (paste, window grab, adb) + mini program grabbing
+   Next: **Screen Capture** (paste, window grab, adb)
 3. (merged into 2)
-4. **Web page notes**: embedded browser + element picking; then mini program automation
+4. **Web page notes**: embedded browser + element picking
 5. **PDF**, then **PPT / Word**
 6. **The agent loop**: mark stale notes after an item changes, skill / MCP server
 7. **Packaging and release** (after the features are done and the bugs tested out): Windows installer + portable build, Mac (Apple Silicon) DMG / portable build

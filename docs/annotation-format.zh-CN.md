@@ -245,7 +245,6 @@ x 看 `width`、y 看 `height`）；乘回 `width`/`height` 后四舍五入就�
 |---|---|
 | `capture` 截图 | `material.source`：`{ "from": "clipboard" \| "window" \| "adb", "title": "窗口标题", "device": "手机序列号", "at": "时间" }` |
 | `web` 网页 | `material.url`；`anchor.element`：`{ "selector": "CSS 选择器", "text": "元素文字（截断）", "rect": {x,y,w,h}（CSS 像素）, "viewport": {w,h}, "scroll": {x,y} }` |
-| `miniprogram` 小程序 | `anchor.route`（如 `pages/index/index`）；能拿到元素时同 `anchor.element` |
 | `text` 文本/代码 | `anchor.lines`：`{ "start": 12, "end": 18 }`；`anchor.quote`：被批注的原话 |
 | `audio` 音频 | 同视频的 `anchor.time`，没有 `shapes` |
 | `document` Word 等 | 同 PDF 的 `anchor.page` |

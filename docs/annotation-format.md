@@ -249,7 +249,6 @@ According to "What is supported" in `docs/design.md`, these item types and posit
 |---|---|
 | `capture` (screenshot) | `material.source`: `{ "from": "clipboard" \| "window" \| "adb", "title": "window title", "device": "phone serial number", "at": "time" }` |
 | `web` (web page) | `material.url`; `anchor.element`: `{ "selector": "CSS selector", "text": "element text (truncated)", "rect": {x,y,w,h} (CSS pixels), "viewport": {w,h}, "scroll": {x,y} }` |
-| `miniprogram` (mini program) | `anchor.route` (such as `pages/index/index`); when the element can be obtained, same as `anchor.element` |
 | `text` (text/code) | `anchor.lines`: `{ "start": 12, "end": 18 }`; `anchor.quote`: the exact words being annotated |
 | `audio` | same `anchor.time` as video, with no `shapes` |
 | `document` (Word etc.) | same `anchor.page` as PDF |
