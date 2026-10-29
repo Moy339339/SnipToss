@@ -465,9 +465,31 @@ function Capture(props: { onNotify: (t: string) => void; onRecording: (on: boole
     );
   if (!c) return null;
   const folder = c.folder || c.defaultFolder;
+  const openAccess = async () => {
+    try {
+      await call("openScreenAccessSettings");
+    } catch (e) {
+      props.onNotify((e as Error).message);
+    }
+  };
   return (
     <>
       <Heading desc={t("settings.capture.desc")}>{t("settings.capture.title")}</Heading>
+      {/* Mac only: macOS must allow the app to record the screen before any capture starts */}
+      {c.screenAccess !== undefined && (
+        <Row
+          label={t("settings.capture.access")}
+          desc={
+            c.screenAccess ? (
+              t("settings.capture.accessOn")
+            ) : (
+              <span className="text-warn">{t("settings.capture.accessOff", { app: t("brand.name") })}</span>
+            )
+          }
+        >
+          {!c.screenAccess && <Button onClick={() => void openAccess()}>{t("settings.capture.openAccess")}</Button>}
+        </Row>
+      )}
       <Row
         label={t("settings.capture.hotkey")}
         desc={

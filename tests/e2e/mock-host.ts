@@ -171,7 +171,11 @@ export class MockHost {
     notesInImage: true,
     folder: "",
     autostart: false,
+    /** The Mac shell sends whether macOS lets it record the screen; the Windows shell leaves it out */
+    screenAccess: undefined as boolean | undefined,
   };
+  /** How many times the page asked the Mac shell to open System Settings at the screen recording permission */
+  screenAccessOpened = 0;
   /** Simulated system clipboard (Ctrl+V pastes items): files copied in File Explorer, or an image (PNG bytes); neither = nothing addable on the clipboard */
   clipboardFiles: string[] | null = null;
   clipboardImage: Buffer | null = null;
@@ -487,6 +491,9 @@ export class MockHost {
       }
       case "captureHotkeyPause":
         this.hotkeyPaused = a.pause === true;
+        return null;
+      case "openScreenAccessSettings":
+        this.screenAccessOpened++;
         return null;
       case "openDevTools":
       case "windowResize":

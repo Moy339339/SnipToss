@@ -241,9 +241,14 @@ interface Methods {
   /** Screen Capture (the shell's app/Capture): starts from the button in the window and hides this window first */
   captureStart: [void, void];
   captureSettings: [void, CaptureSettings];
-  setCaptureSettings: [Partial<Omit<CaptureSettings, "hotkeyError" | "hotkeyTypes" | "hotkeyMoved" | "defaultFolder">>, CaptureSettings];
+  setCaptureSettings: [
+    Partial<Omit<CaptureSettings, "hotkeyError" | "hotkeyTypes" | "hotkeyMoved" | "defaultFolder" | "screenAccess">>,
+    CaptureSettings,
+  ];
   /** When recording a new shortcut the old one is stopped first, otherwise pressing the old key combination would start a capture right away */
   captureHotkeyPause: [{ pause: boolean }, void];
+  /** Mac: opens System Settings where the user allows the app to record the screen (Privacy & Security → Screen Recording) */
+  openScreenAccessSettings: [void, void];
   shellIntegration: [void, boolean];
   setShellIntegration: [{ enable: boolean }, void];
   openDevTools: [void, void];
@@ -272,6 +277,8 @@ export interface CaptureSettings {
   folder: string;
   defaultFolder: string;
   autostart: boolean;
+  /** Mac: whether macOS lets the app record the screen, read when the settings are asked for. Absent on Windows, which needs no permission */
+  screenAccess?: boolean;
 }
 
 /**
