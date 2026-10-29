@@ -38,7 +38,7 @@ public class DiagnosticsTests
     [Fact]
     public void Scrub_matches_every_case_in_the_shared_golden_file()
     {
-        var golden = JsonNode.Parse(File.ReadAllText(GoldenFile("scrub.json")))!;
+        var golden = JsonNode.Parse(File.ReadAllText(TestSupport.GoldenFile("scrub.json")))!;
         var token = (string)golden["homeToken"]!["windows"]!;
         var cases = golden["cases"]!.AsArray();
         Assert.NotEmpty(cases);
@@ -48,16 +48,6 @@ public class DiagnosticsTests
             var actual = Crash.Scrub((string)c["text"]!, (string)c["home"]!, (string)c["user"]!, token);
             Assert.True(expected == actual, $"{(string)c["name"]!}: expected \"{expected}\", got \"{actual}\"");
         }
-    }
-
-    static string GoldenFile(string name)
-    {
-        for (var d = new DirectoryInfo(AppContext.BaseDirectory); d is not null; d = d.Parent)
-        {
-            var file = Path.Combine(d.FullName, "tests", "golden", name);
-            if (File.Exists(file)) return file;
-        }
-        throw new InvalidOperationException($"tests/golden/{name} not found");
     }
 
     [Fact]

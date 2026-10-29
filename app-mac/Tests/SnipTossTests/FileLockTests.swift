@@ -29,6 +29,40 @@ final class FileLockTests: SnipTestCase {
         Int64(Date().timeIntervalSince1970 * 1000)
     }
 
+    private struct MachineGolden: Decodable {
+        struct Case: Decodable {
+            let name: String
+            let id: String
+        }
+        let cases: [Case]
+    }
+
+    /// The lock names the computer by a hash, not by its name: the same cases the command line and the Windows shell check
+    /// (tests/golden/lock-machine.json)
+    func testTheComputerIdMatchesTheGoldenCases() throws {
+        // .../app-mac/Tests/SnipTossTests/FileLockTests.swift -> the repository root is four levels up
+        var root = URL(fileURLWithPath: #filePath)
+        for _ in 0..<4 { root.deleteLastPathComponent() }
+        let data = try Data(contentsOf: root.appendingPathComponent("tests/golden/lock-machine.json"))
+        let golden = try JSONDecoder().decode(MachineGolden.self, from: data)
+        XCTAssertFalse(golden.cases.isEmpty)
+        for c in golden.cases {
+            XCTAssertEqual(FileLock.machineId(of: c.name), c.id, c.name)
+        }
+    }
+
+    func testTheLockDoesNotContainTheComputerName() throws {
+        let file = makeTempDir() + "/a.json"
+        let held = try FileLock.acquire(file)
+        defer { held.release() }
+        let text = readText(FileLock.pathFor(file))
+        // A very short name could match some hex digits of the id by chance
+        if FileLock.machineName.count >= 6 {
+            XCTAssertFalse(text.lowercased().contains(FileLock.machineName.lowercased()), "the lock names the computer")
+        }
+        XCTAssertTrue(text.hasSuffix(FileLock.machine))
+    }
+
     /// The id of a process that has already exited
     private func deadProcessId() throws -> Int32 {
         let process = Process()
@@ -168,10 +202,11 @@ final class FileLockTests: SnipTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: lockPath), "a lock held by another computer was deleted")
     }
 
-    func testTheComputerNameIsComparedIgnoringCase() throws {
+    func testALockThatStillNamesThisComputerOutrightIsThisComputersLock() throws {
+        // A lock written before the computer was written as an id carries the name itself, in any case
         let file = makeTempDir() + "/a.json"
         let dead = try deadProcessId()
-        writeText("\(dead) \(nowMillis()) \(FileLock.machine.uppercased())", to: FileLock.pathFor(file))
+        writeText("\(dead) \(nowMillis()) \(FileLock.machineName.uppercased())", to: FileLock.pathFor(file))
         let started = Date()
         try FileLock.acquire(file, wait: 3).release()
         XCTAssertLessThan(Date().timeIntervalSince(started), 1.0)

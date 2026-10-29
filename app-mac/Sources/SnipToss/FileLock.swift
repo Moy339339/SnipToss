@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 /// A lock that could not be taken
@@ -13,7 +14,7 @@ enum FileLockError: Error, CustomStringConvertible {
 }
 
 /// Cross-process write lock (docs/adr/0005-write-protocol.md, "Lock"): a `.<file name>.lock` next to the notes file, taken by creating it
-/// exclusively (`O_EXCL`), holding "process id, time in milliseconds, computer name" and deleted when the write is done.
+/// exclusively (`O_EXCL`), holding "process id, time in milliseconds, computer id" (see `machineId`) and deleted when the write is done.
 /// The command line (`withFileLock` in packages/cli/src/fs-store.ts) and the Windows shell (app/FileLock.cs) use the same name and the same
 /// rules, so the UI, the command line and several agents writing the same notes file take turns, and nobody can slip in between the
 /// comparison before a write and the write itself. It must stay the same protocol: a lock the other side does not recognize is no lock.
@@ -28,9 +29,8 @@ enum FileLock {
     /// Creating the lock keeps being refused (no permission) for this long: the folder is not writable, so stop waiting
     static let deniedLimit: TimeInterval = 1
 
-    /// The computer name written into the lock. The command line writes `COMPUTERNAME` if set, otherwise `os.hostname()`, which is what
-    /// `gethostname` returns
-    static let machine: String = {
+    /// The name of this computer. The command line takes `COMPUTERNAME` if set, otherwise `os.hostname()`, which is what `gethostname` returns
+    static let machineName: String = {
         if let name = ProcessInfo.processInfo.environment["COMPUTERNAME"] { return name }
         let size = 256
         var buffer = [CChar](repeating: 0, count: size)
@@ -39,6 +39,17 @@ enum FileLock {
         }
         return ProcessInfo.processInfo.hostName
     }()
+
+    /// What the lock says about the computer: the first 16 hex digits of the SHA-256 of the lowercased name (UTF-8), never the name itself.
+    /// A Mac's name is often the owner's name ("Ann's MacBook Pro"), and a lock left behind by a crash can travel with the project
+    /// (a synced folder, an archive). The same function as `machineId` in packages/cli/src/fs-store.ts;
+    /// `tests/golden/lock-machine.json` holds the cases both must agree on
+    static func machineId(of name: String) -> String {
+        let digest = SHA256.hash(data: Data(name.lowercased().utf8))
+        return digest.prefix(8).map { String(format: "%02x", $0) }.joined()
+    }
+
+    static let machine: String = machineId(of: machineName)
 
     /// The lock file of a notes file: `.<file name>.lock` in the same folder
     static func pathFor(_ file: String) -> String {
@@ -163,8 +174,9 @@ enum FileLock {
         let parts = text.components(separatedBy: " ")
         let pid = Int32(parts[0]) ?? 0
         // Written by another computer (the item is on a network volume): the process id belongs to that computer and cannot be checked
-        // here, so only look at how long the lock has been untouched
-        let here = parts.count < 3 || parts[2].lowercased() == machine.lowercased()
+        // here, so only look at how long the lock has been untouched. A lock from before the computer was written as an id names it
+        // outright; that still counts as this computer's
+        let here = parts.count < 3 || parts[2] == machine || parts[2].lowercased() == machineName.lowercased()
         if here && pid > 0 && !isAlive(pid) { return text }
         guard let modified = modifiedAt(path) else { return nil }
         return Date().timeIntervalSince1970 - modified > staleAfter ? text : nil

@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cp, mkdir, mkdtemp, open, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -11,6 +11,7 @@ import {
   earlierAll,
   findRoot,
   loadAll,
+  machineId,
   saveMaterialFile,
   updateAnnotation,
   withFileLock,
@@ -265,6 +266,35 @@ describe("fs-store", () => {
       const seen = await withFileLock(path, () => readFile(join(dir, ".a.json.lock"), "utf8"));
       expect(seen.startsWith(`${process.pid} `)).toBe(true);
       expect(existsSync(join(dir, ".a.json.lock"))).toBe(false);
+    });
+  });
+
+  it("withFileLock: the lock names the computer by a hash of its name, never the name itself; every shell computes the same hash", async () => {
+    const golden = JSON.parse(
+      await readFile(fileURLToPath(new URL("../../../tests/golden/lock-machine.json", import.meta.url)), "utf8"),
+    ) as {
+      cases: { name: string; id: string }[];
+    };
+    expect(golden.cases.length).toBeGreaterThan(0);
+    for (const c of golden.cases) expect(machineId(c.name), c.name).toBe(c.id);
+    await withProject(async (_root, dir) => {
+      const seen = await withFileLock(join(dir, "a.json"), () => readFile(join(dir, ".a.json.lock"), "utf8"));
+      const name = process.env.COMPUTERNAME ?? hostname();
+      expect(seen.split(" ")[2]).toBe(machineId(name));
+      expect(seen.toLowerCase()).not.toContain(name.toLowerCase());
+    });
+  });
+
+  it("withFileLock: a lock from this computer whose process is gone is taken over at once, whether it carries the hash or the plain name (written before the hash)", async () => {
+    await withProject(async (_root, dir) => {
+      const dead = spawnSync(process.execPath, ["-e", "process.stdout.write(String(process.pid))"], { encoding: "utf8" }).stdout;
+      const name = process.env.COMPUTERNAME ?? hostname();
+      for (const machine of [machineId(name), name.toUpperCase()]) {
+        await writeFile(join(dir, ".a.json.lock"), `${dead} ${Date.now()} ${machine}`);
+        const started = Date.now();
+        expect(await withFileLock(join(dir, "a.json"), async () => "ok", 3000)).toBe("ok");
+        expect(Date.now() - started).toBeLessThan(1000);
+      }
     });
   });
 

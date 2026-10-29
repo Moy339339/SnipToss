@@ -267,13 +267,13 @@ final class NotesInteropTests: SnipTestCase {
         while readText(lockPath).isEmpty && Date() < appeared { Thread.sleep(forTimeInterval: 0.005) }
         XCTAssertFalse(readText(lockPath).isEmpty, "the command line never took its lock: \(child.output)")
 
-        // Its lock reads the way ours does: "process id, time, computer name"
+        // Its lock reads the way ours does: "process id, time, computer id"
         let parts = readText(lockPath).components(separatedBy: " ")
         XCTAssertEqual(parts.count, 3, readText(lockPath))
         XCTAssertEqual(Int32(parts[0]), child.process.processIdentifier)
         XCTAssertNotNil(Int64(parts[1]))
-        let machine = parts.count == 3 ? parts[2].lowercased() : ""
-        XCTAssertEqual(machine, FileLock.machine.lowercased(), "the computer name differs from the command line's")
+        let machine = parts.count == 3 ? parts[2] : ""
+        XCTAssertEqual(machine, FileLock.machine, "the computer id differs from the command line's")
         XCTAssertNil(FileLock.staleContent(lockPath), "a live lock from the command line was taken for a left-over one")
 
         // The shell does not take it away, and gets in once the command line lets go

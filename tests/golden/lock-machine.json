@@ -1,0 +1,9 @@
+{
+  "$comment": "What the cross-process write lock (ADR-0005, item 7) writes for the computer: the first 16 hex digits of the SHA-256 of the lowercased computer name (UTF-8), not the name itself. Checked by packages/cli/test/fs-store.test.ts (machineId), tests/AppTests/FileLockTests.cs (FileLock.MachineId) and the Mac shell's FileLock tests.",
+  "cases": [
+    { "name": "DESKTOP-7Q2K9LM", "id": "7a2525fa309b7043" },
+    { "name": "desktop-7q2k9lm", "id": "7a2525fa309b7043" },
+    { "name": "Anns-MacBook-Pro.local", "id": "2c3176bfe0dccf34" },
+    { "name": "build-agent-01", "id": "84015ffaf0bce80c" }
+  ]
+}

@@ -38,7 +38,9 @@ The same notes file has three writers: the UI (via the shell), the command line 
    The full stress round caught the UI giving up saving after 3 refusals in a row: the retry was rewritten to be time-based, merging and rewriting for up to 10 seconds.
 7. **Lock**: comparing before writing only covers "the moment of comparing"; between the comparison and the new file being swapped in (writing the temp file and flushing takes tens of milliseconds) others can still get in —
    4 command-line processes writing back 1,000 times concurrently lost 771 of them. So the whole "compare + write" section has to run under a lock:
-   - The lock is `.<file name>.lock` next to the notes file; it counts as acquired only if **exclusive creation** succeeds; it contains "process id, time, computer name" and is deleted when the write is done.
+   - The lock is `.<file name>.lock` next to the notes file; it counts as acquired only if **exclusive creation** succeeds; it contains "process id, time, computer id" and is deleted when the write is done.
+     The computer id is the first 16 hex digits of the SHA-256 of the lowercased computer name, not the name itself: a lock left by a crash stays in the project folder, and computer names often carry the owner's name.
+     A lock that holds the plain name (written before the hash was used) is still recognized as this computer's (`tests/golden/lock-machine.json`).
      The shell's `app/FileLock.cs` and `withFileLock` in the command line's `fs-store.ts` use the same name and the same rules (to be merged into one implementation later, see item 5).
    - The shell's lock uses `DeleteOnClose`: if the process crashes, the system deletes it. For a lock left by a crashed command line: it counts as left over if the writing process no longer exists (the process id is checked only for writes from the same computer;
      writes from another computer over a network drive cannot be checked) or the lock file has not changed for 10 seconds; **before deleting, read it again and delete only if it is still the same lock**, so a new lock someone has just put in place is not deleted.

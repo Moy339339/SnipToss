@@ -169,7 +169,7 @@ const LOCK_DENIED_MS = 1_000;
 
 /**
  * Cross-process write lock (ADR-0005, "Locks"): .<file name>.lock next to the notes file. It is taken by creating it exclusively (wx),
- * holds "pid time machine name", and is deleted after the write.
+ * holds "pid time machine id" (see machineId), and is deleted after the write.
  * The shell (app/FileLock.cs) uses the same name and the same rules, so the CLI, the UI and several agents writing the same file take turns.
  * A lock left by a crashed process (its writer is gone, or it has not been touched for LOCK_STALE_MS) is deleted and taken again. waitMs is
  * only given by tests
@@ -242,8 +242,18 @@ async function releaseLock(lock: string): Promise<void> {
   }
 }
 
-/** The computer name written into the lock file: the same as the shell's Environment.MachineName (the NetBIOS name) */
-const MACHINE = process.env.COMPUTERNAME ?? hostname();
+/**
+ * What the lock file says about the computer: a short hash of its name, not the name itself. A lock left by a crash stays in the project
+ * folder, and computer names often carry the owner's name; the hash still tells this computer from another one. The shells compute the same
+ * value (tests/golden/lock-machine.json)
+ */
+export function machineId(name: string): string {
+  return createHash("sha256").update(name.toLowerCase(), "utf8").digest("hex").slice(0, 16);
+}
+
+/** The computer name: the same as the shell's Environment.MachineName (the NetBIOS name) */
+const MACHINE_NAME = process.env.COMPUTERNAME ?? hostname();
+const MACHINE = machineId(MACHINE_NAME);
 
 /**
  * If the lock was left by a crashed process (its writer is gone, or it has not been touched for a long time), returns its content (to
@@ -256,7 +266,8 @@ async function staleLock(lock: string): Promise<string | null> {
     const pid = Number(pidText);
     // Written by another computer (the item is on a network drive): the pid belongs to that machine and cannot be checked here, so only
     // look at how long it has been untouched
-    const here = machine === undefined || machine.toLowerCase() === MACHINE.toLowerCase();
+    // (the plain name: a lock written before the hash was used)
+    const here = machine === undefined || machine === MACHINE || machine.toLowerCase() === MACHINE_NAME.toLowerCase();
     if (here && pid > 0 && !processAlive(pid)) return text;
     return Date.now() - (await stat(lock)).mtimeMs > LOCK_STALE_MS ? text : null;
   } catch {
