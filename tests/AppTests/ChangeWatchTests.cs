@@ -122,6 +122,21 @@ public class ChangeWatchTests
         });
     }
 
+    [Fact]
+    public void A_drive_that_has_not_answered_yet_records_nothing_instead_of_not_connected_so_its_answer_is_not_announced_as_a_change()
+    {
+        var signed = 0;
+        string Sign()
+        {
+            signed++;
+            return "sig";
+        }
+        Assert.Equal("sig", MaterialWatcher.SignatureFor(true, Sign));
+        Assert.Equal("offline", MaterialWatcher.SignatureFor(false, Sign));
+        Assert.Null(MaterialWatcher.SignatureFor(null, Sign));
+        Assert.Equal(1, signed); // the disk is read only when the drive is there
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("E:\\a\u0000b.png")]
