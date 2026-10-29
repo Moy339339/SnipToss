@@ -56,6 +56,8 @@ final class CaptureSession {
     private(set) var owner: CaptureOverlay?
     private var screenObserver: NSObjectProtocol?
     private var starting = false
+    /// When the capture now opening was asked for
+    private var startedAt: Date?
     private var whenClosed: [() -> Void] = []
     private(set) var isOpen = false
     /// What the last finished capture collected, the picture made of it and where that was saved (the smoke run and the tests look)
@@ -102,6 +104,7 @@ final class CaptureSession {
             return
         }
         starting = true
+        startedAt = Date()
         Task { [weak self] in
             guard let self else { return }
             let result: Result<[FrozenScreen], Error>
@@ -157,6 +160,12 @@ final class CaptureSession {
             overlays.append(overlay)
         }
         for overlay in overlays { overlay.appeared() }
+        // The performance budget measures from the press to the layers on screen: the next turn of the loop, after they were drawn
+        if let startedAt {
+            DispatchQueue.main.async {
+                Perf.record("Hotkey → capture overlay shown \(Int((Date().timeIntervalSince(startedAt) * 1000).rounded())) ms")
+            }
+        }
         keyboardRoute = nil
         if let keyPanel { takeKeyboard(keyPanel) }
         // A screen that comes or goes, or changes its size, invalidates the pictures: the capture ends
