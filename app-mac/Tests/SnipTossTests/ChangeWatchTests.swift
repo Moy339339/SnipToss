@@ -92,6 +92,29 @@ final class ChangeWatchTests: SnipTestCase {
     }
 
     /// The library entries an item watcher announced, one list per announcement
+    /// What a volume check answers: there, not there, or not answered yet (nil)
+    private final class Answer {
+        private let lock = NSLock()
+        private var stored: Bool?
+
+        init(_ initial: Bool?) {
+            stored = initial
+        }
+
+        var value: Bool? {
+            get {
+                lock.lock()
+                defer { lock.unlock() }
+                return stored
+            }
+            set {
+                lock.lock()
+                stored = newValue
+                lock.unlock()
+            }
+        }
+    }
+
     private final class Entries {
         private let lock = NSLock()
         private var lists: [[String]] = []
@@ -838,6 +861,59 @@ final class ChangeWatchTests: SnipTestCase {
         XCTAssertEqual(entries.all.count, 1)
     }
 
+    func testAVolumeThatHasNotAnsweredYetIsNeitherGoneNorBackWhenItDoes() {
+        // A slow first look at a volume (more than the short wait) leaves the answer open. Taking that for "not there" would record
+        // offline, and the answer a moment later would announce a change nobody made
+        let dir = makeTempDir()
+        let folder = dir + "/assets"
+        let hero = folder + "/hero.png"
+        writeText(bytes(100), to: hero)
+        let answer = Answer(true)
+        let clock = FakeClock()
+        let entries = Entries()
+        let watcher = MaterialWatcher(
+            settings: makeSettings(library: [folder], selected: hero), clock: { clock.now() },
+            volumes: WatchVolumes(wait: { _ in }, known: { _ in answer.value }), changed: { entries.record($0) })
+        watcher.start()
+        watcher.tick()
+        watcher.flush()
+
+        answer.value = nil
+        clock.advance(10)
+        watcher.tick()
+        watcher.flush()
+        answer.value = true
+        clock.advance(10)
+        watcher.tick()
+        watcher.flush()
+
+        XCTAssertTrue(entries.all.isEmpty, "nothing changed on the disk, only the answer was late")
+    }
+
+    func testAVolumeThatNeverAnsweredAtStartOnlyRecordsAtItsFirstAnswer() {
+        let dir = makeTempDir()
+        let folder = dir + "/assets"
+        let hero = folder + "/hero.png"
+        writeText(bytes(100), to: hero)
+        let answer = Answer(nil)
+        let clock = FakeClock()
+        let entries = Entries()
+        let watcher = MaterialWatcher(
+            settings: makeSettings(library: [folder], selected: hero), clock: { clock.now() },
+            volumes: WatchVolumes(wait: { _ in }, known: { _ in answer.value }), changed: { entries.record($0) })
+        watcher.start()
+        watcher.flush()
+        answer.value = true
+        clock.advance(10)
+        watcher.tick()
+        watcher.flush()
+        XCTAssertTrue(entries.all.isEmpty, "the first sighting is only recorded")
+
+        writeText(bytes(200), to: hero)
+        watcher.tick()
+        watcher.flush()
+        XCTAssertEqual(entries.all, [[folder]], "a change after that is announced")
+    }
     func testAnEntryOnAMountPointThatDoesNotExistIsOfflineWithTheRealVolumeChecker() {
         let volume = "/Volumes/SnipTossAbsent-" + UUID().uuidString
         let clock = FakeClock()

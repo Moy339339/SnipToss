@@ -316,7 +316,14 @@ final class MaterialWatcher {
     private func checkCurrent() {
         guard let path = settings.selected else { return }
         volumes.wait([path])
-        let signature = volumes.known(path) == true ? MaterialWatcher.fileSignature(path) : MaterialWatcher.offline
+        // A volume that has not answered yet (a slow first look) is neither there nor gone: record nothing and judge again on the next beat.
+        // Taking it for gone would record `offline`, and the answer a moment later would then look like a change
+        let signature: String
+        switch volumes.known(path) {
+        case true?: signature = MaterialWatcher.fileSignature(path)
+        case false?: signature = MaterialWatcher.offline
+        case nil: return
+        }
         let key = Library.key(path)
         lock.lock()
         let before = files[key]
@@ -348,25 +355,38 @@ final class MaterialWatcher {
         let kinds = values.enabledKinds
         let skip = values.skipDirs
         var seen: [String: String] = [:]
-        var results: [(entry: String, signature: String)] = []
+        /// nil: the volume has not answered yet, so what was recorded for this entry stays as it is
+        var results: [(entry: String, signature: String?)] = []
         // Volumes that are not connected are recorded as offline and not scanned (a disconnected network volume takes ten-odd seconds per
         // query): one entry on such a volume would otherwise make a round take tens of seconds, the interval stretch to ten-odd minutes,
         // and changes to other items go unseen. When the volume comes back its fingerprint changes from offline and the page rescans it
         volumes.wait(entries)
         for entry in entries {
-            if volumes.known(entry) == true {
+            switch volumes.known(entry) {
+            case true?:
                 results.append((entry: entry, signature: MaterialWatcher.entrySignature(entry, kinds: kinds, skipDirs: skip, seen: &seen)))
-            } else {
+            case false?:
                 results.append((entry: entry, signature: MaterialWatcher.offline))
+            case nil:
+                results.append((entry: entry, signature: nil))
             }
         }
 
         var dirty: [String] = []
         lock.lock()
+        var unanswered: [String] = []
         for result in results {
             let key = Library.key(result.entry)
-            if let old = signatures[key], old != result.signature { dirty.append(result.entry) }
-            signatures[key] = result.signature
+            guard let signature = result.signature else {
+                unanswered.append(key)
+                continue
+            }
+            if let old = signatures[key], old != signature { dirty.append(result.entry) }
+            signatures[key] = signature
+        }
+        // The files of an entry that did not answer keep their records: the open file is compared against them
+        for (path, signature) in files where seen[path] == nil && unanswered.contains(where: { path == $0 || Library.keyInside(path, $0) }) {
+            seen[path] = signature
         }
         files = seen
         let listed = Set(entries.map { Library.key($0) })

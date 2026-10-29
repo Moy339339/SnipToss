@@ -188,7 +188,7 @@ sealed class MaterialWatcher : IDisposable
         try
         {
             await Volumes.WaitAsync([path], Volumes.Patience);
-            var sig = Volumes.Known(path) == true ? await Task.Run(() => FileSignature(path)) : Offline;
+            if (await Task.Run(() => SignatureFor(Volumes.Known(path), () => FileSignature(path))) is not { } sig) return;
             var known = files.GetValueOrDefault(path);
             files[path] = sig;
             if (known is not null && known != sig && EntryOf(path) is { } entry)
@@ -218,11 +218,12 @@ sealed class MaterialWatcher : IDisposable
             // Drives that aren't connected are recorded as Offline and not scanned (a disconnected network drive takes ten-odd seconds per query, see Volumes): one entry on such a drive used to make a round take tens of seconds,
             // the interval stretched to ten-odd minutes, and changes to other items went unseen. When the drive comes back its fingerprint changes from Offline and the UI rescans it (the list entry recovers with it)
             await Volumes.WaitAsync(entries, Volumes.Patience);
-            var there = entries.Select(e => Volumes.Known(e) == true).ToList();
-            var now = await Task.Run(() => entries.Select((e, i) => (entry: e, sig: there[i] ? EntrySignature(e, kinds, skip, seen) : Offline)).ToList());
+            var there = entries.Select(e => Volumes.Known(e)).ToList();
+            var now = await Task.Run(() => entries.Select((e, i) => (entry: e, sig: SignatureFor(there[i], () => EntrySignature(e, kinds, skip, seen)))).ToList());
             var dirty = new List<string>();
             foreach (var (entry, sig) in now)
             {
+                if (sig is null) continue; // its drive hasn't answered yet: keep what was recorded and decide next round
                 if (signatures.TryGetValue(entry, out var old) && old != sig) dirty.Add(entry);
                 signatures[entry] = sig;
             }
@@ -245,6 +246,18 @@ sealed class MaterialWatcher : IDisposable
 
     /// <summary>Fingerprint for when the drive isn't connected (USB stick unplugged, network drive disconnected)</summary>
     const string Offline = "offline";
+
+    /// <summary>
+    /// What to record for a path given whether its drive is there (Volumes.Known): its signature, Offline when the drive isn't there, and nothing (null)
+    /// when the drive hasn't answered yet. A first query that takes longer than Volumes.Patience (a busy machine) used to be recorded as Offline,
+    /// so the next tick, when the drive had answered, announced a change that never happened
+    /// </summary>
+    internal static string? SignatureFor(bool? there, Func<string> sign) => there switch
+    {
+        true => sign(),
+        false => Offline,
+        null => null,
+    };
 
     string? EntryOf(string path) =>
         settings.Library.Select(e => e.Path).FirstOrDefault(e => Library.Same(e, path) || Library.Inside(path, e));
