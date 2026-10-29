@@ -4,11 +4,6 @@ import Foundation
 /// Placeholder answers for the calls the UI makes while it starts that have no real implementation yet (the window and screen capture).
 /// Replaced one method at a time by the real implementations (docs/host-api.md); a method that is not registered answers "not implemented"
 func installStubMethods(into bridge: BridgeHost) {
-    // The UI reads every field of a window state; a missing object makes the whole workspace fail to render
-    let windowState: BridgeMethod = { _ in ["maximized": false, "fullscreen": false, "topmost": false] as [String: Any] }
-    bridge.register("windowState", windowState)
-    bridge.register("window", windowState)
-
     bridge.register("captureSettings") { _ in
         [
             "hotkey": "", "hotkeyError": NSNull(), "hotkeyTypes": "", "hotkeyMoved": NSNull(), "keepInTray": false, "hideWindow": false,

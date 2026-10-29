@@ -40,6 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let console = ConsoleCollector()
     private var smoke: SmokeRun?
     private var changeWatch: ChangeWatch?
+    private var windowController: WindowController?
     private var observers: [NSObjectProtocol] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -90,6 +91,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.backgroundColor = NSColor(srgbRed: 0x14 / 255, green: 0x14 / 255, blue: 0x16 / 255, alpha: 1)
         window.contentView = web
         window.center()
+        // The main menu: without its standard Edit items the keys for copy, paste and select all do nothing in a text box. The key
+        // experiment of the smoke run turns it off to see what happens without it
+        if ProcessInfo.processInfo.environment["SNIPTOSS_SMOKE_NOMENU"] != "1" {
+            NSApp.mainMenu = MainMenu.build(openSettings: #selector(openSettingsFromMenu(_:)))
+        }
+        let controller = WindowController(window: window, settings: settings)
+        controller.install(into: bridge)
+        windowController = controller
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         observeWindowState()
@@ -99,12 +108,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         web.load(URLRequest(url: URL(string: "\(uiScheme)://\(uiHost)/index.html")!))
         if let out = ProcessInfo.processInfo.environment["SNIPTOSS_SMOKE_OUT"] {
-            smoke = SmokeRun(outDir: URL(fileURLWithPath: out, isDirectory: true), web: web, bridge: bridge, console: console)
+            smoke = SmokeRun(outDir: URL(fileURLWithPath: out, isDirectory: true), web: web, window: window, bridge: bridge, console: console)
             smoke?.start()
         }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
+
+    /// App menu, Settings… (the page opens its own settings page)
+    @objc private func openSettingsFromMenu(_ sender: Any?) {
+        bridge.emit("openSettings", ["section": "general"])
+    }
 
     // MARK: Window state
 

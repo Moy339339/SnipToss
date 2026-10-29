@@ -818,8 +818,9 @@ final class ChangeWatchTests: SnipTestCase {
         watcher.start()
         watcher.flush()
 
+        // The clock stays where it is, so no full scan is due and only the open file is looked at: a full scan on its own queue could
+        // otherwise replace what the open file's check has just recorded, and which of the two finishes last is not fixed
         writeText(bytes(200), to: hero)
-        clock.advance(10)
         watcher.tick()
         watcher.flush()
         XCTAssertTrue(entries.all.isEmpty, "offline before and offline now: nothing to announce, and the disk was not looked at")

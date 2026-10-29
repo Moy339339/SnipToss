@@ -17,9 +17,9 @@ struct BridgeError: Error {
 typealias BridgeMethod = (Any?) throws -> Any?
 
 /// Run `work` on the main thread and wait for it. Only for bridge methods (which run on a background queue), never from the main thread
-func onMain<T>(_ work: () -> T) -> T {
+func onMain<T>(_ work: () throws -> T) rethrows -> T {
     precondition(!Thread.isMainThread, "onMain is for background threads")
-    return DispatchQueue.main.sync(execute: work)
+    return try DispatchQueue.main.sync(execute: work)
 }
 
 /// The shell end of the bridge in docs/host-api.md: `{ id, method, params }` in, `{ id, result }` or `{ id, error, code }` out,

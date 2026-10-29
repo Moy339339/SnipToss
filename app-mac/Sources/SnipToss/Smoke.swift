@@ -14,13 +14,15 @@ final class SmokeRun {
     /// The onboarding tour card is on screen (first run, an item shown)
     static let tourScript = "!!document.querySelector('.tour-card')"
 
-    /// SNIPTOSS_SMOKE_READY picks what to wait for: `welcome` (default, an empty library), `image` or `tour`
+    /// SNIPTOSS_SMOKE_READY picks what to wait for: `welcome` (default, an empty library), `image`, `tour`, or `keys` (the welcome screen, then
+    /// the key experiment of KeyExperiment.swift, whose answers go into result.json)
     static let mode = ProcessInfo.processInfo.environment["SNIPTOSS_SMOKE_READY"] ?? "welcome"
 
     static var readyScript: String {
         switch mode {
         case "image": return imageScript
         case "tour": return tourScript
+        case "keys": return welcomeScript
         default: return welcomeScript
         }
     }
@@ -51,17 +53,22 @@ final class SmokeRun {
 
     private let outDir: URL
     private let web: WKWebView
+    private let window: NSWindow
     private let bridge: BridgeHost
     private let console: ConsoleCollector
     private let began = Date()
     private var finished = false
     /// The picture taken the moment the tour card appeared (tour mode only)
     private var firstShot: String?
+    /// What the key experiment found (keys mode only)
+    private var keyExperiment: [String: Any]?
+    private var experiment: KeyExperiment?
     private let timeoutSeconds = Double(ProcessInfo.processInfo.environment["SNIPTOSS_SMOKE_TIMEOUT"] ?? "") ?? 60
 
-    init(outDir: URL, web: WKWebView, bridge: BridgeHost, console: ConsoleCollector) {
+    init(outDir: URL, web: WKWebView, window: NSWindow, bridge: BridgeHost, console: ConsoleCollector) {
         self.outDir = outDir
         self.web = web
+        self.window = window
         self.bridge = bridge
         self.console = console
     }
@@ -83,6 +90,17 @@ final class SmokeRun {
                 // The layout fades in over 160 ms and fonts may still be settling: wait before the picture. Anything with an entrance
                 // animation is photographed at least 0.6 s after it appears: `takeSnapshot` can catch the first frames half painted
                 // (the first picture of the tour card has body and buttons but no title), which is the snapshot call, not the page
+                if Self.mode == "keys" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [self] in
+                        let run = KeyExperiment(window: window, web: web)
+                        experiment = run
+                        run.run { [self] found in
+                            keyExperiment = found
+                            capture(ready: true)
+                        }
+                    }
+                    return
+                }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [self] in capture(ready: true) }
             } else {
                 DispatchQueue.main.asyncAfter(deadline: .now() + (Self.mode == "tour" ? 0.02 : 0.25)) { [self] in poll() }
@@ -147,6 +165,7 @@ final class SmokeRun {
         if let page { result["page"] = page }
         if let laterPage { result["pageLater"] = laterPage }
         if let laterShot { result["snapshotLater"] = laterShot }
+        if let keyExperiment { result["keyExperiment"] = keyExperiment }
         if let firstShot { result["snapshotFirst"] = firstShot }
         if let data = try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys]) {
             try? data.write(to: outDir.appendingPathComponent("result.json"))

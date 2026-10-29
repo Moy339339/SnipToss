@@ -147,6 +147,7 @@ func installLibraryMethods(
             "exe": Bundle.main.executablePath ?? "",
             "settingsPath": AppPaths.settingsFile,
             "userName": NSUserName(),
+            "platform": "mac",
         ] as [String: Any]
     }
 }
