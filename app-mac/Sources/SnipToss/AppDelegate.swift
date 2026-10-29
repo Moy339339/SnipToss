@@ -45,6 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     private var smoke: SmokeRun?
     private var changeWatch: ChangeWatch?
     private var windowController: WindowController?
+    private var nativeMenus: NativeMenus?
     private var observers: [NSObjectProtocol] = []
     /// Paths the system asked to open before the window was set up (the app was started by opening a file); added once it is
     private var earlyOpens: [String] = []
@@ -118,9 +119,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         window.contentView = web
         window.center()
         // The main menu: without its standard Edit items the keys for copy, paste and select all do nothing in a text box. The key
-        // experiment of the smoke run turns it off to see what happens without it
+        // experiment of the smoke run turns it off to see what happens without it. The page's own menus take over from the stand-ins
+        // as soon as it sends them (setMenus)
         if ProcessInfo.processInfo.environment["SNIPTOSS_SMOKE_NOMENU"] != "1" {
-            NSApp.mainMenu = MainMenu.build(openSettings: #selector(openSettingsFromMenu(_:)))
+            let bar = MainMenu.build(openSettings: #selector(openSettingsFromMenu(_:)), openAbout: #selector(openAboutFromMenu(_:)))
+            NSApp.mainMenu = bar
+            let menus = NativeMenus(bar: bar, emit: bridge.emit)
+            menus.install(into: bridge)
+            nativeMenus = menus
+        } else {
+            bridge.register("setMenus") { _ in nil }
         }
         let controller = WindowController(window: window, settings: settings)
         controller.install(into: bridge)
@@ -179,9 +187,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         openSettingsPage()
     }
 
-    private func openSettingsPage() {
+    /// App menu, About SnipToss
+    @objc private func openAboutFromMenu(_ sender: Any?) {
+        openSettingsPage(section: "about")
+    }
+
+    private func openSettingsPage(section: String = "general") {
         showMainWindow()
-        bridge.emit("openSettings", ["section": "general"])
+        bridge.emit("openSettings", ["section": section])
     }
 
     /// Brings the window to the front: shows it if it was closed, restores it if it was minimized, shows the app if it was hidden
@@ -198,6 +211,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
         pendingOpens.navigating()
+        // The new page counts the versions of its menus from the start again
+        nativeMenus?.pageReloading()
     }
 
     // MARK: Window state

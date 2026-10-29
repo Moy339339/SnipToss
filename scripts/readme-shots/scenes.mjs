@@ -128,7 +128,6 @@ export async function hero(ctx, locale) {
     await page.mouse.move(10, 790);
     await sleep(900);
     await pageShot(page, join(dir, "main.png"), 2);
-    await page.screenshot({ path: join(dir, "main@1x.png") });
   } finally {
     await inst.close();
   }
@@ -178,7 +177,6 @@ export async function stills(ctx, locale) {
     await page.mouse.move(10, 790);
     await sleep(900);
     await pageShot(page, join(dir, "main.png"), 2);
-    await page.screenshot({ path: join(dir, "main@1x.png") });
     // The annotated picture itself (marks and numbers included) and each note card, as the app draws them
     await pageShot(page, join(dir, "canvas.png"), 2, await page.locator("img.zoom-media").boundingBox());
     for (let i = 0; i < 3; i++) await pageShot(page, join(dir, `card-${i + 1}.png`), 2, await page.locator(".card").nth(i).boundingBox());

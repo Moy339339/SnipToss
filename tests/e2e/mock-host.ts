@@ -155,6 +155,12 @@ export class MockHost {
   }
   /** The Mac-only window calls the page made (windowDrag, windowZoom), in order */
   windowCalls: string[] = [];
+  /** The shell reports that an item of the Mac's native menu was chosen */
+  chooseMenuItem(id: string, version: number) {
+    this.emit({ event: "menuCommand", id, version });
+  }
+  /** Every setMenus the page sent (the Mac's native menus), in order */
+  menusSent: { version: number; modal: boolean; menus: { label: string; items: unknown[] }[] }[] = [];
   capture = {
     hotkey: "Ctrl+Alt+A",
     hotkeyError: null as string | null,
@@ -506,6 +512,9 @@ export class MockHost {
       case "windowDrag":
       case "windowZoom":
         this.windowCalls.push(method);
+        return null;
+      case "setMenus":
+        this.menusSent.push(a as unknown as (typeof this.menusSent)[number]);
         return null;
       case "captureSettings":
         return this.captureState();

@@ -179,6 +179,7 @@ final class SmokeRun {
         if let laterPage { result["pageLater"] = laterPage }
         if let laterShot { result["snapshotLater"] = laterShot }
         if let keyExperiment { result["keyExperiment"] = keyExperiment }
+        result["menuBar"] = MenuReport.describe(NSApp.mainMenu)
         if let firstShot { result["snapshotFirst"] = firstShot }
         if let data = try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys]) {
             try? data.write(to: outDir.appendingPathComponent("result.json"))

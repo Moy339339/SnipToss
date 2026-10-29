@@ -25,6 +25,12 @@ export interface MenuItem {
    * Keyboard: ↑↓ landing on this row focuses the lit swatch (the first if none is lit), ← → move between swatches
    */
   swatches?: MenuSwatch[];
+  /** The key name this item presses (pressKey), like "Ctrl+=": the Mac's native menu shows it as the item's shortcut (menuModel.ts) */
+  keys?: string;
+  /** Undo / redo: the Mac's native menu hands these to the text box instead when the caret is in one (menuModel.ts) */
+  role?: "undo" | "redo";
+  /** Only in the menu of this platform (Exit, Settings… and About are in the Mac's app menu); the Windows menu bar never reads it */
+  only?: "windows" | "mac";
 }
 
 export interface MenuSwatch {

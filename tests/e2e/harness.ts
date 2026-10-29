@@ -64,6 +64,8 @@ const SHIM = `(() => {
   window.chrome.webview = {
     // The Mac shell's script sets platform: "mac" on its object; WebView2's has none. A test that wants the Mac sets __e2ePlatform before the page loads (test.use or addInitScript)
     get platform() { return window.__e2ePlatform; },
+    // The Mac shell sets nativeMenus when it draws the menus itself; a test that wants that sets __e2eNativeMenus before the page loads
+    get nativeMenus() { return window.__e2eNativeMenus === true; },
     postMessage(msg) { window.__e2eHost(msg).then(deliver); },
     // Dropped files: the real shell takes the paths from the attached objects; here the file names go into the params, which simulates the shell
     // matching them by name to the paths the test prepared (nextDrop in mock-host.ts).

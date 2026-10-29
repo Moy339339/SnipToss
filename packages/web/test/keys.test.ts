@@ -109,3 +109,29 @@ describe("mnemonic: the mnemonic letter in a menu name", () => {
     }
   });
 });
+
+describe("keyName on the Mac", () => {
+  const mac = (o: Partial<KeyboardEvent>) => keyName(ev(o), true, true);
+
+  it("the Command key is the Ctrl of the names, and the real Control key is a modifier of its own that no shortcut uses", () => {
+    expect(mac({ key: "o", code: "KeyO", metaKey: true })).toBe("Ctrl+O");
+    expect(mac({ key: "o", code: "KeyO", metaKey: true, shiftKey: true })).toBe("Ctrl+Shift+O");
+    expect(mac({ key: "o", code: "KeyO", ctrlKey: true })).toBe("Control+O");
+    expect(mac({ key: "a", code: "KeyA", ctrlKey: true })).not.toBe("Ctrl+A");
+  });
+
+  it("Option goes by the key position: Option changes the character a key types", () => {
+    expect(mac({ key: "Ω", code: "KeyZ", altKey: true })).toBe("Alt+Z");
+    expect(mac({ key: "¡", code: "Digit1", altKey: true })).toBe("Alt+1");
+    expect(mac({ key: "ß", code: "KeyS", altKey: true, metaKey: true })).toBe("Ctrl+Alt+S");
+    expect(mac({ key: "∫", code: "KeyB", altKey: true, metaKey: true })).toBe("Ctrl+Alt+B");
+  });
+
+  it("without Option, and the same keys on Windows, nothing changes", () => {
+    expect(mac({ key: "z", code: "KeyZ" })).toBe("Z");
+    expect(keyName(ev({ key: "o", code: "KeyO", ctrlKey: true }), true, false)).toBe("Ctrl+O");
+    // The Windows rule is kept as it was: the Windows key counts as Ctrl too
+    expect(keyName(ev({ key: "o", code: "KeyO", metaKey: true }), true, false)).toBe("Ctrl+O");
+    expect(keyName(ev({ key: "z", code: "KeyZ", altKey: true }), true, false)).toBe("Alt+Z");
+  });
+});

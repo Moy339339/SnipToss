@@ -54,6 +54,22 @@ jobs:
           export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/empty"
           app-mac/.build/release/SnipToss
 
+      # The menu bar the page asked for (setMenus): the app menu and the page's seven menus, and the four standard items at the end of Edit
+      - name: Check the menu bar
+        if: ${{ !cancelled() }}
+        run: |
+          node -e '
+            const r = require(process.env.RUNNER_TEMP + "/smoke/empty/result.json");
+            const bar = r.menuBar || {};
+            const problems = [];
+            if (!r.bridgeCalls.includes("setMenus")) problems.push("the page never sent setMenus");
+            if (r.bridgeUnhandled.includes("setMenus")) problems.push("setMenus is not implemented");
+            if ((bar.titles || []).length !== 8) problems.push("expected 8 menus, got " + JSON.stringify(bar.titles));
+            if ((bar.standardEditItems || []).length !== 4) problems.push("standard Edit items: " + JSON.stringify(bar.standardEditItems));
+            if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
+            console.log("menu bar ok", JSON.stringify(bar));
+          '
+
       # The same with a project in the library and one item selected: the scan, the media scheme, and the image decoded on the canvas
       - name: Smoke run (project with an image)
         if: ${{ !cancelled() }}

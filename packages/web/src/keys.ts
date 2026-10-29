@@ -1,4 +1,5 @@
 import { useEffect, useEffectEvent } from "react";
+import { platform } from "./host";
 
 // The single entry point for keyboard shortcuts. Key name format: modifiers + main key, e.g. "Ctrl+O", "Shift+ArrowLeft", "Space", "?", ",".
 // The full shortcut table is in docs/shortcuts.md; when changing anything here, update that document and the list in ShortcutHelp too.
@@ -53,6 +54,23 @@ const TEXT_EDITING = new Set([
   "Ctrl+End",
   "Ctrl+Shift+Home",
   "Ctrl+Shift+End",
+]);
+
+/**
+ * The Mac's own text editing keys, on top of the ones above: Option+arrows move by word, Option+Backspace / Delete delete a word, Command+Up /
+ * Down go to the start / end of the text. Inside an input they belong to it (Command is "Ctrl" in key names, see keyName)
+ */
+const MAC_TEXT_EDITING = new Set([
+  "Alt+ArrowLeft",
+  "Alt+ArrowRight",
+  "Alt+Shift+ArrowLeft",
+  "Alt+Shift+ArrowRight",
+  "Alt+Backspace",
+  "Alt+Delete",
+  "Ctrl+ArrowUp",
+  "Ctrl+ArrowDown",
+  "Ctrl+Shift+ArrowUp",
+  "Ctrl+Shift+ArrowDown",
 ]);
 
 const CONTROL =
@@ -124,7 +142,7 @@ export function letterOf(e: Pick<KeyboardEvent, "key" | "code">): string {
  * Normalizes a key press into a key name. A printable symbol (? , .) already implies Shift, so no Shift+ is added.
  * byPosition = false: digit keys are also taken by the character typed (see keyNames)
  */
-export function keyName(e: KeyboardEvent, byPosition = true): string {
+export function keyName(e: KeyboardEvent, byPosition = true, mac = platform === "mac"): string {
   let key = e.key;
   if (key === " ") key = "Space";
   // Letters typed on a non-Latin layout (я, ㅁ) are taken as Latin letters by key position, so shortcuts still work
@@ -137,6 +155,11 @@ export function keyName(e: KeyboardEvent, byPosition = true): string {
   // as 8
   const digit = byPosition && !altGraph && (e.shiftKey || !(e.ctrlKey || e.altKey || e.metaKey)) ? /^Digit(\d)$/.exec(e.code) : null;
   if (digit) key = digit[1];
+  // Mac: Option changes the character a key types (Option+Z is Ω, Option+1 is ¡), so a shortcut with Option goes by the key position
+  if (mac && e.altKey) {
+    const position = /^Digit(\d)$/.exec(e.code) ?? /^Key([A-Z])$/.exec(e.code);
+    if (position) key = position[1];
+  }
   const printable = key.length === 1;
   if (printable) key = key.toUpperCase();
   const mods: string[] = [];
@@ -144,7 +167,12 @@ export function keyName(e: KeyboardEvent, byPosition = true): string {
   // Some environments report AltGr as Ctrl+Alt; those two modifiers are not added here. Letters are different (AltGr+E types €, that is
   // typing, not a shortcut)
   const altGr = altGraph && printable && !/^\p{L}$/u.test(key);
-  if ((e.ctrlKey || e.metaKey) && !altGr) mods.push("Ctrl");
+  // Mac: the Command key is the "Ctrl" of the shortcut names; the real Control key is a modifier of its own that no shortcut uses (the system
+  // and text fields use Control+letters for moving the caret)
+  if (mac) {
+    if (e.metaKey && !altGr) mods.push("Ctrl");
+    else if (e.ctrlKey) mods.push("Control");
+  } else if ((e.ctrlKey || e.metaKey) && !altGr) mods.push("Ctrl");
   if (e.altKey && !altGr) mods.push("Alt");
   if (e.shiftKey && (digit || !printable || /[A-Z]/.test(key))) mods.push("Shift");
   return [...mods, key].join("+");
@@ -166,7 +194,7 @@ export function keyNames(e: KeyboardEvent): string[] {
  * Dispatched on body rather than window, so the event goes through capture → bubble as usual and "handle first and stop" shortcuts work too.
  * Key name format is the same as useKeys, e.g. "Shift+1", "Ctrl+=", "Space", "ArrowLeft"
  */
-export function pressKey(name: string) {
+export function pressKey(name: string, mac = platform === "mac") {
   const parts = name.split("+");
   let key = parts.pop() || "+"; // "Ctrl++" ends up with an empty string after splitting
   if (name.endsWith("++")) parts.pop();
@@ -183,7 +211,9 @@ export function pressKey(name: string) {
   const init = {
     key,
     code,
-    ctrlKey: mods.has("Ctrl"),
+    // On the Mac the "Ctrl" of a key name is the Command key
+    ctrlKey: !mac && mods.has("Ctrl"),
+    metaKey: mac && mods.has("Ctrl"),
     shiftKey: mods.has("Shift"),
     altKey: mods.has("Alt"),
     bubbles: true,
@@ -227,7 +257,9 @@ export function useKeys(map: KeyMap, options: { enabled?: boolean; modal?: boole
       let skip = pressesControl(e);
       if (!modal && ownedByInput(e.target, name)) {
         if (name === "Escape") (e.target as HTMLElement).blur();
-        if ((!e.ctrlKey && !e.altKey) || TEXT_EDITING.has(name)) skip = true;
+        // The Command key is the Ctrl of the names on the Mac
+        const ctrl = platform === "mac" ? e.metaKey : e.ctrlKey;
+        if ((!ctrl && !e.altKey) || TEXT_EDITING.has(name) || (platform === "mac" && MAC_TEXT_EDITING.has(name))) skip = true;
       }
       const handler = skip ? undefined : (handlerOf(name) ?? (typed ? handlerOf(typed) : undefined));
       if (handler && handler(e) !== false) {

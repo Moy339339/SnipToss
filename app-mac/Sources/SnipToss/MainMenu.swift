@@ -1,14 +1,15 @@
 import AppKit
 
 /// The menu bar the app has before the page's own menus are drawn natively: the app menu, a standard Edit menu and a Window menu.
+/// The app menu stays for good; the other two stand in until the page has sent its menus (NativeMenus.swift), which then take their place.
 /// The Edit menu is not decoration. Copy, paste, select all, undo and redo inside a text field reach WebKit as actions sent down the
 /// responder chain by the standard items of the main menu (`copy:`, `paste:`, ...); without those items the keys do nothing in a text box
 /// (the same trap Electron apps fall into when they leave the Edit menu out)
 enum MainMenu {
     /// - Parameter edit: false leaves the Edit menu out, to find out what a text box does without it (the smoke run for the key experiment)
-    static func build(openSettings: Selector, edit: Bool = true) -> NSMenu {
+    static func build(openSettings: Selector, openAbout: Selector, edit: Bool = true) -> NSMenu {
         let bar = NSMenu()
-        bar.addItem(submenu(appMenu(openSettings: openSettings)))
+        bar.addItem(submenu(appMenu(openSettings: openSettings, openAbout: openAbout)))
         if edit { bar.addItem(submenu(editMenu())) }
         let window = windowMenu()
         bar.addItem(submenu(window))
@@ -31,10 +32,11 @@ enum MainMenu {
         return item
     }
 
-    private static func appMenu(openSettings: Selector) -> NSMenu {
+    /// About and Settings… open the page's own settings (the About section, as Help → About does on Windows)
+    private static func appMenu(openSettings: Selector, openAbout: Selector) -> NSMenu {
         let name = "SnipToss"
         let menu = NSMenu(title: name)
-        menu.addItem(item("About \(name)", #selector(NSApplication.orderFrontStandardAboutPanel(_:))))
+        menu.addItem(item("About \(name)", openAbout, ""))
         menu.addItem(.separator())
         menu.addItem(item("Settings…", openSettings, ","))
         menu.addItem(.separator())
@@ -51,12 +53,20 @@ enum MainMenu {
         // Sent to the first responder (target nil): the text box that has the focus, not the app
         menu.addItem(item("Undo", Selector(("undo:")), "z"))
         menu.addItem(item("Redo", Selector(("redo:")), "z", [.command, .shift]))
-        menu.addItem(.separator())
-        menu.addItem(item("Cut", #selector(NSText.cut(_:)), "x"))
-        menu.addItem(item("Copy", #selector(NSText.copy(_:)), "c"))
-        menu.addItem(item("Paste", #selector(NSText.paste(_:)), "v"))
-        menu.addItem(item("Select All", #selector(NSText.selectAll(_:)), "a"))
+        standardEditItems().forEach { menu.addItem($0) }
         return menu
+    }
+
+    /// A separator, then Cut, Copy, Paste and Select All, sent to the first responder (target nil): the text box that has the caret.
+    /// The page's Edit menu has Undo and Redo of its own; these four are what it lacks
+    static func standardEditItems() -> [NSMenuItem] {
+        [
+            .separator(),
+            item("Cut", #selector(NSText.cut(_:)), "x"),
+            item("Copy", #selector(NSText.copy(_:)), "c"),
+            item("Paste", #selector(NSText.paste(_:)), "v"),
+            item("Select All", #selector(NSText.selectAll(_:)), "a"),
+        ]
     }
 
     private static func windowMenu() -> NSMenu {

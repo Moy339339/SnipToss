@@ -10,6 +10,8 @@ let bridgeShimScript = """
   window.chrome.webview = {
     // Which shell hosts the page (host.ts reads it; WebView2's own object has none, which means Windows)
     platform: "mac",
+    // The shell draws the menu bar (setMenus / menuCommand); the page does not show its own
+    nativeMenus: true,
     postMessage(message) {
       window.webkit.messageHandlers.bridge.postMessage(message);
     },

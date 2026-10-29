@@ -8,6 +8,15 @@ Principles:
 - **The same key means the same thing across items**: `[` `]` are always the previous / next note, and ← → are always “back / forward within this item” (a frame in a video, a page in a PDF; an image has no internal pages, so it switches items).
 - Press `?` at any time to see all shortcuts; custom shortcuts will be supported later.
 
+## On the Mac
+
+The tables in this file are written for Windows. On the Mac the same shortcuts apply with these changes, and the interface shows them with the Mac's symbols (⌃ ⌥ ⇧ ⌘, in that order, no space before the key: `Ctrl Shift Z` is shown as ⇧⌘Z):
+
+- **`Ctrl` is the Command key (⌘)**, so `Ctrl O` is ⌘O and `Ctrl Shift O` is ⇧⌘O. The real Control key (⌃) is not used by any shortcut: in a text box it moves the caret, as on the rest of the system.
+- **`Alt` is the Option key (⌥)**. Option changes the character a key types (Option+Z types Ω), so a shortcut with Option goes by the key position: ⌥Z is the key that has Z on a US layout.
+- In a text box the Mac's own editing keys belong to the box and are not shortcuts: ⌘Z, ⇧⌘Z, ⌘A, ⌘C, ⌘X, ⌘V, ⌥← ⌥→ (by word), ⌥⌫ ⌥⌦ (delete a word), ⌘↑ ⌘↓ (start or end of the text).
+- Enter is ↩, Delete is ⌦, Backspace is ⌫, Esc is ⎋; Space, Home and End stay words.
+- The shortcuts that are Windows conventions have no Mac counterpart yet: `Alt F4`, the menu bar's `Alt` / `F10`, and the Win key in the Screen Capture shortcut.
 Status: ✅ implemented　⏳ to be done together with the corresponding feature
 
 ## General

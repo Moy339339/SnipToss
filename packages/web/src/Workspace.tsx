@@ -7,6 +7,7 @@ import { Composer } from "./Composer";
 import { AskDialog, type Ask } from "./AskDialog";
 import { baseName, call, homeJoin, keyOf, logError, materialUrl, onHostEvent, type AppInfo, type MaterialEntry } from "./host";
 import { buildMenus } from "./appMenus";
+import { useNativeMenus } from "./nativeMenus";
 import { ContextMenu, type MenuItem } from "./Menu";
 import { annotationMenu, draftMarkMenu, materialMenu, panelMenu, stagePointAt, type StagePoint } from "./stageMenu";
 import { noteColorOf, placeColorOf } from "./markColors";
@@ -813,6 +814,8 @@ export function WorkspaceView(props: {
     startCapture,
     captureHotkey,
   });
+  // On the Mac the shell draws these menus: they are sent to it whenever they change
+  useNativeMenus(menus);
 
   /**
    * The note being written can keep gaining marks: it already has marks, the canvas can be drawn on, and it is not written on an older version (its marks are not drawn on the current canvas).

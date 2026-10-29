@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { IntlContext, useIntl } from "react-intl";
-import { call, platform, type WindowAction, type WindowState } from "./host";
+import { call, nativeMenus, platform, type WindowAction, type WindowState } from "./host";
 import { keycaps, prettyKeys } from "./hotkey";
 import { versionLabel } from "./brand";
 import { CaptureIcon, ChevronIcon, UpdateIcon } from "./icons";
@@ -58,7 +58,8 @@ export function TitleBar(props: {
       role="presentation"
       onMouseDown={mac ? stripPress : undefined}
     >
-      <MenuBar menus={props.menus} />
+      {/* The Mac shell draws the menus at the top of the screen (nativeMenus): nothing to show here, and the blank part fills the strip */}
+      {nativeMenus ? <div className="titlebar-fill" /> : <MenuBar menus={props.menus} />}
       {/* Screen Capture does not belong to any one item but to the whole app, so it sits at the right of the title bar (next to the window buttons, present whichever item is open).
           A split button: the left part captures as configured, and the check in the small arrow's menu decides whether to hide this window
           (the arrow menu holds only that one hide / don't-hide check; "don't hide this time" and a duplicate "Screen Capture" entry are dropped) */}
