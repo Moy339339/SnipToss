@@ -214,9 +214,11 @@ jobs:
           security unlock-keychain -p "$keychain_password" "$keychain"
           printf '%s' "$P12" | base64 --decode > "$RUNNER_TEMP/signing.p12"
           security import "$RUNNER_TEMP/signing.p12" -k "$keychain" -P "$P12_PASSWORD" -T /usr/bin/codesign > /dev/null
-          fingerprint="$(openssl pkcs12 -in "$RUNNER_TEMP/signing.p12" -passin env:P12_PASSWORD -nokeys -clcerts 2>/dev/null | openssl x509 -noout -fingerprint -sha1 | sed 's/.*=//; s/://g')"
           rm -f "$RUNNER_TEMP/signing.p12"
-          if [ -z "$fingerprint" ]; then echo "the certificate could not be read from the secret"; exit 1; fi
+          # The identity (certificate with its private key) as the keychain sees it; self-signed, so it is listed as not trusted, which
+          # does not stop codesign
+          fingerprint="$(security find-identity -p codesigning "$keychain" | awk '/^ *1\)/ { print $2; exit }')"
+          if [ -z "$fingerprint" ]; then echo "no signing identity in the keychain after the import"; exit 1; fi
           security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain" > /dev/null
           security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
           echo "signing with the certificate $fingerprint"
