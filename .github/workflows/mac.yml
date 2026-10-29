@@ -176,7 +176,7 @@ jobs:
               if (JSON.stringify(l.pixels) !== JSON.stringify(want)) say("pixels " + JSON.stringify(l.pixels) + ", expected " + JSON.stringify(want));
               const samples = l.samples || [];
               if (samples.length !== 3) say(samples.length + " samples");
-              // The expected colors are worked out in the layer's own color space (CaptureSmoke.shown), as the drawing is
+              // The expected colors are worked out in the color space of the layer (CaptureSmoke.shown), as the drawing is
               for (const s of samples) {
                 const off = s.expected.length !== 3 || s.actual.some((v, k) => !(Math.abs(v - s.expected[k]) <= 8));
                 if (off) say("pixel " + s.at + " is " + s.actual + ", expected " + s.expected + " (" + l.colorSpace + ")");

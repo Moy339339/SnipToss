@@ -89,7 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             over.wait()
             return nil
         }
-        installCaptureSettingsMethods(into: bridge, settings: settings, hotkey: hotkey) { [weak self] keepInTray in
+        installCaptureSettingsMethods(into: bridge, settings: settings, hotkey: hotkey, access: SystemScreenAccess()) { [weak self] keepInTray in
             runOnMain { self?.statusItem?.setVisible(TrayPolicy.showsStatusItem(keepInTray: keepInTray)) }
         }
         installScanMethods(into: bridge, settings: settings, homes: homes)

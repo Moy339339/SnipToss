@@ -41,6 +41,28 @@ final class CaptureSettingsMethodsTests: SnipTestCase {
 
     func testTheReplyCanBeSentToThePage() {
         XCTAssertTrue(JSONSerialization.isValidJSONObject(captureSettingsReply(CaptureSettings(), defaultFolder: defaultFolder)))
+        XCTAssertTrue(JSONSerialization.isValidJSONObject(captureSettingsReply(CaptureSettings(), defaultFolder: defaultFolder, screenAccess: false)))
+    }
+
+    /// Whether macOS lets the app record the screen: in both replies when it is known, left out when it is not (the page then shows nothing)
+    func testTheReplySaysWhetherTheScreenMayBeRecorded() throws {
+        for allowed in [true, false] {
+            let reply = captureSettingsReply(CaptureSettings(), defaultFolder: defaultFolder, screenAccess: allowed)
+            XCTAssertEqual(reply["screenAccess"] as? Bool, allowed)
+            XCTAssertEqual(reply.count, 11)
+            let (settings, _) = newSettings()
+            let patched = setCaptureSettingsReply(
+                CaptureSettingsPatch(try params("{\"hideWindow\":false}")), settings: settings, screenAccess: allowed)
+            XCTAssertEqual(patched["screenAccess"] as? Bool, allowed)
+            XCTAssertEqual(patched["hideWindow"] as? Bool, false)
+        }
+        XCTAssertNil(captureSettingsReply(CaptureSettings(), defaultFolder: defaultFolder)["screenAccess"])
+    }
+
+    func testThePageCannotSetTheScreenRecordingPermission() throws {
+        let (settings, _) = newSettings()
+        let reply = setCaptureSettingsReply(CaptureSettingsPatch(try params("{\"screenAccess\":true}")), settings: settings, screenAccess: false)
+        XCTAssertEqual(reply["screenAccess"] as? Bool, false)
     }
 
     func testTheDefaultFolderIsNextToTheSettingsFile() {

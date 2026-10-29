@@ -6,22 +6,31 @@ import Foundation
 /// at startup. `autostart` is kept, and no login item is registered for it yet.
 /// `keepInTray` and `hideWindow` take effect: the first decides what closing the window does (StatusItem.swift), the second is read when
 /// capture starts from the window.
+/// Both replies also carry `screenAccess`, whether macOS lets the app record the screen, and `openScreenAccessSettings` opens System
+/// Settings where the user allows it (docs/host-api.md, "The screen recording permission").
 /// - Parameter hotkey: what registers the shortcut (nil: nothing does, the shortcut is only kept)
+/// - Parameter access: the screen recording permission (nil: not known, and `screenAccess` is left out)
 /// - Parameter onKeepInTrayChanged: told the new value after a call that carried `keepInTray`, so the menu bar item can follow. Called on
 ///   the bridge's background queue
 func installCaptureSettingsMethods(
-    into bridge: BridgeHost, settings: Settings, hotkey: HotKeyControl? = nil, onKeepInTrayChanged: @escaping (Bool) -> Void = { _ in }
+    into bridge: BridgeHost, settings: Settings, hotkey: HotKeyControl? = nil, access: ScreenAccess? = nil,
+    onKeepInTrayChanged: @escaping (Bool) -> Void = { _ in }
 ) {
     bridge.register("captureSettings") { _ in
-        captureSettingsReply(settings.capture, hotkeyError: hotkey?.error)
+        captureSettingsReply(settings.capture, hotkeyError: hotkey?.error, screenAccess: access?.allowed)
     }
 
     bridge.register("setCaptureSettings") { params in
         let patch = CaptureSettingsPatch(params)
         // The system's hot key calls are made on the main thread
-        let reply = onMain { setCaptureSettingsReply(patch, settings: settings, hotkey: hotkey) }
+        let reply = onMain { setCaptureSettingsReply(patch, settings: settings, hotkey: hotkey, screenAccess: access?.allowed) }
         if let keepInTray = patch.keepInTray { onKeepInTrayChanged(keepInTray) }
         return reply
+    }
+
+    bridge.register("openScreenAccessSettings") { _ in
+        runOnMain { access?.openSettings() }
+        return nil
     }
 
     // While a new shortcut is being recorded the old one is taken away, so that pressing it is recorded and does not start a capture
@@ -35,9 +44,11 @@ func installCaptureSettingsMethods(
 }
 
 /// The reply of both methods: the settings as the page shows them.
-/// `defaultFolder` is where screenshots go when `folder` is empty
-func captureSettingsReply(_ capture: CaptureSettings, defaultFolder: String = AppPaths.capturesDir, hotkeyError: String? = nil) -> [String: Any] {
-    [
+/// `defaultFolder` is where screenshots go when `folder` is empty; `screenAccess` is left out when it is nil
+func captureSettingsReply(
+    _ capture: CaptureSettings, defaultFolder: String = AppPaths.capturesDir, hotkeyError: String? = nil, screenAccess: Bool? = nil
+) -> [String: Any] {
+    var reply: [String: Any] = [
         "hotkey": capture.hotkey,
         "hotkeyError": hotkeyError ?? NSNull(),
         "hotkeyTypes": "",
@@ -49,11 +60,14 @@ func captureSettingsReply(_ capture: CaptureSettings, defaultFolder: String = Ap
         "defaultFolder": defaultFolder,
         "autostart": capture.autostart,
     ]
+    if let screenAccess { reply["screenAccess"] = screenAccess }
+    return reply
 }
 
 /// Stores what the patch carries and replies with the settings afterwards
 func setCaptureSettingsReply(
-    _ patch: CaptureSettingsPatch, settings: Settings, defaultFolder: String = AppPaths.capturesDir, hotkey: HotKeyControl? = nil
+    _ patch: CaptureSettingsPatch, settings: Settings, defaultFolder: String = AppPaths.capturesDir, hotkey: HotKeyControl? = nil,
+    screenAccess: Bool? = nil
 ) -> [String: Any] {
     var patch = patch
     var failure: String?
@@ -63,7 +77,7 @@ func setCaptureSettingsReply(
         if failure == nil { hotkey.error = nil } else { patch.hotkey = nil }
     }
     settings.update { values in patch.apply(to: &values.capture) }
-    return captureSettingsReply(settings.capture, defaultFolder: defaultFolder, hotkeyError: failure ?? hotkey?.error)
+    return captureSettingsReply(settings.capture, defaultFolder: defaultFolder, hotkeyError: failure ?? hotkey?.error, screenAccess: screenAccess)
 }
 
 /// The items of a `setCaptureSettings` call (host.ts, `Partial<CaptureSettings>`). An item that is missing or has the wrong type changes

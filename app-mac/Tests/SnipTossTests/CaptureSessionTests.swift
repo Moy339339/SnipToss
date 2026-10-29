@@ -19,6 +19,7 @@ final class CaptureSessionTests: SnipTestCase {
     }
 
     private final class FakeAccess: ScreenAccess {
+        var allowed = false
         var requests = 0
         var settingsOpened = 0
         func request() { requests += 1 }

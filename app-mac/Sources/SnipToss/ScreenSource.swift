@@ -122,11 +122,16 @@ struct PatternScreenSource: ScreenSource {
 
 /// Whether the app may record the screen, asking for it, and the page of System Settings where the user allows it
 protocol ScreenAccess {
+    /// Whether the system lets this app record the screen now (asks nothing, shows nothing; any thread)
+    var allowed: Bool { get }
     func request()
+    /// Main thread
     func openSettings()
 }
 
 struct SystemScreenAccess: ScreenAccess {
+    var allowed: Bool { CGPreflightScreenCaptureAccess() }
+
     /// Asks the system once; it shows its own question only while the user has not answered yet
     func request() {
         _ = CGRequestScreenCaptureAccess()

@@ -21,12 +21,39 @@ final class ShellTextTests: XCTestCase {
         return FileManager.default.fileExists(atPath: dir.appendingPathComponent("shell-messages.js").path)
     }
 
-    private func catalogText(_ language: String, _ key: String) throws -> String {
+    private func catalog(_ language: String) throws -> [String: String] {
         var root = URL(fileURLWithPath: #filePath)
         for _ in 0..<4 { root.deleteLastPathComponent() }
         let data = try Data(contentsOf: root.appendingPathComponent("i18n/locales/\(language).json"))
-        let catalog = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: String])
-        return try XCTUnwrap(catalog[key])
+        return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: String])
+    }
+
+    private func catalogText(_ language: String, _ key: String) throws -> String {
+        try XCTUnwrap(try catalog(language)[key])
+    }
+
+    /// The built-in English says what the English catalog says: a message changed in one place and not in the other is caught here.
+    /// Messages with a select or a plural are written as code in ShellText and are checked by their own tests
+    func testTheBuiltInEnglishIsTheEnglishCatalog() throws {
+        let saved = getenv("SNIPTOSS_RESOURCES_DIR").map { String(cString: $0) }
+        setenv("SNIPTOSS_RESOURCES_DIR", "/nonexistent-folder-for-test", 1)
+        ShellLocale.reset()
+        defer {
+            if let saved { setenv("SNIPTOSS_RESOURCES_DIR", saved, 1) } else { unsetenv("SNIPTOSS_RESOURCES_DIR") }
+            ShellLocale.reset()
+        }
+        let args = ["app": "App", "keys": "Keys", "path": "/p", "dir": "/d", "ext": ".x", "name": "n"]
+        var compared = 0
+        for (key, message) in try catalog("en") where key == "brand.name" || key.hasPrefix("shell.") {
+            let builtIn = ShellText.t(key, args)
+            // Not one the shell says without the resources
+            if builtIn == key || message.contains(", select,") || message.contains(", plural,") { continue }
+            var want = message
+            for (name, value) in args { want = want.replacingOccurrences(of: "{\(name)}", with: value) }
+            XCTAssertEqual(builtIn, want, key)
+            compared += 1
+        }
+        XCTAssertGreaterThanOrEqual(compared, 25)
     }
 
     func testTheTextIsTheCatalogsInTheLanguageInUse() throws {

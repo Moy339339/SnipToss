@@ -12,7 +12,8 @@ struct PermissionGuide: PermissionGuiding {
         alert.messageText = ShellText.t("shell.capture.noAccessTitle", app)
         alert.informativeText = ShellText.t("shell.capture.noAccessBody", app)
         alert.addButton(withTitle: ShellText.t("shell.capture.openSettings"))
-        alert.addButton(withTitle: ShellText.t("shell.capture.notNow"))
+        // Esc goes to the button that is not the default one only when it says Cancel; this one says Not Now
+        alert.addButton(withTitle: ShellText.t("shell.capture.notNow")).keyEquivalent = "\u{1B}"
         NSApp.activate(ignoringOtherApps: true)
         if alert.runModal() == .alertFirstButtonReturn { openSettings() }
     }
