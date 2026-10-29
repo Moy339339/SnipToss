@@ -127,7 +127,7 @@ final class HashCache {
 
     private static func stamp(of path: String) throws -> Stamp {
         var st = stat()
-        if Darwin.stat(path, &st) != 0 { throw FileOperationError(operation: "stat", path: path, code: errno) }
+        if stat(path, &st) != 0 { throw FileOperationError(operation: "stat", path: path, code: errno) }
         if (Int(st.st_mode) & 0o170000) == 0o040000 { throw FileOperationError(operation: "read", path: path, code: EISDIR) }
         let mtime = Int64(st.st_mtimespec.tv_sec) * 1_000_000_000 + Int64(st.st_mtimespec.tv_nsec)
         return Stamp(size: Int64(st.st_size), mtime: mtime)

@@ -124,7 +124,7 @@ enum MaterialScanner {
         let hidden = (st.st_flags & 0x8000) != 0
         let isLink = (Int(st.st_mode) & 0o170000) == 0o120000
         if isLink {
-            guard Darwin.stat(path, &st) == 0 else { return nil }
+            guard stat(path, &st) == 0 else { return nil }
         }
         let type = Int(st.st_mode) & 0o170000
         guard type == 0o040000 || type == 0o100000 else { return nil }

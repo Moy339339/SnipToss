@@ -103,6 +103,6 @@ enum PathPolicy {
     /// A regular file, following links
     static func isRegularFile(_ path: String) -> Bool {
         var st = stat()
-        return Darwin.stat(path, &st) == 0 && (Int(st.st_mode) & 0o170000) == 0o100000
+        return stat(path, &st) == 0 && (Int(st.st_mode) & 0o170000) == 0o100000
     }
 }
