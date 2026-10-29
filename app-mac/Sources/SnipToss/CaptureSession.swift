@@ -90,27 +90,51 @@ final class CaptureSession {
 
     private func show(_ screens: [FrozenScreen]) {
         let under = NSEvent.mouseLocation
+        var keyPanel: OverlayPanel?
         for screen in screens {
             let panel = OverlayPanel(frame: screen.frame)
             let view = FrozenView(frame: screen.frame, picture: screen.image)
             view.onCancel = { [weak self] in self?.close() }
             panel.contentView = view
             panel.orderFrontRegardless()
-            if screen.frame.contains(under) || panels.isEmpty {
-                panel.makeKey()
-                panel.makeFirstResponder(view)
-            }
+            if screen.frame.contains(under) || keyPanel == nil { keyPanel = panel }
             panels.append(panel)
         }
         isOpen = true
-        // Whether the keyboard reached a layer: without it only the mouse can end the capture (a right click)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            guard let self, self.isOpen else { return }
-            Log.info("Capture layers on \(self.panels.count) screen(s); a layer has the keyboard: \(self.panels.contains { $0.isKeyWindow }); app active: \(NSApp.isActive)")
-        }
+        keyboardRoute = nil
+        if let keyPanel { takeKeyboard(keyPanel) }
         // A screen that comes or goes, or changes its size, invalidates the pictures: the capture ends
         screenObserver = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) {
             [weak self] _ in self?.close()
+        }
+    }
+
+    /// How the layer got the keyboard in this capture: "panel" (the panel became key by itself), "activated" (the app had to be brought to
+    /// the front first), "none" (neither worked: only a right click ends the capture), nil while that is not known yet
+    private(set) var keyboardRoute: String?
+
+    /// The layer under the pointer takes the keyboard. A non-activating panel normally becomes key without the app coming to the front, so
+    /// the program the user was in stays in front. Right after the app was opened, or with another program in front, that can fail; then
+    /// the app is brought to the front and the layer asked again
+    private func takeKeyboard(_ panel: OverlayPanel) {
+        panel.makeKeyAndOrderFront(nil)
+        panel.makeFirstResponder(panel.contentView)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            guard let self, self.isOpen else { return }
+            var route = "panel"
+            if !panel.isKeyWindow {
+                route = "activated"
+                NSApp.activate()
+                panel.makeKeyAndOrderFront(nil)
+                panel.makeFirstResponder(panel.contentView)
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                guard let self, self.isOpen else { return }
+                let keyed = self.panels.contains { $0.isKeyWindow }
+                self.keyboardRoute = keyed ? route : "none"
+                Log.info(
+                    "Capture layers on \(self.panels.count) screen(s); a layer has the keyboard: \(keyed) (\(self.keyboardRoute ?? "")); app active: \(NSApp.isActive)")
+            }
         }
     }
 
@@ -175,7 +199,10 @@ enum CaptureSmoke {
                     report["whenClosedCalls"] = closedCalls
                     Self.rightClickRound(session) { found in
                         report["rightClick"] = found
-                        done(report)
+                        Self.otherAppInFrontRound(session) { inFront in
+                            report["otherAppInFront"] = inFront
+                            done(report)
+                        }
                     }
                 }
             }
@@ -201,6 +228,28 @@ enum CaptureSmoke {
                 Self.wait(tries: 20, until: { !session.isOpen }) { closed in
                     if !closed { session.close() }
                     done(["opened": true, "closedByRightClick": closed, "whenClosedCalls": closedCalls])
+                }
+            }
+        }
+    }
+
+    /// A third capture started while another program (Finder) is in front, as when the shortcut is pressed in another app: the layer must
+    /// still get the keyboard, and Esc must end it
+    private static func otherAppInFrontRound(_ session: CaptureSession, done: @escaping ([String: Any]) -> Void) {
+        _ = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first?.activate(options: [])
+        Self.wait(tries: 30, until: { !NSApp.isActive }) { otherInFront in
+            var report: [String: Any] = ["otherAppWasInFront": otherInFront]
+            session.start()
+            Self.wait(tries: 50, until: { session.isOpen && session.keyboardRoute != nil }) { known in
+                report["opened"] = session.isOpen
+                report["keyboardRoute"] = session.keyboardRoute ?? "unknown"
+                report["appActive"] = NSApp.isActive
+                guard known else { session.close(); return done(report) }
+                Self.pressEscape()
+                Self.wait(tries: 20, until: { !session.isOpen }) { closed in
+                    if !closed { session.close() }
+                    report["closedByEsc"] = closed
+                    done(report)
                 }
             }
         }

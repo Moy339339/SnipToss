@@ -188,6 +188,11 @@ jobs:
             if (c.whenClosedCalls !== 1) problems.push("the end was announced " + c.whenClosedCalls + " times");
             const rc = c.rightClick || {};
             if (!rc.closedByRightClick || rc.whenClosedCalls !== 1) problems.push("a right click did not end the second capture: " + JSON.stringify(rc));
+            // Started while another program was in front: the layer still gets the keyboard and Esc ends it
+            const front = c.otherAppInFront || {};
+            if (!front.otherAppWasInFront) console.log("warning: Finder could not be brought to the front, so the third round tested nothing");
+            else if (!["panel", "activated"].includes(front.keyboardRoute) || !front.closedByEsc) problems.push("with another program in front: " + JSON.stringify(front));
+            console.log("with another program in front: " + JSON.stringify(front));
             if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
             console.log("capture layers ok", JSON.stringify(c));
           '
