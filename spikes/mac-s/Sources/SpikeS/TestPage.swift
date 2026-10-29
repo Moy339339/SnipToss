@@ -110,9 +110,10 @@ async function smallTest() {
   R.small = { status: res.status, text: await res.text(), contentType: res.headers.get("content-type") };
 }
 
-async function videoTest() {
+// Several fresh elements in a row: a single pass or fail says little about whether media loading is reliable
+async function videoOnce(n) {
   const v = document.createElement("video");
-  v.muted = true; v.preload = "auto"; v.src = "/media/video.mp4";
+  v.muted = true; v.preload = "auto"; v.src = "/media/video.mp4?n=" + n;
   document.body.appendChild(v);
   const out = {};
   try {
@@ -123,8 +124,18 @@ async function videoTest() {
     out.seekedTo = v.currentTime;
     try { await v.play(); await sleep(600); out.playedTo = v.currentTime; v.pause(); } catch (e) { out.playError = String(e && e.message || e); }
     out.ok = true;
-  } catch (e) { out.ok = false; out.error = String(e && e.message || e); }
-  R.video = out;
+  } catch (e) {
+    out.ok = false; out.error = String(e && e.message || e);
+    out.readyState = v.readyState; out.networkState = v.networkState; out.mediaError = v.error ? v.error.code : null;
+  }
+  v.remove();
+  return out;
+}
+
+async function videoTest() {
+  const attempts = [];
+  for (let n = 0; n < 4; n++) attempts.push(await videoOnce(n));
+  R.video = { ok: attempts.every((a) => a.ok), passed: attempts.filter((a) => a.ok).length, attempts };
 }
 
 async function bridgeTest() {

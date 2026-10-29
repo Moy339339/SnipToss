@@ -90,6 +90,8 @@ final class MediaSchemeHandler: NSObject, WKURLSchemeHandler {
     private let lock = NSLock()
     private var stopped = Set<ObjectIdentifier>()
     private(set) var bytesServed: Int64 = 0
+    /// One line per request for the video file (main thread only): what WebKit asked for, and when it cancelled
+    private(set) var videoLog: [String] = []
 
     private func isStopped(_ id: ObjectIdentifier) -> Bool {
         lock.lock()
@@ -107,8 +109,13 @@ final class MediaSchemeHandler: NSObject, WKURLSchemeHandler {
 
     func webView(_ webView: WKWebView, start task: WKURLSchemeTask) {
         let id = ObjectIdentifier(task as AnyObject)
+        // A finished task's address can be reused by a later one: a stale entry would make us drop that request silently
+        lock.lock()
+        stopped.remove(id)
+        lock.unlock()
         let url = task.request.url!
         let path = url.path
+        if url.lastPathComponent == "video.mp4" { videoLog.append("start range=\(task.request.value(forHTTPHeaderField: "Range") ?? "none")") }
         if path == "/app/test.html" {
             let html = testPage.replacingOccurrences(of: "__PHASE__", with: phase)
             send(task, status: 200, type: "text/html; charset=utf-8", body: Data(html.utf8))
@@ -164,6 +171,7 @@ final class MediaSchemeHandler: NSObject, WKURLSchemeHandler {
     }
 
     func webView(_ webView: WKWebView, stop task: WKURLSchemeTask) {
+        if task.request.url?.lastPathComponent == "video.mp4" { videoLog.append("stop range=\(task.request.value(forHTTPHeaderField: "Range") ?? "none")") }
         lock.lock()
         stopped.insert(ObjectIdentifier(task as AnyObject))
         lock.unlock()
@@ -260,6 +268,7 @@ final class SpikeApp: NSObject, NSApplicationDelegate, WKScriptMessageHandler {
         if finished { return }
         finished = true
         native["rssAtEndMB"] = residentMB()
+        native["videoRequests"] = handler.videoLog
         var out: [String: Any] = ["native": native, "handlerBytesServedMB": Double(handler.bytesServed) / 1_048_576]
         if let text = pageResults, let data = text.data(using: .utf8), let obj = try? JSONSerialization.jsonObject(with: data) { out["page"] = obj }
         if let note { out["note"] = note }
