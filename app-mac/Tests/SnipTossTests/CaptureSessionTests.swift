@@ -18,8 +18,9 @@ final class CaptureSessionTests: SnipTestCase {
         }
     }
 
+    /// Allowed unless a test says otherwise
     private final class FakeAccess: ScreenAccess {
-        var allowed = false
+        var allowed = true
         var requests = 0
         var settingsOpened = 0
         func request() { requests += 1 }
@@ -96,40 +97,56 @@ final class CaptureSessionTests: SnipTestCase {
 
     // MARK: The permission
 
-    func testWithoutThePermissionTheSystemIsAskedFirstAndTheGuideShownAfterwards() {
+    func testWithoutThePermissionTheSystemAsksTheFirstTimeAndTheGuideComesAfterwardsNeverBoth() {
         let access = FakeAccess()
+        access.allowed = false
         let guide = FakeGuide()
-        let session = CaptureSession(source: FakeSource(.failure(.noAccess)), access: access, guide: guide, defaults: defaults)
+        let source = FakeSource(.success([]))
+        let session = CaptureSession(source: source, access: access, guide: guide, defaults: defaults)
 
         startAndWait(session, "first")
         XCTAssertEqual(access.requests, 1)
         XCTAssertEqual(guide.shown, 0)
         XCTAssertFalse(session.isOpen)
 
-        // The system shows its own question once only: from now on the guide says where to allow it. The system is still asked each time,
-        // which puts the app back on the list if it was removed from there
+        // The system shows its own question once only: from now on only the guide says where to allow it
         startAndWait(session, "second")
-        XCTAssertEqual(access.requests, 2)
+        XCTAssertEqual(access.requests, 1)
         XCTAssertEqual(guide.shown, 1)
         XCTAssertEqual(access.settingsOpened, 0)
 
         guide.choose = true
         startAndWait(session, "third")
-        XCTAssertEqual(access.requests, 3)
+        XCTAssertEqual(access.requests, 1)
         XCTAssertEqual(guide.shown, 2)
         XCTAssertEqual(access.settingsOpened, 1)
         XCTAssertEqual(session.overlayPanels.count, 0)
+        // No picture is taken without the permission: that alone would make the system put up its question next to ours
+        XCTAssertEqual(source.calls.value, 0)
     }
 
     func testTheGuideComesFromTheSecondTimeOnAcrossLaunches() {
         let first = FakeAccess()
+        first.allowed = false
         let firstGuide = FakeGuide()
-        startAndWait(CaptureSession(source: FakeSource(.failure(.noAccess)), access: first, guide: firstGuide, defaults: defaults), "first launch")
+        startAndWait(CaptureSession(source: FakeSource(.success([])), access: first, guide: firstGuide, defaults: defaults), "first launch")
         let second = FakeAccess()
+        second.allowed = false
         let guide = FakeGuide()
-        startAndWait(CaptureSession(source: FakeSource(.failure(.noAccess)), access: second, guide: guide, defaults: defaults), "second launch")
-        XCTAssertEqual([first.requests, second.requests], [1, 1])
+        startAndWait(CaptureSession(source: FakeSource(.success([])), access: second, guide: guide, defaults: defaults), "second launch")
+        XCTAssertEqual([first.requests, second.requests], [1, 0])
         XCTAssertEqual([firstGuide.shown, guide.shown], [0, 1])
+    }
+
+    /// The check said yes, but taking the picture was refused (the permission was taken away in between): the same as no permission
+    func testAPictureRefusedForLackOfPermissionIsTreatedAsNoPermission() {
+        let access = FakeAccess()
+        let guide = FakeGuide()
+        let session = CaptureSession(source: FakeSource(.failure(.noAccess)), access: access, guide: guide, defaults: defaults)
+        startAndWait(session, "first")
+        startAndWait(session, "second")
+        XCTAssertEqual(access.requests, 1)
+        XCTAssertEqual(guide.shown, 1)
     }
 
     // MARK: Failures and repeats

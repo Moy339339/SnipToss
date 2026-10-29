@@ -54,6 +54,13 @@ final class CaptureSession {
             return
         }
         if starting { return }
+        // Asked first without asking the user: taking a picture without the permission makes the system put up its own question, which
+        // would then stand next to ours
+        if !access.allowed {
+            noAccess()
+            finish()
+            return
+        }
         starting = true
         Task { [weak self] in
             guard let self else { return }
@@ -78,14 +85,15 @@ final class CaptureSession {
         }
     }
 
-    /// The first time the system is asked to put its own question to the user; afterwards the guide says where to allow it.
-    /// The system is asked every time, not only the first: it asks the user only once, and otherwise the request does nothing but put the
-    /// app back on the Screen Recording list when it was removed from there (after which our own record of having asked is wrong)
+    /// Either the system's question or our guide, never both at once: the first time only the system asks (it asks once only); after that
+    /// it will not ask again, and the guide says where to allow it
     private func noAccess() {
-        let askedBefore = defaults.bool(forKey: Self.requestedKey)
-        defaults.set(true, forKey: Self.requestedKey)
-        access.request()
-        if askedBefore { guide.show(openSettings: { [access] in access.openSettings() }) }
+        if !defaults.bool(forKey: Self.requestedKey) {
+            defaults.set(true, forKey: Self.requestedKey)
+            access.request()
+        } else {
+            guide.show(openSettings: { [access] in access.openSettings() })
+        }
     }
 
     private func show(_ screens: [FrozenScreen]) {
@@ -162,6 +170,13 @@ final class CaptureSession {
 /// The capture smoke run (SNIPTOSS_SMOKE_READY=capture): the layers are put over the screens with a made-up pattern as the picture, what
 /// they are is written into result.json, and they are drawn to pictures. Nothing real is ever captured here
 enum CaptureSmoke {
+    /// The made-up pattern needs no permission: the run says it has one, so the layers open without asking the system
+    struct Access: ScreenAccess {
+        var allowed: Bool { true }
+        func request() {}
+        func openSettings() {}
+    }
+
     static func source() -> PatternScreenSource {
         let screens = NSScreen.screens.map { screen in
             PatternScreenSource.Screen(displayID: ScreenID.of(screen), frame: screen.frame, scale: screen.backingScaleFactor)

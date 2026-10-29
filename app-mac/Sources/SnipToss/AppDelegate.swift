@@ -48,8 +48,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     private var nativeMenus: NativeMenus?
     private var hotkey: GlobalHotKey?
     /// The screen capture; in the capture smoke run its pictures are a made-up pattern, never the real screen
-    private lazy var captureSession = CaptureSession(
-        source: Self.smokeMode == "capture" ? CaptureSmoke.source() as ScreenSource : ScreenCaptureKitSource())
+    private lazy var captureSession = Self.smokeMode == "capture"
+        ? CaptureSession(source: CaptureSmoke.source(), access: CaptureSmoke.Access())
+        : CaptureSession(source: ScreenCaptureKitSource())
     private static let smokeMode = ProcessInfo.processInfo.environment["SNIPTOSS_SMOKE_OUT"] == nil ? nil : SmokeRun.mode
     private var observers: [NSObjectProtocol] = []
     /// Paths the system asked to open before the window was set up (the app was started by opening a file); added once it is
