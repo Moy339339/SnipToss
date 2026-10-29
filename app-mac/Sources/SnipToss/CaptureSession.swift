@@ -103,6 +103,11 @@ final class CaptureSession {
             panels.append(panel)
         }
         isOpen = true
+        // Whether the keyboard reached a layer: without it only the mouse can end the capture (a right click)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            guard let self, self.isOpen else { return }
+            Log.info("Capture layers on \(self.panels.count) screen(s); a layer has the keyboard: \(self.panels.contains { $0.isKeyWindow }); app active: \(NSApp.isActive)")
+        }
         // A screen that comes or goes, or changes its size, invalidates the pictures: the capture ends
         screenObserver = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) {
             [weak self] _ in self?.close()
@@ -168,7 +173,34 @@ enum CaptureSmoke {
                     report["closed"] = !session.isOpen
                     report["layersAfter"] = session.overlayPanels.count
                     report["whenClosedCalls"] = closedCalls
-                    done(report)
+                    Self.rightClickRound(session) { found in
+                        report["rightClick"] = found
+                        done(report)
+                    }
+                }
+            }
+        }
+    }
+
+    /// A second capture, ended with a right click in the middle of the first layer, posted the way the mouse sends it
+    private static func rightClickRound(_ session: CaptureSession, done: @escaping ([String: Any]) -> Void) {
+        var closedCalls = 0
+        session.start(whenClosed: { closedCalls += 1 })
+        Self.wait(tries: 50, until: { session.isOpen }) { opened in
+            guard opened, let panel = session.overlayPanels.first else { return done(["opened": opened]) }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                let middle = CGPoint(x: panel.frame.width / 2, y: panel.frame.height / 2)
+                for type in [NSEvent.EventType.rightMouseDown, .rightMouseUp] {
+                    if let event = NSEvent.mouseEvent(
+                        with: type, location: middle, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                        windowNumber: panel.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: type == .rightMouseDown ? 1 : 0)
+                    {
+                        NSApp.postEvent(event, atStart: false)
+                    }
+                }
+                Self.wait(tries: 20, until: { !session.isOpen }) { closed in
+                    if !closed { session.close() }
+                    done(["opened": true, "closedByRightClick": closed, "whenClosedCalls": closedCalls])
                 }
             }
         }

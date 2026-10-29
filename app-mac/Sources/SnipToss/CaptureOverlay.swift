@@ -28,7 +28,8 @@ final class OverlayPanel: NSPanel {
 /// The pointer is the arrow before a region is chosen, as on Windows (the other pointers come with the selection and the tools)
 final class FrozenView: NSView {
     private let picture: CGImage
-    /// Called for Esc
+    /// Called for Esc and for a right click: with nothing selected a right click cancels, as on Windows. The mouse also works when the
+    /// keyboard has not reached the layer
     var onCancel: (() -> Void)?
 
     init(frame: CGRect, picture: CGImage) {
@@ -64,6 +65,13 @@ final class FrozenView: NSView {
     // shows over another program's text field is one of the checks on a real Mac
     override func cursorUpdate(with event: NSEvent) {
         NSCursor.arrow.set()
+    }
+
+    // Taken on release, as on Windows; the press is kept here so it does not ask for a context menu
+    override func rightMouseDown(with event: NSEvent) {}
+
+    override func rightMouseUp(with event: NSEvent) {
+        onCancel?()
     }
 
     override func keyDown(with event: NSEvent) {

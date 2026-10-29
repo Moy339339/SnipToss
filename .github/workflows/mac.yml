@@ -140,7 +140,8 @@ jobs:
           app-mac/.build/release/SnipToss
 
       # The capture layers over a made-up pattern (the runner's real screen is never captured): one layer a screen, the kind of window it
-      # is, the picture drawn at the screen's resolution and dimmed by half, and Esc sent through the event queue ends the capture
+      # is, the picture drawn at the screen's resolution and dimmed by half, Esc sent through the event queue ends the capture, and a right
+      # click ends a second one
       - name: Smoke run (capture layers)
         if: ${{ !cancelled() }}
         run: |
@@ -185,6 +186,8 @@ jobs:
             if (!c.closedByEsc) problems.push("Esc did not end the capture (key layer " + c.keyLayer + ", key window is a layer " + c.keyWindowIsLayer + ", app active " + c.appActive + ")");
             if (!c.closed || c.layersAfter !== 0) problems.push("still open after the end: " + c.layersAfter + " layers");
             if (c.whenClosedCalls !== 1) problems.push("the end was announced " + c.whenClosedCalls + " times");
+            const rc = c.rightClick || {};
+            if (!rc.closedByRightClick || rc.whenClosedCalls !== 1) problems.push("a right click did not end the second capture: " + JSON.stringify(rc));
             if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
             console.log("capture layers ok", JSON.stringify(c));
           '
