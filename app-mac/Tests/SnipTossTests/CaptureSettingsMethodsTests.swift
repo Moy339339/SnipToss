@@ -26,7 +26,7 @@ final class CaptureSettingsMethodsTests: SnipTestCase {
 
     func testAFreshInstallReportsTheDefaultsAndNothingThatCouldHaveFailed() {
         let reply = captureSettingsReply(newSettings().settings.capture, defaultFolder: defaultFolder)
-        XCTAssertEqual(reply["hotkey"] as? String, "Ctrl+Alt+A")
+        XCTAssertEqual(reply["hotkey"] as? String, "Control+Ctrl+Alt+A")
         XCTAssertTrue(reply["hotkeyError"] is NSNull, "nothing registers the shortcut yet")
         XCTAssertEqual(reply["hotkeyTypes"] as? String, "")
         XCTAssertTrue(reply["hotkeyMoved"] is NSNull)
@@ -55,7 +55,7 @@ final class CaptureSettingsMethodsTests: SnipTestCase {
         XCTAssertEqual(reply["keepInTray"] as? Bool, false)
         XCTAssertEqual(reply["hideWindow"] as? Bool, true)
         XCTAssertEqual(reply["notesInImage"] as? Bool, true)
-        XCTAssertEqual(reply["hotkey"] as? String, "Ctrl+Alt+A")
+        XCTAssertEqual(reply["hotkey"] as? String, "Control+Ctrl+Alt+A")
         XCTAssertFalse(settings.capture.hotkeyCustom, "the shortcut was not touched")
         XCTAssertFalse(settings.capture.keepInTray)
     }
@@ -109,7 +109,7 @@ final class CaptureSettingsMethodsTests: SnipTestCase {
         XCTAssertEqual(reply["keepInTray"] as? Bool, true)
         XCTAssertEqual(reply["hideWindow"] as? Bool, true)
         XCTAssertEqual(reply["notesInImage"] as? Bool, true)
-        XCTAssertEqual(reply["hotkey"] as? String, "Ctrl+Alt+A")
+        XCTAssertEqual(reply["hotkey"] as? String, "Control+Ctrl+Alt+A")
         XCTAssertEqual(reply["folder"] as? String, "")
         XCTAssertEqual(reply["autostart"] as? Bool, false)
     }
@@ -121,7 +121,7 @@ final class CaptureSettingsMethodsTests: SnipTestCase {
             let reply = setCaptureSettingsReply(CaptureSettingsPatch(sample), settings: settings, defaultFolder: defaultFolder)
             XCTAssertEqual(reply["keepInTray"] as? Bool, true)
         }
-        XCTAssertEqual(Settings.load(from: path).capture.hotkey, "Ctrl+Alt+A")
+        XCTAssertEqual(Settings.load(from: path).capture.hotkey, "Control+Ctrl+Alt+A")
     }
 
     func testThePatchSaysWhetherTheMenuBarSettingWasSent() throws {

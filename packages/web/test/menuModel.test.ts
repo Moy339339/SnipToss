@@ -24,6 +24,9 @@ describe("parseHint: the shortcut a menu item shows on its right", () => {
     ["[", { key: "[", cmd: false, alt: false, shift: false }],
     ["T", { key: "t", cmd: false, alt: false, shift: false }],
     ["Home", { key: "Home", cmd: false, alt: false, shift: false }],
+    // The capture shortcut on the Mac has the real Control key too
+    ["Control Ctrl Alt A", { key: "a", cmd: true, alt: true, shift: false, ctrl: true }],
+    ["Control A", { key: "a", cmd: false, alt: false, shift: false, ctrl: true }],
   ])("%s", (hint, shortcut) => {
     expect(parseHint(hint)).toEqual({ shortcut });
   });

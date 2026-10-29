@@ -1,12 +1,23 @@
 import Foundation
 
-/// The shell's own user-facing text, by the same keys as i18n/locales (`shell.*`). English only for now: the locale files use ICU
-/// MessageFormat (plural / select), which Foundation does not parse, and loading them is a separate piece of work.
-/// Every caller already goes through `t`, so adding the real lookup later changes this one function
+/// The shell's own user-facing text, by the same keys as i18n/locales: the message of the current language (ShellLocale), formatted by the
+/// same package the UI uses. Without the resources (a run from a source checkout that did not build them) the English below is used
 enum ShellText {
     static func t(_ key: String, _ args: [String: String] = [:]) -> String {
+        if let text = ShellLocale.text(key, args) { return text }
         func arg(_ name: String) -> String { args[name] ?? "" }
         switch key {
+        case "brand.name": return "SnipToss"
+        case "shell.menu.about": return "About \(arg("app"))"
+        case "shell.menu.settings": return "Settings…"
+        case "shell.menu.hide": return "Hide \(arg("app"))"
+        case "shell.menu.hideOthers": return "Hide Others"
+        case "shell.menu.showAll": return "Show All"
+        case "shell.menu.quit": return "Quit \(arg("app"))"
+        case "shell.menu.cut": return "Cut"
+        case "shell.menu.copy": return "Copy"
+        case "shell.menu.paste": return "Paste"
+        case "shell.menu.selectAll": return "Select All"
         case "shell.dialog.addFiles": return "Add Files"
         case "shell.dialog.addFolder": return "Add Folder"
         case "shell.notFound": return "File or folder not found: \(arg("path"))"

@@ -8,8 +8,8 @@ import XCTest
 final class NativeMenusTests: XCTestCase {
     // MARK: Fixtures
 
-    private func sc(_ key: String, cmd: Bool = false, alt: Bool = false, shift: Bool = false) -> NativeShortcut {
-        NativeShortcut(key: key, cmd: cmd, alt: alt, shift: shift)
+    private func sc(_ key: String, cmd: Bool = false, alt: Bool = false, shift: Bool = false, ctrl: Bool = false) -> NativeShortcut {
+        NativeShortcut(key: key, cmd: cmd, alt: alt, shift: shift, ctrl: ctrl)
     }
 
     private func item(
@@ -222,6 +222,23 @@ final class NativeMenusTests: XCTestCase {
         XCTAssertEqual(MenuKeys.modifierMask(sc("o", cmd: true, shift: true)), [.command, .shift])
         XCTAssertEqual(MenuKeys.modifierMask(sc("b", cmd: true, alt: true)), [.command, .option])
         XCTAssertEqual(MenuKeys.modifierMask(sc("F5")), [])
+    }
+
+    func testTheCaptureShortcutHasTheRealControlKeyToo() throws {
+        let capture = sc("a", cmd: true, alt: true, ctrl: true)
+        XCTAssertTrue(MenuKeys.registers(capture))
+        XCTAssertEqual(MenuKeys.modifierMask(capture), [.control, .option, .command])
+        XCTAssertEqual(MenuKeys.text(capture), "⌃⌥⌘A")
+        // ⌃⌘V is not the standard Paste: it may be registered
+        XCTAssertTrue(MenuKeys.registers(sc("v", cmd: true, ctrl: true)))
+        let parsed = try MenusMessage.parse(
+            decode(
+                "{ \"version\": 1, \"menus\": [ { \"label\": \"File\", \"items\": [ { \"id\": \"0.0\", \"label\": \"Capture\", "
+                    + "\"shortcut\": { \"key\": \"a\", \"cmd\": true, \"alt\": true, \"shift\": false, \"ctrl\": true } } ] } ] }"))
+        guard case .item(let item) = parsed.menus[0].entries[0] else { return XCTFail("not an item") }
+        XCTAssertEqual(item.shortcut, capture)
+        // Without ctrl in the JSON the key is not part of the shortcut
+        XCTAssertEqual(sc("a", cmd: true), NativeShortcut(key: "a", cmd: true, alt: false, shift: false))
     }
 
     func testShortcutsAreWrittenTheWayTheMacWritesThem() {

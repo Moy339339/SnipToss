@@ -58,6 +58,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         }
         let settings = Settings.load()
         self.settings = settings
+        // The shell's own words (menus, tray, messages) are in the language the UI is in, from the first one on
+        ShellLocale.use(pref: settings.current.language)
         let homes = NotesHomes()
         // Notes and items changed from outside (an agent wrote notes back, edited an item) reach the page as events
         let watch = ChangeWatch(settings: settings, emit: bridge.emit)
@@ -139,6 +141,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             quit: { NSApp.terminate(nil) })
         item.setVisible(TrayPolicy.showsStatusItem(keepInTray: settings.capture.keepInTray))
         statusItem = item
+        // Menus that are made once say their words again when the UI's language changes
+        listen(.shellLanguageChanged, object: nil) { [weak self] in self?.languageChanged() }
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         observeWindowState()
@@ -180,6 +184,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         } else {
             earlyOpens.append(contentsOf: paths)
         }
+    }
+
+    private func languageChanged() {
+        if let bar = NSApp.mainMenu {
+            MainMenu.refreshAppMenu(in: bar, openSettings: #selector(openSettingsFromMenu(_:)), openAbout: #selector(openAboutFromMenu(_:)))
+        }
+        statusItem?.refreshLanguage()
     }
 
     /// App menu, Settings… (the page opens its own settings page)

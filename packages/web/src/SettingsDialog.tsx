@@ -3,14 +3,14 @@ import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 import { CATEGORIES, DATA_DIR, type MaterialKind } from "@sniptoss/core";
 import { APP_VERSION, AUTHOR, HOMEPAGE, IS_BETA, LICENSE_NAME, LICENSE_URL, shortTime, UI_BUILT, versionLabel } from "./brand";
-import { call, homeJoin, type AppInfo, type CaptureSettings, type HostError } from "./host";
+import { call, homeJoin, platform, type AppInfo, type CaptureSettings, type HostError } from "./host";
 import { ConfirmDialog } from "./Confirm";
 import { copyDiagnostics, reportIssue } from "./diagnostics";
 import { AVAILABLE_LOCALES, LOCALE_NAMES, NEEDS_REVIEW, resolveLocale } from "./i18n";
 import { ChevronIcon, CloseIcon } from "./icons";
 import { useKeys } from "./keys";
 import { Menu, trapTab, useRestoreFocus } from "./Menu";
-import { hotkeyFrom, keycaps, prettyKeys } from "./hotkey";
+import { hotkeyFrom, hotkeyParts, keycaps, prettyKeys } from "./hotkey";
 import { colorName } from "./markColors";
 import { parseNotices, type Notice } from "./notices";
 import { DEFAULT_PREFS, MARK_COLORS, NOT_SETTINGS, usePrefs, type Prefs } from "./prefs";
@@ -479,7 +479,9 @@ function Capture(props: { onNotify: (t: string) => void; onRecording: (on: boole
               {t("settings.capture.hotkeyTypes", { keys: keycaps(prettyKeys(c.hotkey), t), typed: c.hotkeyTypes })}
             </span>
           ) : (
-            t("settings.capture.hotkeyDesc")
+            <>
+              {t("settings.capture.hotkeyDesc")} {t("settings.capture.hotkeyConflict")}
+            </>
           )
         }
       >
@@ -526,7 +528,8 @@ function HotkeyInput(props: { value: string; onChange: (v: string) => void; onRe
   // The callback is new on every render, so go through an Effect Event to get the latest one: while recording, a parent re-render must not repeatedly stop / restart the shortcut (writing it into a ref during render violates react(refs))
   const emitChange = useEffectEvent((v: string) => props.onChange(v));
   const emitRecording = useEffectEvent((on: boolean) => props.onRecording(on));
-  const shiftOnlyText = useEffectEvent(() => t("settings.hotkey.shiftOnly"));
+  // On the Mac the rule is "needs Command or Control", and the text says that
+  const shiftOnlyText = useEffectEvent(() => t(platform === "mac" ? "settings.hotkey.needsCommand" : "settings.hotkey.shiftOnly"));
   // layout effect: attach the listeners right at the click. A regular effect waits until this frame is painted, and the first key pressed right after the click would be missed (inevitable when the machine is busy)
   useLayoutEffect(() => {
     emitRecording(recording);
@@ -584,7 +587,7 @@ function HotkeyInput(props: { value: string; onChange: (v: string) => void; onRe
       {recording ? (
         <span className={hint ? "text-danger" : "muted"}>{hint ?? t("settings.hotkey.recording")}</span>
       ) : props.value ? (
-        props.value.split("+").map((k) => <kbd key={k}>{keycaps(k, t)}</kbd>)
+        hotkeyParts(props.value).map((k) => <kbd key={k}>{keycaps(k, t)}</kbd>)
       ) : (
         <span className="muted">{t("settings.hotkey.none")}</span>
       )}

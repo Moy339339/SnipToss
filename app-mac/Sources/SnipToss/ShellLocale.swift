@@ -1,5 +1,10 @@
 import Foundation
 
+extension Notification.Name {
+    /// Posted on the main queue after `ShellLocale.use` changed the language: parts that show text for good (menus, the status item) redo it
+    static let shellLanguageChanged = Notification.Name("SnipTossShellLanguageChanged")
+}
+
 /// Where the shell finds the files it reads at run time (the message catalogs and the formatter script): SNIPTOSS_RESOURCES_DIR
 /// (development, CI and tests), otherwise the app bundle's Resources folder
 enum AppResources {
@@ -59,10 +64,12 @@ enum ShellLocale {
     static func use(pref: String?, system: String? = Locale.preferredLanguages.first) -> Bool {
         let next = resolve(pref: pref, system: system)
         lock.lock()
-        defer { lock.unlock() }
-        if next == currentLanguage { return false }
-        currentLanguage = next
+        let changed = next != currentLanguage
+        if changed { currentLanguage = next }
+        lock.unlock()
+        guard changed else { return false }
         Log.info("Language: \(next)")
+        DispatchQueue.main.async { NotificationCenter.default.post(name: .shellLanguageChanged, object: nil) }
         return true
     }
 

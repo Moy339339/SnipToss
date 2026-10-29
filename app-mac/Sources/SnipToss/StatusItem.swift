@@ -45,6 +45,11 @@ final class StatusItemController: NSObject {
 
     var isVisible: Bool { item != nil }
 
+    /// The language changed: the menu says its words again
+    func refreshLanguage() {
+        item?.menu = makeMenu()
+    }
+
     private func makeItem() -> NSStatusItem {
         let created = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = created.button {
@@ -61,17 +66,19 @@ final class StatusItemController: NSObject {
     }
 
     private func makeMenu() -> NSMenu {
-        let menu = NSMenu(title: appName)
+        // The product's name in the language in use (the Chinese name in the Chinese UI)
+        let name = ShellText.t("brand.name")
+        let menu = NSMenu(title: name)
         // Items are enabled or not as set here, not by whether they have an action
         menu.autoenablesItems = false
         // Screen capture comes with the next stage of the Mac shell
         let capture = NSMenuItem(title: ShellText.t("shell.tray.capture"), action: nil, keyEquivalent: "")
         capture.isEnabled = false
         menu.addItem(capture)
-        menu.addItem(menuEntry(ShellText.t("shell.tray.open", ["app": appName]), #selector(openClicked(_:))))
-        menu.addItem(menuEntry("Settings…", #selector(settingsClicked(_:))))
+        menu.addItem(menuEntry(ShellText.t("shell.tray.open", ["app": name]), #selector(openClicked(_:))))
+        menu.addItem(menuEntry(ShellText.t("shell.menu.settings"), #selector(settingsClicked(_:))))
         menu.addItem(.separator())
-        menu.addItem(menuEntry("Quit \(appName)", #selector(quitClicked(_:))))
+        menu.addItem(menuEntry(ShellText.t("shell.menu.quit", ["app": name]), #selector(quitClicked(_:))))
         return menu
     }
 

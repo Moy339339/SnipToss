@@ -295,7 +295,7 @@ final class SettingsTests: SnipTestCase {
         XCTAssertEqual(v.placement.height, 860)
         XCTAssertFalse(v.placement.maximized)
         XCTAssertFalse(v.topmost)
-        XCTAssertEqual(v.capture.hotkey, "Ctrl+Alt+A")
+        XCTAssertEqual(v.capture.hotkey, "Control+Ctrl+Alt+A")
         XCTAssertTrue(v.capture.keepInTray)
         XCTAssertTrue(v.capture.hideWindow)
         XCTAssertTrue(v.capture.notesInImage)

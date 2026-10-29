@@ -32,20 +32,26 @@ enum MainMenu {
         return item
     }
 
-    /// About and Settings… open the page's own settings (the About section, as Help → About does on Windows)
+    /// About and Settings… open the page's own settings (the About section, as Help → About does on Windows). The words are the current
+    /// language's (the shell.menu.* messages)
     private static func appMenu(openSettings: Selector, openAbout: Selector) -> NSMenu {
-        let name = "SnipToss"
-        let menu = NSMenu(title: name)
-        menu.addItem(item("About \(name)", openAbout, ""))
+        let app = ["app": ShellText.t("brand.name")]
+        let menu = NSMenu(title: app["app"] ?? "")
+        menu.addItem(item(ShellText.t("shell.menu.about", app), openAbout, ""))
         menu.addItem(.separator())
-        menu.addItem(item("Settings…", openSettings, ","))
+        menu.addItem(item(ShellText.t("shell.menu.settings"), openSettings, ","))
         menu.addItem(.separator())
-        menu.addItem(item("Hide \(name)", #selector(NSApplication.hide(_:)), "h"))
-        menu.addItem(item("Hide Others", #selector(NSApplication.hideOtherApplications(_:)), "h", [.command, .option]))
-        menu.addItem(item("Show All", #selector(NSApplication.unhideAllApplications(_:))))
+        menu.addItem(item(ShellText.t("shell.menu.hide", app), #selector(NSApplication.hide(_:)), "h"))
+        menu.addItem(item(ShellText.t("shell.menu.hideOthers"), #selector(NSApplication.hideOtherApplications(_:)), "h", [.command, .option]))
+        menu.addItem(item(ShellText.t("shell.menu.showAll"), #selector(NSApplication.unhideAllApplications(_:))))
         menu.addItem(.separator())
-        menu.addItem(item("Quit \(name)", #selector(NSApplication.terminate(_:)), "q"))
+        menu.addItem(item(ShellText.t("shell.menu.quit", app), #selector(NSApplication.terminate(_:)), "q"))
         return menu
+    }
+
+    /// The language changed: the app menu says its words again (the bar's first menu is the app menu)
+    static func refreshAppMenu(in bar: NSMenu, openSettings: Selector, openAbout: Selector) {
+        bar.items.first?.submenu = appMenu(openSettings: openSettings, openAbout: openAbout)
     }
 
     private static func editMenu() -> NSMenu {
@@ -62,10 +68,10 @@ enum MainMenu {
     static func standardEditItems() -> [NSMenuItem] {
         [
             .separator(),
-            item("Cut", #selector(NSText.cut(_:)), "x"),
-            item("Copy", #selector(NSText.copy(_:)), "c"),
-            item("Paste", #selector(NSText.paste(_:)), "v"),
-            item("Select All", #selector(NSText.selectAll(_:)), "a"),
+            item(ShellText.t("shell.menu.cut"), #selector(NSText.cut(_:)), "x"),
+            item(ShellText.t("shell.menu.copy"), #selector(NSText.copy(_:)), "c"),
+            item(ShellText.t("shell.menu.paste"), #selector(NSText.paste(_:)), "v"),
+            item(ShellText.t("shell.menu.selectAll"), #selector(NSText.selectAll(_:)), "a"),
         ]
     }
 

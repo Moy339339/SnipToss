@@ -16,7 +16,8 @@ The tables in this file are written for Windows. On the Mac the same shortcuts a
 - **`Alt` is the Option key (⌥)**. Option changes the character a key types (Option+Z types Ω), so a shortcut with Option goes by the key position: ⌥Z is the key that has Z on a US layout.
 - In a text box the Mac's own editing keys belong to the box and are not shortcuts: ⌘Z, ⇧⌘Z, ⌘A, ⌘C, ⌘X, ⌘V, ⌥← ⌥→ (by word), ⌥⌫ ⌥⌦ (delete a word), ⌘↑ ⌘↓ (start or end of the text).
 - Enter is ↩, Delete is ⌦, Backspace is ⌫, Esc is ⎋; Space, Home and End stay words.
-- The shortcuts that are Windows conventions have no Mac counterpart yet: `Alt F4`, the menu bar's `Alt` / `F10`, and the Win key in the Screen Capture shortcut.
+- **The Screen Capture shortcut** is the one place the real Control key is a modifier, written `Control` (the Command key stays `Ctrl`): the default is `Control+Ctrl+Alt+A`, shown as ⌃⌥⌘A. Unlike the shortcuts above it needs Command or Control (Option and Shift alone type characters, so recording them is refused), and there is no Win key.
+- The shortcuts that are Windows conventions have no Mac counterpart yet: `Alt F4` and the menu bar's `Alt` / `F10`.
 Status: ✅ implemented　⏳ to be done together with the corresponding feature
 
 ## General
@@ -53,7 +54,7 @@ Status: ✅ implemented　⏳ to be done together with the corresponding feature
 A global shortcut that works in other programs too (also with the window closed, since the app stays in the tray). The default is `Ctrl+Alt+A` (the same combination as common screenshot tools; `Alt+A` is often taken by other programs). Windows treats AltGr as `Ctrl+Alt`:
 if, on a keyboard layout installed on the computer, it types a character (such as ą in Polish), the app switches automatically at startup to `Shift+PrintScreen` (trying `Ctrl+PrintScreen` and then `Ctrl+Shift+PrintScreen` if that is taken) and shows a notice once;
 a combination you record yourself is used as is even if it types a character, and the Settings page says which character it will block.
-In Settings → Screen Capture, click the shortcut box and record a new one directly (while recording, `Esc` cancels and `Backspace` / `Delete` clear it). It can also be started from “Capture” at the right of the title bar, the File menu (Capture Screen…) and the tray's right-click menu.
+In Settings → Screen Capture, click the shortcut box and record a new one directly (while recording, `Esc` cancels and `Backspace` / `Delete` clear it). A global shortcut is taken before the program in front sees the keys, so the same shortcut stops working in other programs while it is set; the page says so next to the box. It can also be started from “Capture” at the right of the title bar, the File menu (Capture Screen…) and the tray's right-click menu.
 
 | Key | Action | Status |
 |---|---|---|

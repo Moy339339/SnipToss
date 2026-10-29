@@ -407,6 +407,72 @@
     },
     {
       "locale": "de",
+      "key": "shell.menu.about",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Über <app>"
+    },
+    {
+      "locale": "de",
+      "key": "shell.menu.settings",
+      "args": {},
+      "text": "Einstellungen…"
+    },
+    {
+      "locale": "de",
+      "key": "shell.menu.hide",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app> ausblenden"
+    },
+    {
+      "locale": "de",
+      "key": "shell.menu.hideOthers",
+      "args": {},
+      "text": "Andere ausblenden"
+    },
+    {
+      "locale": "de",
+      "key": "shell.menu.showAll",
+      "args": {},
+      "text": "Alle einblenden"
+    },
+    {
+      "locale": "de",
+      "key": "shell.menu.quit",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app> beenden"
+    },
+    {
+      "locale": "de",
+      "key": "shell.menu.cut",
+      "args": {},
+      "text": "Ausschneiden"
+    },
+    {
+      "locale": "de",
+      "key": "shell.menu.copy",
+      "args": {},
+      "text": "Kopieren"
+    },
+    {
+      "locale": "de",
+      "key": "shell.menu.paste",
+      "args": {},
+      "text": "Einsetzen"
+    },
+    {
+      "locale": "de",
+      "key": "shell.menu.selectAll",
+      "args": {},
+      "text": "Alles auswählen"
+    },
+    {
+      "locale": "de",
       "key": "shell.dialog.addFiles",
       "args": {},
       "text": "Dateien hinzufügen"
@@ -2649,6 +2715,72 @@
         "app": "<app>"
       },
       "text": "Open with <app>"
+    },
+    {
+      "locale": "en",
+      "key": "shell.menu.about",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "About <app>"
+    },
+    {
+      "locale": "en",
+      "key": "shell.menu.settings",
+      "args": {},
+      "text": "Settings…"
+    },
+    {
+      "locale": "en",
+      "key": "shell.menu.hide",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Hide <app>"
+    },
+    {
+      "locale": "en",
+      "key": "shell.menu.hideOthers",
+      "args": {},
+      "text": "Hide Others"
+    },
+    {
+      "locale": "en",
+      "key": "shell.menu.showAll",
+      "args": {},
+      "text": "Show All"
+    },
+    {
+      "locale": "en",
+      "key": "shell.menu.quit",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Quit <app>"
+    },
+    {
+      "locale": "en",
+      "key": "shell.menu.cut",
+      "args": {},
+      "text": "Cut"
+    },
+    {
+      "locale": "en",
+      "key": "shell.menu.copy",
+      "args": {},
+      "text": "Copy"
+    },
+    {
+      "locale": "en",
+      "key": "shell.menu.paste",
+      "args": {},
+      "text": "Paste"
+    },
+    {
+      "locale": "en",
+      "key": "shell.menu.selectAll",
+      "args": {},
+      "text": "Select All"
     },
     {
       "locale": "en",
@@ -4897,6 +5029,72 @@
     },
     {
       "locale": "es",
+      "key": "shell.menu.about",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Acerca de <app>"
+    },
+    {
+      "locale": "es",
+      "key": "shell.menu.settings",
+      "args": {},
+      "text": "Ajustes…"
+    },
+    {
+      "locale": "es",
+      "key": "shell.menu.hide",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Ocultar <app>"
+    },
+    {
+      "locale": "es",
+      "key": "shell.menu.hideOthers",
+      "args": {},
+      "text": "Ocultar otros"
+    },
+    {
+      "locale": "es",
+      "key": "shell.menu.showAll",
+      "args": {},
+      "text": "Mostrar todo"
+    },
+    {
+      "locale": "es",
+      "key": "shell.menu.quit",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Salir de <app>"
+    },
+    {
+      "locale": "es",
+      "key": "shell.menu.cut",
+      "args": {},
+      "text": "Cortar"
+    },
+    {
+      "locale": "es",
+      "key": "shell.menu.copy",
+      "args": {},
+      "text": "Copiar"
+    },
+    {
+      "locale": "es",
+      "key": "shell.menu.paste",
+      "args": {},
+      "text": "Pegar"
+    },
+    {
+      "locale": "es",
+      "key": "shell.menu.selectAll",
+      "args": {},
+      "text": "Seleccionar todo"
+    },
+    {
+      "locale": "es",
       "key": "shell.dialog.addFiles",
       "args": {},
       "text": "Agregar archivos"
@@ -7139,6 +7337,72 @@
         "app": "<app>"
       },
       "text": "Ouvrir avec <app>"
+    },
+    {
+      "locale": "fr",
+      "key": "shell.menu.about",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "À propos de <app>"
+    },
+    {
+      "locale": "fr",
+      "key": "shell.menu.settings",
+      "args": {},
+      "text": "Réglages…"
+    },
+    {
+      "locale": "fr",
+      "key": "shell.menu.hide",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Masquer <app>"
+    },
+    {
+      "locale": "fr",
+      "key": "shell.menu.hideOthers",
+      "args": {},
+      "text": "Masquer les autres"
+    },
+    {
+      "locale": "fr",
+      "key": "shell.menu.showAll",
+      "args": {},
+      "text": "Tout afficher"
+    },
+    {
+      "locale": "fr",
+      "key": "shell.menu.quit",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Quitter <app>"
+    },
+    {
+      "locale": "fr",
+      "key": "shell.menu.cut",
+      "args": {},
+      "text": "Couper"
+    },
+    {
+      "locale": "fr",
+      "key": "shell.menu.copy",
+      "args": {},
+      "text": "Copier"
+    },
+    {
+      "locale": "fr",
+      "key": "shell.menu.paste",
+      "args": {},
+      "text": "Coller"
+    },
+    {
+      "locale": "fr",
+      "key": "shell.menu.selectAll",
+      "args": {},
+      "text": "Tout sélectionner"
     },
     {
       "locale": "fr",
@@ -9387,6 +9651,72 @@
     },
     {
       "locale": "it",
+      "key": "shell.menu.about",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Informazioni su <app>"
+    },
+    {
+      "locale": "it",
+      "key": "shell.menu.settings",
+      "args": {},
+      "text": "Impostazioni…"
+    },
+    {
+      "locale": "it",
+      "key": "shell.menu.hide",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Nascondi <app>"
+    },
+    {
+      "locale": "it",
+      "key": "shell.menu.hideOthers",
+      "args": {},
+      "text": "Nascondi altre"
+    },
+    {
+      "locale": "it",
+      "key": "shell.menu.showAll",
+      "args": {},
+      "text": "Mostra tutte"
+    },
+    {
+      "locale": "it",
+      "key": "shell.menu.quit",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Esci da <app>"
+    },
+    {
+      "locale": "it",
+      "key": "shell.menu.cut",
+      "args": {},
+      "text": "Taglia"
+    },
+    {
+      "locale": "it",
+      "key": "shell.menu.copy",
+      "args": {},
+      "text": "Copia"
+    },
+    {
+      "locale": "it",
+      "key": "shell.menu.paste",
+      "args": {},
+      "text": "Incolla"
+    },
+    {
+      "locale": "it",
+      "key": "shell.menu.selectAll",
+      "args": {},
+      "text": "Seleziona tutto"
+    },
+    {
+      "locale": "it",
       "key": "shell.dialog.addFiles",
       "args": {},
       "text": "Aggiungi file"
@@ -11632,6 +11962,72 @@
     },
     {
       "locale": "ja",
+      "key": "shell.menu.about",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app>について"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.menu.settings",
+      "args": {},
+      "text": "設定…"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.menu.hide",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app>を非表示"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.menu.hideOthers",
+      "args": {},
+      "text": "ほかを非表示"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.menu.showAll",
+      "args": {},
+      "text": "すべてを表示"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.menu.quit",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app>を終了"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.menu.cut",
+      "args": {},
+      "text": "カット"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.menu.copy",
+      "args": {},
+      "text": "コピー"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.menu.paste",
+      "args": {},
+      "text": "ペースト"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.menu.selectAll",
+      "args": {},
+      "text": "すべてを選択"
+    },
+    {
+      "locale": "ja",
       "key": "shell.dialog.addFiles",
       "args": {},
       "text": "ファイルを追加"
@@ -13823,6 +14219,72 @@
     },
     {
       "locale": "ko",
+      "key": "shell.menu.about",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app>에 관하여"
+    },
+    {
+      "locale": "ko",
+      "key": "shell.menu.settings",
+      "args": {},
+      "text": "설정…"
+    },
+    {
+      "locale": "ko",
+      "key": "shell.menu.hide",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app> 가리기"
+    },
+    {
+      "locale": "ko",
+      "key": "shell.menu.hideOthers",
+      "args": {},
+      "text": "기타 가리기"
+    },
+    {
+      "locale": "ko",
+      "key": "shell.menu.showAll",
+      "args": {},
+      "text": "모두 보기"
+    },
+    {
+      "locale": "ko",
+      "key": "shell.menu.quit",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app> 종료"
+    },
+    {
+      "locale": "ko",
+      "key": "shell.menu.cut",
+      "args": {},
+      "text": "오려두기"
+    },
+    {
+      "locale": "ko",
+      "key": "shell.menu.copy",
+      "args": {},
+      "text": "복사"
+    },
+    {
+      "locale": "ko",
+      "key": "shell.menu.paste",
+      "args": {},
+      "text": "붙여넣기"
+    },
+    {
+      "locale": "ko",
+      "key": "shell.menu.selectAll",
+      "args": {},
+      "text": "전체 선택"
+    },
+    {
+      "locale": "ko",
       "key": "shell.dialog.addFiles",
       "args": {},
       "text": "파일 추가"
@@ -16011,6 +16473,72 @@
         "app": "<app>"
       },
       "text": "Abrir com o <app>"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.menu.about",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Sobre o <app>"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.menu.settings",
+      "args": {},
+      "text": "Ajustes…"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.menu.hide",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Ocultar <app>"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.menu.hideOthers",
+      "args": {},
+      "text": "Ocultar Outros"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.menu.showAll",
+      "args": {},
+      "text": "Mostrar Tudo"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.menu.quit",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Encerrar <app>"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.menu.cut",
+      "args": {},
+      "text": "Cortar"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.menu.copy",
+      "args": {},
+      "text": "Copiar"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.menu.paste",
+      "args": {},
+      "text": "Colar"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.menu.selectAll",
+      "args": {},
+      "text": "Selecionar Tudo"
     },
     {
       "locale": "pt-BR",
@@ -18313,6 +18841,72 @@
     },
     {
       "locale": "ru",
+      "key": "shell.menu.about",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "О приложении <app>"
+    },
+    {
+      "locale": "ru",
+      "key": "shell.menu.settings",
+      "args": {},
+      "text": "Настройки…"
+    },
+    {
+      "locale": "ru",
+      "key": "shell.menu.hide",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Скрыть <app>"
+    },
+    {
+      "locale": "ru",
+      "key": "shell.menu.hideOthers",
+      "args": {},
+      "text": "Скрыть остальные"
+    },
+    {
+      "locale": "ru",
+      "key": "shell.menu.showAll",
+      "args": {},
+      "text": "Показать все"
+    },
+    {
+      "locale": "ru",
+      "key": "shell.menu.quit",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Завершить <app>"
+    },
+    {
+      "locale": "ru",
+      "key": "shell.menu.cut",
+      "args": {},
+      "text": "Вырезать"
+    },
+    {
+      "locale": "ru",
+      "key": "shell.menu.copy",
+      "args": {},
+      "text": "Скопировать"
+    },
+    {
+      "locale": "ru",
+      "key": "shell.menu.paste",
+      "args": {},
+      "text": "Вставить"
+    },
+    {
+      "locale": "ru",
+      "key": "shell.menu.selectAll",
+      "args": {},
+      "text": "Выбрать все"
+    },
+    {
+      "locale": "ru",
       "key": "shell.dialog.addFiles",
       "args": {},
       "text": "Добавить файлы"
@@ -20558,6 +21152,72 @@
     },
     {
       "locale": "zh-CN",
+      "key": "shell.menu.about",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "关于<app>"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.menu.settings",
+      "args": {},
+      "text": "设置…"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.menu.hide",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "隐藏<app>"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.menu.hideOthers",
+      "args": {},
+      "text": "隐藏其他"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.menu.showAll",
+      "args": {},
+      "text": "全部显示"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.menu.quit",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "退出<app>"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.menu.cut",
+      "args": {},
+      "text": "剪切"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.menu.copy",
+      "args": {},
+      "text": "拷贝"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.menu.paste",
+      "args": {},
+      "text": "粘贴"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.menu.selectAll",
+      "args": {},
+      "text": "全选"
+    },
+    {
+      "locale": "zh-CN",
       "key": "shell.dialog.addFiles",
       "args": {},
       "text": "添加素材文件"
@@ -22236,6 +22896,72 @@
         "app": "<app>"
       },
       "text": "以<app>開啟"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.menu.about",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "關於<app>"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.menu.settings",
+      "args": {},
+      "text": "設定…"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.menu.hide",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "隱藏<app>"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.menu.hideOthers",
+      "args": {},
+      "text": "隱藏其他"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.menu.showAll",
+      "args": {},
+      "text": "顯示全部"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.menu.quit",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "結束<app>"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.menu.cut",
+      "args": {},
+      "text": "剪下"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.menu.copy",
+      "args": {},
+      "text": "拷貝"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.menu.paste",
+      "args": {},
+      "text": "貼上"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.menu.selectAll",
+      "args": {},
+      "text": "全選"
     },
     {
       "locale": "zh-TW",

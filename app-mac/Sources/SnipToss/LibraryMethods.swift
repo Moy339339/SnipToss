@@ -30,6 +30,8 @@ func installLibraryMethods(
         if !settings.update({ $0.prefs = prefs as? [String: Any] }) {
             throw BridgeError("Settings not written: \(settings.storePath)")
         }
+        // The shell's own words follow the UI's language (menus and the tray say them again)
+        ShellLocale.use(pref: settings.current.language)
         return nil
     }
 

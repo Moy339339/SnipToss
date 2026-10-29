@@ -14,6 +14,8 @@ export interface NativeShortcut {
   cmd: boolean;
   alt: boolean;
   shift: boolean;
+  /** The real Control key (only the capture shortcut has it); left out when it is not part of the shortcut */
+  ctrl?: boolean;
 }
 
 export interface NativeSwatch {
@@ -95,6 +97,7 @@ const shortcutOf = (mods: Set<string>, key: string): NativeShortcut => ({
   cmd: mods.has("Ctrl"),
   alt: mods.has("Alt"),
   shift: mods.has("Shift"),
+  ...(mods.has("Control") ? { ctrl: true } : {}),
 });
 
 /**
@@ -105,7 +108,7 @@ export function parseHint(hint: string | undefined): { shortcut?: NativeShortcut
   if (!hint) return {};
   const tokens = hint.split(" ");
   const mods = new Set<string>();
-  while (tokens.length > 1 && ["Ctrl", "Alt", "Shift"].includes(tokens[0])) mods.add(tokens.shift()!);
+  while (tokens.length > 1 && ["Control", "Ctrl", "Alt", "Shift"].includes(tokens[0])) mods.add(tokens.shift()!);
   const key = tokens.length === 1 ? keyOf(tokens[0]) : undefined;
   return key === undefined ? { hintText: hint } : { shortcut: shortcutOf(mods, key) };
 }

@@ -13,6 +13,8 @@ struct NativeShortcut: Equatable {
     let cmd: Bool
     let alt: Bool
     let shift: Bool
+    /// The real Control key: only the capture shortcut has it
+    var ctrl = false
 }
 
 /// One choice of a row of choices (mark color)
@@ -100,7 +102,9 @@ extension MenusMessage {
 
     private static func parseShortcut(_ any: Any?) -> NativeShortcut? {
         guard let d = any as? [String: Any], let key = d["key"] as? String, !key.isEmpty else { return nil }
-        return NativeShortcut(key: key, cmd: d["cmd"] as? Bool ?? false, alt: d["alt"] as? Bool ?? false, shift: d["shift"] as? Bool ?? false)
+        return NativeShortcut(
+            key: key, cmd: d["cmd"] as? Bool ?? false, alt: d["alt"] as? Bool ?? false, shift: d["shift"] as? Bool ?? false,
+            ctrl: d["ctrl"] as? Bool ?? false)
     }
 
     private static func parseSwatch(_ any: Any) throws -> NativeSwatch {
@@ -128,7 +132,7 @@ enum MenuKeys {
         guard keyEquivalent(s.key) != nil else { return false }
         if functionKeyNumber(s.key) != nil { return true }
         guard s.cmd else { return false }
-        return !(s.cmd && !s.alt && !s.shift && reserved.contains(s.key))
+        return !(s.cmd && !s.alt && !s.shift && !s.ctrl && reserved.contains(s.key))
     }
 
     /// The `keyEquivalent` string for a key name as the page writes it (a lower case letter or digit, a mark, ArrowUp, Enter, F5 ...)
@@ -166,6 +170,7 @@ enum MenuKeys {
 
     static func modifierMask(_ s: NativeShortcut) -> NSEvent.ModifierFlags {
         var mask: NSEvent.ModifierFlags = []
+        if s.ctrl { mask.insert(.control) }
         if s.cmd { mask.insert(.command) }
         if s.alt { mask.insert(.option) }
         if s.shift { mask.insert(.shift) }
@@ -175,6 +180,7 @@ enum MenuKeys {
     /// The shortcut as the Mac writes it, modifiers in the order ⌥ ⇧ ⌘ and no space before the key ("⇧⌘A", "⌥⌘B", "N", "[")
     static func text(_ s: NativeShortcut) -> String {
         var out = ""
+        if s.ctrl { out += "⌃" }
         if s.alt { out += "⌥" }
         if s.shift { out += "⇧" }
         if s.cmd { out += "⌘" }
@@ -282,6 +288,8 @@ final class NativeMenus: NSObject {
         let item: NSMenuItem
         var signature: [Signature] = []
         var items: [NSMenuItem?] = []
+        /// The language the standard items (Cut, Copy ...) were made in
+        var language = ""
 
         init(item: NSMenuItem) { self.item = item }
     }
@@ -363,7 +371,9 @@ final class NativeMenus: NSObject {
             case .item(let item): return .item(swatches: item.swatches?.count ?? 0)
             }
         }
-        if signature != menu.signature {
+        // The standard items are the shell's own words: when the language changed they are made again (the page sends its menus again too)
+        if signature != menu.signature || (standardEdit && menu.language != ShellLocale.current) {
+            menu.language = ShellLocale.current
             submenu.removeAllItems()
             menu.items = model.entries.map { (entry) -> NSMenuItem? in
                 switch entry {

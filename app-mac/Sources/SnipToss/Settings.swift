@@ -24,7 +24,9 @@ struct WindowPlacement {
 
 /// Screen capture settings. Defaults and key names are the Windows shell's; the Mac shell may change a default when it implements capture
 struct CaptureSettings {
-    var hotkey = "Ctrl+Alt+A"
+    /// ⌃⌥⌘A, written with the page's key names: `Control` is the real Control key, `Ctrl` the Command key (docs/host-api.md, "The capture
+    /// shortcut"). Windows has `Ctrl+Alt+A`; on the Mac ⌥⌘A is taken by other programs (Finder's Deselect All, Word, Pages, Xcode)
+    var hotkey = "Control+Ctrl+Alt+A"
     var hotkeyCustom = false
     var keepInTray = true
     var trayHintShown = false
