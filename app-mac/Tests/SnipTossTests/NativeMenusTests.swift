@@ -48,7 +48,7 @@ final class NativeMenusTests: XCTestCase {
             NativeMenu(
                 label: label("View"),
                 entries: [
-                    item("2.0", "Fit", shortcut: sc("0", cmd: true), checked: true),
+                    item("2.0", "Fit", checked: true, shortcut: sc("0", cmd: true)),
                     item("2.1", "Next Note", title: "Select the next note", shortcut: sc("]")),
                 ]),
             NativeMenu(

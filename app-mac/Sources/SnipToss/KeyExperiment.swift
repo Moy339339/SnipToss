@@ -8,6 +8,7 @@ import WebKit
 /// 3. A menu item whose key equivalent is a plain key (no modifier): typed into a text box, does the menu take the letter? With the caret
 ///    in no text box, does the item run at all? (NativeMenus registers only shortcuts with ⌘ because of the first; this asks the real thing)
 /// 4. ⌘Z and ⇧⌘Z in a text box, through the page's Undo and Redo items: is the text undone and redone?
+/// 5. Why ⌘A may not select the text in a box when the main menu is the page's own (see `selectAllDiagnosis`)
 /// Keys are posted the way the system posts them (`NSApp.sendEvent`), so they take the same route through the window, the web view and the
 /// main menu. The answers go into result.json as `keyExperiment`
 final class KeyExperiment: NSObject {
@@ -62,22 +63,29 @@ final class KeyExperiment: NSObject {
                     next()
                 }
             } then: { [self] in
-                step("copy") { [self] in
-                    key("c", code: 8)
-                } read: { [self] next in
-                    report["copy"] = ["pasteboard": NSPasteboard.general.string(forType: .string) ?? "(none)", "expected": "hello world"]
-                    next()
-                } then: { [self] in
-                    eval(Scripts.focusB) { [self] _ in
-                        step("paste") { [self] in
-                            key("v", code: 9)
-                        } read: { [self] next in
-                            eval(Scripts.readB) { [self] value in
-                                report["paste"] = ["value": value ?? "?", "expected": "hello world"]
-                                next()
+                // Copy and paste are asked on their own: the page makes the selection and this process fills the pasteboard, so a ⌘A that
+                // did nothing does not fail them too
+                eval(Scripts.selectProbeA) { [self] _ in
+                    NSPasteboard.general.clearContents()
+                    step("copy") { [self] in
+                        key("c", code: 8)
+                    } read: { [self] next in
+                        report["copy"] = ["pasteboard": NSPasteboard.general.string(forType: .string) ?? "(none)", "expected": "hello world"]
+                        next()
+                    } then: { [self] in
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString("hello world", forType: .string)
+                        eval(Scripts.focusClearB) { [self] _ in
+                            step("paste") { [self] in
+                                key("v", code: 9)
+                            } read: { [self] next in
+                                eval(Scripts.readB) { [self] value in
+                                    report["paste"] = ["value": value ?? "?", "expected": "hello world"]
+                                    next()
+                                }
+                            } then: { [self] in
+                                order(done: done)
                             }
-                        } then: { [self] in
-                            order(done: done)
                         }
                     }
                 }
@@ -205,7 +213,88 @@ final class KeyExperiment: NSObject {
                     }
                 }
             } then: {
-                done(self.report)
+                self.selectAllDiagnosis(done: done)
+            }
+        }
+    }
+
+    // MARK: Question 5
+
+    /// ⌘A did nothing in a text box once the main menu was the page's own, where the same standard Select All item had worked in the plain
+    /// main menu. What is different? The item's state and who else has ⌘A; the action sent without the menu; the key with the Edit menu as
+    /// it is built (items enabled by hand); the key again with the menu validating its items itself; the menu asked directly
+    private func selectAllDiagnosis(done: @escaping ([String: Any]) -> Void) {
+        let selectAll = #selector(NSText.selectAll(_:))
+        guard let bar = NSApp.mainMenu,
+            let edit = bar.items.compactMap({ $0.submenu }).first(where: { $0.items.contains { $0.action == selectAll } }),
+            let item = edit.items.first(where: { $0.action == selectAll })
+        else {
+            report["selectAllItem"] = "not found"
+            done(report)
+            return
+        }
+        var withCommandA: [String] = []
+        func walk(_ menu: NSMenu) {
+            for entry in menu.items {
+                if entry.keyEquivalent == "a" && entry.keyEquivalentModifierMask.contains(.command) {
+                    withCommandA.append("\(menu.title) / \(entry.title) / mask \(entry.keyEquivalentModifierMask.rawValue)")
+                }
+                if let sub = entry.submenu { walk(sub) }
+            }
+        }
+        bar.items.compactMap { $0.submenu }.forEach(walk)
+        let found: Any? = NSApp.target(forAction: selectAll)
+        let info: [String: Any] = [
+            "enabled": item.isEnabled, "hidden": item.isHidden, "keyEquivalent": item.keyEquivalent,
+            "mask": item.keyEquivalentModifierMask.rawValue, "targetIsNil": item.target == nil, "menuAutoenables": edit.autoenablesItems,
+            "menuTitle": edit.title, "itemsWithCommandA": withCommandA,
+            "targetForAction": found.map { String(describing: type(of: $0)) } ?? "nil",
+        ]
+        report["selectAllItem"] = info
+        let original = edit.autoenablesItems
+        eval(Scripts.resetSelection) { [self] _ in
+            step("selectAllByAction") {
+                _ = NSApp.sendAction(selectAll, to: nil, from: nil)
+            } read: { [self] next in
+                eval(Scripts.readSelection) { [self] value in
+                    report["selectAllByAction"] = ["selection": value ?? "?", "expected": "0-11"]
+                    next()
+                }
+            } then: { [self] in
+                eval(Scripts.resetSelection) { [self] _ in
+                    step("selectAllKeyAsBuilt") { [self] in
+                        key("a", code: 0)
+                    } read: { [self] next in
+                        eval(Scripts.readSelection) { [self] value in
+                            report["selectAllKeyAsBuilt"] = ["selection": value ?? "?", "expected": "0-11"]
+                            next()
+                        }
+                    } then: { [self] in
+                        edit.autoenablesItems = true
+                        eval(Scripts.resetSelection) { [self] _ in
+                            step("selectAllKeyAutoenabled") { [self] in
+                                key("a", code: 0)
+                            } read: { [self] next in
+                                eval(Scripts.readSelection) { [self] value in
+                                    edit.autoenablesItems = original
+                                    report["selectAllKeyAutoenabled"] = ["selection": value ?? "?", "expected": "0-11"]
+                                    next()
+                                }
+                            } then: { [self] in
+                                eval(Scripts.resetSelection) { [self] _ in
+                                    var handled = false
+                                    if let event = makeEvent(.keyDown, "a", code: 0) { handled = bar.performKeyEquivalent(with: event) }
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [self] in
+                                        eval(Scripts.readSelection) { [self] value in
+                                            report["selectAllAskedDirectly"] = ["handled": handled, "selection": value ?? "?"]
+                                            done(report)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -268,13 +357,18 @@ extension KeyExperiment {
         static let readKeys = "window.__keys.join(',')"
         static let preventB = "window.__keys = []; window.__prevent = 'j'; true"
         static let focusClearB = "(() => { const b = document.getElementById('probe-b'); b.value = ''; b.focus(); return true; })()"
+        static let selectProbeA =
+            "(() => { const a = document.getElementById('probe-a'); a.focus(); a.select(); return a.selectionStart + '-' + a.selectionEnd; })()"
+        static let resetSelection =
+            "(() => { const a = document.getElementById('probe-a'); a.focus(); a.setSelectionRange(11, 11); window.__prevent = ''; return true; })()"
         static let resetForSelectAll =
             "(() => { const a = document.getElementById('probe-a'); a.focus(); a.setSelectionRange(11, 11); window.__keys = []; window.__prevent = 'a'; return true; })()"
         static let readSelectionAndKeys =
             "(() => { const a = document.getElementById('probe-a'); return a.selectionStart + '-' + a.selectionEnd + ' / ' + window.__keys.join(','); })()"
 
         static let all = [
-            setup, readSelection, focusB, readB, blurB, readKeys, preventB, focusClearB, resetForSelectAll, readSelectionAndKeys,
+            setup, readSelection, focusB, readB, blurB, readKeys, preventB, focusClearB, selectProbeA, resetSelection, resetForSelectAll,
+            readSelectionAndKeys,
         ]
     }
 }
