@@ -45,11 +45,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Log.error("the UI folder is missing (set SNIPTOSS_UI_DIR or put the built UI in the app bundle's ui folder)")
             exit(1)
         }
+        let settings = Settings.load()
+        let homes = NotesHomes()
         installStubMethods(into: bridge)
-        installLibraryMethods(into: bridge, settings: Settings.load())
+        installLibraryMethods(into: bridge, settings: settings)
+        installScanMethods(into: bridge, settings: settings, homes: homes)
+        // Ask the library's volumes now, in the background, so the first scan finds the answers ready
+        Volumes.prefetch(settings.library.map { $0.path })
+        // Merge entries that another folder entry's scan already reaches (duplicates from adding a subfolder before its parent). Done before
+        // the page loads so the first library read sees the result; only volumes that already answered are touched, the rest wait for a later start
+        let merged = Library.tidy(settings, reachable: { Volumes.known($0) == true })
+        if merged > 0 { Log.info("Library: \(merged) entries inside other folder entries were merged away") }
 
         let config = WKWebViewConfiguration()
-        config.setURLSchemeHandler(FileSchemeHandler(resolve: uiResolver(root: root)), forURLScheme: uiScheme)
+        let media = MediaAccess(roots: { settings.library.map { $0.path } }, homes: { homes.all })
+        let scheme = FileSchemeHandler(
+            resolve: hostResolver(ui: uiResolver(root: root), media: media.resolve),
+            extraHeaders: { url in url.host?.lowercased() == MediaURL.host ? MediaURL.responseHeaders : [:] })
+        config.setURLSchemeHandler(scheme, forURLScheme: uiScheme)
         config.userContentController.add(bridge, name: "bridge")
         config.userContentController.add(console, name: "console")
         for source in [bridgeShimScript, consoleHookScript] {

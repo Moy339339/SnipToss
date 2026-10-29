@@ -10,7 +10,7 @@ Annotate the images and videos your coding agent made — then hand the notes st
 
 SnipToss is a Windows desktop app for reviewing AI-generated assets. Mark what needs to change with a pin, rectangle, pen or arrow, write the change you want, and SnipToss saves the note — its text, position, time and a cropped snapshot — as plain files in the project's `.sniptoss/` folder. Claude Code, Codex and other agents that can read local files pick the notes up from there and fix the assets.
 
-Web pages, PDF and slides are planned.
+Web pages, PDF and slides are planned. A Mac version is in progress.
 
 ![SnipToss: drawing a box and an arrow on an AI-generated landing page, writing a note for each, and the notes panel listing them](docs/images/main-window.gif)
 
@@ -51,7 +51,7 @@ If **Smart App Control** is on (Windows Security → App & browser control → S
 ## Hand notes to your agent
 
 1. Open the asset's folder in SnipToss, annotate, and the notes are saved as you go.
-2. Press **Copy as Text** (`Ctrl+Shift+A`) and paste it into Claude Code or Codex. The agent reads `.sniptoss/REVIEW.md` and the snapshots, and changes the files.
+2. Press **Copy as Text** (`Ctrl+Shift+A`) and paste it into Claude Code or Codex. The pasted text has each note, its position and the path of its snapshot; the agent opens the snapshots and changes the files. Agents can also read every open note from `.sniptoss/REVIEW.md` on their own.
 3. Check the result in SnipToss — it reloads files that changed — and mark the notes Done.
 
 What gets copied: the notes you checked; if none are checked, every open note listed in the notes panel. Right-click a note, the image, or a row in the library to copy just that.

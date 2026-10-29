@@ -7,7 +7,8 @@ import UniformTypeIdentifiers
 typealias PendingOpensProvider = () -> (focus: String?, skipped: [String], relocated: [Library.Relocation])
 
 /// The bridge methods for settings and the library (docs/host-api.md, "Library" and "Settings, window, miscellaneous").
-/// Not here yet: `scan`, `missing`, `addDropped`, `pasteClipboard`, `sha256`, the notes methods, watching for changes
+/// Not here yet: `addDropped`, `pasteClipboard`, the notes methods, watching for changes.
+/// `scan`, `missing`, `sha256` and `fileUrl` are in ScanMethods.swift
 func installLibraryMethods(
     into bridge: BridgeHost, settings: Settings,
     pending: @escaping PendingOpensProvider = { (focus: nil, skipped: [], relocated: []) }
@@ -215,19 +216,13 @@ private func addReply(_ result: Library.AddResult) -> [String: Any] {
 }
 
 /// The reply of `library`. Whether each entry still exists is checked here, on the bridge's background queue; an entry on a volume that is
-/// not mounted is "missing" and marked `offline` (it was not deleted, and comes back with the volume)
+/// not mounted, or has not answered within a moment, is "missing" and marked `offline` (it was not deleted, and comes back with the volume).
+/// An entry on such a volume is never asked about directly: that would wait for the system timeout
 private func libraryState(settings: Settings, pending: (focus: String?, skipped: [String], relocated: [Library.Relocation])) -> [String: Any] {
     let values = settings.current
-    var mounted: [String: Bool] = [:]
-    func isMounted(_ path: String) -> Bool {
-        guard let root = Volumes.rootOf(path) else { return true }
-        if let known = mounted[root] { return known }
-        let there = FileManager.default.fileExists(atPath: root)
-        mounted[root] = there
-        return there
-    }
+    Volumes.wait(values.library.map { $0.path })
     let entries: [[String: Any]] = values.library.map { entry in
-        let there = isMounted(entry.path)
+        let there = Volumes.known(entry.path) == true
         var kind = "missing"
         if there {
             if Library.isDirectory(entry.path) {

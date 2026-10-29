@@ -50,57 +50,93 @@ private final class Job {
 }
 
 /// Serves files for a custom URL scheme, with Range support. `resolve` maps a request URL to the file to serve (nil = 404); it is the only
-/// place that decides what the page may read. Task methods run on the main thread; a file is read in 256 KiB chunks on a queue and handed
-/// over one chunk at a time, so a large range never sits in memory whole.
+/// place that decides what the page may read. It runs on a background queue together with the size lookup, because both ask the disk, and
+/// a disk can be slow (a network volume); the main thread only starts a request and hands the answer to WebKit. A file is read in 256 KiB
+/// chunks and handed over one chunk at a time, so a large range never sits in memory whole.
+/// `extraHeaders` adds response headers for a request URL (the items need the cross-origin headers, the UI does not)
 final class FileSchemeHandler: NSObject, WKURLSchemeHandler {
     private let queue = DispatchQueue(label: "snip.scheme", attributes: .concurrent)
     /// Main thread only. A job leaves this table when its task is cancelled or finished, so a later task that reuses the address is never
     /// mistaken for a cancelled one
     private var jobs: [ObjectIdentifier: Job] = [:]
     private let resolve: (URL) -> URL?
+    private let extraHeaders: (URL) -> [String: String]
 
-    init(resolve: @escaping (URL) -> URL?) {
+    init(resolve: @escaping (URL) -> URL?, extraHeaders: @escaping (URL) -> [String: String] = { _ in [:] }) {
         self.resolve = resolve
+        self.extraHeaders = extraHeaders
     }
 
-    private func send(_ task: WKURLSchemeTask, status: Int, type: String, body: Data, extra: [String: String] = [:]) {
+    /// Main thread only
+    private func send(_ task: WKURLSchemeTask, url: URL, status: Int, type: String, body: Data, extra: [String: String] = [:]) {
         var headers = ["Content-Type": type, "Content-Length": String(body.count), "Cache-Control": "no-store"]
+        headers.merge(extraHeaders(url)) { $1 }
         headers.merge(extra) { $1 }
-        task.didReceive(HTTPURLResponse(url: task.request.url!, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers)!)
+        task.didReceive(HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers)!)
         task.didReceive(body)
         task.didFinish()
+        jobs[ObjectIdentifier(task as AnyObject)] = nil
+    }
+
+    /// Runs `work` on the main thread unless WebKit has stopped the task meanwhile (a stopped task must not be messaged any more).
+    /// Returns whether it ran
+    @discardableResult
+    private func deliver(_ job: Job, _ work: () -> Void) -> Bool {
+        var ran = false
+        DispatchQueue.main.sync {
+            if !job.isCancelled {
+                work()
+                ran = true
+            }
+        }
+        return ran
     }
 
     func webView(_ webView: WKWebView, start task: WKURLSchemeTask) {
-        guard let url = task.request.url, let file = resolve(url),
-            let size = ((try? FileManager.default.attributesOfItem(atPath: file.path))?[.size] as? NSNumber)?.int64Value
-        else {
-            send(task, status: 404, type: "text/plain", body: Data("not found".utf8))
+        let request = task.request
+        guard let url = request.url else {
+            task.didFailWithError(URLError(.badURL))
             return
         }
-        var start: Int64 = 0
-        var end: Int64 = size - 1
-        var status = 200
-        if let range = task.request.value(forHTTPHeaderField: "Range") {
-            guard let parsed = parseRange(range, size: size) else {
-                send(task, status: 416, type: "text/plain", body: Data(), extra: ["Content-Range": "bytes */\(size)"])
-                return
-            }
-            (start, end) = parsed
-            status = 206
-        }
-        let length = end - start + 1
-        var headers = [
-            "Content-Type": mimeType(forExtension: file.pathExtension), "Content-Length": String(length), "Accept-Ranges": "bytes",
-            "Cache-Control": "no-store",
-        ]
-        if status == 206 { headers["Content-Range"] = "bytes \(start)-\(end)/\(size)" }
-        task.didReceive(HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers)!)
-
         let id = ObjectIdentifier(task as AnyObject)
         let job = Job()
         jobs[id] = job
+        // A preflight (the page asks whether a cross-origin read with a Range header is allowed) is answered with the headers alone
+        let isPreflight = request.httpMethod == "OPTIONS" && !extraHeaders(url).isEmpty
         queue.async { [self] in
+            if isPreflight {
+                deliver(job) { send(task, url: url, status: 204, type: "text/plain", body: Data()) }
+                return
+            }
+            guard let file = resolve(url),
+                let size = ((try? FileManager.default.attributesOfItem(atPath: file.path))?[.size] as? NSNumber)?.int64Value
+            else {
+                deliver(job) { send(task, url: url, status: 404, type: "text/plain", body: Data("not found".utf8)) }
+                return
+            }
+            var start: Int64 = 0
+            var end: Int64 = size - 1
+            var status = 200
+            if let range = request.value(forHTTPHeaderField: "Range") {
+                guard let parsed = parseRange(range, size: size) else {
+                    deliver(job) {
+                        send(task, url: url, status: 416, type: "text/plain", body: Data(), extra: ["Content-Range": "bytes */\(size)"])
+                    }
+                    return
+                }
+                (start, end) = parsed
+                status = 206
+            }
+            let length = end - start + 1
+            var headers = [
+                "Content-Type": mimeType(forExtension: file.pathExtension), "Content-Length": String(length), "Accept-Ranges": "bytes",
+                "Cache-Control": "no-store",
+            ]
+            headers.merge(extraHeaders(url)) { $1 }
+            if status == 206 { headers["Content-Range"] = "bytes \(start)-\(end)/\(size)" }
+            let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers)!
+            if !deliver(job, { task.didReceive(response) }) { return }
+
             var failed = false
             if let fh = try? FileHandle(forReadingFrom: file) {
                 defer { try? fh.close() }
@@ -113,17 +149,12 @@ final class FileSchemeHandler: NSObject, WKURLSchemeHandler {
                         break
                     }
                     remaining -= data.count
-                    var alive = true
-                    DispatchQueue.main.sync {
-                        if job.isCancelled { alive = false } else { task.didReceive(data) }
-                    }
-                    if !alive { return }
+                    if !deliver(job, { task.didReceive(data) }) { return }
                 }
             } else {
                 failed = true
             }
-            DispatchQueue.main.sync {
-                if job.isCancelled { return }
+            deliver(job) {
                 // Fewer bytes than the Content-Length we promised: fail the request instead of finishing it short
                 if failed { task.didFailWithError(URLError(.cannotOpenFile)) } else { task.didFinish() }
                 jobs[id] = nil

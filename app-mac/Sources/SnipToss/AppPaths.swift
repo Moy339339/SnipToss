@@ -37,6 +37,10 @@ enum AppPaths {
     static var localDir: String { current.localDir }
     static var logDir: String { current.logDir }
 
+    /// Things that can be rebuilt at any time (item fingerprints); deleting the folder loses nothing
+    static var cacheDir: String { current.localDir + "/cache" }
+    static var hashCacheFile: String { cacheDir + "/sha256.json" }
+
     /// Images pasted with Cmd+V: the app's own folder, so no files are added to the user's projects (the app only writes a project's
     /// .sniptoss). The whole folder is one project in the library; it is never cleaned up automatically (these are items, not a screenshot archive)
     static var pastedDir: String { current.localDir + "/Pasted Images" }
