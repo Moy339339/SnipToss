@@ -22,11 +22,6 @@ enum NotesSignature: Equatable {
     case files([String: String])
     /// The folder could not be listed (a network volume that dropped): differs from every earlier look, so the folder is read once
     case unreadable
-
-    var byName: [String: String]? {
-        if case .files(let map) = self { return map }
-        return nil
-    }
 }
 
 /// The `.sniptoss/annotations` of each notes folder: once a second, look at file names, sizes and modification times; on a change, read the
@@ -34,9 +29,8 @@ enum NotesSignature: Equatable {
 /// A folder that does not exist yet is watched too: one created elsewhere (an agent, a manual copy) is synced when it appears.
 /// A missing project folder itself (its volume disconnected, or moved away) is not a change: counting it as "all notes deleted" would clear
 /// the notes panel, and report again when the volume came back.
-/// A notes file this app wrote itself (`noteWritten`) is recognized by its own size and modification time and is not announced; a change
-/// to any other file, or a later change to that file, still is. Everything is checked on one serial queue, so a slow volume holds up
-/// only this watcher
+/// What this app writes itself is announced like any other change, as on Windows: the page gets its own write back, and treats content
+/// equal to what it already knows as no change. Everything is checked on one serial queue, so a slow volume holds up only this watcher
 final class AnnotationWatcher {
     /// The notes folder, every notes file in it (`name`, `text`) and the ordering number taken before they were read
     typealias Changed = (String, [[String: Any]], Int) -> Void
@@ -57,9 +51,6 @@ final class AnnotationWatcher {
     /// By `Library.key` of the notes folder
     private var watched: [String: Watched] = [:]
     private var order: [String] = []
-    /// What the app's own writes left behind: the notes folder key, then the file name (`nameKey`), then the stamp of the file right after
-    /// the write
-    private var ownWrites: [String: [String: String]] = [:]
     private var paused = false
     private var checking = false
 
@@ -92,18 +83,6 @@ final class AnnotationWatcher {
             watched[key] = Watched(home: home, seen: seen)
             order.append(key)
         }
-        lock.unlock()
-    }
-
-    /// A notes file this app has just written (called inside the write lock, so nobody else's version can be taken for its own).
-    /// Its size and modification time are remembered; the next look does not announce a difference that is only that file as written
-    func noteWritten(home: String, file: String) {
-        let dir = Library.join(Library.join(home, DataDir.name), "annotations")
-        guard let parent = Library.parentDirectory(of: file), Library.key(parent) == Library.key(dir) else { return }
-        let name = Library.nameOf(file)
-        guard name.hasSuffix(".json"), let stamp = AnnotationWatcher.fileStamp(file) else { return }
-        lock.lock()
-        ownWrites[Library.key(home), default: [:]][AnnotationWatcher.nameKey(name)] = stamp
         lock.unlock()
     }
 
@@ -159,10 +138,6 @@ final class AnnotationWatcher {
         for target in targets {
             guard volumes.known(target.home) == true, let now = sign(target.home) else { continue }
             if target.seen == now { continue }
-            if isOwnWrite(key: target.key, before: target.seen, after: now) {
-                remember(target.key, now)
-                continue
-            }
             // The number is taken before reading (ADR-0005 item 8, hard rule 3a): the page uses it to recognize a late, old notification
             let seq = NotesStore.observe()
             let files: [[String: Any]]
@@ -183,21 +158,6 @@ final class AnnotationWatcher {
         lock.lock()
         watched[key]?.seen = signature
         lock.unlock()
-    }
-
-    /// Whether every file that differs between the two looks is exactly as this app wrote it
-    private func isOwnWrite(key: String, before: NotesSignature?, after: NotesSignature) -> Bool {
-        guard let was = before?.byName, let now = after.byName else { return false }
-        lock.lock()
-        let own = ownWrites[key] ?? [:]
-        lock.unlock()
-        if own.isEmpty { return false }
-        var different = 0
-        for name in Set(was.keys).union(now.keys) where was[name] != now[name] {
-            guard let stamp = now[name], own[AnnotationWatcher.nameKey(name)] == stamp else { return false }
-            different += 1
-        }
-        return different > 0
     }
 
     // MARK: Looking at the disk
@@ -226,11 +186,6 @@ final class AnnotationWatcher {
         var st = stat()
         guard stat(path, &st) == 0, (Int(st.st_mode) & 0o170000) == 0o100000 else { return nil }
         return "\(st.st_size):\(st.st_mtimespec.tv_sec).\(st.st_mtimespec.tv_nsec)"
-    }
-
-    /// A file name as it is compared: the same name composed or decomposed is one file
-    private static func nameKey(_ name: String) -> String {
-        name.precomposedStringWithCanonicalMapping
     }
 }
 
@@ -567,9 +522,10 @@ final class ChangeWatch {
         annotations.watch(home)
     }
 
-    /// For `writeAnnotation`: this file was written by the app itself
-    func noteWritten(home: String, file: String) {
-        annotations.noteWritten(home: home, file: file)
+    /// For `writeAnnotation`, after a write that happened: starts watching that notes folder if nothing did yet (as on Windows). The write
+    /// itself is announced by the next look like any other change
+    func wrote(home: String, file: String) {
+        annotations.watch(home)
     }
 
     /// Waits until the checks already under way are done. For tests

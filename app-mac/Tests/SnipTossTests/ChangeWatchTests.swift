@@ -392,33 +392,15 @@ final class ChangeWatchTests: SnipTestCase {
 
     // MARK: Notes: the app's own writes
 
-    func testANoteTheAppWroteItselfIsNotAnnounced() {
+    func testANoteTheAppWroteItselfIsAnnouncedLikeAnyOtherChange() {
+        // As on Windows: the page gets its own write back and takes content it already knows for no change
         let dir = makeTempDir()
         writeText("{}", to: notes(dir) + "/a.json")
         let seen = Announced()
         let watcher = AnnotationWatcher(changed: { seen.record($0, $1, $2) })
         watcher.watch(dir)
 
-        let mine = notes(dir) + "/b.json"
-        writeText("{ \"mine\": true }", to: mine)
-        watcher.noteWritten(home: dir, file: mine)
-        watcher.tick()
-        watcher.flush()
-
-        XCTAssertTrue(seen.all.isEmpty)
-    }
-
-    func testAnExternalChangeBesideTheAppsOwnWriteIsStillAnnouncedWithBothFiles() {
-        let dir = makeTempDir()
-        writeText("{}", to: notes(dir) + "/a.json")
-        let seen = Announced()
-        let watcher = AnnotationWatcher(changed: { seen.record($0, $1, $2) })
-        watcher.watch(dir)
-
-        let mine = notes(dir) + "/b.json"
-        writeText("{ \"mine\": true }", to: mine)
-        watcher.noteWritten(home: dir, file: mine)
-        writeText("{ \"agent\": \"resolved\" }", to: notes(dir) + "/a.json")
+        writeText("{ \"mine\": true }", to: notes(dir) + "/b.json")
         watcher.tick()
         watcher.flush()
 
@@ -426,27 +408,25 @@ final class ChangeWatchTests: SnipTestCase {
         XCTAssertEqual(seen.all.first.map { fileNames($0) }, ["a.json", "b.json"])
     }
 
-    func testALaterExternalRewriteOfAFileTheAppWroteIsAnnounced() {
+    func testAfterAWriteTheNotesFolderIsWatched() {
         let dir = makeTempDir()
         writeText("{}", to: notes(dir) + "/a.json")
-        let seen = Announced()
-        let watcher = AnnotationWatcher(changed: { seen.record($0, $1, $2) })
-        watcher.watch(dir)
-        let mine = notes(dir) + "/b.json"
-        writeText("{ \"mine\": true }", to: mine)
-        watcher.noteWritten(home: dir, file: mine)
-        watcher.tick()
-        watcher.flush()
-        XCTAssertTrue(seen.all.isEmpty)
+        let events = Events()
+        let ticker = ManualTicker()
+        let watch = ChangeWatch(settings: makeSettings(), emit: events.add, ticker: ticker)
+        watch.start()
 
-        writeText("{ \"mine\": true, \"agent\": \"resolved\" }", to: mine)
-        watcher.tick()
-        watcher.flush()
+        // Nothing watched this folder before: the write starts it, from how the folder looks then
+        watch.wrote(home: dir, file: notes(dir) + "/a.json")
+        ticker.beat()
+        watch.flush()
+        XCTAssertTrue(events.named("annotationsChanged").isEmpty)
 
-        XCTAssertEqual(seen.all.count, 1)
-        XCTAssertEqual(seen.all.first?.files.last?["text"] as? String, "{ \"mine\": true, \"agent\": \"resolved\" }")
+        writeText("{ \"agent\": \"resolved\" }", to: notes(dir) + "/b.json")
+        ticker.beat()
+        watch.flush()
+        XCTAssertEqual(events.named("annotationsChanged").count, 1)
     }
-
     func testAFileRemovedFromTheNotesFolderIsAnnounced() throws {
         let dir = makeTempDir()
         writeText("{}", to: notes(dir) + "/a.json")
@@ -465,7 +445,7 @@ final class ChangeWatchTests: SnipTestCase {
 
     // MARK: Notes: through the bridge methods
 
-    func testANoteWrittenThroughTheBridgeIsNotPushedBackButAnExternalChangeIsWithALargerNumber() throws {
+    func testANoteWrittenThroughTheBridgeIsPushedBackLikeAnyChangeAndAnExternalOneAgainWithALargerNumber() throws {
         let (home, homes) = newHome()
         writeText("{}", to: notes(home) + "/a.json")
         let events = Events()
@@ -479,24 +459,27 @@ final class ChangeWatchTests: SnipTestCase {
             "home": home, "path": ".sniptoss/annotations/b.json", "text": "{ \"b\": 1 }\n", "expectSha256": NSNull(),
         ]
         let written = try writeAnnotationReply(
-            params, homes: homes, startWatching: { watch.startWatching($0) }, didWrite: { watch.noteWritten(home: $0, file: $1) })
+            params, homes: homes, startWatching: { watch.startWatching($0) }, didWrite: { watch.wrote(home: $0, file: $1) })
         XCTAssertEqual(written["written"] as? Bool, true)
 
+        // Its own write comes back once, with a number taken after the write (as on Windows; the page takes it for no change)
         ticker.beat()
         watch.flush()
-        XCTAssertTrue(events.named("annotationsChanged").isEmpty, "the page already has what it just wrote")
+        XCTAssertEqual(events.named("annotationsChanged").count, 1)
+        let echoSeq = try XCTUnwrap(events.named("annotationsChanged")[0]["seq"] as? Int)
+        XCTAssertGreaterThan(echoSeq, try XCTUnwrap(written["seq"] as? Int), "taken after the page's own write: it is not older than it")
 
         writeText("{ \"agent\": \"resolved\" }", to: notes(home) + "/a.json")
         ticker.beat()
         watch.flush()
         let pushed = events.named("annotationsChanged")
-        XCTAssertEqual(pushed.count, 1)
-        XCTAssertTrue(JSONSerialization.isValidJSONObject(pushed[0]), "the event can be sent to the page")
-        XCTAssertEqual(pushed[0]["home"] as? String, home)
-        let seq = try XCTUnwrap(pushed[0]["seq"] as? Int)
+        XCTAssertEqual(pushed.count, 2)
+        XCTAssertTrue(JSONSerialization.isValidJSONObject(pushed[1]), "the event can be sent to the page")
+        XCTAssertEqual(pushed[1]["home"] as? String, home)
+        let seq = try XCTUnwrap(pushed[1]["seq"] as? Int)
         XCTAssertGreaterThan(seq, readSeq)
-        XCTAssertGreaterThan(seq, try XCTUnwrap(written["seq"] as? Int), "taken after the page's own write: it is not older than it")
-        let files = try XCTUnwrap(pushed[0]["annotations"] as? [[String: Any]])
+        XCTAssertGreaterThan(seq, echoSeq)
+        let files = try XCTUnwrap(pushed[1]["annotations"] as? [[String: Any]])
         XCTAssertEqual(files.compactMap { $0["name"] as? String }, ["a.json", "b.json"])
         XCTAssertEqual(files.first?["text"] as? String, "{ \"agent\": \"resolved\" }")
     }
@@ -525,7 +508,7 @@ final class ChangeWatchTests: SnipTestCase {
         XCTAssertEqual(files?.compactMap { $0["name"] as? String }, ["a.json", "late.json"])
     }
 
-    func testARefusedWriteIsNotReportedAsTheAppsOwnWhileAnAcceptedOneIsReportedWithItsFile() throws {
+    func testTheWriteHookIsCalledOnlyForAWriteThatHappened() throws {
         let (home, homes) = newHome()
         let rel = ".sniptoss/annotations/a.png.json"
         writeText("别人改的", to: home + "/" + rel)
@@ -535,7 +518,7 @@ final class ChangeWatchTests: SnipTestCase {
             ["home": home, "path": rel, "text": "我的", "expectSha256": NotesStore.textSha256("旧") ?? ""] as [String: Any],
             homes: homes, startWatching: { _ in }, didWrite: { reported.append($0 + "|" + $1) })
         XCTAssertEqual(refused["written"] as? Bool, false)
-        XCTAssertEqual(reported, [], "nothing was written, so nothing is the app's own")
+        XCTAssertEqual(reported, [], "nothing was written, so nothing is reported")
 
         let accepted = try writeAnnotationReply(
             ["home": home, "path": rel, "text": "合并后", "expectSha256": NotesStore.textSha256("别人改的") ?? ""] as [String: Any],
