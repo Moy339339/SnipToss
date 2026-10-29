@@ -170,6 +170,7 @@ export function buildMenus(c: MenuContext): TopMenu[] {
     label: t(id),
     hint,
     disabled,
+    keys,
     onClick: () => pressKey(keys),
   });
 
@@ -196,17 +197,18 @@ export function buildMenus(c: MenuContext): TopMenu[] {
         { label: t("menu.file.refresh"), hint: "F5", onClick: c.refresh, disabled: !c.hasEntries },
         { label: t("menu.file.clear"), title: t("menu.file.clearTitle"), danger: true, onClick: c.clearList, disabled: !c.canClear },
         "-",
-        { label: t("cmd.settings"), hint: "Ctrl ,", onClick: () => c.openSettings() },
+        // On the Mac the app menu has Settings…, About and Quit, so these three are Windows only (menuModel.ts)
+        { label: t("cmd.settings"), hint: "Ctrl ,", only: "windows", onClick: () => c.openSettings() },
         "-",
         // Closing the window (Alt F4, the × in the title bar) only hides it when "keep in tray" is on; this really quits
-        { label: t("menu.file.exit"), onClick: () => c.windowCmd("quit") },
+        { label: t("menu.file.exit"), only: "windows", onClick: () => c.windowCmd("quit") },
       ],
     },
     {
       ...mnemonic(t("menu.top.edit")),
       items: () => [
-        { label: t("cmd.undo"), hint: "Ctrl Z", onClick: c.undo, disabled: !c.canUndo },
-        { label: t("cmd.redo"), hint: "Ctrl Shift Z", onClick: c.redo, disabled: !c.canRedo },
+        { label: t("cmd.undo"), hint: "Ctrl Z", role: "undo", onClick: c.undo, disabled: !c.canUndo },
+        { label: t("cmd.redo"), hint: "Ctrl Shift Z", role: "redo", onClick: c.redo, disabled: !c.canRedo },
         "-",
         {
           label: c.checkedCount > 0 ? t("menu.edit.copyChecked", { count: c.checkedCount }) : t("app.copy.toAi"),
@@ -423,7 +425,7 @@ export function buildMenus(c: MenuContext): TopMenu[] {
               onClick: c.openNewerVersion,
             }
           : { label: t("menu.help.checkUpdates"), title: t("menu.help.checkUpdatesTitle"), onClick: c.checkUpdates },
-        { label: t("menu.help.about", { app: t("brand.name") }), onClick: () => c.openSettings("about") },
+        { label: t("menu.help.about", { app: t("brand.name") }), only: "windows", onClick: () => c.openSettings("about") },
       ],
     },
   ];

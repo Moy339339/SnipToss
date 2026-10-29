@@ -4,6 +4,7 @@
 // The shell side is app/Bridge.cs; the method names on both sides must match.
 
 import { ANNOTATIONS_DIR, parseMaterialFile, pathSep, type MaterialFile, type MaterialKind } from "@sniptoss/core";
+import type { NativeCommand, SetMenus } from "./menuModel";
 export type { MaterialFile };
 
 interface WebViewBridge {
@@ -13,6 +14,8 @@ interface WebViewBridge {
   addEventListener(type: "message", listener: (event: { data: unknown }) => void): void;
   /** Set by the Mac shell's script on the object it defines; WebView2's own object has none, which means Windows */
   platform?: string;
+  /** Set by the Mac shell when it draws the menus itself (setMenus, menuCommand); without it the page keeps its own menu bar */
+  nativeMenus?: boolean;
 }
 
 declare global {
@@ -233,6 +236,8 @@ interface Methods {
   windowDrag: [void, void];
   /** Mac: a double click on the blank part of the title strip does what the system setting for the title bar says (zoom or minimize) */
   windowZoom: [void, void];
+  /** Mac: the menus as data for the shell's native menu bar; sent again whenever they change (menuModel.ts) */
+  setMenus: [SetMenus, void];
   /** Screen Capture (the shell's app/Capture): starts from the button in the window and hides this window first */
   captureStart: [void, void];
   captureSettings: [void, CaptureSettings];
@@ -347,7 +352,8 @@ export class HostError extends Error {
   }
 }
 
-const webview = window.chrome?.webview;
+// No window in the unit tests that only import the modules which read `platform` (keys.ts, hotkey.ts)
+const webview = typeof window === "undefined" ? undefined : window.chrome?.webview;
 const pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
 let nextId = 1;
 
@@ -371,6 +377,8 @@ type HostEvents = {
    * of a SettingsDialog section
    */
   openSettings: { section: string };
+  /** Mac: an item of the native menu bar was chosen; `version` is the version of the setMenus it was in (menuModel.ts) */
+  menuCommand: NativeCommand;
   /** After startup the shell found a new version automatically (checked at most once a day, can be turned off in Settings): shown in the title bar */
   updateAvailable: NewerVersion;
 };
@@ -403,6 +411,9 @@ export const inHost = webview !== undefined;
 
 /** Which shell hosts the page. Known at once (before any call), so the error page can use it too */
 export const platform: "windows" | "mac" = webview?.platform === "mac" ? "mac" : "windows";
+
+/** The shell draws the menus itself: the page sends them (setMenus) and does not show its own menu bar */
+export const nativeMenus = webview?.nativeMenus === true;
 
 /**
  * How long without a reply from the shell counts as no response (ms). Opening dialogs and capturing wait for the user and have no limit;

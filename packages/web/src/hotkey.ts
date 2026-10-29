@@ -1,6 +1,8 @@
 // Recording the Screen Capture shortcut (Settings → Screen Capture): a key pressed in the browser → the notation the shell's GlobalHotKey
 // accepts, with the same rules as the shell.
 
+import { platform } from "./host";
+
 /**
  * A keyboard key (e.code) → the notation accepted by the shell's GlobalHotKey.TryParse (WPF Key names). It used to accept only letters,
  * digits and F1~F24
@@ -24,13 +26,33 @@ const NAMED_KEYS: Record<string, string> = {
 export const prettyKeys = (hotkey: string) => hotkey.split("+").join(" ");
 
 const KEYCAP_NAMES = /\b(Ctrl|Shift|Enter|Esc|Delete|Backspace|Space|Home|End)\b/g;
+/** The keycaps the Mac draws as symbols; Space, Home and End stay words there */
+const MAC_KEYCAPS: Record<string, string> = { Ctrl: "⌘", Shift: "⇧", Enter: "↩", Esc: "⎋", Delete: "⌦", Backspace: "⌫" };
 /**
  * Key names on keycaps follow the UI language (messages keycap.*, matching Windows in each language and the wording in running text:
  * German Strg, Umschalt; French Maj, Entrée…). Only these whole words are replaced; letters, F keys, arrow keys and symbols are untouched.
  * Shortcuts on the right of menus, the shortcut list and the Screen Capture shortcut description all go through this (the text used to
  * say Strg while the keycap said Ctrl)
  */
-export const keycaps = (text: string, t: (id: string) => string) => text.replace(KEYCAP_NAMES, (k) => t(`keycap.${k}`));
+export const keycaps = (text: string, t: (id: string) => string, mac = platform === "mac") =>
+  mac ? macKeycaps(text, t) : text.replace(KEYCAP_NAMES, (k) => t(`keycap.${k}`));
+
+/**
+ * The Mac's way to write a shortcut: symbols in the order ⌃ ⌥ ⇧ ⌘ and no space before the key ("Ctrl Shift Z" → "⇧⌘Z"; the "Ctrl" of these
+ * names is the Command key there, see keys.ts). Names without a symbol (Space, Home, End) go through the language's key name messages
+ */
+function macKeycaps(text: string, t: (id: string) => string): string {
+  const run = new RegExp(`(?<![\\p{L}\\p{N}])((?:Ctrl|Alt|Shift)(?: (?:Ctrl|Alt|Shift))*)(?: (\\S+))?`, "gu");
+  const symbolOf: Record<string, string> = { Ctrl: "⌘", Alt: "⌥", Shift: "⇧" };
+  const order = ["⌃", "⌥", "⇧", "⌘"];
+  const name = (k: string) => MAC_KEYCAPS[k] ?? (/^(Space|Home|End)$/.test(k) ? t(`keycap.${k}`) : k);
+  return text
+    .replace(run, (_all, mods: string, key?: string) => {
+      const symbols = new Set(mods.split(" ").map((m) => symbolOf[m]));
+      return order.filter((s) => symbols.has(s)).join("") + (key === undefined ? "" : name(key));
+    })
+    .replace(KEYCAP_NAMES, (k) => name(k));
+}
 
 /**
  * Keys used for typing and selecting text (with Shift it selects text, Shift+Insert pastes): not accepted with Shift alone, same as the

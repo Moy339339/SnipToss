@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IntlProvider, useIntl } from "react-intl";
 import { BootError, ErrorBoundary } from "./ErrorBoundary";
-import { call, inHost, logError, onHostEvent, type AppInfo } from "./host";
+import { call, inHost, logError, onHostEvent, platform, type AppInfo } from "./host";
 import { loadMessages, resolveLocale, SOURCE_LOCALE } from "./i18n";
+import { macifyMessages } from "./macKeys";
 import { AlertIcon, CloseIcon } from "./icons";
 import { useKeys } from "./keys";
 import { mergePrefs, PrefsContext, storedPrefs, type Prefs } from "./prefs";
@@ -195,7 +196,8 @@ export function App() {
       .then((m) => {
         if (!alive) return;
         document.documentElement.lang = locale;
-        setMessages({ locale, messages: m });
+        // On the Mac the shortcuts written inside the messages are shown with the Mac's symbols (macKeys.ts)
+        setMessages({ locale, messages: platform === "mac" ? macifyMessages(m) : m });
       })
       .catch((e) => {
         logError("loading messages", e);

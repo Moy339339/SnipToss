@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hotkeyFrom } from "../src/hotkey";
+import { hotkeyFrom, keycaps } from "../src/hotkey";
 
 const key = (code: string, mods: { ctrl?: boolean; alt?: boolean; shift?: boolean; win?: boolean } = {}) => ({
   code,
@@ -43,5 +43,38 @@ describe("hotkeyFrom: recording the screen capture shortcut", () => {
     expect(hotkeyFrom(key("ControlLeft", { ctrl: true }))).toBeUndefined();
     expect(hotkeyFrom(key("KeyA"))).toBeUndefined();
     expect(hotkeyFrom(key("Semicolon", { ctrl: true }))).toBeUndefined();
+  });
+});
+
+describe("keycaps on the Mac", () => {
+  const t = (id: string) => ({ "keycap.Space": "Leertaste", "keycap.Home": "Pos1", "keycap.End": "Ende" })[id] ?? id;
+  const mac = (text: string) => keycaps(text, t, true);
+
+  it("modifiers are symbols in the Mac's order with no space before the key", () => {
+    expect(mac("Ctrl Shift Z")).toBe("⇧⌘Z");
+    expect(mac("Ctrl Alt B")).toBe("⌥⌘B");
+    expect(mac("Ctrl O")).toBe("⌘O");
+    expect(mac("Ctrl ,")).toBe("⌘,");
+    expect(mac("Alt")).toBe("⌥");
+    expect(mac("Ctrl")).toBe("⌘");
+    expect(mac("Shift")).toBe("⇧");
+  });
+
+  it("key names: symbols where the Mac has them, the language's words where it does not", () => {
+    expect(mac("Shift Enter")).toBe("⇧↩");
+    expect(mac("Enter")).toBe("↩");
+    expect(mac("Delete")).toBe("⌦");
+    expect(mac("Backspace")).toBe("⌫");
+    expect(mac("Esc")).toBe("⎋");
+    expect(mac("Ctrl Home")).toBe("⌘Pos1");
+    expect(mac("Space")).toBe("Leertaste");
+  });
+
+  it("text that is not a shortcut, and the Windows form", () => {
+    expect(mac("? / F1")).toBe("? / F1");
+    expect(keycaps("Ctrl Shift Z", (id) => id.replace("keycap.", ""), false)).toBe("Ctrl Shift Z");
+    expect(keycaps("Ctrl Shift Z", (id) => ({ "keycap.Ctrl": "Strg", "keycap.Shift": "Umschalt" })[id] ?? id, false)).toBe(
+      "Strg Umschalt Z",
+    );
   });
 });
