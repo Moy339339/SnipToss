@@ -66,11 +66,33 @@ jobs:
           mkdir -p "$RUNNER_TEMP/data-project"
           PROJECT="$GITHUB_WORKSPACE/tests/e2e/fixtures/project" node -e '
             const project = process.env.PROJECT;
-            const settings = { Library: [{ Path: project, Pinned: false }], Selected: project + "/assets/hero.png" };
+            const settings = {
+              Library: [{ Path: project, Pinned: false }],
+              Selected: project + "/assets/hero.png",
+              // The tour and first-use hints count as seen, so the picture shows the screen itself
+              Prefs: { onboarding: ["tour", "hint.copy", "hint.video"] },
+            };
             require("fs").writeFileSync(process.env.SNIPTOSS_SETTINGS, JSON.stringify(settings, null, 2) + "\n");
           '
           app-mac/.build/release/SnipToss
 
+      # First run: nothing is marked as seen, so the onboarding tour starts by itself. Two pictures and the card's own text and styles are
+      # recorded to tell a card that is empty because the text is not drawn from one caught while it fades in
+      - name: Smoke run (first run, tour)
+        if: ${{ !cancelled() }}
+        run: |
+          export SNIPTOSS_VERSION="$(node -p "require('./package.json').version")"
+          export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
+          export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-tour/settings.json"
+          export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/tour"
+          export SNIPTOSS_SMOKE_READY=tour
+          mkdir -p "$RUNNER_TEMP/data-tour"
+          PROJECT="$GITHUB_WORKSPACE/tests/e2e/fixtures/project" node -e '
+            const project = process.env.PROJECT;
+            const settings = { Library: [{ Path: project, Pinned: false }], Selected: project + "/assets/hero.png" };
+            require("fs").writeFileSync(process.env.SNIPTOSS_SETTINGS, JSON.stringify(settings, null, 2) + "\n");
+          '
+          app-mac/.build/release/SnipToss
       - uses: actions/upload-artifact@v7
         if: always()
         with:
