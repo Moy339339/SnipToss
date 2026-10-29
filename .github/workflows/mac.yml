@@ -40,8 +40,14 @@ jobs:
         working-directory: app-mac
         run: swift build -c release
 
+      # The files the shell reads at run time: the message formatter (the UI's intl-messageformat, for JavaScriptCore) and the catalogs
+      - name: Build the shell's resources
+        run: node app-mac/scripts/build-resources.mjs
+
       - name: Unit tests
         working-directory: app-mac
+        env:
+          SNIPTOSS_RESOURCES_DIR: ${{ github.workspace }}/app-mac/.build/resources
         run: swift test
 
       # Opens the window with an empty library, waits for the welcome screen, writes ui.png and result.json, and quits

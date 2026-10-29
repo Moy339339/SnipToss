@@ -24,14 +24,20 @@ export async function walkScreens(app: App, visit: (screen: string) => Promise<v
   await expect(page.locator(".titlebar-update")).toBeVisible();
   await visit("主界面");
 
+  // With the Mac's native menus the page has no menu bar of its own: there are no menus to click through, Command is the key of Settings, and
+  // the tour is started with its item of the Help menu the shell would send back (see mac-menus.spec.ts)
+  const native = (await page.locator(".menubar").count()) === 0;
+
   // Every menu of the menu bar
   const tops = page.locator(".menubar > button, .menubar .menubar-top");
-  expect(await tops.count()).toBeGreaterThan(5);
-  for (let i = 0; i < (await tops.count()); i++) {
-    await tops.nth(i).click();
-    await expect(menu).toBeVisible();
-    await visit(`菜单 ${i + 1}`);
-    await page.keyboard.press("Escape");
+  if (!native) {
+    expect(await tops.count()).toBeGreaterThan(5);
+    for (let i = 0; i < (await tops.count()); i++) {
+      await tops.nth(i).click();
+      await expect(menu).toBeVisible();
+      await visit(`菜单 ${i + 1}`);
+      await page.keyboard.press("Escape");
+    }
   }
 
   // Three context menus: the canvas, a row of the Library, a card of the notes panel
@@ -66,7 +72,7 @@ export async function walkScreens(app: App, visit: (screen: string) => Promise<v
 
   // Every page of Settings
   await page.locator(".stage").click({ position: { x: 5, y: 5 } });
-  await page.keyboard.press("Control+,");
+  await page.keyboard.press(native ? "Meta+," : "Control+,");
   const tabs = page.locator(".settings-tab");
   await expect(tabs.first()).toBeVisible();
   expect(await tabs.count()).toBeGreaterThan(5);
@@ -83,8 +89,16 @@ export async function walkScreens(app: App, visit: (screen: string) => Promise<v
   await page.keyboard.press("Escape");
 
   // The three steps of the onboarding tour (the second Help menu item, Feature Tour) and the hint shown when a video is opened
-  await tops.last().click();
-  await page.locator(".menu [role=menuitem]").nth(1).click();
+  if (native) {
+    // The menus the shell has are the ones with the shortcut list still open until the page has sent them again: a command from those is dropped
+    await expect.poll(() => app.host.menusSent.at(-1)?.modal).toBe(false);
+    const sent = app.host.menusSent[app.host.menusSent.length - 1];
+    const help = sent.menus[sent.menus.length - 1].items as { id: string; label: string }[];
+    app.host.chooseMenuItem(help.find((item) => item.label === "Feature Tour")!.id, sent.version);
+  } else {
+    await tops.last().click();
+    await page.locator(".menu [role=menuitem]").nth(1).click();
+  }
   for (let i = 1; i <= 3; i++) {
     await expect(page.locator(".tour-count")).toHaveText(`${i} / 3`);
     await visit(`引导 ${i}`);

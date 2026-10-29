@@ -3,6 +3,7 @@
 // __e2ePlatform and __e2eNativeMenus before the page loads (the fake chrome.webview in harness.ts reads them)
 
 import { expect, test, type App } from "./harness";
+import { prepare, walkScreens } from "./screens";
 
 const asMacWithMenus = (app: App) =>
   app.page.addInitScript(() => {
@@ -18,7 +19,7 @@ const items = (app: App, menu = -1): Item[] => {
   const menus = menu < 0 ? last.menus : [last.menus[menu]];
   return menus.flatMap((m) => m.items.filter((i): i is Item => i !== "-"));
 };
-const find = (app: App, test: (i: Item) => boolean) => items(app).find(test)!;
+const find = (app: App, match: (i: Item) => boolean) => items(app).find(match)!;
 const lastVersion = (app: App) => app.host.menusSent[app.host.menusSent.length - 1].version;
 const card = (app: App, id: string) => app.page.locator(`[data-annot$="|${id}"]`);
 
@@ -34,7 +35,7 @@ test("on the Mac with native menus the page sends its menus and shows no menu ba
   // Exit, Settings… and About are in the app menu of the Mac: not among the page's items
   const labels = items(app).map((i) => i.label);
   expect(labels.some((l) => /退出|Exit/.test(l))).toBe(false);
-  expect(labels.some((l) => /^关于/.test(l))).toBe(false);
+  expect(labels.some((l) => l.startsWith("关于"))).toBe(false);
   expect(items(app).some((i) => i.shortcut?.key === "o" && i.shortcut.cmd)).toBe(true);
 });
 
@@ -101,6 +102,23 @@ test("a dialog open: the menus are sent as modal, and again when it is closed", 
   await expect(app.page.locator(".overlay")).toHaveCount(0);
   await expect.poll(() => app.host.menusSent[app.host.menusSent.length - 1].modal).toBe(false);
   expect(find(app, (i) => i.shortcut?.key === "h" && i.shortcut.shift).checked).toBe(was);
+});
+
+test("on every screen of the walkthrough the menus are modal exactly while a dialog is on screen", async ({ app }) => {
+  // The walkthrough (screens.ts) opens every dialog of the UI; a dialog is any element that says it is modal. A new dialog that the menus
+  // do not know about (one that is not an .overlay or .tour) would leave the Mac's menus enabled behind it
+  prepare(app, "en");
+  await asMacWithMenus(app);
+  await app.open();
+  const seen = { dialog: 0, plain: 0 };
+  await walkScreens(app, async (screen) => {
+    const dialog = (await app.page.locator('[aria-modal="true"]').count()) > 0;
+    await expect.poll(() => app.host.menusSent[app.host.menusSent.length - 1]?.modal, { message: screen }).toBe(dialog);
+    seen[dialog ? "dialog" : "plain"]++;
+  });
+  // Settings pages, the confirm dialog, the shortcut list and the tour are dialogs; the main screen, the note box, the context menus are not
+  expect(seen.dialog).toBeGreaterThan(8);
+  expect(seen.plain).toBeGreaterThan(2);
 });
 
 test("many changes in a row send few models (the page waits until it is quiet)", async ({ app }) => {
