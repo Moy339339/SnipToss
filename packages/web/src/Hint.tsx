@@ -2,6 +2,7 @@ import { useEffect, useEffectEvent, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 import { cssZoom } from "./cssZoom";
+import { call, logError } from "./host";
 import { useKeys } from "./keys";
 import { HINT_TARGETS, placeNear, visibleBox, type HintId } from "./onboarding";
 
@@ -13,11 +14,12 @@ const CARET_INSET = 16;
 
 /**
  * Which side of the control the hint goes on: the copy button is at the very bottom of the notes panel, so above; timestamped comment is
- * in the toolbar, so below
+ * in the toolbar, and Capture in the title bar, so below
  */
 const SIDES: Record<HintId, ("below" | "above")[]> = {
   copy: ["above", "below"],
   video: ["below", "above"],
+  screenAccess: ["below", "above"],
 };
 
 /**
@@ -73,11 +75,23 @@ export function Hint(props: { id: HintId; onClose: () => void }) {
 
   return createPortal(
     <div ref={el} className="hint" role="status" data-hint={props.id} style={{ visibility: "hidden" }}>
-      <div className="hint-text">{intl.formatMessage({ id: `hint.${props.id}` })}</div>
+      <div className="hint-text">{intl.formatMessage({ id: `hint.${props.id}` }, { app: intl.formatMessage({ id: "brand.name" }) })}</div>
       <div className="hint-actions">
         <button className="btn btn-secondary btn-small" onClick={props.onClose}>
           {intl.formatMessage({ id: "app.toast.gotIt" })}
         </button>
+        {props.id === "screenAccess" && (
+          // To where macOS lets the app record the screen (the shell lets the system ask the first time, see host-api.md)
+          <button
+            className="btn btn-primary btn-small"
+            onClick={() => {
+              void call("openScreenAccessSettings").catch((e) => logError("openScreenAccessSettings", e));
+              props.onClose();
+            }}
+          >
+            {intl.formatMessage({ id: "settings.capture.openAccess" })}
+          </button>
+        )}
       </div>
     </div>,
     document.body,

@@ -166,7 +166,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         let item = StatusItemController(
             showWindow: { [weak self] in self?.showMainWindow() }, openSettings: { [weak self] in self?.openSettingsPage() },
             quit: { NSApp.terminate(nil) }, capture: { [weak self] in self?.startCapture(fromMenu: true) },
-            shortcut: { [weak self] in self?.hotkey?.current.flatMap(HotKeySpec.parse) })
+            shortcut: { [weak self] in self?.hotkey?.current.flatMap(HotKeySpec.parse) }, needsAccess: { !SystemScreenAccess().allowed })
         item.setVisible(TrayPolicy.showsStatusItem(keepInTray: settings.capture.keepInTray))
         statusItem = item
         // Menus that are made once say their words again when the UI's language changes

@@ -65,8 +65,6 @@ final class CaptureSession {
     private(set) var lastOutput: CaptureOutput.Output?
     private(set) var lastFile: String?
 
-    private static let requestedKey = "ScreenAccessRequested"
-
     init(
         source: ScreenSource, access: ScreenAccess = SystemScreenAccess(), guide: PermissionGuiding = PermissionGuide(), defaults: UserDefaults = .standard,
         options: @escaping () -> CaptureOptions = { CaptureOptions() }, clipboard: CaptureClipboard = SystemCaptureClipboard(),
@@ -131,10 +129,7 @@ final class CaptureSession {
     /// Either the system's question or our guide, never both at once: the first time only the system asks (it asks once only); after that
     /// it will not ask again, and the guide says where to allow it
     private func noAccess() {
-        if !defaults.bool(forKey: Self.requestedKey) {
-            defaults.set(true, forKey: Self.requestedKey)
-            access.request()
-        } else {
+        if !ScreenAccessAsk.firstTime(access, defaults: defaults) {
             guide.show(openSettings: { [access] in access.openSettings() })
         }
     }

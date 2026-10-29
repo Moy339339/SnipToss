@@ -11,6 +11,7 @@ enum ShellText {
         case "shell.capture.noAccessTitle": return "\(arg("app")) needs permission to record the screen"
         case "shell.capture.noAccessBody":
             return "To capture the screen, allow \(arg("app")) in System Settings → Privacy & Security, then quit \(arg("app")) and open it again."
+                + " If \(arg("app")) isn't in the list, click + to add it."
         case "shell.capture.openSettings": return "Open System Settings"
         case "shell.capture.notNow": return "Not Now"
         case "shell.hotkey.invalid": return "Unrecognized shortcut: \(arg("keys"))"
@@ -34,6 +35,7 @@ enum ShellText {
         case "shell.error.notInList": return "This item isn't in the library"
         case "shell.tray.capture": return "Capture Screen"
         case "shell.tray.open": return "Open \(arg("app"))"
+        case "shell.tray.needsAccess": return "Allow screen recording in System Settings first"
         case "shell.settings.restored": return "The settings file was missing, so it was restored from a backup."
         case "shell.settings.fromBackup": return "\(settingsProblem(arg("reason"))), so the last backup was restored."
         case "shell.settings.defaults":

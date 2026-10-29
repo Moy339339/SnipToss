@@ -173,6 +173,27 @@ protocol ScreenAccess {
     func openSettings()
 }
 
+/// The system asks the user about recording the screen only once, and only an app that has asked is in the list of System Settings. So
+/// the first time anything needs the permission (a capture, a button that leads to it), the system is asked; after that the way is System
+/// Settings. That it was asked is kept across launches
+enum ScreenAccessAsk {
+    static let key = "ScreenAccessRequested"
+
+    /// Asks the system when it has not been asked before; true = it was asked now
+    static func firstTime(_ access: ScreenAccess, defaults: UserDefaults) -> Bool {
+        if defaults.bool(forKey: key) { return false }
+        defaults.set(true, forKey: key)
+        access.request()
+        return true
+    }
+
+    /// A button that leads to the permission (Settings → Screen Capture, the hint next to Capture): the system's question the first time,
+    /// System Settings afterwards
+    static func lead(_ access: ScreenAccess, defaults: UserDefaults) {
+        if !firstTime(access, defaults: defaults) { access.openSettings() }
+    }
+}
+
 struct SystemScreenAccess: ScreenAccess {
     var allowed: Bool { CGPreflightScreenCaptureAccess() }
 

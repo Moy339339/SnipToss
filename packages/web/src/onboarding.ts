@@ -5,10 +5,11 @@ import { usePrefs } from "./prefs";
 /**
  * The onboarding tour and first-use hints (the tour is kept short).
  * - The tour (Tour.tsx): runs automatically the first time an item is shown on the canvas, in 3 steps: drawing tools → notes panel → Screen Capture; Help → "Feature Tour" shows it again.
- * - Hints (Hint.tsx): shown once next to the relevant control when it is first used, dismissed by pressing elsewhere, and never blocking the operation: the first time a note is saved (the Copy button only appears then) and the first time a video is opened.
+ * - Hints (Hint.tsx): shown once next to the relevant control when it is first used, dismissed by pressing elsewhere, and never blocking the operation: the first time a note is saved (the Copy button only appears then), the first time a video is opened,
+ *   and on the Mac, while macOS has not allowed the app to record the screen, next to Capture (with a button that leads to where it is allowed).
  * What has been seen is stored in the onboarding entry of the settings (it is not a setting, and "Restore Defaults" leaves it alone); it is recorded as soon as something appears, without waiting for it to close, so quitting midway does not bring it back
  */
-export type HintId = "copy" | "video";
+export type HintId = "copy" | "video" | "screenAccess";
 
 /** The name recorded in onboarding */
 export const TOUR = "tour";
@@ -29,6 +30,7 @@ export const TOUR_STEPS: TourStep[] = [
 export const HINT_TARGETS: Record<HintId, string> = {
   copy: ".panel-dock .dock-buttons",
   video: ".hdr-tools .tool-timed",
+  screenAccess: ".titlebar-split",
 };
 
 export interface Box {
@@ -96,9 +98,10 @@ function whenIdle(delay: number, run: () => void) {
 
 /**
  * When the tour and hints appear (used by Workspace). current: the item on the canvas; video: the canvas shows a video that can be opened;
+ * noScreenAccess: on the Mac, macOS has not allowed the app to record the screen (Screen Capture cannot start until it does);
  * returns whether the tour is on, start / stop the tour, which hint is showing now, and savedNew, to be called when a new note is saved
  */
-export function useOnboarding(opts: { current?: MaterialEntry; selectedKey?: string; video: boolean }) {
+export function useOnboarding(opts: { current?: MaterialEntry; selectedKey?: string; video: boolean; noScreenAccess?: boolean }) {
   const { prefs, setPrefs } = usePrefs();
   const seen = prefs.onboarding;
   const [touring, setTouring] = useState(false);
@@ -143,6 +146,13 @@ export function useOnboarding(opts: { current?: MaterialEntry; selectedKey?: str
     if (!videoKey) return;
     return whenIdle(600, () => showHintLater("video"));
   }, [videoKey]);
+
+  // The Mac without the permission to record the screen: once, next to Capture, before it is first used (not part of the tour, which may come first)
+  const accessHint = !!opts.noScreenAccess && !touring && !hint && !seen.includes(hintKey("screenAccess"));
+  useEffect(() => {
+    if (!accessHint) return;
+    return whenIdle(600, () => showHintLater("screenAccess"));
+  }, [accessHint]);
 
   /** A new note was saved (not an edit of an old one): the first time, point out the Copy button (it only appears then). Shown after the composer closes and the notes panel has scrolled into place */
   const pendingCopy = useRef<() => void>(undefined);

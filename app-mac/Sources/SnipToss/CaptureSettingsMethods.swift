@@ -6,15 +6,17 @@ import Foundation
 /// at startup. `autostart` is kept, and no login item is registered for it yet.
 /// `keepInTray` and `hideWindow` take effect: the first decides what closing the window does (StatusItem.swift), the second is read when
 /// capture starts from the window.
-/// Both replies also carry `screenAccess`, whether macOS lets the app record the screen, and `openScreenAccessSettings` opens System
-/// Settings where the user allows it (docs/host-api.md, "The screen recording permission").
+/// Both replies also carry `screenAccess`, whether macOS lets the app record the screen, and `openScreenAccessSettings` leads the user to
+/// where it is allowed: the system's own question the first time, System Settings afterwards (docs/host-api.md, "The screen recording
+/// permission"; `ScreenAccessAsk.lead`).
 /// - Parameter hotkey: what registers the shortcut (nil: nothing does, the shortcut is only kept)
 /// - Parameter access: the screen recording permission (nil: not known, and `screenAccess` is left out)
+/// - Parameter defaults: where it is kept that the system was asked
 /// - Parameter onKeepInTrayChanged: told the new value after a call that carried `keepInTray`, so the menu bar item can follow. Called on
 ///   the bridge's background queue
 func installCaptureSettingsMethods(
     into bridge: BridgeHost, settings: Settings, hotkey: HotKeyControl? = nil, access: ScreenAccess? = nil,
-    onKeepInTrayChanged: @escaping (Bool) -> Void = { _ in }
+    defaults: UserDefaults = .standard, onKeepInTrayChanged: @escaping (Bool) -> Void = { _ in }
 ) {
     bridge.register("captureSettings") { _ in
         captureSettingsReply(settings.capture, hotkeyError: hotkey?.error, screenAccess: access?.allowed)
@@ -29,7 +31,9 @@ func installCaptureSettingsMethods(
     }
 
     bridge.register("openScreenAccessSettings") { _ in
-        runOnMain { access?.openSettings() }
+        runOnMain {
+            if let access { ScreenAccessAsk.lead(access, defaults: defaults) }
+        }
         return nil
     }
 

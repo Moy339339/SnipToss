@@ -149,6 +149,39 @@ final class CaptureSessionTests: SnipTestCase {
         XCTAssertEqual(guide.shown, 1)
     }
 
+    /// The buttons that lead to the permission (Settings → Screen Capture, the hint next to Capture): only an app that has asked is in the
+    /// list of System Settings, so the first press asks the system; System Settings opens from then on
+    func testAButtonThatLeadsToThePermissionAsksTheSystemTheFirstTimeAndOpensSystemSettingsAfterwards() {
+        let access = FakeAccess()
+        access.allowed = false
+        ScreenAccessAsk.lead(access, defaults: defaults)
+        XCTAssertEqual([access.requests, access.settingsOpened], [1, 0])
+        ScreenAccessAsk.lead(access, defaults: defaults)
+        ScreenAccessAsk.lead(access, defaults: defaults)
+        XCTAssertEqual([access.requests, access.settingsOpened], [1, 2])
+    }
+
+    /// The system asks once only, whoever asked it: after a button asked, a capture shows the guide; after a capture asked, a button opens
+    /// System Settings
+    func testTheButtonsAndTheCaptureShareWhetherTheSystemWasAsked() {
+        let access = FakeAccess()
+        access.allowed = false
+        let guide = FakeGuide()
+        ScreenAccessAsk.lead(access, defaults: defaults)
+        startAndWait(CaptureSession(source: FakeSource(.success([])), access: access, guide: guide, defaults: defaults), "after a button")
+        XCTAssertEqual([access.requests, guide.shown, access.settingsOpened], [1, 1, 0])
+
+        let otherName = "SnipTossTests-" + UUID().uuidString
+        let other = UserDefaults(suiteName: otherName)!
+        defer { other.removePersistentDomain(forName: otherName) }
+        let fresh = FakeAccess()
+        fresh.allowed = false
+        let session = CaptureSession(source: FakeSource(.success([])), access: fresh, guide: FakeGuide(), defaults: other)
+        startAndWait(session, "a capture first")
+        ScreenAccessAsk.lead(fresh, defaults: other)
+        XCTAssertEqual([fresh.requests, fresh.settingsOpened], [1, 1])
+    }
+
     // MARK: Failures and repeats
 
     func testAFailedCaptureEndsWithoutAskingForThePermission() {
