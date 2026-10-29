@@ -92,7 +92,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         bridge.register("captureStart") { [weak self] _ in
             let over = DispatchSemaphore(value: 0)
             onMain {
-                if let self { self.captureSession.start(whenClosed: { over.signal() }) } else { over.signal() }
+                if let self { self.startCapture(fromWindow: true, whenClosed: { over.signal() }) } else { over.signal() }
             }
             over.wait()
             return nil
@@ -165,7 +165,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         // The menu bar item is the way back to a window that was closed while the app keeps running
         let item = StatusItemController(
             showWindow: { [weak self] in self?.showMainWindow() }, openSettings: { [weak self] in self?.openSettingsPage() },
-            quit: { NSApp.terminate(nil) }, capture: { [weak self] in self?.captureSession.start() },
+            quit: { NSApp.terminate(nil) }, capture: { [weak self] in self?.startCapture(fromMenu: true) },
             shortcut: { [weak self] in self?.hotkey?.current.flatMap(HotKeySpec.parse) })
         item.setVisible(TrayPolicy.showsStatusItem(keepInTray: settings.capture.keepInTray))
         statusItem = item
@@ -216,9 +216,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         }
     }
 
-    /// The capture shortcut was pressed, from any app
+    /// The capture shortcut was pressed, from any app: the screen as it is now (the window too, if it is in front)
     private func captureHotKeyPressed() {
         captureSession.start()
+    }
+
+    /// From the window's own Capture: with "Hide this window while capturing" on (the default) the window goes first, so it is not in the
+    /// picture, and comes back when the capture is over. From the menu bar item's menu: a moment's wait, so the menu has gone from the
+    /// screen before the picture is taken. The wait (180 ms) is the Windows shell's: long enough for the window server to take a window down
+    private func startCapture(fromWindow: Bool = false, fromMenu: Bool = false, whenClosed done: @escaping () -> Void = {}) {
+        let hide = fromWindow && settings.capture.hideWindow && window.isVisible && !window.isMiniaturized
+        if !hide && !fromMenu {
+            captureSession.start(whenClosed: done)
+            return
+        }
+        if hide {
+            // As when the window is closed to the menu bar: a playing video stops rather than playing on unseen
+            bridge.emit("windowHidden")
+            window.orderOut(nil)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { [weak self] in
+            guard let self else { return done() }
+            self.captureSession.start(whenClosed: { [weak self] in
+                if hide { self?.showMainWindow() }
+                done()
+            })
+        }
     }
 
     /// What a capture starts with: the settings as they are when it starts
