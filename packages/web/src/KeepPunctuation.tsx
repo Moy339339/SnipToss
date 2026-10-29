@@ -38,12 +38,26 @@ function dotNames(chars: string[]) {
   return name;
 }
 
-/** The text cut into runs. Text without full-width marks or dot names is one run */
-export function punctuationRuns(text: string): PunctuationRun[] {
+/** What sits right against the text in its line: other inline content before it, after it */
+export interface Neighbors {
+  before?: boolean;
+  after?: boolean;
+}
+
+/**
+ * The text cut into runs. Text without full-width marks or dot names is one run.
+ * White space is a place to break already, and so is an end of the text with nothing against it. An end with other inline content
+ * against it is not ("<code>path</code>(default…)"): WebKit finds no place to break at an element's edge, so a mark there gets its <wbr>
+ * like any other. Nothing is added at the start or end of a block, where an extra place to break could still change how
+ * text-wrap: pretty balances the lines
+ */
+export function punctuationRuns(text: string, { before = false, after = false }: Neighbors = {}): PunctuationRun[] {
   if (!MARK.test(text) && !DOT_NAME.test(text)) return [{ kind: "text", text }];
   const chars = Array.from(text);
   const name = dotNames(chars);
   const stays = (i: number) => name[i] || sticks(chars[i], chars[i + 1]);
+  const breaksBefore = (i: number) => (i === 0 ? !before : /\s/.test(chars[i - 1]));
+  const breaksAfter = (i: number) => (i === chars.length - 1 ? !after : /\s/.test(chars[i + 1]));
   const runs: PunctuationRun[] = [];
   let loose = "";
   for (let i = 0; i < chars.length;) {
@@ -57,18 +71,17 @@ export function punctuationRuns(text: string): PunctuationRun[] {
     if (loose) runs.push({ kind: "text", text: loose });
     loose = "";
     const keep = chars.slice(i, end + 1);
-    // White space and the ends of the text are places to break already
-    if (OPEN.includes(keep[0]) && !edge(chars[i - 1]) && runs.at(-1)?.kind !== "break") runs.push({ kind: "break" });
+    if (OPEN.includes(keep[0]) && !breaksBefore(i) && runs.at(-1)?.kind !== "break") runs.push({ kind: "break" });
     runs.push({ kind: "keep", text: keep.join("") });
-    if (CLOSE.includes(keep[keep.length - 1]) && !edge(chars[end + 1])) runs.push({ kind: "break" });
+    if (CLOSE.includes(keep[keep.length - 1]) && !breaksAfter(end)) runs.push({ kind: "break" });
     i = end + 1;
   }
   if (loose) runs.push({ kind: "text", text: loose });
   return runs;
 }
 
-function keepText(text: string): ReactNode {
-  const runs = punctuationRuns(text);
+function keepText(text: string, neighbors: Neighbors): ReactNode {
+  const runs = punctuationRuns(text, neighbors);
   if (runs.length === 1 && runs[0].kind === "text") return text;
   return runs.map((r, i) =>
     r.kind === "keep" ? (
@@ -83,9 +96,22 @@ function keepText(text: string): ReactNode {
   );
 }
 
+const empty = (n: ReactNode) => n === null || n === undefined || typeof n === "boolean" || n === "";
+
 function keepAll(node: ReactNode): ReactNode {
-  return Children.map(node, (child) => {
-    if (typeof child === "string") return keepText(child);
+  // The children in the order Children.map visits them, to see what sits next to each string: the nearest one that isn't empty, unless it
+  // is a line break (<br>)
+  const all: ReactNode[] = [];
+  Children.forEach(node, (child) => void all.push(child));
+  const against = (i: number, step: 1 | -1) => {
+    for (let j = i + step; j >= 0 && j < all.length; j += step) {
+      const n = all[j];
+      if (!empty(n)) return !(isValidElement(n) && n.type === "br");
+    }
+    return false;
+  };
+  return Children.map(node, (child, i) => {
+    if (typeof child === "string") return keepText(child, { before: against(i, -1), after: against(i, 1) });
     // Down through plain elements and fragments; other components lay out their own text
     if (isValidElement<{ children?: ReactNode }>(child) && (typeof child.type === "string" || child.type === Fragment)) {
       const inner = child.props.children;

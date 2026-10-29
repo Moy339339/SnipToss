@@ -48,6 +48,15 @@ describe("punctuationRuns", () => {
     for (const text of ["a.b", "v1.0.2", "Done. Next", "1. Open", "（.x）", "end ."]) expect(runs(text)).not.toMatch(/\[\.[^\]]/);
   });
 
+  it("with other inline content right against the text, its ends are not places to break by themselves", () => {
+    expect(runs("「X」：")).toBe("[「X」：]");
+    expect(punctuationRuns("「X」：", { before: true, after: true }).map((r) => r.kind)).toEqual(["break", "keep", "break"]);
+    expect(punctuationRuns("「X」：", { before: true }).map((r) => r.kind)).toEqual(["break", "keep"]);
+    expect(punctuationRuns("（默认位置）", { after: true }).map((r) => r.kind)).toEqual(["keep", "text", "keep", "break"]);
+    // White space at an end is a place to break already
+    expect(punctuationRuns(" 「X」 ", { before: true, after: true }).map((r) => r.kind)).toEqual(["text", "keep", "text"]);
+  });
+
   it("characters outside the basic plane are kept whole", () => {
     expect(runs("「𠮷野家」")).toBe("[「𠮷]野[家」]");
   });
@@ -61,6 +70,24 @@ describe("KeepPunctuation", () => {
       '请使用<wbr/><span class="keep-punctuation">「复</span>制成图<span class="keep-punctuation">片」</span>',
     );
     expect(html("No marks here")).toBe("No marks here");
+  });
+
+  it("an end of a string with another element right against it gets a place to break as well; the start and end of a block do not", () => {
+    const tree = createElement("div", null, createElement("code", null, "/Users/u/captures"), "（默认位置，保留 30 天）");
+    expect(html(tree)).toBe(
+      '<div><code>/Users/u/captures</code><wbr/><span class="keep-punctuation">（默</span>认位<span class="keep-punctuation">置，</span><wbr/>' +
+        '保留 30 <span class="keep-punctuation">天）</span></div>',
+    );
+    const before = createElement("p", null, "已保存。", createElement("code", null, "x"), "", false, "「下」");
+    expect(html(before)).toBe(
+      '<p>已保<span class="keep-punctuation">存。</span><wbr/><code>x</code><wbr/><span class="keep-punctuation">「下」</span></p>',
+    );
+  });
+
+  it("a line break (<br>) next to a string is a place to break already", () => {
+    expect(html(createElement("p", null, "已保存。", createElement("br"), "「下」一行"))).toBe(
+      '<p>已保<span class="keep-punctuation">存。</span><br/><span class="keep-punctuation">「下」</span><wbr/>一行</p>',
+    );
   });
 
   it("goes down through plain elements and fragments, keeping their attributes", () => {
@@ -79,7 +106,7 @@ describe("KeepPunctuation", () => {
 
   it("leaves other components to lay out their own text", () => {
     const Other = () => createElement("b", null, "「内」");
-    expect(html(createElement(Other), "「外」")).toBe('<b>「内」</b><span class="keep-punctuation">「外」</span>');
+    expect(html(createElement(Other), "「外」")).toBe('<b>「内」</b><wbr/><span class="keep-punctuation">「外」</span>');
   });
 
   it("keeps numbers and empty children as they are", () => {
