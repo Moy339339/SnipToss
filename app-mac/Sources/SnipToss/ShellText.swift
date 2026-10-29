@@ -42,6 +42,12 @@ enum ShellText {
         }
     }
 
+    /// The same for messages with numbers: strings and integers go to the formatter as they are (plurals need the integers). There is no
+    /// built-in English for these; without the resources the key is returned
+    static func t(_ key: String, values: [String: Any]) -> String {
+        ShellLocale.text(key, values) ?? key
+    }
+
     /// The `reason` select of the settings messages: "busy" = the file could not be read, anything else = it was damaged
     private static func settingsProblem(_ reason: String) -> String {
         reason == "busy"
