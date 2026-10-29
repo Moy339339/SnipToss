@@ -1,5 +1,5 @@
-// Puts the built Mac shell into SnipToss.app and zips it: a package for trying the app on a Mac, not a release (no certificate yet, so it
-// is signed ad hoc, and macOS treats every new build as a different app for the screen recording permission).
+// Puts the built Mac shell into SnipToss.app and zips it: a package for trying the app on a Mac, not a release. It is signed with the
+// project's self-signed certificate when the build has it (see below), otherwise ad hoc.
 // Runs on macOS after `swift build -c release`, `npm run build` and build-resources.mjs:
 //   node app-mac/scripts/package-app.mjs <output folder> [build number]
 // Writes <output folder>/SnipToss.app and <output folder>/SnipToss-mac-<version>-<build>.zip
@@ -88,9 +88,25 @@ writeFileSync(
 writeFileSync(join(contents, "PkgInfo"), "APPL????");
 run("plutil", ["-lint", join(contents, "Info.plist")]);
 
-// Ad hoc ("-"): an Apple silicon Mac runs only signed code, and the bundle changed after the linker signed the binary
-run("codesign", ["--force", "--sign", "-", "--identifier", BUNDLE_ID, app]);
+// Signed with the project's own certificate when the build has it (SNIPTOSS_SIGN_IDENTITY: its SHA-1, SNIPTOSS_SIGN_KEYCHAIN: the keychain
+// it was imported into, see mac.yml). Then the designated requirement names the certificate, not this build's code hash, and macOS keeps
+// the Screen Recording permission when a new build replaces the old one. Without it, ad hoc ("-"): an Apple silicon Mac runs only signed
+// code, and the bundle changed after the linker signed the binary
+const identity = process.env.SNIPTOSS_SIGN_IDENTITY;
+const keychain = process.env.SNIPTOSS_SIGN_KEYCHAIN;
+run("codesign", [
+  "--force",
+  "--sign",
+  identity || "-",
+  ...(identity && keychain ? ["--keychain", keychain] : []),
+  "--identifier",
+  BUNDLE_ID,
+  app,
+]);
 run("codesign", ["--verify", "--strict", "--verbose=2", app]);
+const requirement = execFileSync("codesign", ["-d", "-r-", app], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+console.log(`designated requirement: ${requirement.trim()}`);
+if (identity && !/certificate leaf = H"/.test(requirement)) throw new Error("signed with the certificate, but the requirement does not name it");
 
 // ditto keeps what a plain zip would lose (the executable bit, the signature's extended attributes)
 const zip = join(out, `${NAME}-mac-${version}-${build}.zip`);

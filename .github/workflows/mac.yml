@@ -197,7 +197,33 @@ jobs:
             console.log("capture layers ok", JSON.stringify(c));
           '
 
-      # A package for trying the app on a Mac, not a release: SnipToss.app with the UI and the catalogs inside, signed ad hoc, zipped
+      # The project's self-signed code signing certificate (CN=MoyGoldenAge), from the repository's secrets into a keychain of this run
+      # only. With it every build has the same signing identity, and macOS keeps the Screen Recording permission across builds. Without
+      # the secrets (a fork) the package is signed ad hoc
+      - name: Signing identity
+        if: ${{ !cancelled() }}
+        env:
+          P12: ${{ secrets.MAC_SIGNING_P12 }}
+          P12_PASSWORD: ${{ secrets.MAC_SIGNING_PASSWORD }}
+        run: |
+          if [ -z "$P12" ] || [ -z "$P12_PASSWORD" ]; then echo "no signing certificate: the package is signed ad hoc"; exit 0; fi
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          keychain_password="$(uuidgen)"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          printf '%s' "$P12" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          security import "$RUNNER_TEMP/signing.p12" -k "$keychain" -P "$P12_PASSWORD" -T /usr/bin/codesign > /dev/null
+          fingerprint="$(openssl pkcs12 -in "$RUNNER_TEMP/signing.p12" -passin env:P12_PASSWORD -nokeys -clcerts 2>/dev/null | openssl x509 -noout -fingerprint -sha1 | sed 's/.*=//; s/://g')"
+          rm -f "$RUNNER_TEMP/signing.p12"
+          if [ -z "$fingerprint" ]; then echo "the certificate could not be read from the secret"; exit 1; fi
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain" > /dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          echo "signing with the certificate $fingerprint"
+          echo "SNIPTOSS_SIGN_IDENTITY=$fingerprint" >> "$GITHUB_ENV"
+          echo "SNIPTOSS_SIGN_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
+
+      # A package for trying the app on a Mac, not a release: SnipToss.app with the UI and the catalogs inside, zipped
       - name: Package the app (trial)
         if: ${{ !cancelled() }}
         run: node app-mac/scripts/package-app.mjs "$RUNNER_TEMP/package" "${{ github.run_number }}"
