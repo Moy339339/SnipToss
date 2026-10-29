@@ -361,6 +361,12 @@
     },
     {
       "locale": "de",
+      "key": "shell.tray.needsAccess",
+      "args": {},
+      "text": "Zuerst die Bildschirmaufnahme in den Systemeinstellungen erlauben"
+    },
+    {
+      "locale": "de",
       "key": "shell.tray.open",
       "args": {
         "app": "<app>"
@@ -531,7 +537,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "Um den Bildschirm aufzunehmen, erlauben Sie <app> unter Systemeinstellungen → Datenschutz & Sicherheit. Beenden Sie <app> anschließend, und öffnen Sie es erneut."
+      "text": "Um den Bildschirm aufzunehmen, erlauben Sie <app> unter Systemeinstellungen → Datenschutz & Sicherheit. Beenden Sie <app> anschließend, und öffnen Sie es erneut. Wenn <app> nicht in der Liste steht, klicken Sie auf +, um es hinzuzufügen."
     },
     {
       "locale": "de",
@@ -2700,6 +2706,12 @@
     },
     {
       "locale": "en",
+      "key": "shell.tray.needsAccess",
+      "args": {},
+      "text": "Allow screen recording in System Settings first"
+    },
+    {
+      "locale": "en",
       "key": "shell.tray.open",
       "args": {
         "app": "<app>"
@@ -2870,7 +2882,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "To capture the screen, allow <app> in System Settings → Privacy & Security, then quit <app> and open it again."
+      "text": "To capture the screen, allow <app> in System Settings → Privacy & Security, then quit <app> and open it again. If <app> isn't in the list, click + to add it."
     },
     {
       "locale": "en",
@@ -5039,6 +5051,12 @@
     },
     {
       "locale": "es",
+      "key": "shell.tray.needsAccess",
+      "args": {},
+      "text": "Primero permite la grabación de pantalla en Ajustes del Sistema"
+    },
+    {
+      "locale": "es",
       "key": "shell.tray.open",
       "args": {
         "app": "<app>"
@@ -5209,7 +5227,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "Para capturar la pantalla, activa <app> en Ajustes del Sistema → Privacidad y seguridad y, después, sal de <app> y vuelve a abrir la aplicación."
+      "text": "Para capturar la pantalla, activa <app> en Ajustes del Sistema → Privacidad y seguridad y, después, sal de <app> y vuelve a abrir la aplicación. Si <app> no aparece en la lista, haz clic en + para añadirla."
     },
     {
       "locale": "es",
@@ -7378,6 +7396,12 @@
     },
     {
       "locale": "fr",
+      "key": "shell.tray.needsAccess",
+      "args": {},
+      "text": "Autorisez d’abord l’enregistrement de l’écran dans Réglages Système"
+    },
+    {
+      "locale": "fr",
       "key": "shell.tray.open",
       "args": {
         "app": "<app>"
@@ -7548,7 +7572,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "Pour capturer l’écran, autorisez <app> dans Réglages Système → Confidentialité et sécurité, puis quittez <app> et rouvrez l’application."
+      "text": "Pour capturer l’écran, autorisez <app> dans Réglages Système → Confidentialité et sécurité, puis quittez <app> et rouvrez l’application. Si <app> ne figure pas dans la liste, cliquez sur + pour l’ajouter."
     },
     {
       "locale": "fr",
@@ -9717,6 +9741,12 @@
     },
     {
       "locale": "it",
+      "key": "shell.tray.needsAccess",
+      "args": {},
+      "text": "Prima consenti la registrazione dello schermo in Impostazioni di Sistema"
+    },
+    {
+      "locale": "it",
       "key": "shell.tray.open",
       "args": {
         "app": "<app>"
@@ -9887,7 +9917,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "Per acquisire lo schermo, attiva <app> in Impostazioni di Sistema → Privacy e Sicurezza, poi esci da <app> e riaprila."
+      "text": "Per acquisire lo schermo, attiva <app> in Impostazioni di Sistema → Privacy e Sicurezza, poi esci da <app> e riaprila. Se <app> non è nell'elenco, fai clic su + per aggiungerla."
     },
     {
       "locale": "it",
@@ -12056,6 +12086,12 @@
     },
     {
       "locale": "ja",
+      "key": "shell.tray.needsAccess",
+      "args": {},
+      "text": "先にシステム設定で画面収録を許可してください"
+    },
+    {
+      "locale": "ja",
       "key": "shell.tray.open",
       "args": {
         "app": "<app>"
@@ -12226,7 +12262,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "画面をキャプチャするには、「システム設定 → プライバシーとセキュリティ」で <app> を許可してから、<app> を終了してもう一度開いてください。"
+      "text": "画面をキャプチャするには、「システム設定 → プライバシーとセキュリティ」で <app> を許可してから、<app> を終了してもう一度開いてください。一覧に <app> がない場合は、「+」をクリックして追加してください。"
     },
     {
       "locale": "ja",
@@ -14341,6 +14377,12 @@
     },
     {
       "locale": "ko",
+      "key": "shell.tray.needsAccess",
+      "args": {},
+      "text": "먼저 시스템 설정에서 화면 기록을 허용하세요"
+    },
+    {
+      "locale": "ko",
       "key": "shell.tray.open",
       "args": {
         "app": "<app>"
@@ -14511,7 +14553,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "화면을 캡처하려면 시스템 설정 > 개인정보 보호 및 보안에서 <app> 앱을 허용한 다음, <app> 앱을 종료하고 다시 여세요."
+      "text": "화면을 캡처하려면 시스템 설정 > 개인정보 보호 및 보안에서 <app> 앱을 허용한 다음, <app> 앱을 종료하고 다시 여세요. 목록에 <app> 앱이 없으면 +를 클릭하여 추가하세요."
     },
     {
       "locale": "ko",
@@ -16626,6 +16668,12 @@
     },
     {
       "locale": "pt-BR",
+      "key": "shell.tray.needsAccess",
+      "args": {},
+      "text": "Primeiro permita a gravação de tela em Ajustes do Sistema"
+    },
+    {
+      "locale": "pt-BR",
       "key": "shell.tray.open",
       "args": {
         "app": "<app>"
@@ -16796,7 +16844,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "Para capturar a tela, permita o <app> em Ajustes do Sistema → Privacidade e Segurança, depois saia do <app> e abra-o novamente."
+      "text": "Para capturar a tela, permita o <app> em Ajustes do Sistema → Privacidade e Segurança, depois saia do <app> e abra-o novamente. Se o <app> não estiver na lista, clique em + para adicioná-lo."
     },
     {
       "locale": "pt-BR",
@@ -19019,6 +19067,12 @@
     },
     {
       "locale": "ru",
+      "key": "shell.tray.needsAccess",
+      "args": {},
+      "text": "Сначала разрешите запись экрана в Системных настройках"
+    },
+    {
+      "locale": "ru",
       "key": "shell.tray.open",
       "args": {
         "app": "<app>"
@@ -19189,7 +19243,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "Чтобы захватывать экран, разрешите <app> запись экрана в разделе Системные настройки → Конфиденциальность и безопасность, затем завершите работу <app> и откройте приложение снова."
+      "text": "Чтобы захватывать экран, разрешите <app> запись экрана в разделе Системные настройки → Конфиденциальность и безопасность, затем завершите работу <app> и откройте приложение снова. Если <app> нет в списке, нажмите «+», чтобы добавить его."
     },
     {
       "locale": "ru",
@@ -21358,6 +21412,12 @@
     },
     {
       "locale": "zh-CN",
+      "key": "shell.tray.needsAccess",
+      "args": {},
+      "text": "需要先在系统设置中允许录屏"
+    },
+    {
+      "locale": "zh-CN",
       "key": "shell.tray.open",
       "args": {
         "app": "<app>"
@@ -21528,7 +21588,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "要截图，请在「系统设置 → 隐私与安全性」中允许<app>，然后退出<app>并重新打开。"
+      "text": "要截图，请在「系统设置 → 隐私与安全性」中允许<app>，然后退出<app>并重新打开。如果列表中没有<app>，请单击「+」添加。"
     },
     {
       "locale": "zh-CN",
@@ -23133,6 +23193,12 @@
     },
     {
       "locale": "zh-TW",
+      "key": "shell.tray.needsAccess",
+      "args": {},
+      "text": "需要先在系統設定中允許錄製螢幕"
+    },
+    {
+      "locale": "zh-TW",
       "key": "shell.tray.open",
       "args": {
         "app": "<app>"
@@ -23303,7 +23369,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "若要截圖，請在「系統設定 → 隱私權與安全性」中允許<app>，然後結束<app>並重新開啟。"
+      "text": "若要截圖，請在「系統設定 → 隱私權與安全性」中允許<app>，然後結束<app>並重新開啟。如果清單中沒有<app>，請按一下「+」加入。"
     },
     {
       "locale": "zh-TW",

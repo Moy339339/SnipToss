@@ -34,7 +34,7 @@ const DECODED = new Set([".tif", ".tiff", ".heic", ".heif"]);
  */
 const DECODED_DIR = fileURLToPath(new URL("./fixtures/formats/decoded/", import.meta.url));
 /** Names of the onboarding tour and hints (onboarding.ts in packages/web) */
-export const ONBOARDED = ["tour", "hint.copy", "hint.video"];
+export const ONBOARDED = ["tour", "hint.copy", "hint.video", "hint.screenAccess"];
 const DEFAULT_SKIP = ["node_modules", "bin", "obj", "dist", "build", "__pycache__", "venv"];
 /** Same as DataDir.GitIgnore */
 const GIT_IGNORE =

@@ -5,7 +5,7 @@ import { AnnotationLayer, markAt, type MarkHit, type ShownAnnotation } from "./A
 import { type Tool } from "./annotate";
 import { Composer } from "./Composer";
 import { AskDialog, type Ask } from "./AskDialog";
-import { baseName, call, homeJoin, keyOf, logError, materialUrl, onHostEvent, type AppInfo, type MaterialEntry } from "./host";
+import { baseName, call, homeJoin, keyOf, logError, materialUrl, onHostEvent, platform, type AppInfo, type MaterialEntry } from "./host";
 import { buildMenus } from "./appMenus";
 import { useNativeMenus } from "./nativeMenus";
 import { ContextMenu, type MenuItem } from "./Menu";
@@ -129,8 +129,17 @@ export function WorkspaceView(props: {
   const [dims, setDims] = useState<{ w: number; h: number }>();
   const mediaRef = useRef<Media | null>(null);
   const stageRef = useRef<HTMLElement>(null);
-  // Onboarding tour and first-use hints (onboarding.ts): the tour runs the first time an item is shown; a hint appears once the first time a video is opened and once when the first note is saved
-  const onboarding = useOnboarding({ current, selectedKey, video: canTimed && !!dims });
+  // On the Mac: whether macOS lets the app record the screen (asked once; allowing it takes a restart of the app anyway)
+  const [noScreenAccess, setNoScreenAccess] = useState(false);
+  useEffect(() => {
+    if (platform !== "mac") return;
+    call("captureSettings")
+      .then((c) => setNoScreenAccess(c.screenAccess === false))
+      .catch((e) => logError("captureSettings", e));
+  }, []);
+  // Onboarding tour and first-use hints (onboarding.ts): the tour runs the first time an item is shown; a hint appears once the first time a video is opened and once when the first note is saved,
+  // and on the Mac without the permission to record the screen, once next to Capture
+  const onboarding = useOnboarding({ current, selectedKey, video: canTimed && !!dims, noScreenAccess });
   const [ask, setAsk] = useState<Ask>();
   // The note being written in the composer: draft.ts; opening the composer and saving: compose.ts (see "Drawing notes" below)
   const { draft, setDraft, liveDraft, draftDirty, unlessDirty, discardDraft } = useDraftState({

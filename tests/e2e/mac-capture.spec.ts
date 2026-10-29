@@ -45,3 +45,68 @@ test("on Windows, which needs no permission to capture, there is no screen recor
   await openCaptureSettings(app, false);
   await expect(accessRow(app)).toHaveCount(0);
 });
+
+// The hint before the first capture on a Mac without the permission (onboarding.ts, Hint.tsx): once, next to Capture, with a button to where
+// it is allowed. Every other test counts it as seen (onboarded in mock-host); these switch that back
+const accessHint = (app: App) => app.page.locator('.hint[data-hint="screenAccess"]');
+const seen = (app: App) => (app.host.prefs?.onboarding as string[] | undefined) ?? [];
+
+async function openWithoutAccess(app: App) {
+  await asMac(app);
+  app.host.capture.screenAccess = false;
+  app.host.onboarded = false;
+  app.host.prefs = { onboarding: ["tour"] };
+  await app.open();
+}
+
+test("on the Mac without the permission, a hint below Capture says so once, and its button leads to System Settings", async ({ app }) => {
+  await openWithoutAccess(app);
+  const hint = accessHint(app);
+  await expect(hint).toContainText("使用截图批注前，需要允许超级批注录制屏幕。");
+  await expect(hint).toHaveAttribute("data-side", "below");
+  // Below Capture without covering it
+  const [h, c] = [(await hint.boundingBox())!, (await app.page.locator(".titlebar-split").boundingBox())!];
+  expect(h.y).toBeGreaterThanOrEqual(c.y + c.height);
+  // Two buttons, the main one on the right, as far apart as a dialog's
+  const ok = hint.getByRole("button", { name: "知道了" });
+  const open = hint.getByRole("button", { name: "打开系统设置" });
+  const [a, b] = [(await ok.boundingBox())!, (await open.boundingBox())!];
+  expect(Math.round(b.x - (a.x + a.width))).toBe(8);
+  expect(seen(app)).toContain("hint.screenAccess");
+  await open.click();
+  await expect.poll(() => app.host.screenAccessOpened).toBe(1);
+  await expect(hint).toHaveCount(0);
+  // Once only
+  await app.page.reload();
+  await expect(app.page.locator(".lib-row").first()).toBeVisible();
+  await app.page.waitForTimeout(1200);
+  await expect(hint).toHaveCount(0);
+});
+
+test("the screen recording hint goes at a press elsewhere, and that press still does what it does", async ({ app }) => {
+  await openWithoutAccess(app);
+  await expect(accessHint(app)).toBeVisible();
+  await app.page.locator(".lib-row", { hasText: "poster.jpg" }).click();
+  await expect(accessHint(app)).toHaveCount(0);
+  await expect(app.page).toHaveTitle("poster.jpg");
+  expect(app.host.screenAccessOpened).toBe(0);
+});
+
+test("with the permission, or on Windows, there is no screen recording hint", async ({ app }) => {
+  await asMac(app);
+  app.host.capture.screenAccess = true;
+  app.host.onboarded = false;
+  app.host.prefs = { onboarding: ["tour"] };
+  await app.open();
+  await app.page.waitForTimeout(1200);
+  await expect(accessHint(app)).toHaveCount(0);
+  expect(seen(app)).not.toContain("hint.screenAccess");
+});
+
+test("on Windows, which asks for no permission, there is no screen recording hint", async ({ app }) => {
+  app.host.onboarded = false;
+  app.host.prefs = { onboarding: ["tour"] };
+  await app.open();
+  await app.page.waitForTimeout(1200);
+  await expect(accessHint(app)).toHaveCount(0);
+});

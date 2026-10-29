@@ -31,4 +31,6 @@ app-mac/.swiftpm/
 xcuserdata/
 *.p12
 *.cer
+*.key
+*.pem
 *.mobileprovision

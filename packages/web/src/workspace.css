@@ -290,7 +290,10 @@
 }
 .hint-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
+  /* Two buttons (the Mac's screen recording hint) are apart by the same gap as a dialog's */
+  gap: 8px;
   margin-top: 8px;
 }
 /* The small caret points at the center of the control (--caret-x, computed by Hint.tsx): a square rotated 45°, its center on the hint's edge, with only the two outward edges stroked */
