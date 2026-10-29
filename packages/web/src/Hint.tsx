@@ -2,6 +2,7 @@ import { useEffect, useEffectEvent, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 import { cssZoom } from "./cssZoom";
+import { KeepPunctuation } from "./KeepPunctuation";
 import { call, logError } from "./host";
 import { useKeys } from "./keys";
 import { HINT_TARGETS, placeNear, visibleBox, type HintId } from "./onboarding";
@@ -75,7 +76,11 @@ export function Hint(props: { id: HintId; onClose: () => void }) {
 
   return createPortal(
     <div ref={el} className="hint" role="status" data-hint={props.id} style={{ visibility: "hidden" }}>
-      <div className="hint-text">{intl.formatMessage({ id: `hint.${props.id}` }, { app: intl.formatMessage({ id: "brand.name" }) })}</div>
+      <div className="hint-text">
+        <KeepPunctuation>
+          {intl.formatMessage({ id: `hint.${props.id}` }, { app: intl.formatMessage({ id: "brand.name" }) })}
+        </KeepPunctuation>
+      </div>
       <div className="hint-actions">
         <button className="btn btn-secondary btn-small" onClick={props.onClose}>
           {intl.formatMessage({ id: "app.toast.gotIt" })}

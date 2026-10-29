@@ -16,7 +16,8 @@ const CJK = /[　-〿㐀-鿿＀-￯]/;
 
 /** What to count; skip = files that are meant to contain Chinese (each language's own name, etc.) */
 const AREAS = {
-  web: { dir: "packages/web/src", ext: [".ts", ".tsx"], skip: ["i18n.tsx"] },
+  // KeepPunctuation.tsx: the full-width marks it keeps on the right side of line breaks
+  web: { dir: "packages/web/src", ext: [".ts", ".tsx"], skip: ["i18n.tsx", "KeepPunctuation.tsx"] },
   core: { dir: "packages/core/src", ext: [".ts"], skip: [] },
   shell: { dir: "app", ext: [".cs"], skip: [] },
 };

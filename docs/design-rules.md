@@ -166,6 +166,10 @@ Easing is always `--ease`. Exception: the blurred background around the canvas f
 **S9 Line breaking**
 - The interface's own explanatory text (setting descriptions, empty states, confirmation dialogs, shortcut descriptions) **breaks only at punctuation and spaces**:
   `word-break: keep-all` + `overflow-wrap: anywhere` (breaking character by character only when a whole sentence has no punctuation and doesn't fit). Not used for note text written by the user.
+- **A line never starts with a closing full-width mark (」』）。，、…) or ends with an opening one (「『（)**, and a word is never split while it would fit: put the text of these boxes in `KeepPunctuation`
+  (the tooltip uses `punctuationNodes`). Under keep-all WebKit (the Mac app's window) breaks on both sides of every full-width mark; `KeepPunctuation` keeps each mark with its
+  character in a span that may not wrap and adds a `<wbr>` after a closing mark and before an opening one, where Chromium breaks anyway. `tests/e2e/line-breaks.spec.ts` checks every screen
+  in Edge and, on the Mac CI, in WebKit.
 - A parenthetical at the end of a shortcut description goes on its own line, one level smaller (`ShortcutRow`), so it doesn't crowd the main description.
 - **No space after full-width punctuation.** A paragraph written across two lines in JSX folds the line break into a space (“对话框。 标题栏”): keep a paragraph on one line, and use `<br />` for a deliberate break.
 - **When a path doesn't fit, elide whole segments from the start**: `…\projects\examples`, never half a folder name (`TailPath` in `LibraryPanel`); the user profile folder is written `~`.

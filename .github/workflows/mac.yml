@@ -374,3 +374,32 @@ jobs:
             ${{ runner.temp }}/smoke
             ${{ runner.temp }}/data-*/logs
           if-no-files-found: warn
+
+  # The UI e2e checks that depend on the browser engine, in Playwright's WebKit (playwright.webkit.config.ts)
+  webkit-e2e:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Install WebKit
+        run: npx playwright install webkit
+
+      - name: UI e2e in WebKit
+        run: npx playwright test -c playwright.webkit.config.ts
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ failure() }}
+        with:
+          name: webkit-e2e-results
+          path: tests/e2e/.results-webkit
+          if-no-files-found: warn

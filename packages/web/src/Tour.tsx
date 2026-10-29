@@ -2,6 +2,7 @@ import { useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } f
 import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 import { cssZoom } from "./cssZoom";
+import { KeepPunctuation } from "./KeepPunctuation";
 import { useKeys } from "./keys";
 import { useDialogFocus } from "./Menu";
 import { placeNear, TOUR_STEPS, visibleBox, type TourStep } from "./onboarding";
@@ -106,7 +107,7 @@ export function Tour(props: { captureKeys: string; onClose: () => void }) {
           <div className="tour-count">{t("tour.count", { n: i + 1, total: steps.length })}</div>
         </div>
         <div className="tour-body" id={bodyId}>
-          {body}
+          <KeepPunctuation>{body}</KeepPunctuation>
         </div>
         <div className="tour-actions">
           {!last && (

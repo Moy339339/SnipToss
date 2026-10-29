@@ -1,5 +1,6 @@
 import { useIntl } from "react-intl";
 import { FilePlusIcon, FolderPlusIcon } from "./icons";
+import { KeepPunctuation } from "./KeepPunctuation";
 import { Sheet } from "./Sheet";
 
 /**
@@ -28,34 +29,36 @@ export function Welcome(props: { onAddFiles: () => void; onAddFolder: () => void
   const intl = useIntl();
   const t = (id: string, values?: Record<string, string>) => intl.formatMessage({ id }, values);
   return (
-    <div className="welcome">
-      <div className="stage-empty-title">{t("welcome.title")}</div>
-      <div className="welcome-lead">{t("welcome.lead")}</div>
-      <ol className="welcome-steps">
-        {[1, 2, 3].map((n) => (
-          <li key={n}>
-            <span className="welcome-num">{n}</span>
-            <span className="welcome-step-title">{t(`welcome.step${n}.title`)}</span>
-            <span className="welcome-step-body">{t(`welcome.step${n}.body`)}</span>
-          </li>
-        ))}
-      </ol>
-      <div className="welcome-actions">
-        {/* The hover tooltip is the same as the one at the top of the library (name with shortcut) */}
-        <button className="btn btn-primary" onClick={props.onAddFiles} title={t("library.add.files")}>
-          <FilePlusIcon />
-          {t("welcome.addFiles")}
-        </button>
-        <button className="btn btn-secondary" onClick={props.onAddFolder} title={t("library.add.folder")}>
-          <FolderPlusIcon />
-          {t("welcome.addFolder")}
-        </button>
+    <KeepPunctuation>
+      <div className="welcome">
+        <div className="stage-empty-title">{t("welcome.title")}</div>
+        <div className="welcome-lead">{t("welcome.lead")}</div>
+        <ol className="welcome-steps">
+          {[1, 2, 3].map((n) => (
+            <li key={n}>
+              <span className="welcome-num">{n}</span>
+              <span className="welcome-step-title">{t(`welcome.step${n}.title`)}</span>
+              <span className="welcome-step-body">{t(`welcome.step${n}.body`)}</span>
+            </li>
+          ))}
+        </ol>
+        <div className="welcome-actions">
+          {/* The hover tooltip is the same as the one at the top of the library (name with shortcut) */}
+          <button className="btn btn-primary" onClick={props.onAddFiles} title={t("library.add.files")}>
+            <FilePlusIcon />
+            {t("welcome.addFiles")}
+          </button>
+          <button className="btn btn-secondary" onClick={props.onAddFolder} title={t("library.add.folder")}>
+            <FolderPlusIcon />
+            {t("welcome.addFolder")}
+          </button>
+        </div>
+        <p className="welcome-foot">
+          {t("welcome.saved")}
+          <br />
+          {props.captureKeys ? t("welcome.capture", { keys: props.captureKeys }) : t("welcome.captureNoKey")}
+        </p>
       </div>
-      <p className="welcome-foot">
-        {t("welcome.saved")}
-        <br />
-        {props.captureKeys ? t("welcome.capture", { keys: props.captureKeys }) : t("welcome.captureNoKey")}
-      </p>
-    </div>
+    </KeepPunctuation>
   );
 }

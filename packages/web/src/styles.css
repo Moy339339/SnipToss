@@ -213,6 +213,10 @@ kbd {
 .text-warn {
   color: var(--warn);
 }
+/* A full-width mark and the character it stays with (KeepPunctuation.tsx, design-rules S9) */
+.keep-punctuation {
+  white-space: nowrap;
+}
 
 .error {
   padding: 8px 12px;

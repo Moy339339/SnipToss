@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import type { MaterialKind } from "@sniptoss/core";
 import type { AppInfo, LibraryEntry, MaterialEntry } from "./host";
+import { KeepPunctuation } from "./KeepPunctuation";
 import { CloseIcon, FilePlusIcon, FilterIcon, FolderPlusIcon, SearchIcon } from "./icons";
 import { usePrefs } from "./prefs";
 import { prevProjectPinned, type FolderTarget, type Library, type Project } from "./library";
@@ -302,8 +303,10 @@ export function LibraryPanel(props: {
         {library.loaded && library.entries.length === 0 && (
           // How to use it is written in the middle of the canvas (Welcome); this only describes the list itself and doesn't repeat "drag files in"
           <div className="lib-empty">
-            <div className="lib-empty-title">{intl.formatMessage({ id: "library.empty.title" })}</div>
-            <p className="muted">{intl.formatMessage({ id: "library.empty.body" })}</p>
+            <KeepPunctuation>
+              <div className="lib-empty-title">{intl.formatMessage({ id: "library.empty.title" })}</div>
+              <p className="muted">{intl.formatMessage({ id: "library.empty.body" })}</p>
+            </KeepPunctuation>
           </div>
         )}
         {rows.length === 0 && (query || (pendingOnly && library.entries.length > 0)) && (

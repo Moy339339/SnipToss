@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent } from "react";
 import { useIntl } from "react-intl";
 import { cssZoom } from "./cssZoom";
+import { punctuationNodes } from "./KeepPunctuation";
 
 /**
  * Global tooltip: when the mouse rests on anything with a title or data-tip, this one self-drawn bubble is used.
@@ -93,7 +94,7 @@ export function Tooltips() {
       const text = target.getAttribute("data-tip") ?? title ?? "";
       if (!text) return;
       const [label, key] = split(text);
-      tip.replaceChildren(label.replace(/[\\/]/g, "$&\u200b"));
+      tip.replaceChildren(...punctuationNodes(label.replace(/[\\/]/g, "$&\u200b")));
       if (key) {
         const k = document.createElement("span");
         k.className = "tooltip-key";

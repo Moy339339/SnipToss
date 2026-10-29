@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useIntl } from "react-intl";
 import { DATA_DIR, shapesOf, type Annotation, type AnnotationStatus, type MaterialKind } from "@sniptoss/core";
 import { AnnotationLayer, markAt, type MarkHit, type ShownAnnotation } from "./AnnotationLayer";
+import { KeepPunctuation } from "./KeepPunctuation";
 import { type Tool } from "./annotate";
 import { Composer } from "./Composer";
 import { AskDialog, type Ask } from "./AskDialog";
@@ -1117,7 +1118,7 @@ export function WorkspaceView(props: {
                 {library.loaded && library.entries.length === 0 ? (
                   <Welcome onAddFiles={addFiles} onAddFolder={addFolder} captureKeys={captureKeys} />
                 ) : (
-                  library.loaded && intl.formatMessage({ id: "stage.pickFirst" })
+                  library.loaded && <KeepPunctuation>{intl.formatMessage({ id: "stage.pickFirst" })}</KeepPunctuation>
                 )}
               </div>
             )}
