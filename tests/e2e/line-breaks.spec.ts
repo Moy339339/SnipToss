@@ -92,6 +92,16 @@ function badBreaks(app: App, screen: string) {
       };
 
       const found: string[] = [];
+      interface Box {
+        el: HTMLElement;
+        width: number;
+        chars: (Char | Gap)[];
+        pairs: [Char, Char][];
+        words: Char[][];
+        names: Char[][];
+        saved: string;
+      }
+      const boxed: Box[] = [];
       for (const el of document.querySelectorAll<HTMLElement>(boxes)) {
         // Measured once, at the outermost S9 box
         if (el.parentElement?.closest(boxes)) continue;
@@ -141,9 +151,14 @@ function badBreaks(app: App, screen: string) {
           if (name.length > 1) names.push(name);
         });
 
-        const saved = el.style.width;
-        for (const share of [1, 0.8, 0.6]) {
-          if (share < 1) el.style.width = `${Math.floor(width * share)}px`;
+        boxed.push({ el, width, chars, pairs, words, names, saved: el.style.width });
+      }
+
+      // All boxes are narrowed together, so the page is laid out once a width rather than once a box (a screen like the shortcut list has
+      // a hundred boxes, which took minutes in WebKit on a CI machine)
+      for (const share of [1, 0.8, 0.6]) {
+        if (share < 1) for (const b of boxed) b.el.style.width = `${Math.floor(b.width * share)}px`;
+        for (const { el, chars, pairs, words, names } of boxed) {
           const problems: string[] = [];
           if (pairs.some(([a, b]) => apart(a, b))) problems.push("a mark on the wrong side of a break");
           for (const w of words) {
@@ -159,8 +174,8 @@ function badBreaks(app: App, screen: string) {
           if (problems.length > 0)
             found.push(`${where}: .${el.className.split(" ").join(".")} at ${Math.round(share * 100)}%: ${problems.join("; ")}: ${linesOf(chars).join(" / ")}`);
         }
-        el.style.width = saved;
       }
+      for (const b of boxed) b.el.style.width = b.saved;
       return found;
     },
     { where: screen, boxes: S9 },
@@ -199,8 +214,8 @@ test("the detection itself works: a closing mark that starts a line and a word b
 
 for (const locale of ["zh-CN", "zh-TW", "ja"]) {
   test(`${locale}: on every UI screen (screens.ts), including a tooltip, explanatory text breaks only where it may, at the box's width and narrowed to 80% and 60%`, async ({ app }) => {
-    // Every screen, with each box laid out three times
-    test.slow();
+    // Every screen laid out at three widths: a few seconds in Edge, over a minute in WebKit on a CI machine
+    test.setTimeout(240_000);
     prepare(app, locale);
     await app.page.setViewportSize({ width: 960, height: 600 });
     await app.open();
