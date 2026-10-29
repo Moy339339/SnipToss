@@ -52,7 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         let options: () -> CaptureOptions = { [weak self] in self?.captureOptions() ?? CaptureOptions() }
         let hintDone: () -> Void = { [weak self] in _ = self?.settings.update { $0.capture.selectHintDone = true } }
         // The smoke run records what would go on the clipboard and into a notice: the runner's clipboard is left alone
-        return Self.smokeMode == "capture"
+        return Self.smokeMode == "capture" || Self.smokeMode == "annotate"
             ? CaptureSession(
                 source: CaptureSmoke.source(), access: CaptureSmoke.Access(), options: options, clipboard: CaptureSmoke.clipboard,
                 notices: CaptureSmoke.notices, hintDone: hintDone)

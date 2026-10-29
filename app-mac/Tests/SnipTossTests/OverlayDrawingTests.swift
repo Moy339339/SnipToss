@@ -139,28 +139,30 @@ final class OverlayDrawingTests: SnipTestCase {
         XCTAssertEqual(at(6, 0), average([(6, 0), (6, 1)]))
     }
 
-    /// Draws into a picture whose y axis points down, as the overlay and the compositing do
-    private func drawn(_ width: Int, _ height: Int, _ draw: (CGContext) -> Void) throws -> NSBitmapImageRep {
-        let blank = try XCTUnwrap(
-            NSBitmapImageRep(
-                bitmapDataPlanes: nil, pixelsWide: width, pixelsHigh: height, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
-                colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
-        let rep = try XCTUnwrap(blank.retagging(with: .sRGB))
-        let context = try XCTUnwrap(NSGraphicsContext(bitmapImageRep: rep))
-        let cg = context.cgContext
-        cg.translateBy(x: 0, y: CGFloat(height))
-        cg.scaleBy(x: 1, y: -1)
-        NSGraphicsContext.saveGraphicsState()
-        NSGraphicsContext.current = context
-        draw(cg)
-        context.flushGraphics()
-        NSGraphicsContext.restoreGraphicsState()
-        return rep
+    /// A picture drawn in sRGB with the y axis pointing down, as the overlay and the compositing draw
+    private struct Drawn {
+        let bytes: [UInt8]
+        let width: Int
     }
 
-    private func color(_ rep: NSBitmapImageRep, _ x: Int, _ y: Int) -> [Int] {
-        guard let c = rep.colorAt(x: x, y: y)?.usingColorSpace(.sRGB) else { return [] }
-        return [c.redComponent, c.greenComponent, c.blueComponent, c.alphaComponent].map { Int(($0 * 255).rounded()) }
+    private func drawn(_ width: Int, _ height: Int, _ draw: (CGContext) -> Void) throws -> Drawn {
+        var bytes = [UInt8](repeating: 0, count: width * height * 4)
+        try bytes.withUnsafeMutableBytes { buffer in
+            let context = try XCTUnwrap(
+                CGContext(
+                    data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                    space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            context.translateBy(x: 0, y: CGFloat(height))
+            context.scaleBy(x: 1, y: -1)
+            draw(context)
+        }
+        return Drawn(bytes: bytes, width: width)
+    }
+
+    /// Red, green, blue and alpha of a pixel (the first row in memory is the top)
+    private func color(_ d: Drawn, _ x: Int, _ y: Int) -> [Int] {
+        let i = (y * d.width + x) * 4
+        return d.bytes[i..<i + 4].map { Int($0) }
     }
 
     private func assertColor(_ got: [Int], _ want: MarkColor, file: StaticString = #filePath, line: UInt = #line) {

@@ -44,15 +44,15 @@ final class SmokeRun {
     static let tourScript = "!!document.querySelector('.tour-card')"
 
     /// SNIPTOSS_SMOKE_READY picks what to wait for: `welcome` (default, an empty library), `image`, `tour`, `keys` (the welcome screen, then
-    /// the key experiment of KeyExperiment.swift, whose answers go into result.json) or `capture` (the welcome screen, then the capture
-    /// layers over a made-up pattern, CaptureSmoke.swift)
+    /// the key experiment of KeyExperiment.swift, whose answers go into result.json), `capture` (the welcome screen, then the capture
+    /// layers over a made-up pattern, CaptureSmoke.swift) or `annotate` (the same, one capture through the whole of annotating)
     static let mode = ProcessInfo.processInfo.environment["SNIPTOSS_SMOKE_READY"] ?? "welcome"
 
     static var readyScript: String {
         switch mode {
         case "image": return imageScript
         case "tour": return tourScript
-        case "keys", "capture": return welcomeScript
+        case "keys", "capture", "annotate": return welcomeScript
         default: return welcomeScript
         }
     }
@@ -125,10 +125,11 @@ final class SmokeRun {
                 // The layout fades in over 160 ms and fonts may still be settling: wait before the picture. Anything with an entrance
                 // animation is photographed at least 0.6 s after it appears: `takeSnapshot` can catch the first frames half painted
                 // (the first picture of the tour card has body and buttons but no title), which is the snapshot call, not the page
-                if Self.mode == "capture", let session = captureSession {
+                if Self.mode == "capture" || Self.mode == "annotate", let session = captureSession {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [self] in
-                        CaptureSmoke.run(session: session, outDir: outDir) { [self] report in
-                            SmokeNotes.record("capture", report)
+                        let run = Self.mode == "annotate" ? CaptureSmoke.annotate : CaptureSmoke.run
+                        run(session, outDir) { [self] report in
+                            SmokeNotes.record(Self.mode, report)
                             capture(ready: true)
                         }
                     }

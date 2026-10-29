@@ -109,7 +109,9 @@ final class MessageFormatterTests: XCTestCase {
         XCTAssertEqual(ShellLocale.text("capture.tool.undo", in: "zh-CN"), "撤销（⌘Z）")
         // The UI rewrites the messages before formatting them, so a key that is a placeholder keeps its space (the composer's tooltip)
         XCTAssertEqual(ShellLocale.text("composer.categoryTitle", in: "en", ["name": "Change", "n": 1]), "Change (⌥ 1)")
-        XCTAssertEqual(ShellLocale.text("composer.keys", in: "en"), "Enter to save · ⇧ Enter for a new line")
+        // The message keeps a no-break space between the keys, which stays after the modifier becomes a symbol
+        let noBreak = String(Character(Unicode.Scalar(0xA0)!))
+        XCTAssertEqual(ShellLocale.text("composer.keys", in: "en"), "Enter to save · ⇧" + noBreak + "Enter for a new line")
         XCTAssertEqual(ShellLocale.text("capture.note.cancelTip", in: "en"), ShellLocale.rawText("capture.note.cancelTip", in: "en"))
         XCTAssertEqual(ShellLocale.macify("Press Ctrl V to paste", in: "en"), "Press ⌘V to paste")
     }

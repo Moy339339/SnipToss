@@ -1,6 +1,6 @@
 import AppKit
 
-/// The capture smoke run (SNIPTOSS_SMOKE_READY=capture): the layers are put over the screens with a made-up pattern as the picture, what
+/// The capture smoke runs (SNIPTOSS_SMOKE_READY=capture, and annotate below): the layers are put over the screens with a made-up pattern as the picture, what
 /// they are is written into result.json, and they are drawn to pictures. Nothing real is ever captured here. The mouse and the keyboard
 /// are events posted into the app's queue, so they go the way the real ones go (hit testing, the key window, the input boxes)
 enum CaptureSmoke {
@@ -113,11 +113,112 @@ enum CaptureSmoke {
         }
     }
 
-    /// The fourth capture goes the way a user goes, on the first layer: drag out a selection, click Rectangle on the toolbar, draw one,
-    /// type a note (one key typed the way the keyboard types it) and click Save; C for the Pin, a click, a note saved with Return; T for
-    /// Text, a click, a word ended with Esc; Esc once more only warns (notes were written); a picture of the layer; Finish on the toolbar.
-    /// After every step the layer is described
+    /// The fourth capture goes the way a user goes (`mainLine`), then each step is checked by mac.yml
     private static func mainLineRound(_ session: CaptureSession, outDir: URL, done: @escaping ([String: Any]) -> Void) {
+        play(session, outDir: outDir, steps: mainLine, done: done)
+    }
+
+    /// The annotate run (SNIPTOSS_SMOKE_READY=annotate): one capture through the whole of annotating, for trying a build on a Mac nobody
+    /// may touch (over SSH, locked or not): the made-up pattern only (never the real screen), the clipboard and the notices recorded (the
+    /// Mac's own clipboard is left as it is), the picture saved next to SNIPTOSS_SETTINGS, no other program brought to the front
+    static func annotate(session: CaptureSession, outDir: URL, done: @escaping ([String: Any]) -> Void) {
+        play(session, outDir: outDir, steps: annotateLine) { line in
+            done(["screens": NSScreen.screens.count, "annotate": line])
+        }
+    }
+
+    /// What a step of a script can use: the first layer, its window, and points at fractions of its screen
+    struct Stage {
+        let overlay: CaptureOverlay
+        let panel: OverlayPanel
+        /// Writes a picture of the layer into the output folder under this name
+        let picture: (String) -> Void
+
+        func at(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(x: (overlay.full.width * x).rounded(), y: (overlay.full.height * y).rounded())
+        }
+
+        /// A point of the current selection, at fractions of it
+        func inSelection(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            let s = overlay.state.sel ?? overlay.full
+            return CGPoint(x: (s.minX + s.width * x).rounded(), y: (s.minY + s.height * y).rounded())
+        }
+
+        func click(_ id: String) { CaptureSmoke.click(CaptureSmoke.center(of: id, in: overlay), in: panel) }
+        func drag(_ a: CGPoint, _ b: CGPoint) { CaptureSmoke.drag(from: a, to: b, in: panel) }
+        func key(_ code: UInt16, _ characters: String) { CaptureSmoke.pressKey(code, characters, to: panel) }
+        func type(_ text: String, note: Bool = true) {
+            (note ? overlay.noteBox.textView : overlay.textBox.textView).insertText(text, replacementRange: NSRange(location: NSNotFound, length: 0))
+        }
+    }
+
+    typealias Steps = [(name: String, act: () -> Void)]
+
+    /// Drag out a selection, click Rectangle on the toolbar, draw one, type a note (one key typed the way the keyboard types it) and click
+    /// Save; C for the Pin, a click, a note saved with Return; T for Text, a click, a word ended with Esc; Esc once more only warns (notes
+    /// were written); a picture of the layer; Finish on the toolbar
+    static func mainLine(_ s: Stage) -> Steps {
+        [
+            ("select", { s.drag(s.at(0.2, 0.2), s.at(0.7, 0.7)) }),
+            ("rectTool", { s.click("rect") }),
+            ("drawRect", { s.drag(s.at(0.3, 0.3), s.at(0.45, 0.45)) }),
+            ("typeNote", {
+                s.type("Make this blue")
+                s.key(0x07, "x")
+            }),
+            ("saveNote", { s.click("note-save") }),
+            ("pinTool", { s.key(0x08, "c") }),
+            ("placePin", { CaptureSmoke.click(s.at(0.55, 0.35), in: s.panel) }),
+            ("typePin", {
+                s.type("Remove this")
+                s.key(0x24, "\r")
+            }),
+            ("textTool", { s.key(0x11, "t") }),
+            ("placeText", { CaptureSmoke.click(s.at(0.35, 0.55), in: s.panel) }),
+            ("typeText", {
+                s.type("Hi", note: false)
+                s.key(53, "\u{1B}")
+            }),
+            ("escapeWarns", { s.key(53, "\u{1B}") }),
+            ("picture", { s.picture("capture-main.png") }),
+            ("finish", { s.click("done") }),
+        ]
+    }
+
+    /// Drag out a selection, move it, make it larger by its bottom-right handle, click Rectangle on the toolbar and draw one, type a note
+    /// and save it with Return, A for the Arrow and draw one, type its note and click Save, a picture of the layer, Finish on the toolbar
+    static func annotateLine(_ s: Stage) -> Steps {
+        let w = s.overlay.full.width
+        let h = s.overlay.full.height
+        return [
+            ("select", { s.drag(s.at(0.2, 0.2), s.at(0.6, 0.6)) }),
+            ("move", {
+                let from = s.inSelection(0.5, 0.5)
+                s.drag(from, CGPoint(x: from.x + (w * 0.05).rounded(), y: from.y + (h * 0.05).rounded()))
+            }),
+            ("resize", {
+                let corner = s.inSelection(1, 1)
+                s.drag(corner, CGPoint(x: corner.x + (w * 0.05).rounded(), y: corner.y + (h * 0.05).rounded()))
+            }),
+            ("rectTool", { s.click("rect") }),
+            ("drawRect", { s.drag(s.inSelection(0.1, 0.1), s.inSelection(0.35, 0.35)) }),
+            ("typeNote", {
+                s.type("Make the title larger")
+                s.key(0x07, "x")
+            }),
+            ("saveWithReturn", { s.key(0x24, "\r") }),
+            ("arrowTool", { s.key(0x00, "a") }),
+            ("drawArrow", { s.drag(s.inSelection(0.85, 0.15), s.inSelection(0.6, 0.5)) }),
+            ("typeArrowNote", { s.type("Point this at the menu") }),
+            ("saveWithButton", { s.click("note-save") }),
+            ("picture", { s.picture("annotate-layer.png") }),
+            ("finish", { s.click("done") }),
+        ]
+    }
+
+    /// Plays a script on a new capture: each step, then a moment for the app to handle what it posted, then the layer is described. At the
+    /// end: what was collected, the composited picture (kept as capture-composed.png), the saved file, the clipboard and the notices
+    private static func play(_ session: CaptureSession, outDir: URL, steps make: @escaping (Stage) -> Steps, done: @escaping ([String: Any]) -> Void) {
         var closedCalls = 0
         session.start(whenClosed: { closedCalls += 1 })
         Self.wait(tries: 50, until: { session.isOpen && session.keyboardRoute != nil }) { opened in
@@ -125,41 +226,16 @@ enum CaptureSmoke {
                 session.close()
                 return done(["opened": opened])
             }
-            let w = overlay.full.width
-            let h = overlay.full.height
-            func at(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: (w * x).rounded(), y: (h * y).rounded()) }
             var steps: [[String: Any]] = []
-            var report: [String: Any] = ["opened": true, "keyboardRoute": session.keyboardRoute ?? "unknown"]
-            let actions: [(String, () -> Void)] = [
-                ("select", { Self.drag(from: at(0.2, 0.2), to: at(0.7, 0.7), in: panel) }),
-                ("rectTool", { Self.click(Self.center(of: "rect", in: overlay), in: panel) }),
-                ("drawRect", { Self.drag(from: at(0.3, 0.3), to: at(0.45, 0.45), in: panel) }),
-                ("typeNote", {
-                    overlay.noteBox.textView.insertText("Make this blue", replacementRange: NSRange(location: NSNotFound, length: 0))
-                    Self.pressKey(0x07, "x")
-                }),
-                ("saveNote", { Self.click(Self.center(of: "note-save", in: overlay), in: panel) }),
-                ("pinTool", { Self.pressKey(0x08, "c") }),
-                ("placePin", { Self.click(at(0.55, 0.35), in: panel) }),
-                ("typePin", {
-                    overlay.noteBox.textView.insertText("Remove this", replacementRange: NSRange(location: NSNotFound, length: 0))
-                    Self.pressKey(0x24, "\r")
-                }),
-                ("textTool", { Self.pressKey(0x11, "t") }),
-                ("placeText", { Self.click(at(0.35, 0.55), in: panel) }),
-                ("typeText", {
-                    overlay.textBox.textView.insertText("Hi", replacementRange: NSRange(location: NSNotFound, length: 0))
-                    Self.pressKey(53, "\u{1B}")
-                }),
-                ("escapeWarns", { Self.pressKey(53, "\u{1B}") }),
-                ("picture", {
-                    if let png = overlay.render()?.representation(using: .png, properties: [:]) {
-                        try? png.write(to: outDir.appendingPathComponent("capture-main.png"))
-                        report["picture"] = "capture-main.png"
-                    }
-                }),
-                ("finish", { Self.click(Self.center(of: "done", in: overlay), in: panel) }),
-            ]
+            var pictures: [String] = []
+            var report: [String: Any] = ["opened": true, "keyboardRoute": session.keyboardRoute ?? "unknown", "appActive": NSApp.isActive]
+            let stage = Stage(overlay: overlay, panel: panel) { name in
+                if let png = overlay.render()?.representation(using: .png, properties: [:]) {
+                    try? png.write(to: outDir.appendingPathComponent(name))
+                    pictures.append(name)
+                }
+            }
+            let actions = make(stage)
             func run(_ i: Int) {
                 if i == actions.count || !session.isOpen && i < actions.count - 1 {
                     Self.wait(tries: 20, until: { !session.isOpen }) { closed in
@@ -167,6 +243,7 @@ enum CaptureSmoke {
                         report["steps"] = steps
                         report["closed"] = closed
                         report["whenClosedCalls"] = closedCalls
+                        report["picture"] = pictures.first.map { $0 as Any } ?? NSNull()
                         if let r = session.lastResult {
                             let result: [String: Any] = [
                                 "selection": [
@@ -176,8 +253,6 @@ enum CaptureSmoke {
                             ]
                             report["result"] = result
                         }
-                        // What finishing handed over: the composited picture (kept next to the result for a look), the saved file, the
-                        // clipboard and the notice
                         if let out = session.lastOutput {
                             try? out.png.write(to: outDir.appendingPathComponent("capture-composed.png"))
                             let file = session.lastFile ?? ""
@@ -195,11 +270,14 @@ enum CaptureSmoke {
                     return
                 }
                 let (name, act) = actions[i]
+                let keyed = panel.isKeyWindow
                 act()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                     var step = Self.describe(overlay)
                     step["step"] = name
                     step["open"] = session.isOpen
+                    // Whether keys went the keyboard's way (to the key window) or straight to the layer, which had no keyboard (a locked Mac)
+                    step["keysToKeyWindow"] = keyed
                     steps.append(step)
                     run(i + 1)
                 }
@@ -207,7 +285,6 @@ enum CaptureSmoke {
             run(0)
         }
     }
-
     // MARK: Posting input
 
     /// A mouse event at a point of the layer (y pointing down), posted into the app's queue for the layer's window
@@ -237,15 +314,17 @@ enum CaptureSmoke {
         post(.leftMouseUp, at: b, in: panel)
     }
 
-    /// A key as the keyboard sends it: into the app's queue, from where it goes to the key window and its first responder
-    static func pressKey(_ code: UInt16, _ characters: String, flags: NSEvent.ModifierFlags = []) {
-        let window = NSApp.keyWindow?.windowNumber ?? 0
+    /// A key as the keyboard sends it: into the app's queue, from where it goes to the key window and its first responder. When `panel` is
+    /// given but is not the key window (a locked Mac gives no window the keyboard), the key goes straight to that layer instead
+    static func pressKey(_ code: UInt16, _ characters: String, flags: NSEvent.ModifierFlags = [], to panel: NSPanel? = nil) {
+        let direct = panel.map { !$0.isKeyWindow } ?? false
+        let window = direct ? panel?.windowNumber ?? 0 : NSApp.keyWindow?.windowNumber ?? 0
         for type in [NSEvent.EventType.keyDown, .keyUp] {
             if let event = NSEvent.keyEvent(
                 with: type, location: .zero, modifierFlags: flags, timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window,
                 context: nil, characters: characters, charactersIgnoringModifiers: characters, isARepeat: false, keyCode: code)
             {
-                NSApp.postEvent(event, atStart: false)
+                if direct, let panel { panel.sendEvent(event) } else { NSApp.postEvent(event, atStart: false) }
             }
         }
     }

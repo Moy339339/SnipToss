@@ -178,7 +178,7 @@ jobs:
               if (JSON.stringify(l.frame) !== JSON.stringify(l.screenFrame)) say("frame " + JSON.stringify(l.frame) + " on screen " + JSON.stringify(l.screenFrame));
               const want = [Math.round(l.frame[2] * l.scale), Math.round(l.frame[3] * l.scale)];
               if (JSON.stringify(l.pixels) !== JSON.stringify(want)) say("pixels " + JSON.stringify(l.pixels) + ", expected " + JSON.stringify(want));
-              // A sample on the highlight's outline or under the size label is left out
+              // A sample on the outline of the highlight or under the size label is left out
               const samples = l.samples || [];
               if (samples.length < 1) say("no samples");
               // The expected colors are worked out in the color space of the layer (CaptureSmoke.shown), as the drawing is
@@ -242,6 +242,49 @@ jobs:
             if ((out.notices || []).length !== 1 || out.notices[0].kind !== "toast") problems.push("notices: " + JSON.stringify(out.notices));
             if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
             console.log("capture main line ok", JSON.stringify(res), JSON.stringify(out));
+          '
+
+      # The annotate run (CaptureSmoke.annotate), the one meant for trying a build on a Mac nobody may touch: one capture through the whole
+      # of annotating, with the pattern only, the clipboard recorded and the picture saved next to the settings file
+      - name: Smoke run (annotate)
+        if: ${{ !cancelled() }}
+        run: |
+          export SNIPTOSS_VERSION="$(node -p "require('./package.json').version")"
+          export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
+          export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-annotate/settings.json"
+          export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/annotate"
+          export SNIPTOSS_SMOKE_READY=annotate
+          app-mac/.build/release/SnipToss
+
+      - name: Check the annotate run
+        if: ${{ !cancelled() }}
+        run: |
+          node -e '
+            const r = require(process.env.RUNNER_TEMP + "/smoke/annotate/result.json");
+            const a = (r.annotate || {}).annotate || {};
+            const problems = [];
+            const step = {};
+            for (const s of a.steps || []) step[s.step] = s;
+            const expect = (name, what, ok) => { if (!step[name] || !ok(step[name])) problems.push(name + ": " + what + " " + JSON.stringify(step[name] || "missing")); };
+            const mark = (s, i) => (s.marks || [])[i] || {};
+            const box = (s) => s.sel || [0, 0, 0, 0];
+            if (!a.opened) problems.push("the capture did not open: " + JSON.stringify(a));
+            expect("select", "a selection", (s) => s.sel && s.toolbar && s.handles);
+            expect("move", "the selection moved, same size", (s) => box(s)[0] > box(step.select)[0] && box(s)[1] > box(step.select)[1] && box(s)[2] === box(step.select)[2] && box(s)[3] === box(step.select)[3]);
+            expect("resize", "the selection grew by its corner", (s) => box(s)[0] === box(step.move)[0] && box(s)[2] > box(step.move)[2] && box(s)[3] > box(step.move)[3]);
+            expect("rectTool", "Rectangle chosen on the toolbar", (s) => s.tool === "rect");
+            expect("drawRect", "a rectangle and its note box", (s) => s.noteOpen && mark(s, 0).kind === "rect");
+            expect("typeNote", "the typed note", (s) => s.note && s.note.text === "Make the title largerx");
+            expect("saveWithReturn", "note 1 saved with Return", (s) => !s.noteOpen && mark(s, 0).note === "Make the title largerx" && mark(s, 0).number === 1);
+            expect("arrowTool", "Arrow chosen with A", (s) => s.tool === "arrow");
+            expect("drawArrow", "an arrow and its note box", (s) => s.noteOpen && mark(s, 1).kind === "arrow");
+            expect("saveWithButton", "note 2 saved with the button", (s) => !s.noteOpen && mark(s, 1).note === "Point this at the menu" && mark(s, 1).number === 2);
+            expect("finish", "Finish ends the capture", (s) => s.open === false);
+            const out = a.output || {};
+            if (!out.fileSaved || out.clipboardPuts !== 1 || !out.clipboardPngBytes || (out.notices || []).length !== 1) problems.push("output: " + JSON.stringify(out));
+            if (((a.result || {}).marks || []).length !== 2) problems.push("collected: " + JSON.stringify(a.result));
+            if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
+            console.log("annotate run ok", JSON.stringify(a.result), JSON.stringify(out), "keyboard " + a.keyboardRoute);
           '
 
       # The project's self-signed code signing certificate (CN=MoyGoldenAge), from the repository's secrets into a keychain of this run
