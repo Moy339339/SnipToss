@@ -67,7 +67,7 @@
   "settings.loadFailed": "无法读取此页设置：{reason}",
   "settings.retry": "重试",
   "settings.hotkey.shiftOnly": "不能只用 Shift：会影响所有程序中的打字和选择文字。请加上 Ctrl、Alt 或 Win。",
-  "settings.hotkey.needsCommand": "快捷键需要包含 ⌘ 或 ⌃：否则会影响所有程序中的打字和选择文字。",
+  "settings.hotkey.needsCommand": "快捷键需要包含 ⌘ 或 ⌃，否则会影响所有程序中的打字和选择文字。",
   "settings.skipDirs.desc": "名称完全相同的文件夹不列出（不区分大小写）。以 . 开头和带有隐藏属性的文件夹始终跳过。",
   "settings.skipDirs.noPath": "请只填写文件夹名称，不含路径（如 node_modules）",
   "settings.shell.notApplied": "未能更改：Windows 拒绝了写入，开关已恢复原状。详细原因已记入日志。",

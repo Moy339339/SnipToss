@@ -1,34 +1,45 @@
 import Foundation
 
-/// The bridge methods for Settings > Screen Capture: `captureSettings` and `setCaptureSettings` (docs/host-api.md, "Settings, window,
-/// miscellaneous"). The capture itself is not here yet, so nothing registers the global shortcut: it is kept as the page sent it and
-/// `hotkeyError` is always null. `autostart` is kept too, and no login item is registered for it yet.
+/// The bridge methods for Settings > Screen Capture: `captureSettings`, `setCaptureSettings` and `captureHotkeyPause` (docs/host-api.md,
+/// "Settings, window, miscellaneous"). A shortcut the page sends is registered with the system first and stored only when that worked
+/// (the previous one stays otherwise, and `hotkeyError` says why); `hotkeyError` also carries why the stored one could not be registered
+/// at startup. `autostart` is kept, and no login item is registered for it yet.
 /// `keepInTray` and `hideWindow` take effect: the first decides what closing the window does (StatusItem.swift), the second is read when
 /// capture starts from the window.
+/// - Parameter hotkey: what registers the shortcut (nil: nothing does, the shortcut is only kept)
 /// - Parameter onKeepInTrayChanged: told the new value after a call that carried `keepInTray`, so the menu bar item can follow. Called on
 ///   the bridge's background queue
 func installCaptureSettingsMethods(
-    into bridge: BridgeHost, settings: Settings, onKeepInTrayChanged: @escaping (Bool) -> Void = { _ in }
+    into bridge: BridgeHost, settings: Settings, hotkey: HotKeyControl? = nil, onKeepInTrayChanged: @escaping (Bool) -> Void = { _ in }
 ) {
     bridge.register("captureSettings") { _ in
-        captureSettingsReply(settings.capture)
+        captureSettingsReply(settings.capture, hotkeyError: hotkey?.error)
     }
 
     bridge.register("setCaptureSettings") { params in
         let patch = CaptureSettingsPatch(params)
-        let reply = setCaptureSettingsReply(patch, settings: settings)
+        // The system's hot key calls are made on the main thread
+        let reply = onMain { setCaptureSettingsReply(patch, settings: settings, hotkey: hotkey) }
         if let keepInTray = patch.keepInTray { onKeepInTrayChanged(keepInTray) }
         return reply
+    }
+
+    // While a new shortcut is being recorded the old one is taken away, so that pressing it is recorded and does not start a capture
+    bridge.register("captureHotkeyPause") { params in
+        let pause = (params as? [String: Any]).flatMap { jsonBool($0["pause"]) } ?? false
+        onMain {
+            if pause { hotkey?.pause() } else { hotkey?.resume() }
+        }
+        return nil
     }
 }
 
 /// The reply of both methods: the settings as the page shows them.
 /// `defaultFolder` is where screenshots go when `folder` is empty
-func captureSettingsReply(_ capture: CaptureSettings, defaultFolder: String = AppPaths.capturesDir) -> [String: Any] {
+func captureSettingsReply(_ capture: CaptureSettings, defaultFolder: String = AppPaths.capturesDir, hotkeyError: String? = nil) -> [String: Any] {
     [
         "hotkey": capture.hotkey,
-        // Nothing registers the shortcut with the system yet, so there is nothing that could have failed
-        "hotkeyError": NSNull(),
+        "hotkeyError": hotkeyError ?? NSNull(),
         "hotkeyTypes": "",
         "hotkeyMoved": NSNull(),
         "keepInTray": capture.keepInTray,
@@ -42,16 +53,23 @@ func captureSettingsReply(_ capture: CaptureSettings, defaultFolder: String = Ap
 
 /// Stores what the patch carries and replies with the settings afterwards
 func setCaptureSettingsReply(
-    _ patch: CaptureSettingsPatch, settings: Settings, defaultFolder: String = AppPaths.capturesDir
+    _ patch: CaptureSettingsPatch, settings: Settings, defaultFolder: String = AppPaths.capturesDir, hotkey: HotKeyControl? = nil
 ) -> [String: Any] {
+    var patch = patch
+    var failure: String?
+    if let text = patch.hotkey, let hotkey {
+        // Registered first, stored only when it worked: the shortcut that was set before stays when it did not
+        failure = hotkey.set(text)
+        if failure == nil { hotkey.error = nil } else { patch.hotkey = nil }
+    }
     settings.update { values in patch.apply(to: &values.capture) }
-    return captureSettingsReply(settings.capture, defaultFolder: defaultFolder)
+    return captureSettingsReply(settings.capture, defaultFolder: defaultFolder, hotkeyError: failure ?? hotkey?.error)
 }
 
 /// The items of a `setCaptureSettings` call (host.ts, `Partial<CaptureSettings>`). An item that is missing or has the wrong type changes
 /// nothing; text is trimmed, and a folder that is blank afterwards goes back to the default
 struct CaptureSettingsPatch {
-    let hotkey: String?
+    var hotkey: String?
     let keepInTray: Bool?
     let hideWindow: Bool?
     let notesInImage: Bool?

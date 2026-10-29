@@ -67,7 +67,7 @@
   "settings.loadFailed": "無法讀取此頁的設定：{reason}",
   "settings.retry": "重試",
   "settings.hotkey.shiftOnly": "不能只使用 Shift：會影響所有程式中的打字與選取文字。請加上 Ctrl、Alt 或 Win。",
-  "settings.hotkey.needsCommand": "快速鍵必須包含 ⌘ 或 ⌃：否則會影響所有程式中的打字與選取文字。",
+  "settings.hotkey.needsCommand": "快速鍵必須包含 ⌘ 或 ⌃，否則會影響所有程式中的打字與選取文字。",
   "settings.skipDirs.desc": "名稱完全相同的資料夾不會列出（不區分大小寫）。以 . 開頭及具有隱藏屬性的資料夾一律略過。",
   "settings.skipDirs.noPath": "請只填寫資料夾名稱，不含路徑（如 node_modules）",
   "settings.shell.notApplied": "無法變更：Windows 拒絕寫入，開關已還原。詳細原因已寫入記錄檔。",

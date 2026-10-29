@@ -1,6 +1,24 @@
 import AppKit
 import WebKit
 
+/// What other parts of the app want written into result.json of an unattended run (the hot key registration, ...)
+enum SmokeNotes {
+    private static let lock = NSLock()
+    private static var notes: [String: Any] = [:]
+
+    static func record(_ name: String, _ value: Any) {
+        lock.lock()
+        notes[name] = value
+        lock.unlock()
+    }
+
+    static var all: [String: Any] {
+        lock.lock()
+        defer { lock.unlock() }
+        return notes
+    }
+}
+
 /// Unattended run for CI (SNIPTOSS_SMOKE_OUT=<folder>): wait until the UI says it has drawn, take a picture of the page, write what the
 /// bridge and the page saw to result.json, and quit. Exit code 0 = the UI came up, 2 = it did not before the time ran out
 final class SmokeRun {
@@ -25,15 +43,16 @@ final class SmokeRun {
     /// The onboarding tour card is on screen (first run, an item shown)
     static let tourScript = "!!document.querySelector('.tour-card')"
 
-    /// SNIPTOSS_SMOKE_READY picks what to wait for: `welcome` (default, an empty library), `image`, `tour`, or `keys` (the welcome screen, then
-    /// the key experiment of KeyExperiment.swift, whose answers go into result.json)
+    /// SNIPTOSS_SMOKE_READY picks what to wait for: `welcome` (default, an empty library), `image`, `tour`, `keys` (the welcome screen, then
+    /// the key experiment of KeyExperiment.swift, whose answers go into result.json) or `capture` (the welcome screen, then the capture
+    /// layers over a made-up pattern, CaptureSmoke in CaptureSession.swift)
     static let mode = ProcessInfo.processInfo.environment["SNIPTOSS_SMOKE_READY"] ?? "welcome"
 
     static var readyScript: String {
         switch mode {
         case "image": return imageScript
         case "tour": return tourScript
-        case "keys": return welcomeScript
+        case "keys", "capture": return welcomeScript
         default: return welcomeScript
         }
     }
@@ -78,12 +97,15 @@ final class SmokeRun {
     private var experiment: KeyExperiment?
     private let timeoutSeconds = Double(ProcessInfo.processInfo.environment["SNIPTOSS_SMOKE_TIMEOUT"] ?? "") ?? 60
 
-    init(outDir: URL, web: WKWebView, window: NSWindow, bridge: BridgeHost, console: ConsoleCollector) {
+    private let captureSession: CaptureSession?
+
+    init(outDir: URL, web: WKWebView, window: NSWindow, bridge: BridgeHost, console: ConsoleCollector, captureSession: CaptureSession? = nil) {
         self.outDir = outDir
         self.web = web
         self.window = window
         self.bridge = bridge
         self.console = console
+        self.captureSession = captureSession
     }
 
     func start() {
@@ -103,6 +125,15 @@ final class SmokeRun {
                 // The layout fades in over 160 ms and fonts may still be settling: wait before the picture. Anything with an entrance
                 // animation is photographed at least 0.6 s after it appears: `takeSnapshot` can catch the first frames half painted
                 // (the first picture of the tour card has body and buttons but no title), which is the snapshot call, not the page
+                if Self.mode == "capture", let session = captureSession {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [self] in
+                        CaptureSmoke.run(session: session, outDir: outDir) { [self] report in
+                            SmokeNotes.record("capture", report)
+                            capture(ready: true)
+                        }
+                    }
+                    return
+                }
                 if Self.mode == "keys" {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [self] in
                         let run = KeyExperiment(window: window, web: web)
@@ -180,6 +211,7 @@ final class SmokeRun {
         if let laterShot { result["snapshotLater"] = laterShot }
         if let keyExperiment { result["keyExperiment"] = keyExperiment }
         result["menuBar"] = MenuReport.describe(NSApp.mainMenu)
+        for (name, value) in SmokeNotes.all { result[name] = value }
         if let firstShot { result["snapshotFirst"] = firstShot }
         if let data = try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys]) {
             try? data.write(to: outDir.appendingPathComponent("result.json"))

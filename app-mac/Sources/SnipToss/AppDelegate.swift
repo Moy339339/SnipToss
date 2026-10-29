@@ -46,6 +46,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     private var changeWatch: ChangeWatch?
     private var windowController: WindowController?
     private var nativeMenus: NativeMenus?
+    private var hotkey: GlobalHotKey?
+    /// The screen capture; in the capture smoke run its pictures are a made-up pattern, never the real screen
+    private lazy var captureSession = CaptureSession(
+        source: Self.smokeMode == "capture" ? CaptureSmoke.source() as ScreenSource : ScreenCaptureKitSource())
+    private static let smokeMode = ProcessInfo.processInfo.environment["SNIPTOSS_SMOKE_OUT"] == nil ? nil : SmokeRun.mode
     private var observers: [NSObjectProtocol] = []
     /// Paths the system asked to open before the window was set up (the app was started by opening a file); added once it is
     private var earlyOpens: [String] = []
@@ -70,7 +75,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         let dropped = DroppedPaths()
         installDropMethods(into: bridge, settings: settings, dropped: dropped)
         installClipboardMethods(into: bridge, settings: settings)
-        installCaptureSettingsMethods(into: bridge, settings: settings) { [weak self] keepInTray in
+        // The global capture shortcut, registered from the settings now; why it could not be is what the page shows
+        let hotkey = GlobalHotKey(backend: CarbonHotKeyBackend(), onPressed: { [weak self] in self?.captureHotKeyPressed() })
+        hotkey.error = hotkey.set(settings.capture.hotkey)
+        self.hotkey = hotkey
+        SmokeNotes.record("hotkey", ["asked": settings.capture.hotkey, "registered": hotkey.current ?? "", "error": hotkey.error ?? "none"])
+        // Capture from the page (the title bar's Capture, File → Capture Screen…): the call returns when the capture is over
+        bridge.register("captureStart") { [weak self] _ in
+            let over = DispatchSemaphore(value: 0)
+            onMain {
+                if let self { self.captureSession.start(whenClosed: { over.signal() }) } else { over.signal() }
+            }
+            over.wait()
+            return nil
+        }
+        installCaptureSettingsMethods(into: bridge, settings: settings, hotkey: hotkey) { [weak self] keepInTray in
             runOnMain { self?.statusItem?.setVisible(TrayPolicy.showsStatusItem(keepInTray: keepInTray)) }
         }
         installScanMethods(into: bridge, settings: settings, homes: homes)
@@ -138,7 +157,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         // The menu bar item is the way back to a window that was closed while the app keeps running
         let item = StatusItemController(
             showWindow: { [weak self] in self?.showMainWindow() }, openSettings: { [weak self] in self?.openSettingsPage() },
-            quit: { NSApp.terminate(nil) })
+            quit: { NSApp.terminate(nil) }, capture: { [weak self] in self?.captureSession.start() },
+            shortcut: { [weak self] in self?.hotkey?.current.flatMap(HotKeySpec.parse) })
         item.setVisible(TrayPolicy.showsStatusItem(keepInTray: settings.capture.keepInTray))
         statusItem = item
         // Menus that are made once say their words again when the UI's language changes
@@ -152,7 +172,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
 
         web.load(URLRequest(url: URL(string: "\(uiScheme)://\(uiHost)/index.html")!))
         if let out = ProcessInfo.processInfo.environment["SNIPTOSS_SMOKE_OUT"] {
-            smoke = SmokeRun(outDir: URL(fileURLWithPath: out, isDirectory: true), web: web, window: window, bridge: bridge, console: console)
+            smoke = SmokeRun(
+                outDir: URL(fileURLWithPath: out, isDirectory: true), web: web, window: window, bridge: bridge, console: console,
+                captureSession: captureSession)
             smoke?.start()
         }
 
@@ -184,6 +206,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         } else {
             earlyOpens.append(contentsOf: paths)
         }
+    }
+
+    /// The capture shortcut was pressed, from any app
+    private func captureHotKeyPressed() {
+        captureSession.start()
     }
 
     private func languageChanged() {

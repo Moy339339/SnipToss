@@ -8,6 +8,13 @@ enum ShellText {
         func arg(_ name: String) -> String { args[name] ?? "" }
         switch key {
         case "brand.name": return "SnipToss"
+        case "shell.capture.noAccessTitle": return "\(arg("app")) can't record the screen"
+        case "shell.capture.noAccessBody":
+            return "To capture the screen, allow \(arg("app")) in System Settings → Privacy & Security → Screen & System Audio Recording, then quit and open \(arg("app")) again."
+        case "shell.capture.openSettings": return "Open System Settings"
+        case "shell.capture.notNow": return "Not Now"
+        case "shell.hotkey.invalid": return "Unrecognized shortcut: \(arg("keys"))"
+        case "shell.hotkey.taken": return "\(arg("keys")) is already used by another app. Choose a different shortcut"
         case "shell.menu.about": return "About \(arg("app"))"
         case "shell.menu.settings": return "Settings…"
         case "shell.menu.hide": return "Hide \(arg("app"))"

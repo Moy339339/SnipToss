@@ -17,6 +17,9 @@ jobs:
   app-mac:
     runs-on: macos-26
     timeout-minutes: 30
+    env:
+      # The shell's message catalogs and formatter (built in "Build the shell's resources"), for the unit tests and the smoke runs
+      SNIPTOSS_RESOURCES_DIR: ${{ github.workspace }}/app-mac/.build/resources
     steps:
       - uses: actions/checkout@v7
 
@@ -46,8 +49,6 @@ jobs:
 
       - name: Unit tests
         working-directory: app-mac
-        env:
-          SNIPTOSS_RESOURCES_DIR: ${{ github.workspace }}/app-mac/.build/resources
         run: swift test
 
       # Opens the window with an empty library, waits for the welcome screen, writes ui.png and result.json, and quits
@@ -137,6 +138,55 @@ jobs:
           export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/keys"
           export SNIPTOSS_SMOKE_READY=keys
           app-mac/.build/release/SnipToss
+
+      # The capture layers over a made-up pattern (the runner's real screen is never captured): one layer a screen, the kind of window it
+      # is, the picture drawn at the screen's resolution and dimmed by half, and Esc sent through the event queue ends the capture
+      - name: Smoke run (capture layers)
+        if: ${{ !cancelled() }}
+        run: |
+          export SNIPTOSS_VERSION="$(node -p "require('./package.json').version")"
+          export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
+          export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-capture/settings.json"
+          export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/capture"
+          export SNIPTOSS_SMOKE_READY=capture
+          app-mac/.build/release/SnipToss
+
+      # Level 1000 is NSWindow.Level.screenSaver; 262481 is canJoinAllSpaces | stationary | ignoresCycle | fullScreenAuxiliary |
+      # canJoinAllApplications
+      - name: Check the capture layers
+        if: ${{ !cancelled() }}
+        run: |
+          node -e '
+            const r = require(process.env.RUNNER_TEMP + "/smoke/capture/result.json");
+            const c = r.capture || {};
+            const layers = c.layers || [];
+            const problems = [];
+            const hk = r.hotkey || {};
+            if (hk.registered !== hk.asked || hk.error !== "none") problems.push("capture shortcut: " + JSON.stringify(hk));
+            if (!c.opened) problems.push("the capture did not open");
+            if (layers.length < 1 || layers.length !== c.screens) problems.push(layers.length + " layers for " + c.screens + " screens");
+            layers.forEach((l, i) => {
+              const say = (what) => problems.push("layer " + i + ": " + what);
+              if (l.level !== 1000) say("level " + l.level);
+              if (l.behavior !== 262481) say("collection behavior " + l.behavior);
+              if (!l.nonactivating || !l.borderless) say("style: nonactivating " + l.nonactivating + ", borderless " + l.borderless);
+              if (!l.canBecomeKey || !l.visible) say("canBecomeKey " + l.canBecomeKey + ", visible " + l.visible);
+              if (JSON.stringify(l.frame) !== JSON.stringify(l.screenFrame)) say("frame " + JSON.stringify(l.frame) + " on screen " + JSON.stringify(l.screenFrame));
+              const want = [Math.round(l.frame[2] * l.scale), Math.round(l.frame[3] * l.scale)];
+              if (JSON.stringify(l.pixels) !== JSON.stringify(want)) say("pixels " + JSON.stringify(l.pixels) + ", expected " + JSON.stringify(want));
+              const samples = l.samples || [];
+              if (samples.length !== 3) say(samples.length + " samples");
+              for (const s of samples) {
+                if (s.actual.some((v, k) => Math.abs(v - s.expected[k]) > 8)) say("pixel " + s.at + " is " + s.actual + ", expected " + s.expected);
+              }
+            });
+            if (!c.closedByEsc) problems.push("Esc did not end the capture (key layer " + c.keyLayer + ", key window is a layer " + c.keyWindowIsLayer + ", app active " + c.appActive + ")");
+            if (!c.closed || c.layersAfter !== 0) problems.push("still open after the end: " + c.layersAfter + " layers");
+            if (c.whenClosedCalls !== 1) problems.push("the end was announced " + c.whenClosedCalls + " times");
+            if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
+            console.log("capture layers ok", JSON.stringify(c));
+          '
+
       - uses: actions/upload-artifact@v7
         if: always()
         with:

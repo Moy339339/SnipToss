@@ -15,21 +15,27 @@ enum TrayPolicy {
 }
 
 /// The menu bar item: the Mac counterpart of the Windows tray icon. Main thread only.
-/// Its menu: Capture Screen (disabled until screen capture is implemented), Open, Settings…, Quit
-final class StatusItemController: NSObject {
+/// Its menu: Capture Screen (with the capture shortcut on its right, read each time the menu opens), Open, Settings…, Quit
+final class StatusItemController: NSObject, NSMenuDelegate {
     private let appName: String
     private let onShowWindow: () -> Void
     private let onOpenSettings: () -> Void
     private let onQuit: () -> Void
+    private let onCapture: () -> Void
+    /// The capture shortcut in use, drawn on the right of Capture Screen
+    private let shortcut: () -> HotKeySpec?
     private var item: NSStatusItem?
 
     init(
-        appName: String = "SnipToss", showWindow: @escaping () -> Void, openSettings: @escaping () -> Void, quit: @escaping () -> Void
+        appName: String = "SnipToss", showWindow: @escaping () -> Void, openSettings: @escaping () -> Void, quit: @escaping () -> Void,
+        capture: @escaping () -> Void = {}, shortcut: @escaping () -> HotKeySpec? = { nil }
     ) {
         self.appName = appName
         self.onShowWindow = showWindow
         self.onOpenSettings = openSettings
         self.onQuit = quit
+        self.onCapture = capture
+        self.shortcut = shortcut
         super.init()
     }
 
@@ -45,7 +51,7 @@ final class StatusItemController: NSObject {
 
     var isVisible: Bool { item != nil }
 
-    /// The language changed: the menu says its words again
+    /// The language changed: the menu is made again
     func refreshLanguage() {
         item?.menu = makeMenu()
     }
@@ -71,15 +77,27 @@ final class StatusItemController: NSObject {
         let menu = NSMenu(title: name)
         // Items are enabled or not as set here, not by whether they have an action
         menu.autoenablesItems = false
-        // Screen capture comes with the next stage of the Mac shell
-        let capture = NSMenuItem(title: ShellText.t("shell.tray.capture"), action: nil, keyEquivalent: "")
-        capture.isEnabled = false
+        menu.delegate = self
+        let capture = menuEntry(ShellText.t("shell.tray.capture"), #selector(captureClicked(_:)))
+        showShortcut(on: capture)
         menu.addItem(capture)
         menu.addItem(menuEntry(ShellText.t("shell.tray.open", ["app": name]), #selector(openClicked(_:))))
         menu.addItem(menuEntry(ShellText.t("shell.menu.settings"), #selector(settingsClicked(_:))))
         menu.addItem(.separator())
         menu.addItem(menuEntry(ShellText.t("shell.menu.quit", ["app": name]), #selector(quitClicked(_:))))
         return menu
+    }
+
+    /// The shortcut is only drawn: a status item's menu takes no keys while it is closed, and the shortcut itself is the global one
+    private func showShortcut(on item: NSMenuItem) {
+        let spec = shortcut()
+        item.keyEquivalent = spec.flatMap(HotKeyDisplay.keyEquivalent) ?? ""
+        item.keyEquivalentModifierMask = item.keyEquivalent.isEmpty ? [] : spec.map(HotKeyDisplay.mask) ?? []
+    }
+
+    /// The shortcut may have changed in the settings since the menu was made
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        if let capture = menu.items.first(where: { $0.action == #selector(captureClicked(_:)) }) { showShortcut(on: capture) }
     }
 
     private func menuEntry(_ title: String, _ action: Selector) -> NSMenuItem {
@@ -93,4 +111,6 @@ final class StatusItemController: NSObject {
     @objc private func settingsClicked(_ sender: Any?) { onOpenSettings() }
 
     @objc private func quitClicked(_ sender: Any?) { onQuit() }
+
+    @objc private func captureClicked(_ sender: Any?) { onCapture() }
 }
