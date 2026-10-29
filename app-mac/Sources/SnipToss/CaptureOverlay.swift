@@ -135,7 +135,7 @@ final class CaptureOverlay: NSView, OverlayView {
         full = CGRect(x: 0, y: 0, width: shot.frame.width, height: shot.frame.height)
         pictureView = FrozenPictureView(frame: full, picture: shot.image)
         let hint = [ShellText.t("capture.hint.drag"), ShellText.t("capture.hint.click"), ShellText.t("capture.hint.esc")].joined(separator: "\n")
-        magnifier = OverlayMagnifier(hint: selectHint ? hint : nil)
+        magnifier = OverlayMagnifier(hint: selectHint ? KeepWords.of(hint) : nil)
         super.init(frame: full)
         wantsLayer = true
         ToolPrefs.shared.start(defaultColor)
@@ -501,7 +501,7 @@ final class CaptureOverlay: NSView, OverlayView {
     func openNoteBox(_ text: String) {
         noteBox.category = state.noteCategory
         // A note that marks a place says more places can be marked (ADR-0009); the overall comment gives an example
-        let placeholder = ShellText.t(state.noteFor == nil ? "capture.note.placeholder" : "capture.note.placeholderMarks")
+        let placeholder = KeepWords.of(ShellText.t(state.noteFor == nil ? "capture.note.placeholder" : "capture.note.placeholderMarks"))
         noteBox.open(title: noteTitle(), placeholder: placeholder, text: text)
         placeNote()
         typingLevel()
@@ -825,7 +825,7 @@ final class CaptureOverlay: NSView, OverlayView {
     /// press within 3 seconds really cancels (the state machine's `armCancel` decides). Returns true = only the warning was shown
     func guardCancel() -> Bool {
         guard !isClosed, state.armCancel(now: Date()) else { return false }
-        warn.show(ShellText.t("capture.cancelWarn"))
+        warn.show(KeepWords.of(ShellText.t("capture.cancelWarn")))
         let size = warn.frame.size
         var x: CGFloat
         var y: CGFloat

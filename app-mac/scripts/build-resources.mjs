@@ -32,10 +32,10 @@ await build({
   },
 });
 
-// Only the messages the shell shows itself (the same prefixes as tests/golden/messages.json, and the two composer messages the capture
-// overlay's note box shares with the main app's composer); the rest are the UI's, which carries its own
+// Only the messages the shell shows itself (the same prefixes as tests/golden/messages.json, the two composer messages the capture
+// overlay's note box shares with the main app's composer, and the error notice's Open Log); the rest are the UI's, which carries its own
 const SHELL_PREFIXES = ["brand.", "category.", "shell.", "capture.", "ai.", "markColor.", "keycap."];
-const SHELL_KEYS = ["composer.keys", "composer.categoryTitle"];
+const SHELL_KEYS = ["composer.keys", "composer.categoryTitle", "app.error.openLog"];
 const locales = readdirSync(join(root, "i18n", "locales")).filter((name) => name.endsWith(".json"));
 let bytes = 0;
 for (const name of locales) {

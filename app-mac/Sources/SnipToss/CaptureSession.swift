@@ -27,6 +27,13 @@ struct CaptureOptions {
     var defaultCategory = "change"
     /// Write how to select below the magnifier: until the first capture has been finished
     var selectHint = false
+    /// Settings → Screen Capture → Include notes in the image
+    var notesInImage = true
+    /// Settings → Copying → Extra instructions
+    var promptExtra = ""
+    /// The folder the user chose for saved captures; nil = the default one, which is cleaned of pictures older than 30 days
+    var folder: String?
+    var defaultFolder = AppPaths.capturesDir
 }
 
 /// One screen capture: the pictures of all screens are taken first, then a layer is put over each screen (CaptureOverlay). The selection can
@@ -37,6 +44,12 @@ final class CaptureSession {
     private let guide: PermissionGuiding
     private let defaults: UserDefaults
     private let options: () -> CaptureOptions
+    private let clipboard: CaptureClipboard
+    private let notices: CaptureNotifying
+    /// The first capture was finished: the newcomer's instructions below the magnifier are not shown any more
+    private let hintDone: () -> Void
+    /// The options this capture started with
+    private var chosen = CaptureOptions()
     private var panels: [OverlayPanel] = []
     private(set) var overlays: [CaptureOverlay] = []
     /// The layer the selection is on
@@ -45,22 +58,26 @@ final class CaptureSession {
     private var starting = false
     private var whenClosed: [() -> Void] = []
     private(set) var isOpen = false
-    /// What the last finished capture collected
+    /// What the last finished capture collected, the picture made of it and where that was saved (the smoke run and the tests look)
     private(set) var lastResult: CaptureResult?
-    /// Called with what a finished capture collected, after its layers are gone
-    var onFinished: ((CaptureResult) -> Void)?
+    private(set) var lastOutput: CaptureOutput.Output?
+    private(set) var lastFile: String?
 
     private static let requestedKey = "ScreenAccessRequested"
 
     init(
         source: ScreenSource, access: ScreenAccess = SystemScreenAccess(), guide: PermissionGuiding = PermissionGuide(), defaults: UserDefaults = .standard,
-        options: @escaping () -> CaptureOptions = { CaptureOptions() }
+        options: @escaping () -> CaptureOptions = { CaptureOptions() }, clipboard: CaptureClipboard = SystemCaptureClipboard(),
+        notices: CaptureNotifying = CaptureNotices(), hintDone: @escaping () -> Void = {}
     ) {
         self.source = source
         self.access = access
         self.guide = guide
         self.defaults = defaults
         self.options = options
+        self.clipboard = clipboard
+        self.notices = notices
+        self.hintDone = hintDone
     }
 
     /// The layers on screen now (for the tests and the smoke run)
@@ -75,6 +92,8 @@ final class CaptureSession {
             return
         }
         if starting { return }
+        // An error left from last time is about the past once another capture starts
+        notices.dismissError()
         // Asked first without asking the user: taking a picture without the permission makes the system put up its own question, which
         // would then stand next to ours
         if !access.allowed {
@@ -118,7 +137,7 @@ final class CaptureSession {
     }
 
     private func show(_ screens: [FrozenScreen]) {
-        let chosen = options()
+        chosen = options()
         let windows = source.windows()
         // The window list counts from the top of the main screen, which in AppKit's coordinates starts at 0
         let mainHeight = NSScreen.screens.first?.frame.maxY ?? screens.first?.frame.maxY ?? 0
@@ -217,7 +236,8 @@ final class CaptureSession {
         close()
     }
 
-    /// ✓, Return, ⌘C or a double click in the selection: collects what was drawn and ends the capture. Nothing happens without a selection
+    /// ✓, Return, ⌘C or a double click in the selection: collects what was drawn, ends the capture, and hands the picture over. Nothing
+    /// happens without a selection
     func finish() {
         guard let owner, owner.hasSelection else { return }
         let result = owner.result()
@@ -228,7 +248,65 @@ final class CaptureSession {
         let w = Int((result.selection.width * result.screen.scale).rounded())
         let h = Int((result.selection.height * result.screen.scale).rounded())
         Log.info("Capture finished: \(w) × \(h) px, \(result.marks.count) marks, \(notes) notes, overall comment: \(!result.overall.isEmpty)")
-        onFinished?(result)
+        output(result, chosen)
+    }
+
+    /// The picture is composited, saved and put on the clipboard, then a notice says so. Each step stands on its own: a picture that could
+    /// not be saved (a full disk, a folder that is gone) still goes on the clipboard, so nothing drawn is lost
+    func output(_ r: CaptureResult, _ o: CaptureOptions) {
+        let screen = r.screen.frame
+        let composed: CaptureOutput.Output
+        do {
+            composed = try CaptureOutput.compose(r, notesInImage: o.notesInImage, promptExtra: o.promptExtra)
+        } catch {
+            Log.error("Screen Capture: compositing the image failed: \(error)")
+            notices.failed(
+                title: ShellText.t("capture.error.compose"), detail: ShellText.t("capture.error.composeBody"), path: nil, error: "\(error)", on: screen)
+            return
+        }
+        lastOutput = composed
+        let notes = r.marks.filter { $0.hasNote }
+        let folder = o.folder ?? o.defaultFolder
+        var file: String?
+        var saveError: String?
+        do {
+            file = try CaptureOutput.save(composed.png, folder: folder, cleanable: o.folder == nil)
+        } catch {
+            Log.error("Screen Capture: saving the file failed: \(error)")
+            saveError = "\(error)"
+        }
+        lastFile = file
+        // With the notes drawn into the picture only the picture goes on the clipboard: with a picture and words, each app picks one, and
+        // some take the words and lose the picture. The words go too only when the notes are not drawn in, or they would be lost
+        let hasNotes = !notes.isEmpty || !r.overall.isEmpty
+        let text = hasNotes && !o.notesInImage
+            ? CaptureOutput.handoffText(r, notes: notes, file: file, size: composed.size, promptExtra: o.promptExtra) : nil
+        let rep = NSBitmapImageRep(cgImage: composed.image)
+        rep.size = NSSize(width: CGFloat(composed.size.width) / r.screen.scale, height: CGFloat(composed.size.height) / r.screen.scale)
+        do {
+            try clipboard.put(png: composed.png, tiff: rep.tiffRepresentation, text: text)
+        } catch {
+            Log.error("Screen Capture: copying to the clipboard failed: \(error)")
+            notices.failed(
+                title: ShellText.t("capture.error.clipboard"),
+                detail: ShellText.t(file == nil ? "capture.error.clipboardNoFile" : "capture.error.clipboardSaved"), path: file, error: "\(error)",
+                on: screen)
+            return
+        }
+        if o.selectHint { hintDone() }
+        let what: [String: Any] = ["what": !notes.isEmpty ? "notes" : !r.overall.isEmpty ? "overall" : "image", "count": notes.count]
+        let how = ShellText.t(!hasNotes ? "capture.how.plain" : o.notesInImage ? "capture.how.inImage" : "capture.how.notInImage")
+        if let saveError {
+            var isDirectory: ObjCBool = false
+            let exists = FileManager.default.fileExists(atPath: folder, isDirectory: &isDirectory) && isDirectory.boolValue
+            notices.failed(
+                title: ShellText.t("capture.copiedNotSaved", values: what), detail: ShellText.t("capture.saveFailedHint", values: ["how": how]),
+                path: exists ? folder : nil, error: saveError, on: screen)
+        } else {
+            // The notice only says it was copied; a second line only when the notes are not in the picture (pasting into an agent app
+            // would lose them)
+            notices.copied(title: ShellText.t("capture.copied", values: what), detail: hasNotes && !o.notesInImage ? how : "", on: screen)
+        }
     }
 
     /// Ends the capture and drops the pictures

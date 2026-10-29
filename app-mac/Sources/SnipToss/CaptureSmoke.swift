@@ -11,6 +11,10 @@ enum CaptureSmoke {
         func openSettings() {}
     }
 
+    /// What would go on the clipboard and into the notices: recorded, so the runner's clipboard is left alone and the run can check them
+    static let clipboard = RecordingCaptureClipboard()
+    static let notices = RecordingCaptureNotices()
+
     static func source() -> PatternScreenSource {
         let screens = NSScreen.screens.map { screen in
             PatternScreenSource.Screen(displayID: ScreenID.of(screen), frame: screen.frame, scale: screen.backingScaleFactor)
@@ -171,6 +175,20 @@ enum CaptureSmoke {
                                 "marks": r.marks.map { Self.describeMark($0) }, "overall": r.overall,
                             ]
                             report["result"] = result
+                        }
+                        // What finishing handed over: the composited picture (kept next to the result for a look), the saved file, the
+                        // clipboard and the notice
+                        if let out = session.lastOutput {
+                            try? out.png.write(to: outDir.appendingPathComponent("capture-composed.png"))
+                            let file = session.lastFile ?? ""
+                            let output: [String: Any] = [
+                                "size": [out.size.width, out.size.height], "file": (file as NSString).lastPathComponent,
+                                "fileSaved": !file.isEmpty && FileManager.default.fileExists(atPath: file),
+                                "clipboardPuts": Self.clipboard.puts, "clipboardPngBytes": Self.clipboard.png?.count ?? 0,
+                                "clipboardHasTiff": Self.clipboard.tiff != nil, "clipboardText": Self.clipboard.text.map { $0 as Any } ?? NSNull(),
+                                "notices": Self.notices.shown.map { ["kind": $0.kind, "title": $0.title, "detail": $0.detail] },
+                            ]
+                            report["output"] = output
                         }
                         done(report)
                     }

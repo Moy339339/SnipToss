@@ -232,8 +232,16 @@ jobs:
             const notes = (res.marks || []).filter((k) => k.number > 0).length;
             if ((res.marks || []).length !== 3 || notes !== 2) problems.push("collected: " + JSON.stringify(res));
             if (!m.picture) problems.push("no picture of the layer");
+            // What finishing handed over: the composited picture as wide as the selection (or the notes area), saved, on the clipboard as
+            // PNG and TIFF without words (the notes are in the picture), and the copied notice
+            const out = m.output || {};
+            const sel = (step.select || {}).sel || [0, 0, 0, 0];
+            if (!out.size || out.size[0] < Math.round(sel[2]) || out.size[1] <= Math.round(sel[3])) problems.push("composited picture " + JSON.stringify(out.size) + " for the selection " + JSON.stringify(sel));
+            if (!out.fileSaved) problems.push("the picture was not saved: " + JSON.stringify(out.file));
+            if (out.clipboardPuts !== 1 || !out.clipboardPngBytes || !out.clipboardHasTiff || out.clipboardText !== null) problems.push("clipboard: " + JSON.stringify(out));
+            if ((out.notices || []).length !== 1 || out.notices[0].kind !== "toast") problems.push("notices: " + JSON.stringify(out.notices));
             if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
-            console.log("capture main line ok", JSON.stringify(res));
+            console.log("capture main line ok", JSON.stringify(res), JSON.stringify(out));
           '
 
       # The project's self-signed code signing certificate (CN=MoyGoldenAge), from the repository's secrets into a keychain of this run

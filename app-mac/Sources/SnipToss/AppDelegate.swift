@@ -50,9 +50,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     /// The screen capture; in the capture smoke run its pictures are a made-up pattern, never the real screen
     private lazy var captureSession: CaptureSession = {
         let options: () -> CaptureOptions = { [weak self] in self?.captureOptions() ?? CaptureOptions() }
+        let hintDone: () -> Void = { [weak self] in _ = self?.settings.update { $0.capture.selectHintDone = true } }
+        // The smoke run records what would go on the clipboard and into a notice: the runner's clipboard is left alone
         return Self.smokeMode == "capture"
-            ? CaptureSession(source: CaptureSmoke.source(), access: CaptureSmoke.Access(), options: options)
-            : CaptureSession(source: ScreenCaptureKitSource(), options: options)
+            ? CaptureSession(
+                source: CaptureSmoke.source(), access: CaptureSmoke.Access(), options: options, clipboard: CaptureSmoke.clipboard,
+                notices: CaptureSmoke.notices, hintDone: hintDone)
+            : CaptureSession(source: ScreenCaptureKitSource(), options: options, hintDone: hintDone)
     }()
     private static let smokeMode = ProcessInfo.processInfo.environment["SNIPTOSS_SMOKE_OUT"] == nil ? nil : SmokeRun.mode
     private var observers: [NSObjectProtocol] = []
@@ -220,9 +224,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     /// What a capture starts with: the settings as they are when it starts
     private func captureOptions() -> CaptureOptions {
         let values = settings.current
+        let folder = values.capture.folder?.trimmingCharacters(in: .whitespacesAndNewlines)
         return CaptureOptions(
             markColor: MarkColor(hexText: values.markColor) ?? ToolPrefs.colors[0], defaultCategory: values.defaultCategory,
-            selectHint: !values.capture.selectHintDone)
+            selectHint: !values.capture.selectHintDone, notesInImage: values.capture.notesInImage, promptExtra: values.promptExtra,
+            folder: folder?.isEmpty == false ? folder : nil)
     }
 
     private func languageChanged() {

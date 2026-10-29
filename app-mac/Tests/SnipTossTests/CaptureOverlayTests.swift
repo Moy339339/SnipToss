@@ -249,7 +249,7 @@ final class CaptureOverlayTests: SnipTestCase {
         o.noteBox.save.click()
         XCTAssertTrue(o.guardCancel())
         XCTAssertFalse(o.warn.isHidden)
-        XCTAssertEqual(o.warn.label.text, ShellText.t("capture.cancelWarn"))
+        XCTAssertEqual(o.warn.label.text, KeepWords.of(ShellText.t("capture.cancelWarn")))
         // Above the toolbar, right-aligned with it, unless that is off the screen
         XCTAssertLessThanOrEqual(o.warn.frame.maxY, min(o.toolbar.frame.minY, o.subbar.isHidden ? .infinity : o.subbar.frame.minY) - 8 + 0.5)
         // A second press soon after really cancels

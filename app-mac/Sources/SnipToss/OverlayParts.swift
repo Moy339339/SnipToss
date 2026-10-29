@@ -66,6 +66,7 @@ final class OverlayText: NSView {
     var lineHeight: CGFloat?
     /// Wrap at this width (nil = one line)
     var width: CGFloat?
+    var alignment = NSTextAlignment.natural
 
     init(_ text: String = "", size: CGFloat, color: NSColor, weight: NSFont.Weight = .regular) {
         self.text = text
@@ -85,6 +86,7 @@ final class OverlayText: NSView {
         paragraph.lineBreakMode = width == nil ? .byClipping : .byWordWrapping
         // Korean wraps between words, as the main app does (word-break: keep-all)
         paragraph.lineBreakStrategy = .standard
+        paragraph.alignment = alignment
         if let lineHeight {
             paragraph.minimumLineHeight = lineHeight
             paragraph.maximumLineHeight = lineHeight
@@ -516,7 +518,7 @@ final class OverlayNoteBox: OverlayPanelView, NSTextViewDelegate {
         placeholder.width = OverlayNoteBox.inner - 18
         field.addSubview(placeholder)
 
-        hint.text = ShellText.t("composer.keys")
+        hint.text = KeepWords.of(ShellText.t("composer.keys"))
         // Wraps to two lines when it does not fit: cut short, the second half of the sentence was lost in some languages
         hint.width = 100
         addSubview(hint)
