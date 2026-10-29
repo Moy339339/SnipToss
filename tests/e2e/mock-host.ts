@@ -5,7 +5,7 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { win32 as path } from "node:path";
+import { posix, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DATA_DIR, LEGACY_DATA_DIR } from "@sniptoss/core";
 // The write lock is the command line's own (app/FileLock.cs uses the same name and the same rules)
@@ -59,17 +59,21 @@ interface Entry {
   pinned: boolean;
 }
 
-/** Normalizes to an absolute path and drops the trailing \ (a drive root keeps it), same as Library.Norm */
+// Paths are the system's own: Windows paths where the tests normally run, POSIX ones when they run on a Mac (the line-breaking checks in
+// WebKit run on the Mac CI)
+const path = process.platform === "win32" ? win32 : posix;
+
+/** Normalizes to an absolute path and drops the trailing separator (a drive root keeps it), same as Library.Norm */
 export const norm = (p: string) => {
   const full = path.resolve(p);
   const root = path.parse(full).root;
-  return full.length > root.length ? full.replace(/\\+$/, "") : full;
+  return full.length > root.length ? full.replace(/[\\/]+$/, "") : full;
 };
 const same = (a: string, b: string) => norm(a).toLowerCase() === norm(b).toLowerCase();
 /** Same as Library.Inside: excludes the folder itself (a drive root like E:\ is not inside E:\) */
 const inside = (p: string, folder: string) => {
   const f = norm(folder);
-  const prefix = (f.endsWith("\\") ? f : f + "\\").toLowerCase();
+  const prefix = (f.endsWith(path.sep) ? f : f + path.sep).toLowerCase();
   const n = norm(p).toLowerCase();
   return n.length > prefix.length && n.startsWith(prefix);
 };
@@ -78,20 +82,24 @@ const escapeData = (s: string) => encodeURIComponent(s).replace(/[!'()*]/g, (c) 
 const kindOf = (p: string) => KINDS[path.extname(p).toLowerCase()];
 const toSlash = (p: string) => p.replaceAll("\\", "/");
 
-/** Item URL, same as MainWindow.UrlOf: the drive letter maps to a virtual host such as vol-c.sniptoss.example */
+/**
+ * Item URL, same as MainWindow.UrlOf: the drive letter maps to a virtual host such as vol-c.sniptoss.example. A POSIX path has no drive:
+ * vol-root stands for its root (the Mac shell serves items from sniptoss://media, which a test cannot intercept)
+ */
 export function urlOf(p: string): string {
   const root = path.parse(p).root;
-  const drive = root[0].toLowerCase();
-  const rest = p.slice(root.length).split("\\").filter(Boolean).map(escapeData).join("/");
-  return `https://vol-${drive}.sniptoss.example/${rest}`;
+  const host = /^[a-z]:/i.test(root) ? `vol-${root[0].toLowerCase()}` : "vol-root";
+  const rest = p.slice(root.length).split(path.sep).filter(Boolean).map(escapeData).join("/");
+  return `https://${host}.sniptoss.example/${rest}`;
 }
 
 /** The reverse: virtual host URL → disk path (used by tests to serve item files) */
 export function pathOfUrl(url: string): string | null {
   const u = new URL(url);
-  const m = /^vol-([a-z])\.sniptoss\.example$/.exec(u.hostname);
+  const m = /^vol-([a-z]|root)\.sniptoss\.example$/.exec(u.hostname);
   if (!m) return null;
-  return `${m[1].toUpperCase()}:\\${u.pathname.split("/").filter(Boolean).map(decodeURIComponent).join("\\")}`;
+  const parts = u.pathname.split("/").filter(Boolean).map(decodeURIComponent);
+  return m[1] === "root" ? `/${parts.join("/")}` : `${m[1].toUpperCase()}:\\${parts.join("\\")}`;
 }
 
 export class MockHost {
@@ -606,7 +614,7 @@ export class MockHost {
         skipped.push(`找不到文件或文件夹：${full}`);
         continue;
       }
-      if (full.split("\\").some((s) => [DATA_DIR, LEGACY_DATA_DIR].includes(s.toLowerCase()))) {
+      if (full.split(path.sep).some((s) => [DATA_DIR, LEGACY_DATA_DIR].includes(s.toLowerCase()))) {
         skipped.push(`此项属于批注数据（位于 ${DATA_DIR} 中），不能作为素材添加：${full}`);
         continue;
       }
@@ -651,7 +659,7 @@ export class MockHost {
   /** Same as Library.Covers: whether scanning folder would list p (no dot-prefixed or skipped folder on the way, and the file's kind is on) */
   private covers(folder: string, p: string): boolean {
     if (!inside(p, folder)) return false;
-    const parts = path.relative(norm(folder), norm(p)).split("\\");
+    const parts = path.relative(norm(folder), norm(p)).split(path.sep);
     let cur = norm(folder);
     for (let i = 0; i < parts.length; i++) {
       const name = parts[i];
@@ -793,7 +801,7 @@ export class MockHost {
   private inDataDir(home: string, rel: string): string {
     if (path.isAbsolute(rel)) throw new Error(`Relative path required: ${rel}`);
     const full = path.resolve(home, rel);
-    if (!full.toLowerCase().startsWith((path.join(home, DATA_DIR) + "\\").toLowerCase())) throw new Error(`Only files in ${DATA_DIR}/ can be written: ${rel}`);
+    if (!full.toLowerCase().startsWith((path.join(home, DATA_DIR) + path.sep).toLowerCase())) throw new Error(`Only files in ${DATA_DIR}/ can be written: ${rel}`);
     if (!existsSync(home)) throw new Error(`素材文件夹已不存在（可能已被删除、重命名或移动），批注未保存：${home}`);
     return full;
   }

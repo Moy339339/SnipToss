@@ -2,7 +2,11 @@
 // project's self-signed certificate when the build has it (see below), otherwise ad hoc.
 // Runs on macOS after `swift build -c release`, `npm run build` and build-resources.mjs:
 //   node app-mac/scripts/package-app.mjs <output folder> [build number]
-// Writes <output folder>/SnipToss.app and <output folder>/SnipToss-mac-<version>-<build>.zip
+// Writes <output folder>/SnipToss.app and <output folder>/SnipToss-mac-<version>-<build>.zip.
+// The version is the one the UI was built with: SNIPTOSS_UI_VERSION when set (a trial package: <package.json version>-beta.<build>, shown
+// as "Beta <build>"), otherwise the root package.json's. The bundle keeps it whole in SnipTossVersion (what appInfo reports, so the UI
+// finds its own version there); CFBundleShortVersionString is its x.y.z part and CFBundleVersion the build number, which macOS shows as
+// "1.0.0 (44)"
 
 import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -13,7 +17,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..", "..");
 const out = resolve(process.argv[2] ?? join(root, "app-mac", ".build", "package"));
 const build = process.argv[3] ?? "0";
-const version = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version;
+const version = process.env.SNIPTOSS_UI_VERSION || JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version;
+/** The x.y.z part: macOS expects only numbers in CFBundleShortVersionString */
+const shortVersion = version.replace(/-.*$/, "");
 
 /** The identifier macOS knows the app by (the screen recording permission is kept under it): never change it */
 const BUNDLE_ID = "io.github.moy339339.sniptoss";
@@ -66,8 +72,9 @@ const info = {
   CFBundleName: NAME,
   CFBundleDisplayName: NAME,
   CFBundlePackageType: "APPL",
-  CFBundleShortVersionString: version,
+  CFBundleShortVersionString: shortVersion,
   CFBundleVersion: build,
+  SnipTossVersion: version,
   CFBundleIconFile: NAME,
   LSMinimumSystemVersion: "14.0",
   LSApplicationCategoryType: "public.app-category.productivity",

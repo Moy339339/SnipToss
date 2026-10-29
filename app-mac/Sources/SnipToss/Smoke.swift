@@ -75,6 +75,8 @@ final class SmokeRun {
             title: document.title,
             text: (document.body ? document.body.innerText : '').slice(0, 400),
             libraryRows: document.querySelectorAll('.lib-row').length,
+            version: (document.querySelector('.app-version') || {}).textContent || '',
+            versionMismatch: !!document.querySelector('.app-version.is-mismatch'),
             earlierVersion: /earlier version/i.test(document.body ? document.body.innerText : ''),
             canvasMarks: /Canvas marks/.test(document.body ? document.body.innerText : ''),
             media: media ? { width: media.naturalWidth, height: media.naturalHeight, src: media.currentSrc.slice(0, 200) } : null,
@@ -213,8 +215,10 @@ final class SmokeRun {
         if let keyExperiment { result["keyExperiment"] = keyExperiment }
         result["menuBar"] = MenuReport.describe(NSApp.mainMenu)
         // Which bundle this is and whether the shell found its catalogs: a message in the language in use (the built-in text is English)
+        let info = Bundle.main.infoDictionary
         result["bundle"] = [
-            "id": Bundle.main.bundleIdentifier ?? "", "version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "",
+            "id": Bundle.main.bundleIdentifier ?? "", "version": info?["CFBundleShortVersionString"] as? String ?? "",
+            "build": info?["CFBundleVersion"] as? String ?? "", "fullVersion": info?["SnipTossVersion"] as? String ?? "",
             "about": ShellText.t("shell.menu.about", ["app": ShellText.t("brand.name")]),
         ]
         for (name, value) in SmokeNotes.all { result[name] = value }

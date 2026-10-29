@@ -321,6 +321,8 @@ export interface AppInfo {
   systemLanguage: string;
   /** When the app itself was built (ISO) */
   built: string;
+  /** The build number of a Mac package (CFBundleVersion): the version is then written "1.0.0 (44)" (versionWithBuild). Not sent on Windows */
+  build?: string;
   dotnet: string;
   webview2: string;
   /** OS and architecture, e.g. "Microsoft Windows 10.0.26200 (X64)" (used in diagnostic info) */

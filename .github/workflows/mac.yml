@@ -30,6 +30,11 @@ jobs:
 
       - run: npm ci
 
+      # A trial package is a beta of the version in package.json, numbered by the run: the UI is built with it (shown as Beta <run number>)
+      # and the package carries it (package-app.mjs), so the two match; the About page writes it the Mac way, x.y.z (run number)
+      - name: Version
+        run: echo "SNIPTOSS_UI_VERSION=$(node -p "require('./package.json').version.replace(/-.*/, '')")-beta.${{ github.run_number }}" >> "$GITHUB_ENV"
+
       # The web UI the shell hosts (packages/web/dist)
       - run: npm run build
 
@@ -55,7 +60,7 @@ jobs:
       - name: Smoke run (empty library)
         if: ${{ !cancelled() }}
         run: |
-          export SNIPTOSS_VERSION="$(node -p "require('./package.json').version")"
+          export SNIPTOSS_VERSION="$SNIPTOSS_UI_VERSION"
           export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
           export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-empty/settings.json"
           export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/empty"
@@ -84,7 +89,7 @@ jobs:
       - name: Smoke run (project with an image)
         if: ${{ !cancelled() }}
         run: |
-          export SNIPTOSS_VERSION="$(node -p "require('./package.json').version")"
+          export SNIPTOSS_VERSION="$SNIPTOSS_UI_VERSION"
           export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
           export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-project/settings.json"
           export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/project"
@@ -107,7 +112,7 @@ jobs:
       - name: Smoke run (first run, tour)
         if: ${{ !cancelled() }}
         run: |
-          export SNIPTOSS_VERSION="$(node -p "require('./package.json').version")"
+          export SNIPTOSS_VERSION="$SNIPTOSS_UI_VERSION"
           export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
           export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-tour/settings.json"
           export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/tour"
@@ -124,7 +129,7 @@ jobs:
       - name: Smoke run (keys, no main menu)
         if: ${{ !cancelled() }}
         run: |
-          export SNIPTOSS_VERSION="$(node -p "require('./package.json').version")"
+          export SNIPTOSS_VERSION="$SNIPTOSS_UI_VERSION"
           export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
           export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-keys-nomenu/settings.json"
           export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/keys-nomenu"
@@ -135,7 +140,7 @@ jobs:
       - name: Smoke run (keys, standard menus)
         if: ${{ !cancelled() }}
         run: |
-          export SNIPTOSS_VERSION="$(node -p "require('./package.json').version")"
+          export SNIPTOSS_VERSION="$SNIPTOSS_UI_VERSION"
           export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
           export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-keys/settings.json"
           export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/keys"
@@ -149,7 +154,7 @@ jobs:
       - name: Smoke run (capture layers)
         if: ${{ !cancelled() }}
         run: |
-          export SNIPTOSS_VERSION="$(node -p "require('./package.json').version")"
+          export SNIPTOSS_VERSION="$SNIPTOSS_UI_VERSION"
           export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
           export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-capture/settings.json"
           export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/capture"
@@ -252,7 +257,7 @@ jobs:
       - name: Smoke run (annotate)
         if: ${{ !cancelled() }}
         run: |
-          export SNIPTOSS_VERSION="$(node -p "require('./package.json').version")"
+          export SNIPTOSS_VERSION="$SNIPTOSS_UI_VERSION"
           export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
           export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-annotate/settings.json"
           export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/annotate"
@@ -343,11 +348,17 @@ jobs:
           node -e '
             const r = require(process.env.RUNNER_TEMP + "/smoke/package/result.json");
             const b = r.bundle || {};
-            const version = require("./package.json").version;
+            const page = r.page || {};
+            const version = process.env.SNIPTOSS_UI_VERSION;
+            const run = process.env.GITHUB_RUN_NUMBER;
             const problems = [];
             if (!r.ready) problems.push("the UI did not come up from the bundle");
             if (b.id !== "io.github.moy339339.sniptoss") problems.push("bundle id " + b.id);
-            if (b.version !== version) problems.push("bundle version " + b.version + ", package.json " + version);
+            // x.y.z for macOS, the run as the build number, and the whole version the UI was built with
+            if (b.version !== version.replace(/-.*$/, "")) problems.push("bundle version " + b.version + ", built as " + version);
+            if (b.build !== run) problems.push("bundle build " + b.build + ", run " + run);
+            if (b.fullVersion !== version) problems.push("SnipTossVersion " + b.fullVersion + ", built as " + version);
+            if (page.version !== "Beta " + run || page.versionMismatch) problems.push("version shown " + JSON.stringify(page.version) + (page.versionMismatch ? " (marked as not matching)" : ""));
             if (b.about !== "关于超级批注") problems.push("the catalogs in the bundle were not read: " + b.about);
             // The name Finder, the Dock and System Settings show on a Chinese system
             const strings = (language) => { try { return require("fs").readFileSync(process.env.RUNNER_TEMP + "/package/SnipToss.app/Contents/Resources/" + language + ".lproj/InfoPlist.strings", "utf8"); } catch { return ""; } };
@@ -402,4 +413,6 @@ jobs:
         with:
           name: webkit-e2e-results
           path: tests/e2e/.results-webkit
+          # The folder starts with a dot, and hidden files are left out unless asked for
+          include-hidden-files: true
           if-no-files-found: warn

@@ -33,6 +33,14 @@ export function versionLabel(v: string): string {
 /** Whether this is a beta */
 export const IS_BETA = /-beta\.\d+$/.test(APP_VERSION);
 
+/**
+ * The version as the "Version …" line of Settings → About writes it. A Mac package also has a build number (appInfo.build), and the
+ * version is then written the Mac way, as Finder's Get Info does: x.y.z (build), e.g. "1.0.0 (44)"; otherwise the whole version
+ */
+export function versionWithBuild(v: string, build?: string): string {
+  return build ? `${v.replace(/-.*$/, "")} (${build})` : v;
+}
+
 /** Stored as UTC (2026-10-16T00:42:00Z) and shown as local time (e.g. 10-16 01:42 at UTC+1) */
 export function shortTime(iso: string): string {
   const d = new Date(iso);

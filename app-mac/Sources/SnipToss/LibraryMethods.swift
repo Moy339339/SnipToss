@@ -130,10 +130,13 @@ func installLibraryMethods(
     // ---------- About this app ----------
 
     bridge.register("appInfo") { _ in
-        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+        let bundle = Bundle.main.infoDictionary
+        // The whole version the UI was built with (SnipTossVersion: 1.0.0-beta.44 for a trial package, package-app.mjs); older packages
+        // have only the x.y.z one
+        let version = bundle?["SnipTossVersion"] as? String ?? bundle?["CFBundleShortVersionString"] as? String
         // The notice is handed out once: not repeated when the page reloads
         let notice = startupNotice.take() ? settings.startupNotice : nil
-        return [
+        var info: [String: Any] = [
             // The UI marks the version in red when it differs from the one it was built with (root package.json)
             "version": version ?? environment["SNIPTOSS_VERSION"] ?? "0.0.0",
             "built": environment["SNIPTOSS_BUILT"] ?? "",
@@ -150,7 +153,10 @@ func installLibraryMethods(
             "settingsPath": AppPaths.settingsFile,
             "userName": NSUserName(),
             "platform": "mac",
-        ] as [String: Any]
+        ]
+        // The build number of the package: the About page writes the version the Mac way, "1.0.0 (44)"
+        if let build = bundle?["CFBundleVersion"] as? String { info["build"] = build }
+        return info
     }
 }
 

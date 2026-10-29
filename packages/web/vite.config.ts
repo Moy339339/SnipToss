@@ -2,8 +2,11 @@ import { readFileSync } from "node:fs";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 
-// The version has a single source: the root package.json (scripts/build-app.ps1 bumps it each time it builds the installed copy). The UI gets it at build time; the shell reads the same number from the csproj
-const { version } = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as { version: string };
+// The version has a single source: the root package.json (scripts/build-app.ps1 bumps it each time it builds the installed copy). The UI gets it at build time; the shell reads the same number from the csproj.
+// The Mac CI builds trial packages as betas of it, numbered by the run (SNIPTOSS_UI_VERSION = <version>-beta.<run>, shown as "Beta <run>"); the Mac package carries the same
+const version =
+  process.env.SNIPTOSS_UI_VERSION ||
+  (JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as { version: string }).version;
 
 /**
  * Content security policy: the UI runs only its own bundled scripts; items come from the virtual hosts the shell maps (like vol-e.sniptoss.example, see HostOf in app/MainWindow.cs;
