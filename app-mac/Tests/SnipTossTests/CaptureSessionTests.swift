@@ -106,27 +106,30 @@ final class CaptureSessionTests: SnipTestCase {
         XCTAssertEqual(guide.shown, 0)
         XCTAssertFalse(session.isOpen)
 
-        // The system shows its own question once only: from now on the guide says where to allow it
+        // The system shows its own question once only: from now on the guide says where to allow it. The system is still asked each time,
+        // which puts the app back on the list if it was removed from there
         startAndWait(session, "second")
-        XCTAssertEqual(access.requests, 1)
+        XCTAssertEqual(access.requests, 2)
         XCTAssertEqual(guide.shown, 1)
         XCTAssertEqual(access.settingsOpened, 0)
 
         guide.choose = true
         startAndWait(session, "third")
+        XCTAssertEqual(access.requests, 3)
         XCTAssertEqual(guide.shown, 2)
         XCTAssertEqual(access.settingsOpened, 1)
         XCTAssertEqual(session.overlayPanels.count, 0)
     }
 
-    func testTheSystemIsAskedOnlyOnceAcrossLaunches() {
+    func testTheGuideComesFromTheSecondTimeOnAcrossLaunches() {
         let first = FakeAccess()
-        startAndWait(CaptureSession(source: FakeSource(.failure(.noAccess)), access: first, guide: FakeGuide(), defaults: defaults), "first launch")
+        let firstGuide = FakeGuide()
+        startAndWait(CaptureSession(source: FakeSource(.failure(.noAccess)), access: first, guide: firstGuide, defaults: defaults), "first launch")
         let second = FakeAccess()
         let guide = FakeGuide()
         startAndWait(CaptureSession(source: FakeSource(.failure(.noAccess)), access: second, guide: guide, defaults: defaults), "second launch")
-        XCTAssertEqual(first.requests + second.requests, 1)
-        XCTAssertEqual(guide.shown, 1)
+        XCTAssertEqual([first.requests, second.requests], [1, 1])
+        XCTAssertEqual([firstGuide.shown, guide.shown], [0, 1])
     }
 
     // MARK: Failures and repeats

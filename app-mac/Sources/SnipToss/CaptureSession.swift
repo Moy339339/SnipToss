@@ -78,14 +78,14 @@ final class CaptureSession {
         }
     }
 
-    /// The first time the system is asked to put its own question to the user; afterwards the guide says where to allow it
+    /// The first time the system is asked to put its own question to the user; afterwards the guide says where to allow it.
+    /// The system is asked every time, not only the first: it asks the user only once, and otherwise the request does nothing but put the
+    /// app back on the Screen Recording list when it was removed from there (after which our own record of having asked is wrong)
     private func noAccess() {
-        if !defaults.bool(forKey: Self.requestedKey) {
-            defaults.set(true, forKey: Self.requestedKey)
-            access.request()
-        } else {
-            guide.show(openSettings: { [access] in access.openSettings() })
-        }
+        let askedBefore = defaults.bool(forKey: Self.requestedKey)
+        defaults.set(true, forKey: Self.requestedKey)
+        access.request()
+        if askedBefore { guide.show(openSettings: { [access] in access.openSettings() }) }
     }
 
     private func show(_ screens: [FrozenScreen]) {
