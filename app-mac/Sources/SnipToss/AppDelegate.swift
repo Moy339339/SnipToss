@@ -50,6 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         installStubMethods(into: bridge)
         installLibraryMethods(into: bridge, settings: settings)
         installScanMethods(into: bridge, settings: settings, homes: homes)
+        installNotesMethods(into: bridge, settings: settings, homes: homes)
         // Ask the library's volumes now, in the background, so the first scan finds the answers ready
         Volumes.prefetch(settings.library.map { $0.path })
         // Merge entries that another folder entry's scan already reaches (duplicates from adding a subfolder before its parent). Done before

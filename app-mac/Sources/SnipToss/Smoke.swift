@@ -55,6 +55,8 @@ final class SmokeRun {
     private let console: ConsoleCollector
     private let began = Date()
     private var finished = false
+    /// The picture taken the moment the tour card appeared (tour mode only)
+    private var firstShot: String?
     private let timeoutSeconds = Double(ProcessInfo.processInfo.environment["SNIPTOSS_SMOKE_TIMEOUT"] ?? "") ?? 60
 
     init(outDir: URL, web: WKWebView, bridge: BridgeHost, console: ConsoleCollector) {
@@ -76,10 +78,12 @@ final class SmokeRun {
         if finished { return }
         web.evaluateJavaScript(Self.readyScript) { [self] result, _ in
             if (result as? Bool) == true {
+                // The tour card fades in over a few frames: a picture the moment it exists shows what those first frames look like
+                if Self.mode == "tour" { snapshot("ui-first.png") { [self] shot in firstShot = shot } }
                 // The layout fades in over 160 ms and fonts may still be settling: wait before the picture
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [self] in capture(ready: true) }
             } else {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [self] in poll() }
+                DispatchQueue.main.asyncAfter(deadline: .now() + (Self.mode == "tour" ? 0.02 : 0.25)) { [self] in poll() }
             }
         }
     }
@@ -141,6 +145,7 @@ final class SmokeRun {
         if let page { result["page"] = page }
         if let laterPage { result["pageLater"] = laterPage }
         if let laterShot { result["snapshotLater"] = laterShot }
+        if let firstShot { result["snapshotFirst"] = firstShot }
         if let data = try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys]) {
             try? data.write(to: outDir.appendingPathComponent("result.json"))
             print(String(data: data, encoding: .utf8) ?? "")

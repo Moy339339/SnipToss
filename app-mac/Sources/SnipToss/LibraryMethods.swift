@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 typealias PendingOpensProvider = () -> (focus: String?, skipped: [String], relocated: [Library.Relocation])
 
 /// The bridge methods for settings and the library (docs/host-api.md, "Library" and "Settings, window, miscellaneous").
-/// Not here yet: `addDropped`, `pasteClipboard`, the notes methods, watching for changes.
+/// Not here yet: `addDropped`, `pasteClipboard`, watching for changes.
 /// `scan`, `missing`, `sha256` and `fileUrl` are in ScanMethods.swift
 func installLibraryMethods(
     into bridge: BridgeHost, settings: Settings,

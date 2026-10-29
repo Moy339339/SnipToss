@@ -3,7 +3,7 @@ import Foundation
 /// The bridge methods that look at items on disk: `scan`, `missing`, `sha256`, `fileUrl` (docs/host-api.md, "Library").
 /// Every question about a path on a volume goes through `Volumes` first: an unreachable network volume would otherwise hold a bridge
 /// thread for the system timeout.
-/// Not here yet: `readHomes`, the notes methods, `decodeImage`, `addDropped`, `pasteClipboard`, watching for changes
+/// Not here yet: `decodeImage`, `addDropped`, `pasteClipboard`, watching for changes. The notes methods are in NotesMethods.swift
 func installScanMethods(into bridge: BridgeHost, settings: Settings, homes: NotesHomes, hashes: HashCache = HashCache.shared) {
     bridge.register("scan") { params in
         let values = settings.current
@@ -163,7 +163,9 @@ func notesFileUrl(home: String, rel: String, homes: NotesHomes) throws -> String
     return MediaURL.string(for: full)
 }
 
-private func bridgeError(_ error: FileOperationError) -> BridgeError {
+/// The reply for a failed disk operation: the class of the POSIX error is what the page explains in its own language. Shared with the
+/// notes methods
+func bridgeError(_ error: FileOperationError) -> BridgeError {
     let code: String?
     switch error.code {
     case ENOENT, ENOTDIR: code = "notFound"
