@@ -8,17 +8,19 @@ import Foundation
 /// - Parameter startWatching: called with a notes folder when the shell should watch it for changes from outside: before it is read, and
 ///   after something was written in it (the folder `.sniptoss/annotations` only appears with the first note). Does nothing by default
 /// - Parameter lockWait: the longest a write waits for the lock of a notes file (tests pass a short one)
+/// - Parameter didWrite: called with the notes folder and the notes file when `writeAnnotation` has written it (inside the lock, so the
+///   watcher can tell the file as written from a later change); not called when the write was refused. Does nothing by default
 /// - Parameter settings: not read by these methods; accepted so the call looks like the one of `installScanMethods`
 func installNotesMethods(
     into bridge: BridgeHost, settings: Settings, homes: NotesHomes, lockWait: TimeInterval = FileLock.defaultWait,
-    startWatching: @escaping (String) -> Void = { _ in }
+    startWatching: @escaping (String) -> Void = { _ in }, didWrite: @escaping (String, String) -> Void = { _, _ in }
 ) {
     bridge.register("readHomes") { params in
         try readHomesReply(stringList(params, "homes"), homes: homes, startWatching: startWatching)
     }
 
     bridge.register("writeAnnotation") { params in
-        try writeAnnotationReply(params, homes: homes, lockWait: lockWait, startWatching: startWatching)
+        try writeAnnotationReply(params, homes: homes, lockWait: lockWait, startWatching: startWatching, didWrite: didWrite)
     }
 
     bridge.register("writeText") { params in
@@ -77,9 +79,10 @@ func readHomesReply(_ raw: [String], homes: NotesHomes, startWatching: (String) 
 /// `writeAnnotation`: writes a notes file only if the disk still holds the content the caller read. `expectSha256` in the
 /// parameters: absent means no comparison; null means the caller believes the file does not exist yet; a string is the SHA-256 of the
 /// content it read. When the comparison fails nothing is written and the current content comes back, for the page to merge by note id
-/// and write again
+/// and write again. `didWrite(home, file)` is called only for a write that happened
 func writeAnnotationReply(
-    _ params: Any?, homes: NotesHomes, lockWait: TimeInterval = FileLock.defaultWait, startWatching: (String) -> Void
+    _ params: Any?, homes: NotesHomes, lockWait: TimeInterval = FileLock.defaultWait, startWatching: (String) -> Void,
+    didWrite: (String, String) -> Void = { _, _ in }
 ) throws -> [String: Any] {
     let home = try homes.require(requiredString(params, "home"))
     let rel = try requiredString(params, "path")
@@ -89,7 +92,8 @@ func writeAnnotationReply(
     let check = fields?.keys.contains("expectSha256") ?? false
     let expect = fields?["expectSha256"] as? String
     let outcome = try mapped {
-        try NotesStore.writeIfUnchanged(full, text: text, check: check, expectSha256: expect, lockWait: lockWait)
+        try NotesStore.writeIfUnchanged(
+            full, text: text, check: check, expectSha256: expect, lockWait: lockWait, afterWrite: { didWrite(home, full) })
     }
     if !outcome.written {
         return ["written": false, "current": jsonOrNull(outcome.current), "seq": outcome.seq]

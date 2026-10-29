@@ -80,7 +80,9 @@ final class SmokeRun {
             if (result as? Bool) == true {
                 // The tour card fades in over a few frames: a picture the moment it exists shows what those first frames look like
                 if Self.mode == "tour" { snapshot("ui-first.png") { [self] shot in firstShot = shot } }
-                // The layout fades in over 160 ms and fonts may still be settling: wait before the picture
+                // The layout fades in over 160 ms and fonts may still be settling: wait before the picture. Anything with an entrance
+                // animation is photographed at least 0.6 s after it appears: `takeSnapshot` can catch the first frames half painted
+                // (the first picture of the tour card has body and buttons but no title), which is the snapshot call, not the page
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [self] in capture(ready: true) }
             } else {
                 DispatchQueue.main.asyncAfter(deadline: .now() + (Self.mode == "tour" ? 0.02 : 0.25)) { [self] in poll() }

@@ -96,9 +96,11 @@ enum NotesStore {
     /// SHA-256 of that version, nil when the caller believes the file does not exist yet. Otherwise nothing is written and the current
     /// content is handed back, and the caller merges and writes again (ADR-0005 item 2).
     /// The comparison and the write happen under the same lock the command line takes (`FileLock`): nobody can slip in between them.
-    /// The ordering number is taken inside the lock, when the content is fixed
+    /// The ordering number is taken inside the lock, when the content is fixed.
+    /// `afterWrite` is called inside the lock right after the file was replaced, and not at all when the write was refused
     static func writeIfUnchanged(
-        _ full: String, text: String, check: Bool, expectSha256: String?, lockWait: TimeInterval = FileLock.defaultWait
+        _ full: String, text: String, check: Bool, expectSha256: String?, lockWait: TimeInterval = FileLock.defaultWait,
+        afterWrite: () -> Void = {}
     ) throws -> WriteOutcome {
         try FileLock.withLock(full, wait: lockWait) { () throws -> WriteOutcome in
             if check {
@@ -106,6 +108,7 @@ enum NotesStore {
                 if textSha256(current) != expectSha256 { return WriteOutcome(written: false, current: current, seq: observe()) }
             }
             try AtomicFile.write(full, Data(text.utf8))
+            afterWrite()
             return WriteOutcome(written: true, current: nil, seq: observe())
         }
     }

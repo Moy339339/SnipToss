@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 typealias PendingOpensProvider = () -> (focus: String?, skipped: [String], relocated: [Library.Relocation])
 
 /// The bridge methods for settings and the library (docs/host-api.md, "Library" and "Settings, window, miscellaneous").
-/// Not here yet: `addDropped`, `pasteClipboard`, watching for changes.
+/// Not here yet: `addDropped`, `pasteClipboard`. The item being viewed (`librarySelect`) is what ChangeWatch.swift checks every second.
 /// `scan`, `missing`, `sha256` and `fileUrl` are in ScanMethods.swift
 func installLibraryMethods(
     into bridge: BridgeHost, settings: Settings,
