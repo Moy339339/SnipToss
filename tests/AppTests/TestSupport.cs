@@ -17,6 +17,17 @@ static class TestSupport
         Log.Dir = Path.Combine(Path.GetTempPath(), "app-tests-logs");
         Locale.Use(Locale.Source);
     }
+
+    /// <summary>A file under tests/golden/ (shared with the UI, the CLI or the Mac shell), found by walking up from the test binaries</summary>
+    internal static string GoldenFile(string name)
+    {
+        for (var d = new DirectoryInfo(AppContext.BaseDirectory); d is not null; d = d.Parent)
+        {
+            var file = Path.Combine(d.FullName, "tests", "golden", name);
+            if (File.Exists(file)) return file;
+        }
+        throw new InvalidOperationException($"tests/golden/{name} not found");
+    }
 }
 
 /// <summary>One temp directory per test, deleted afterwards</summary>

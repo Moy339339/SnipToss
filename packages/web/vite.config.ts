@@ -6,11 +6,12 @@ import react from "@vitejs/plugin-react";
 const { version } = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as { version: string };
 
 /**
- * Content security policy: the UI runs only its own bundled scripts; items come from the virtual hosts the shell maps (like vol-e.sniptoss.example, see HostOf in app/MainWindow.cs).
+ * Content security policy: the UI runs only its own bundled scripts; items come from the virtual hosts the shell maps (like vol-e.sniptoss.example, see HostOf in app/MainWindow.cs;
+ * the Mac shell serves them from sniptoss://media instead, since WKWebView cannot map an https host).
  * Added only to the built page: the dev server (npm run dev:web) needs inline scripts for hot reload.
  * Styles need 'unsafe-inline': the page's html element carries an inline background color (no white flash at startup), and the marks layer uses SVG with style attributes
  */
-const MATERIAL_HOSTS = "https://*.sniptoss.example";
+const MATERIAL_HOSTS = "https://*.sniptoss.example sniptoss://media";
 const CSP = [
   "default-src 'self'",
   "script-src 'self'",

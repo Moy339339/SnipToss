@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using SnipToss.App;
 
 namespace AppTests;
@@ -31,6 +32,22 @@ public class DiagnosticsTests
         var user = Environment.UserName;
         var text = Crash.Scrub($@"D:\Users\{user}\作品\a.png 和 E:\{user}");
         Assert.Equal(@"D:\Users\<user>\作品\a.png 和 E:\<user>", text);
+    }
+
+    /// <summary>The same cases the Mac shell's Scrub runs (tests/golden/scrub.json), so both shells take out the same things</summary>
+    [Fact]
+    public void Scrub_matches_every_case_in_the_shared_golden_file()
+    {
+        var golden = JsonNode.Parse(File.ReadAllText(TestSupport.GoldenFile("scrub.json")))!;
+        var token = (string)golden["homeToken"]!["windows"]!;
+        var cases = golden["cases"]!.AsArray();
+        Assert.NotEmpty(cases);
+        foreach (var c in cases)
+        {
+            var expected = ((string)c!["expected"]!).Replace("{home}", token, StringComparison.Ordinal);
+            var actual = Crash.Scrub((string)c["text"]!, (string)c["home"]!, (string)c["user"]!, token);
+            Assert.True(expected == actual, $"{(string)c["name"]!}: expected \"{expected}\", got \"{actual}\"");
+        }
     }
 
     [Fact]

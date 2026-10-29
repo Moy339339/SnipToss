@@ -4,6 +4,13 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 The annotation data format has its own version (`"schema": "sniptoss/5"`); its history is in [docs/annotation-format.md](docs/annotation-format.md).
 
+## [Unreleased]
+
+### Fixed
+
+- Diagnostic info, logs and the diagnostics package take the user folder out more carefully: another account whose name starts with yours (`C:\Users\Anna` when you are `Ann`) is no longer mangled, and a user name followed by a quote or a period in an error message is taken out too.
+- The write lock that a crashed command line can leave in a project's `.sniptoss/` folder no longer holds the computer's name, only a short hash of it (computer names often carry their owner's name).
+
 ## [1.0.0] — 2026-10-29
 
 First public release.

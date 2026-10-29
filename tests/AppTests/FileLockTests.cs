@@ -29,6 +29,45 @@ public class FileLockTests
     }
 
     [Fact]
+    public async Task The_lock_names_the_computer_by_a_hash_of_its_name_that_the_CLI_and_the_Mac_shell_compute_the_same_way()
+    {
+        foreach (var c in JsonNode.Parse(File.ReadAllText(TestSupport.GoldenFile("lock-machine.json")))!["cases"]!.AsArray())
+            Assert.Equal((string)c!["id"]!, FileLock.MachineId((string)c["name"]!));
+
+        using var dir = new TempDir();
+        var file = dir.File("a.json");
+        using (await FileLock.AcquireAsync(file))
+        {
+            using var read = new FileStream(FileLock.PathFor(file), FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            var text = new StreamReader(read).ReadToEnd();
+            Assert.Equal(FileLock.MachineId(Environment.MachineName), text.Split(' ')[2]);
+            Assert.DoesNotContain(Environment.MachineName, text, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Lock_from_this_computer_whose_process_is_gone_is_reclaimed_at_once_with_the_hash_or_the_plain_name(bool hashed)
+    {
+        // The plain name: a lock written before the hash was used
+        using var dir = new TempDir();
+        var file = dir.File("a.json");
+        int deadPid;
+        using (var p = Process.Start(new ProcessStartInfo("cmd.exe", "/c exit") { CreateNoWindow = true, UseShellExecute = false })!)
+        {
+            p.WaitForExit();
+            deadPid = p.Id;
+        }
+        var machine = hashed ? FileLock.MachineId(Environment.MachineName) : Environment.MachineName.ToLowerInvariant();
+        File.WriteAllText(FileLock.PathFor(file), $"{deadPid} {DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()} {machine}");
+
+        var watch = Stopwatch.StartNew();
+        using (await FileLock.AcquireAsync(file, TimeSpan.FromSeconds(3))) { }
+        Assert.True(watch.ElapsedMilliseconds < 1000, $"Waited {watch.ElapsedMilliseconds} ms");
+    }
+
+    [Fact]
     public async Task Second_writer_gets_the_lock_only_after_the_first_releases_it()
     {
         using var dir = new TempDir();

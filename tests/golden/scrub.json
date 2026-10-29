@@ -1,0 +1,181 @@
+{
+  "$comment": "Taking personal information out of text that can end up in a public issue report (logs, error windows, diagnostics). Checked by tests/AppTests/DiagnosticsTests.cs (Crash.Scrub) and by the Mac shell's Scrub tests: every case runs on both sides, whatever path style it uses. In expected, {home} stands for each side's token for the home folder (homeToken).",
+  "homeToken": { "windows": "%USERPROFILE%", "mac": "~" },
+  "cases": [
+    {
+      "name": "home folder inside a path",
+      "home": "C:\\Users\\Ann",
+      "user": "Ann",
+      "text": "Could not find file 'C:\\Users\\Ann\\Pictures\\a.png'.",
+      "expected": "Could not find file '{home}\\Pictures\\a.png'."
+    },
+    {
+      "name": "home folder in another case",
+      "home": "C:\\Users\\Ann",
+      "user": "Ann",
+      "text": "c:\\users\\ANN\\settings.json",
+      "expected": "{home}\\settings.json"
+    },
+    {
+      "name": "home folder in quotes",
+      "home": "C:\\Users\\Ann",
+      "user": "Ann",
+      "text": "Access to the path 'C:\\Users\\Ann' is denied.",
+      "expected": "Access to the path '{home}' is denied."
+    },
+    {
+      "name": "home folder at the end",
+      "home": "C:\\Users\\Ann",
+      "user": "Ann",
+      "text": "Settings: C:\\Users\\Ann",
+      "expected": "Settings: {home}"
+    },
+    {
+      "name": "home folder more than once",
+      "home": "C:\\Users\\Ann",
+      "user": "Ann",
+      "text": "C:\\Users\\Ann\\a.png; C:\\Users\\Ann\\b.png",
+      "expected": "{home}\\a.png; {home}\\b.png"
+    },
+    {
+      "name": "home folder in an extended-length path",
+      "home": "C:\\Users\\Ann",
+      "user": "Ann",
+      "text": "\\\\?\\C:\\Users\\Ann\\a.png",
+      "expected": "\\\\?\\{home}\\a.png"
+    },
+    {
+      "name": "another account whose name starts with the user name is left alone",
+      "home": "C:\\Users\\Ann",
+      "user": "Ann",
+      "text": "C:\\Users\\Anna\\a.png and C:\\Users\\Ann_backup\\b.png",
+      "expected": "C:\\Users\\Anna\\a.png and C:\\Users\\Ann_backup\\b.png"
+    },
+    {
+      "name": "user name as a folder on another drive",
+      "home": "C:\\Users\\Ann",
+      "user": "Ann",
+      "text": "D:\\Users\\Ann\\work\\a.png",
+      "expected": "D:\\Users\\<user>\\work\\a.png"
+    },
+    {
+      "name": "user name in a path with forward slashes",
+      "home": "C:\\Users\\Ann",
+      "user": "Ann",
+      "text": "file:///C:/Users/Ann/a.png",
+      "expected": "file:///C:/Users/<user>/a.png"
+    },
+    {
+      "name": "user name at the end of a line",
+      "home": "C:\\Users\\Ann",
+      "user": "Ann",
+      "text": "E:\\Ann\nnext line",
+      "expected": "E:\\<user>\nnext line"
+    },
+    {
+      "name": "user name folder in quotes",
+      "home": "C:\\Users\\Ann",
+      "user": "Ann",
+      "text": "'D:\\Ann' is read-only",
+      "expected": "'D:\\<user>' is read-only"
+    },
+    {
+      "name": "user name as a file name",
+      "home": "C:\\Users\\Ann",
+      "user": "Ann",
+      "text": "D:\\notes\\Ann.txt",
+      "expected": "D:\\notes\\<user>.txt"
+    },
+    {
+      "name": "user name inside a longer folder name is left alone",
+      "home": "C:\\Users\\Ann",
+      "user": "Ann",
+      "text": "D:\\Annabel\\a.png and D:\\Ann-old\\b.png",
+      "expected": "D:\\Annabel\\a.png and D:\\Ann-old\\b.png"
+    },
+    {
+      "name": "user name outside a path is left alone",
+      "home": "C:\\Users\\Ann",
+      "user": "Ann",
+      "text": "Ann wrote this",
+      "expected": "Ann wrote this"
+    },
+    {
+      "name": "Mac home folder",
+      "home": "/Users/ann",
+      "user": "ann",
+      "text": "/Users/ann/Desktop/a.png",
+      "expected": "{home}/Desktop/a.png"
+    },
+    {
+      "name": "Mac home folder in another case",
+      "home": "/Users/ann",
+      "user": "ann",
+      "text": "/USERS/Ann/Library/Logs",
+      "expected": "{home}/Library/Logs"
+    },
+    {
+      "name": "Mac home folder in a file URL",
+      "home": "/Users/ann",
+      "user": "ann",
+      "text": "file:///Users/ann/a.png",
+      "expected": "file://{home}/a.png"
+    },
+    {
+      "name": "Mac user name on an external drive",
+      "home": "/Users/ann",
+      "user": "ann",
+      "text": "/Volumes/Disk/Users/ann/a.png",
+      "expected": "/Volumes/Disk/Users/<user>/a.png"
+    },
+    {
+      "name": "regex characters in the user name are literal",
+      "home": "C:\\Users\\a.b",
+      "user": "a.b",
+      "text": "D:\\axb\\f and D:\\a.b\\f",
+      "expected": "D:\\axb\\f and D:\\<user>\\f"
+    },
+    {
+      "name": "user name with a space",
+      "home": "C:\\Users\\Ann Lee",
+      "user": "Ann Lee",
+      "text": "D:\\Ann Lee\\a.png",
+      "expected": "D:\\<user>\\a.png"
+    },
+    {
+      "name": "non-ASCII user name in another case",
+      "home": "C:\\Users\\Zoë",
+      "user": "Zoë",
+      "text": "C:\\USERS\\ZOË\\a.png and D:\\ZOË\\b.png",
+      "expected": "{home}\\a.png and D:\\<user>\\b.png"
+    },
+    {
+      "name": "CJK user name",
+      "home": "C:\\Users\\张三",
+      "user": "张三",
+      "text": "D:\\张三\\a.png and D:\\张三丰\\b.png",
+      "expected": "D:\\<user>\\a.png and D:\\张三丰\\b.png"
+    },
+    {
+      "name": "a root as the home folder is ignored",
+      "home": "/",
+      "user": "ann",
+      "text": "/tmp/a.png and /home/ann/b.png",
+      "expected": "/tmp/a.png and /home/<user>/b.png"
+    },
+    {
+      "name": "a drive root as the home folder is ignored",
+      "home": "C:\\",
+      "user": "ann",
+      "text": "C:\\tmp\\a.png",
+      "expected": "C:\\tmp\\a.png"
+    },
+    {
+      "name": "no user name",
+      "home": "/Users/ann",
+      "user": "",
+      "text": "/Volumes/Disk/ann/a.png",
+      "expected": "/Volumes/Disk/ann/a.png"
+    }
+  ]
+}

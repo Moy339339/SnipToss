@@ -11,6 +11,8 @@ interface WebViewBridge {
   /** Can pass File objects along with the message, so the shell can get the real paths (for drag and drop) */
   postMessageWithAdditionalObjects(message: unknown, objects: ArrayLike<unknown>): void;
   addEventListener(type: "message", listener: (event: { data: unknown }) => void): void;
+  /** Set by the Mac shell's script on the object it defines; WebView2's own object has none, which means Windows */
+  platform?: string;
 }
 
 declare global {
@@ -227,6 +229,10 @@ interface Methods {
   windowState: [void, WindowState];
   /** The self-drawn title bar: the top edge, top-left or top-right corner was pressed, handing resizing over to the system */
   windowResize: [{ edge: "top" | "topleft" | "topright" }, void];
+  /** Mac: a press on the blank part of the title strip starts moving the window (the page cannot ask for it with app-region, as WebView2 pages can) */
+  windowDrag: [void, void];
+  /** Mac: a double click on the blank part of the title strip does what the system setting for the title bar says (zoom or minimize) */
+  windowZoom: [void, void];
   /** Screen Capture (the shell's app/Capture): starts from the button in the window and hides this window first */
   captureStart: [void, void];
   captureSettings: [void, CaptureSettings];
@@ -394,6 +400,9 @@ webview?.addEventListener("message", ({ data }) => {
 });
 
 export const inHost = webview !== undefined;
+
+/** Which shell hosts the page. Known at once (before any call), so the error page can use it too */
+export const platform: "windows" | "mac" = webview?.platform === "mac" ? "mac" : "windows";
 
 /**
  * How long without a reply from the shell counts as no response (ms). Opening dialogs and capturing wait for the user and have no limit;

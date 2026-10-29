@@ -11,11 +11,23 @@
 超级批注是 Windows 桌面程序，用来审阅 Claude Code、Codex 等生成的素材：用图钉、矩形、画笔或箭头标出要改的位置，写下修改要求，
 批注的**内容、位置、时间点**和**标出位置的截图**都以普通文件保存在素材所在项目的 `.sniptoss/` 文件夹中。能读本机文件的 AI agent 直接从那里读取，按意见修改素材。
 
-网页、PDF、PPT 将陆续支持。
+网页、PDF、PPT 将陆续支持；Mac 版正在开发。
 
-![超级批注：在 AI 生成的落地页上写了三条批注，右边批注栏列着](docs/images/main-window.zh-CN.png)
+![超级批注窗口：打开着一张 AI 生成的活动传单，画面上有三个带编号的标记，右侧批注栏列着对应的三条批注。](docs/images/hero.zh-CN.png)
 
 ## 功能
+
+![动图：在 AI 生成的示例落地页上依次画出矩形、箭头、图钉和两笔画笔，每处都写了批注，列在右边的批注栏里。](docs/images/feature-marking.zh-CN.webp)
+
+![动图：视频里一个时刻写了一条批注，另一个时刻画了一个矩形；进度条上每条带时间的批注都有标记。](docs/images/feature-video.zh-CN.webp)
+
+![动图：截图批注盖在一个网页上，框选区域、画矩形和箭头并写批注，最后得到下方附着批注的一张图。](docs/images/feature-capture.zh-CN.webp)
+
+![三栏：写了批注的 AI 生成示例网页、AI 读取的 REVIEW.md 文字、按批注修改后的网页。](docs/images/feature-handoff.zh-CN.png)
+
+![「复制成图片」生成的三张图，每张是截图加下方的一条批注。](docs/images/feature-copy-images.zh-CN.png)
+
+![批注栏的日语、德语、俄语界面，以及 11 种界面语言的名称。](docs/images/feature-languages.zh-CN.png)
 
 - **图片和视频**：PNG、JPEG、WebP、GIF、SVG、BMP、AVIF；MP4、WebM、MOV、M4V。在「设置 → 高级 → 更多格式」中开启后，文件夹和右键菜单还支持 TIFF、HEIC、ICO、APNG、JFIF、MKV（单独打开的文件不受此限）。HEIC 需要 Microsoft Store 里的「HEIF 图像扩展」和「HEVC 视频扩展」。视频批注对应某一时刻或一段时间，可逐帧查看。
 - **AI 读得懂的批注**：`.sniptoss/REVIEW.md` 是全部待处理批注的文字汇总（位置换算成像素、时间写成 `mm:ss.mmm`），`.sniptoss/annotations/*.json` 是结构化数据，`.sniptoss/snapshots/` 是每条批注一张截图。格式有文档、有版本号：[docs/annotation-format.zh-CN.md](docs/annotation-format.zh-CN.md)。
@@ -52,7 +64,7 @@ scoop install moygoldenage/sniptoss
 ## 把批注交给 AI
 
 1. 在超级批注里打开素材所在的文件夹，写批注，写完即自动保存。
-2. 按「复制成文字」（`Ctrl+Shift+A`），粘贴到 Claude Code 或 Codex 的对话里。AI 读取 `.sniptoss/REVIEW.md` 和截图，修改文件。
+2. 按「复制成文字」（`Ctrl+Shift+A`），粘贴到 Claude Code 或 Codex 的对话里。粘贴的文字里有每条批注的内容、位置和截图路径，AI 查看截图后修改文件。AI 也可以自己读 `.sniptoss/REVIEW.md`，里面列着全部待处理的批注。
 3. 回到超级批注查看结果（文件改动后会自动重新载入），把批注标记为已改。
 
 复制范围：勾选了批注时复制勾选的；没勾选时复制批注栏中列出的全部待处理批注。右键单击某条批注、画面或素材栏中的某一行，只复制那一条 / 那一份 / 那一行。

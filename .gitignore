@@ -24,3 +24,11 @@ playwright-report/
 # Files shared into the sandbox, and the results, when testing the installer there (tests/sandbox/run.ps1)
 tests/sandbox/.run/
 tests/sandbox/.cache/
+# Mac shell (app-mac): Finder and Xcode leftovers, SwiftPM build output, and signing material that must never be committed
+.DS_Store
+app-mac/.build/
+app-mac/.swiftpm/
+xcuserdata/
+*.p12
+*.cer
+*.mobileprovision

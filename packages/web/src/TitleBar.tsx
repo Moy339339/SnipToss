@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { IntlContext, useIntl } from "react-intl";
-import { call, type WindowAction, type WindowState } from "./host";
+import { call, platform, type WindowAction, type WindowState } from "./host";
 import { keycaps, prettyKeys } from "./hotkey";
 import { versionLabel } from "./brand";
 import { CaptureIcon, ChevronIcon, UpdateIcon } from "./icons";
@@ -16,6 +16,18 @@ export interface CaptureControls {
   start: () => void;
   setHide: (hide: boolean) => void;
   openSettings: () => void;
+}
+
+/** What a press on the strip is not about: controls and menu names keep their own presses */
+const STRIP_CONTROLS = "button, a, input, [role=menuitem], .menubar-item";
+
+/**
+ * Mac: the blank part of the strip is the title bar, but a WKWebView page cannot ask the system to drag the window (no app-region), so a
+ * press there asks the shell to start moving it, and a double click asks it to zoom (or minimize, as the system setting says)
+ */
+function stripPress(e: React.MouseEvent<HTMLElement>) {
+  if (e.button !== 0 || (e.target as HTMLElement).closest(STRIP_CONTROLS)) return;
+  void call(e.detail === 2 ? "windowZoom" : "windowDrag").catch(() => {});
 }
 
 /**
@@ -34,12 +46,18 @@ export function TitleBar(props: {
   const intl = useIntl();
   const { win, onWindow, capture } = props;
   const keys = keycaps(prettyKeys(capture.hotkey), (id) => intl.formatMessage({ id }));
-  const resizable = !win.maximized && !win.fullscreen;
+  const mac = platform === "mac";
+  // On the Mac the system draws the three window buttons (at the left, over this strip) and resizes the window
+  const resizable = !mac && !win.maximized && !win.fullscreen;
   const resize = (edge: "top" | "topleft" | "topright") => (e: React.PointerEvent) => {
     if (e.button === 0) void call("windowResize", { edge }).catch(() => {});
   };
   return (
-    <div className={`titlebar${win.fullscreen ? " is-fullscreen" : ""}`}>
+    <div
+      className={`titlebar${win.fullscreen ? " is-fullscreen" : ""}${mac ? " is-mac" : ""}`}
+      role="presentation"
+      onMouseDown={mac ? stripPress : undefined}
+    >
       <MenuBar menus={props.menus} />
       {/* Screen Capture does not belong to any one item but to the whole app, so it sits at the right of the title bar (next to the window buttons, present whichever item is open).
           A split button: the left part captures as configured, and the check in the small arrow's menu decides whether to hide this window
@@ -79,7 +97,7 @@ export function TitleBar(props: {
           ]}
         />
       </div>
-      <WindowButtons win={win} onWindow={onWindow} />
+      {!mac && <WindowButtons win={win} onWindow={onWindow} />}
       {resizable && (
         <>
           <div className="win-resize is-top" onPointerDown={resize("top")} />
@@ -165,10 +183,15 @@ export function BareTitleBar() {
     void call("window", { action })
       .then(setWin)
       .catch(() => {});
+  const mac = platform === "mac";
   return (
-    <div className={`titlebar${win.fullscreen ? " is-fullscreen" : ""}`}>
+    <div
+      className={`titlebar${win.fullscreen ? " is-fullscreen" : ""}${mac ? " is-mac" : ""}`}
+      role="presentation"
+      onMouseDown={mac ? stripPress : undefined}
+    >
       <div className="titlebar-fill" />
-      <WindowButtons win={win} onWindow={onWindow} />
+      {!mac && <WindowButtons win={win} onWindow={onWindow} />}
     </div>
   );
 }

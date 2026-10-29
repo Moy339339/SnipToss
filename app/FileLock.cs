@@ -1,12 +1,13 @@
 using System.Diagnostics;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace SnipToss.App;
 
 /// <summary>
 /// Cross-process write lock (docs/adr/0005-write-protocol.md, "Lock"): a .&lt;file name&gt;.lock next to the notes file, acquired by creating it exclusively,
-/// containing "process id, time, computer name", and deleted when done. The CLI (withFileLock in packages/cli/src/fs-store.ts) uses the same name and the same rules,
+/// containing "process id, time, computer id" (MachineId), and deleted when done. The CLI (withFileLock in packages/cli/src/fs-store.ts) uses the same name and the same rules,
 /// so when the UI, the CLI and several agents write the same notes file at once they take turns, and nobody can slip in between the pre-write comparison and the write.
 /// Before, only the pre-write comparison existed: someone getting in between the compare and the swap (writing the temp file and flushing take tens of milliseconds) would overwrite what another had just written.
 /// The lock created here is DeleteOnClose, so the system removes it even if the process crashes; for one the CLI left behind after a crash, check whether the writing process is still alive and how long it has been untouched
@@ -19,6 +20,16 @@ static class FileLock
     static readonly TimeSpan Stale = TimeSpan.FromSeconds(10);
     /// <summary>Creating keeps being refused (access denied) for this long: stop waiting, the folder isn't writable. Someone else's lock being deleted is refused too, but only for a blink</summary>
     static readonly TimeSpan DeniedLimit = TimeSpan.FromSeconds(1);
+
+    /// <summary>
+    /// What the lock says about the computer: the first 16 hex digits of the SHA-256 of the lowercased name, not the name itself. A lock the CLI leaves
+    /// behind after a crash stays in the project folder, and computer names often carry the owner's name; the hash still tells this computer from
+    /// another one. The CLI (machineId in fs-store.ts) and the Mac shell compute the same value (tests/golden/lock-machine.json)
+    /// </summary>
+    internal static string MachineId(string name) =>
+        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(name.ToLowerInvariant())))[..16];
+
+    static readonly string Machine = MachineId(Environment.MachineName);
 
     public static string PathFor(string file)
     {
@@ -38,7 +49,7 @@ static class FileLock
             try
             {
                 var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read | FileShare.Delete, 64, FileOptions.DeleteOnClose);
-                stream.Write(Encoding.UTF8.GetBytes($"{Environment.ProcessId} {DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()} {Environment.MachineName}"));
+                stream.Write(Encoding.UTF8.GetBytes($"{Environment.ProcessId} {DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()} {Machine}"));
                 stream.Flush();
                 return stream;
             }
@@ -69,7 +80,8 @@ static class FileLock
             var parts = text.Split(' ');
             var pid = int.TryParse(parts[0], out var p) ? p : 0;
             // Written by another computer (the item is on a network drive): the process id belongs to that computer and can't be checked here, so only look at how long it has been untouched
-            var here = parts.Length < 3 || string.Equals(parts[2], Environment.MachineName, StringComparison.OrdinalIgnoreCase);
+            // (the plain name: a lock written before the hash was used)
+            var here = parts.Length < 3 || parts[2] == Machine || string.Equals(parts[2], Environment.MachineName, StringComparison.OrdinalIgnoreCase);
             if (here && pid > 0 && !Alive(pid)) return text;
             return DateTime.UtcNow - File.GetLastWriteTimeUtc(path) > Stale ? text : null;
         }
