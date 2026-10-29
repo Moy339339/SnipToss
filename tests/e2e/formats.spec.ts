@@ -3,7 +3,7 @@
 // The test files are in fixtures/formats (not kept in the test project because other tests count the items in it);
 // the ones needed are copied into this test's project
 
-import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test, type App } from "./harness";
@@ -23,11 +23,12 @@ function put(app: App, ...names: string[]) {
   app.host.prefs = { ...app.host.prefs, moreFormats: true };
 }
 
-const notes = (app: App, file: string) =>
-  JSON.parse(readFileSync(join(app.project, ".sniptoss", "annotations", file), "utf8")) as {
-    material: { width?: number; height?: number };
-    annotations: { body: string; snapshot?: string }[];
-  };
+type NotesFile = { material: { width?: number; height?: number }; annotations: { body: string; snapshot?: string }[] };
+/** A new item's notes file; empty until the first save reaches disk (expect.poll does not retry a callback that throws) */
+const notes = (app: App, file: string): NotesFile => {
+  const path = join(app.project, ".sniptoss", "annotations", file);
+  return existsSync(path) ? (JSON.parse(readFileSync(path, "utf8")) as NotesFile) : { material: {}, annotations: [] };
+};
 const media = (app: App) => app.media();
 const at = (box: { x: number; y: number; width: number; height: number }, fx: number, fy: number) =>
   [box.x + box.width * fx, box.y + box.height * fy] as const;
