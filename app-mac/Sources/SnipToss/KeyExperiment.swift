@@ -48,7 +48,7 @@ final class KeyExperiment: NSObject {
               window.__keys = [];
               window.__prevent = '';
               window.addEventListener('keydown', (e) => {
-                window.__keys.push(e.key + (e.metaKey ? ' meta' : '));
+                window.__keys.push(e.key + (e.metaKey ? ' meta' : ''));
                 if (window.__prevent && e.key === window.__prevent) e.preventDefault();
               }, true);
               document.getElementById('probe-a').focus();
