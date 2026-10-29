@@ -2,7 +2,18 @@ import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useSta
 import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 import { CATEGORIES, DATA_DIR, type MaterialKind } from "@sniptoss/core";
-import { APP_VERSION, AUTHOR, HOMEPAGE, IS_BETA, LICENSE_NAME, LICENSE_URL, shortTime, UI_BUILT, versionLabel } from "./brand";
+import {
+  APP_VERSION,
+  AUTHOR,
+  HOMEPAGE,
+  IS_BETA,
+  LICENSE_NAME,
+  LICENSE_URL,
+  shortTime,
+  UI_BUILT,
+  versionLabel,
+  versionWithBuild,
+} from "./brand";
 import { KeepPunctuation } from "./KeepPunctuation";
 import { call, homeJoin, platform, type AppInfo, type CaptureSettings, type HostError } from "./host";
 import { ConfirmDialog } from "./Confirm";
@@ -954,7 +965,7 @@ function About(props: { onNotify: (t: string) => void; onNotices: () => void }) 
         label={`${t("brand.name")} ${versionLabel(APP_VERSION)}${IS_BETA ? t("settings.about.beta") : ""}`}
         desc={
           <>
-            {t("settings.about.version", { version: APP_VERSION })}
+            {t("settings.about.version", { version: versionWithBuild(APP_VERSION, info?.build) })}
             {" · "}
             {t("settings.about.uiBuilt", { time: shortTime(UI_BUILT) })}
             {" · "}

@@ -132,8 +132,11 @@ export function NoteLine({ note, depth }: { note: FolderNote; depth: number }) {
 export function VersionTag({ info }: { info?: AppInfo }) {
   const intl = useIntl();
   const mismatch = !!info && info.version !== APP_VERSION;
+  const name = `${intl.formatMessage({ id: "brand.name" })} ${versionLabel(APP_VERSION)}${IS_BETA ? intl.formatMessage({ id: "settings.about.beta" }) : ""}`;
   const title = [
-    `${intl.formatMessage({ id: "brand.name" })} ${versionLabel(APP_VERSION)}${IS_BETA ? intl.formatMessage({ id: "settings.about.beta" }) : ""} · ${intl.formatMessage({ id: "settings.about.version" }, { version: APP_VERSION })}`,
+    // A Mac package's build number is in the label already ("Beta 45") and again in the app's line below: its "Version 1.0.0 (45)" is on
+    // the About page only, where Finder's Get Info has it too
+    info?.build ? name : `${name} · ${intl.formatMessage({ id: "settings.about.version" }, { version: APP_VERSION })}`,
     intl.formatMessage({ id: "settings.about.uiBuilt" }, { time: shortTime(UI_BUILT) }),
     info ? intl.formatMessage({ id: "library.version.shell" }, { version: versionLabel(info.version), time: shortTime(info.built) }) : "",
     mismatch ? intl.formatMessage({ id: "app.version.mismatchHint" }) : "",

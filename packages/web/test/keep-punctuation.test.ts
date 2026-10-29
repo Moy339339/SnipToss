@@ -38,6 +38,16 @@ describe("punctuationRuns", () => {
       expect(punctuationRuns(text)).toEqual([{ kind: "text", text }]);
   });
 
+  it("a name that starts with a dot, after a space or at the start, is kept whole", () => {
+    expect(runs("（各项目的 .sniptoss 文件夹）")).toBe("[（各]项目的 [.sniptoss] 文件[夹）]");
+    expect(runs("Notes go in the .sniptoss folder.")).toBe("Notes go in the [.sniptoss] folder.");
+    expect(runs(".gitignore")).toBe("[.gitignore]");
+    expect(runs("见 .sniptoss/REVIEW.md")).toBe("见 [.sniptoss]/REVIEW.md");
+    expect(runs("（存在 .sniptoss）")).toBe("[（存]在 [.sniptoss）]");
+    // Not after a letter, a digit or a mark, and not a dot before a space
+    for (const text of ["a.b", "v1.0.2", "Done. Next", "1. Open", "（.x）", "end ."]) expect(runs(text)).not.toMatch(/\[\.[^\]]/);
+  });
+
   it("characters outside the basic plane are kept whole", () => {
     expect(runs("「𠮷野家」")).toBe("[「𠮷]野[家」]");
   });

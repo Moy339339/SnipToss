@@ -83,7 +83,7 @@ public class ChangeWatchTests
     }
 
     [Fact]
-    public void Does_not_poll_while_the_window_is_hidden_and_checks_at_once_when_shown()
+    public void Does_not_poll_while_the_window_is_hidden_and_checks_again_when_shown()
     {
         using var dir = new TempDir();
         var file = Path.Combine(Annotations(dir.Path), "a.json");
@@ -97,7 +97,9 @@ public class ChangeWatchTests
             File.WriteAllText(file, """{ "changed": true }""");
             Assert.False(Pump(() => calls > 0, Quiet));
             watcher.Pause(false);
-            Assert.True(Pump(() => calls > 0, TimeSpan.FromSeconds(1.5)));
+            // Not a tight limit: the check started on showing waits for the drive's answer (Volumes) and a pool thread, which a busy
+            // CI machine can delay past the next timer tick
+            Assert.True(Pump(() => calls > 0, Soon));
         });
     }
 

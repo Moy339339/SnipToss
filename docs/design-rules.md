@@ -168,7 +168,8 @@ Easing is always `--ease`. Exception: the blurred background around the canvas f
   `word-break: keep-all` + `overflow-wrap: anywhere` (breaking character by character only when a whole sentence has no punctuation and doesn't fit). Not used for note text written by the user.
 - **A line never starts with a closing full-width mark (」』）。，、…) or ends with an opening one (「『（)**, and a word is never split while it would fit: put the text of these boxes in `KeepPunctuation`
   (the tooltip uses `punctuationNodes`). Under keep-all WebKit (the Mac app's window) breaks on both sides of every full-width mark; `KeepPunctuation` keeps each mark with its
-  character in a span that may not wrap and adds a `<wbr>` after a closing mark and before an opening one, where Chromium breaks anyway. `tests/e2e/line-breaks.spec.ts` checks every screen
+  character in a span that may not wrap and adds a `<wbr>` after a closing mark and before an opening one, where Chromium breaks anyway. WebKit also breaks after the dot of a
+  name that starts with one (`.sniptoss`), so such a name after a space is kept whole too. `tests/e2e/line-breaks.spec.ts` checks every screen
   in Edge and, on the Mac CI, in WebKit.
 - A parenthetical at the end of a shortcut description goes on its own line, one level smaller (`ShortcutRow`), so it doesn't crowd the main description.
 - **No space after full-width punctuation.** A paragraph written across two lines in JSX folds the line break into a space (“对话框。 标题栏”): keep a paragraph on one line, and use `<br />` for a deliberate break.

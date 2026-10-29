@@ -127,6 +127,19 @@ function badBreaks(app: App, screen: string) {
           if (typeof c !== "string") word.push(c);
         }
         if (word.length > 0) words.push(word);
+        // Names that start with a dot (.sniptoss) after a space or at the start: the dot and the letters after it
+        const names: Char[][] = [];
+        chars.forEach((c, i) => {
+          const before = chars[i - 1];
+          if (typeof c === "string" || text(c) !== "." || (before !== undefined && typeof before !== "string")) return;
+          const name = [c];
+          for (let j = i + 1; j < chars.length; j++) {
+            const n = chars[j];
+            if (typeof n === "string" || !/[A-Za-z0-9_-]/.test(text(n))) break;
+            name.push(n);
+          }
+          if (name.length > 1) names.push(name);
+        });
 
         const saved = el.style.width;
         for (const share of [1, 0.8, 0.6]) {
@@ -142,6 +155,7 @@ function badBreaks(app: App, screen: string) {
             if (at > 0 && CJK.test(text(w[at - 1])) && CJK.test(text(w[at])))
               problems.push(`“${w.map(text).join("")}” broken after “${w.slice(0, at).map(text).join("")}”`);
           }
+          for (const n of names) if (apart(n[0], n[n.length - 1])) problems.push(`the name “${n.map(text).join("")}” broken`);
           if (problems.length > 0)
             found.push(`${where}: .${el.className.split(" ").join(".")} at ${Math.round(share * 100)}%: ${problems.join("; ")}: ${linesOf(chars).join(" / ")}`);
         }
@@ -169,6 +183,8 @@ test("the detection itself works: a closing mark that starts a line and a word b
     // written as KeepPunctuation writes it, keep-all breaks after them
     add(3, "从列表中移除。".repeat(8), "word-break:break-all");
     add(4, '从列表中移<span class="keep-punctuation">除。</span><wbr>'.repeat(8), "word-break:keep-all");
+    // A box narrower than the name: it has to be broken
+    add(5, "见 .sniptoss 文件夹", "width:30px");
   });
   const found = await badBreaks(app, "self-check");
   const of = (box: number) => found.filter((f) => f.includes(`.box-${box} `));
@@ -178,6 +194,7 @@ test("the detection itself works: a closing mark that starts a line and a word b
   expect(of(3).length).toBeGreaterThan(0);
   for (const f of of(3)) expect(f).toMatch(/“从列表中移除。” broken after “从/);
   expect([...of(2), ...of(4)]).toEqual([]);
+  expect(of(5).join("\n")).toContain("the name “.sniptoss” broken");
 });
 
 for (const locale of ["zh-CN", "zh-TW", "ja"]) {
@@ -212,5 +229,18 @@ for (const locale of ["zh-CN", "zh-TW", "ja"]) {
     const problems: string[] = [];
     await welcome(app, async (screen) => void problems.push(...(await badBreaks(app, screen))));
     expect(problems, problems.join("\n")).toEqual([]);
+  });
+}
+
+for (const locale of ["zh-CN", "zh-TW", "ja"]) {
+  test(`${locale}: on the About page the privacy paragraph keeps the folder name .sniptoss whole (WebKit breaks after its dot)`, async ({ app }) => {
+    prepare(app, locale);
+    await app.page.setViewportSize({ width: 960, height: 600 });
+    await app.open();
+    await app.page.locator(".stage").click({ position: { x: 5, y: 5 } });
+    await app.page.keyboard.press("Control+,");
+    await app.page.locator(".settings-tab").last().click();
+    await expect(app.page.locator(".set-desc", { hasText: ".sniptoss" }).first()).toBeVisible();
+    expect(await badBreaks(app, "About")).toEqual([]);
   });
 }
