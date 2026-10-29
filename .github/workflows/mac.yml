@@ -349,6 +349,9 @@ jobs:
             if (b.id !== "io.github.moy339339.sniptoss") problems.push("bundle id " + b.id);
             if (b.version !== version) problems.push("bundle version " + b.version + ", package.json " + version);
             if (b.about !== "关于超级批注") problems.push("the catalogs in the bundle were not read: " + b.about);
+            // The name Finder, the Dock and System Settings show on a Chinese system
+            const strings = (language) => { try { return require("fs").readFileSync(process.env.RUNNER_TEMP + "/package/SnipToss.app/Contents/Resources/" + language + ".lproj/InfoPlist.strings", "utf8"); } catch { return ""; } };
+            if (!strings("zh-Hans").includes("超级批注") || !strings("zh-Hant").includes("超級批註")) problems.push("localized app names: " + JSON.stringify([strings("zh-Hans"), strings("zh-Hant")]));
             if ((r.menuBar?.titles || []).length !== 8) problems.push("menus: " + JSON.stringify(r.menuBar?.titles));
             if (r.pageErrors.length) problems.push("page errors: " + JSON.stringify(r.pageErrors));
             if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }

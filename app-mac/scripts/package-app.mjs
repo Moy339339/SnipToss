@@ -74,7 +74,11 @@ const info = {
   NSHighResolutionCapable: true,
   NSPrincipalClass: "NSApplication",
   NSHumanReadableCopyright: "© 2026 MoyGoldenAge",
+  // The name shown in Finder, the Dock, the menu bar and System Settings follows the system language (the strings below)
+  LSHasLocalizedDisplayName: true,
 };
+/** The product name by system language, the same as the Windows installer's shortcuts and the message brand.name; SnipToss elsewhere */
+const LOCALIZED_NAMES = { en: NAME, "zh-Hans": "超级批注", "zh-Hant": "超級批註" };
 writeFileSync(
   join(contents, "Info.plist"),
   '<?xml version="1.0" encoding="UTF-8"?>\n' +
@@ -87,6 +91,13 @@ writeFileSync(
 );
 writeFileSync(join(contents, "PkgInfo"), "APPL????");
 run("plutil", ["-lint", join(contents, "Info.plist")]);
+for (const [language, name] of Object.entries(LOCALIZED_NAMES)) {
+  const dir = join(contents, "Resources", `${language}.lproj`);
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, "InfoPlist.strings");
+  writeFileSync(file, `"CFBundleDisplayName" = "${name}";\n"CFBundleName" = "${name}";\n`);
+  run("plutil", ["-lint", file]);
+}
 
 // Signed with the project's own certificate when the build has it (SNIPTOSS_SIGN_IDENTITY: its SHA-1, SNIPTOSS_SIGN_KEYCHAIN: the keychain
 // it was imported into, see mac.yml). Then the designated requirement names the certificate, not this build's code hash, and macOS keeps
@@ -106,7 +117,8 @@ run("codesign", [
 run("codesign", ["--verify", "--strict", "--verbose=2", app]);
 const requirement = execFileSync("codesign", ["-d", "-r-", app], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 console.log(`designated requirement: ${requirement.trim()}`);
-if (identity && !/certificate leaf = H"/.test(requirement)) throw new Error("signed with the certificate, but the requirement does not name it");
+if (identity && !/certificate leaf = H"/.test(requirement))
+  throw new Error("signed with the certificate, but the requirement does not name it");
 
 // ditto keeps what a plain zip would lose (the executable bit, the signature's extended attributes)
 const zip = join(out, `${NAME}-mac-${version}-${build}.zip`);
