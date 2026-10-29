@@ -361,7 +361,8 @@ final class NativeMenusTests: XCTestCase {
         menus.apply(message())
         let parent = pageItem(bar, 3, 1)
         XCTAssertEqual(parent.title, "Mark Color")
-        XCTAssertNil(parent.action)
+        // AppKit gives an item with a submenu its own action (submenuAction:); the item must not have ours
+        XCTAssertTrue(parent.action == nil || NSStringFromSelector(parent.action!) == "submenuAction:")
         let choices = try XCTUnwrap(parent.submenu).items
         XCTAssertEqual(choices.map { $0.title }, ["Red  1", "Blue  2"])
         XCTAssertEqual(choices.map { $0.state }, [.on, .off])

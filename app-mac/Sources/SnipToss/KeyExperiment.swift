@@ -63,30 +63,49 @@ final class KeyExperiment: NSObject {
                     next()
                 }
             } then: { [self] in
-                // Copy and paste are asked on their own: the page makes the selection and this process fills the pasteboard, so a ⌘A that
-                // did nothing does not fail them too
-                eval(Scripts.selectProbeA) { [self] _ in
-                    NSPasteboard.general.clearContents()
-                    step("copy") { [self] in
-                        key("c", code: 8)
-                    } read: { [self] next in
-                        report["copy"] = ["pasteboard": NSPasteboard.general.string(forType: .string) ?? "(none)", "expected": "hello world"]
-                        next()
-                    } then: { [self] in
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString("hello world", forType: .string)
-                        eval(Scripts.focusClearB) { [self] _ in
-                            step("paste") { [self] in
-                                key("v", code: 9)
-                            } read: { [self] next in
-                                eval(Scripts.readB) { [self] value in
-                                    report["paste"] = ["value": value ?? "?", "expected": "hello world"]
-                                    next()
-                                }
-                            } then: { [self] in
-                                order(done: done)
+                // The first ⌘A comes right after the text box was made and focused; once the page has settled the same key is pressed again
+                // (the first one failed in the cloud run of the page's own menus, and every later one worked)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [self] in
+                    eval(Scripts.resetSelection) { [self] _ in
+                        step("selectAllSettled") { [self] in
+                            key("a", code: 0)
+                        } read: { [self] next in
+                            eval(Scripts.readSelection) { [self] value in
+                                report["selectAllSettled"] = ["selection": value ?? "?", "expected": "0-11"]
+                                next()
                             }
+                        } then: { [self] in
+                            copyAndPaste(done: done)
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Copy and paste are asked on their own: the page makes the selection and this process fills the pasteboard, so a ⌘A that did nothing
+    /// does not fail them too
+    private func copyAndPaste(done: @escaping ([String: Any]) -> Void) {
+        eval(Scripts.selectProbeA) { [self] _ in
+            NSPasteboard.general.clearContents()
+            step("copy") { [self] in
+                key("c", code: 8)
+            } read: { [self] next in
+                report["copy"] = ["pasteboard": NSPasteboard.general.string(forType: .string) ?? "(none)", "expected": "hello world"]
+                next()
+            } then: { [self] in
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString("hello world", forType: .string)
+                eval(Scripts.focusClearB) { [self] _ in
+                    step("paste") { [self] in
+                        key("v", code: 9)
+                    } read: { [self] next in
+                        eval(Scripts.readB) { [self] value in
+                            report["paste"] = ["value": value ?? "?", "expected": "hello world"]
+                            next()
+                        }
+                    } then: { [self] in
+                        order(done: done)
                     }
                 }
             }
@@ -284,7 +303,8 @@ final class KeyExperiment: NSObject {
                                 eval(Scripts.resetSelection) { [self] _ in
                                     var handled = false
                                     if let event = makeEvent(.keyDown, "a", code: 0) { handled = bar.performKeyEquivalent(with: event) }
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [self] in
+                                    // Longer than the other steps: this one is the menu asked without the key going through the page first
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [self] in
                                         eval(Scripts.readSelection) { [self] value in
                                             report["selectAllAskedDirectly"] = ["handled": handled, "selection": value ?? "?"]
                                             done(report)
