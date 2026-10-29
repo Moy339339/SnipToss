@@ -12,9 +12,21 @@ SnipToss is a Windows desktop app for reviewing AI-generated assets. Mark what n
 
 Web pages, PDF and slides are planned. A Mac version is in progress.
 
-![SnipToss: drawing a box and an arrow on an AI-generated landing page, writing a note for each, and the notes panel listing them](docs/images/main-window.gif)
+![The SnipToss window with an AI-generated event flyer open: three numbered marks on the flyer and the matching notes in the panel on the right.](docs/images/hero.png)
 
 ## Features
+
+![Animation: a rectangle, an arrow, a pin and two pen strokes drawn on an AI-generated sample landing page, each with a note in the panel at the right.](docs/images/feature-marking.webp)
+
+![Animation: a video in SnipToss with a note on one moment and a rectangle at another; the playback bar shows a marker for each timed note.](docs/images/feature-video.webp)
+
+![Animation: the capture overlay over a web page: a dragged region, a rectangle and an arrow with notes, then the finished image with the notes underneath.](docs/images/feature-capture.webp)
+
+![Three panels: an AI-generated sample landing page with notes on it, the REVIEW.md text an agent reads, and the page after the changes.](docs/images/feature-handoff.png)
+
+![Three images made by Copy as Images, each a screenshot with one note underneath.](docs/images/feature-copy-images.png)
+
+![The notes panel in Japanese, German and Russian, with the names of the 11 interface languages.](docs/images/feature-languages.png)
 
 - **Images and videos**: PNG, JPEG, WebP, GIF, SVG, BMP, AVIF; MP4, WebM, MOV, M4V. Turn on Settings → Advanced → More formats for TIFF, HEIC, ICO, APNG, JFIF and MKV in folders and the context menu (a file opened on its own works either way). HEIC needs the HEIF Image Extension and HEVC Video Extensions from the Microsoft Store. Notes on a video are tied to a moment or a time range, and you can step frame by frame.
 - **Notes agents can read**: `.sniptoss/REVIEW.md` lists every open note in plain text (positions in pixels, times as `mm:ss.mmm`), `.sniptoss/annotations/*.json` holds the structured data, `.sniptoss/snapshots/` has one snapshot per note. The format is documented and versioned: [docs/annotation-format.md](docs/annotation-format.md).

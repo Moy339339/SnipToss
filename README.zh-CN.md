@@ -13,9 +13,21 @@
 
 网页、PDF、PPT 将陆续支持；Mac 版正在开发。
 
-![超级批注：在 AI 生成的落地页上写了三条批注，右边批注栏列着](docs/images/main-window.zh-CN.png)
+![超级批注窗口：打开着一张 AI 生成的活动传单，画面上有三个带编号的标记，右侧批注栏列着对应的三条批注。](docs/images/hero.zh-CN.png)
 
 ## 功能
+
+![动图：在 AI 生成的示例落地页上依次画出矩形、箭头、图钉和两笔画笔，每处都写了批注，列在右边的批注栏里。](docs/images/feature-marking.zh-CN.webp)
+
+![动图：视频里一个时刻写了一条批注，另一个时刻画了一个矩形；进度条上每条带时间的批注都有标记。](docs/images/feature-video.zh-CN.webp)
+
+![动图：截图批注盖在一个网页上，框选区域、画矩形和箭头并写批注，最后得到下方附着批注的一张图。](docs/images/feature-capture.zh-CN.webp)
+
+![三栏：写了批注的 AI 生成示例网页、AI 读取的 REVIEW.md 文字、按批注修改后的网页。](docs/images/feature-handoff.zh-CN.png)
+
+![「复制成图片」生成的三张图，每张是截图加下方的一条批注。](docs/images/feature-copy-images.zh-CN.png)
+
+![批注栏的日语、德语、俄语界面，以及 11 种界面语言的名称。](docs/images/feature-languages.zh-CN.png)
 
 - **图片和视频**：PNG、JPEG、WebP、GIF、SVG、BMP、AVIF；MP4、WebM、MOV、M4V。在「设置 → 高级 → 更多格式」中开启后，文件夹和右键菜单还支持 TIFF、HEIC、ICO、APNG、JFIF、MKV（单独打开的文件不受此限）。HEIC 需要 Microsoft Store 里的「HEIF 图像扩展」和「HEVC 视频扩展」。视频批注对应某一时刻或一段时间，可逐帧查看。
 - **AI 读得懂的批注**：`.sniptoss/REVIEW.md` 是全部待处理批注的文字汇总（位置换算成像素、时间写成 `mm:ss.mmm`），`.sniptoss/annotations/*.json` 是结构化数据，`.sniptoss/snapshots/` 是每条批注一张截图。格式有文档、有版本号：[docs/annotation-format.zh-CN.md](docs/annotation-format.zh-CN.md)。

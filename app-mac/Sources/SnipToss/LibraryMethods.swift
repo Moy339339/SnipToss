@@ -3,12 +3,12 @@ import Foundation
 import UniformTypeIdentifiers
 
 /// What was opened from outside before the UI read the library: the path to locate, what was not added (with reasons), and entries
-/// recognized as moved. The `library` reply carries it once. Nothing queues here yet, so the default is empty
+/// recognized as moved. The `library` reply carries it once (`PendingOpens.take`); the default is an empty queue
 typealias PendingOpensProvider = () -> (focus: String?, skipped: [String], relocated: [Library.Relocation])
 
 /// The bridge methods for settings and the library (docs/host-api.md, "Library" and "Settings, window, miscellaneous").
-/// Not here yet: `addDropped`, `pasteClipboard`. The item being viewed (`librarySelect`) is what ChangeWatch.swift checks every second.
-/// `scan`, `missing`, `sha256` and `fileUrl` are in ScanMethods.swift
+/// `addDropped` is in DropWebView.swift and `pasteClipboard` in ClipboardMethods.swift; both reply with `addReply`. The item being viewed
+/// (`librarySelect`) is what ChangeWatch.swift checks every second. `scan`, `missing`, `sha256` and `fileUrl` are in ScanMethods.swift
 func installLibraryMethods(
     into bridge: BridgeHost, settings: Settings,
     pending: @escaping PendingOpensProvider = { (focus: nil, skipped: [], relocated: []) }
@@ -203,8 +203,8 @@ private func bridgeError(_ error: LibraryError) -> BridgeError {
     }
 }
 
-/// The reply of `libraryAdd` (and `addDropped`, `pasteClipboard` when they exist)
-private func addReply(_ result: Library.AddResult) -> [String: Any] {
+/// The reply of `libraryAdd`, `addDropped` and `pasteClipboard`. `pasted` is the file an image from the clipboard was saved as
+func addReply(_ result: Library.AddResult, pasted: String? = nil) -> [String: Any] {
     [
         "added": result.added,
         "focus": jsonOrNull(result.focus),
@@ -212,7 +212,7 @@ private func addReply(_ result: Library.AddResult) -> [String: Any] {
         "relocated": result.relocated.map { ["from": $0.from, "to": $0.to] },
         // No page reload is needed on the Mac (see libraryRelocate)
         "reloading": false,
-        "pasted": NSNull(),
+        "pasted": jsonOrNull(pasted),
     ]
 }
 

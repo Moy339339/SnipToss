@@ -44,4 +44,7 @@ enum AppPaths {
     /// Images pasted with Cmd+V: the app's own folder, so no files are added to the user's projects (the app only writes a project's
     /// .sniptoss). The whole folder is one project in the library; it is never cleaned up automatically (these are items, not a screenshot archive)
     static var pastedDir: String { current.localDir + "/Pasted Images" }
+
+    /// Where screenshots are saved when Settings > Screen Capture names no folder
+    static var capturesDir: String { current.localDir + "/captures" }
 }

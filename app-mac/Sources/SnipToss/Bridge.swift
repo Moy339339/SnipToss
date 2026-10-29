@@ -22,6 +22,15 @@ func onMain<T>(_ work: () throws -> T) rethrows -> T {
     return try DispatchQueue.main.sync(execute: work)
 }
 
+/// Run `work` on the main thread: at once when already there, otherwise as soon as the main queue gets to it. Safe from any thread
+func runOnMain(_ work: @escaping () -> Void) {
+    if Thread.isMainThread {
+        work()
+    } else {
+        DispatchQueue.main.async(execute: work)
+    }
+}
+
 /// The shell end of the bridge in docs/host-api.md: `{ id, method, params }` in, `{ id, result }` or `{ id, error, code }` out,
 /// plus events the shell pushes by itself (`{ event, ...payload }`)
 final class BridgeHost: NSObject, WKScriptMessageHandler {

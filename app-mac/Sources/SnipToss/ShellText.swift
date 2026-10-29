@@ -14,6 +14,8 @@ enum ShellText {
         case "shell.add.dataDir": return "This is part of the note data (inside \(arg("dir"))) and can't be added: \(arg("path"))"
         case "shell.add.type": return "Unsupported file type (\(arg("ext"))): \(arg("name"))"
         case "shell.error.notInList": return "This item isn't in the library"
+        case "shell.tray.capture": return "Capture Screen"
+        case "shell.tray.open": return "Open \(arg("app"))"
         case "shell.settings.restored": return "The settings file was missing, so it was restored from a backup."
         case "shell.settings.fromBackup": return "\(settingsProblem(arg("reason"))), so the last backup was restored."
         case "shell.settings.defaults":

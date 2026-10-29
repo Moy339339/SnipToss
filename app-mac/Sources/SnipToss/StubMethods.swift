@@ -1,16 +1,8 @@
-import AppKit
 import Foundation
 
-/// Placeholder answers for the calls the UI makes while it starts that have no real implementation yet (the window and screen capture).
-/// Replaced one method at a time by the real implementations (docs/host-api.md); a method that is not registered answers "not implemented"
+/// Placeholder answers for the calls the UI makes while it starts that have no real implementation worth a file of their own.
+/// A method that is not registered answers "not implemented" (docs/host-api.md)
 func installStubMethods(into bridge: BridgeHost) {
-    bridge.register("captureSettings") { _ in
-        [
-            "hotkey": "", "hotkeyError": NSNull(), "hotkeyTypes": "", "hotkeyMoved": NSNull(), "keepInTray": false, "hideWindow": false,
-            "notesInImage": true, "folder": "", "defaultFolder": "", "autostart": false,
-        ] as [String: Any]
-    }
-
     bridge.register("ready") { _ in nil }
 
     bridge.register("log") { [weak bridge] params in

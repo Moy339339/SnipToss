@@ -32,6 +32,9 @@ struct CaptureSettings {
     var hideWindow = true
     var notesInImage = true
     var folder: String?
+    /// Start at login. Mac-only key: the Windows shell asks the registry instead. It is only recorded for now; registering the login item
+    /// comes with the packaged app
+    var autostart = false
 }
 
 /// A settings file that parses as JSON but does not have the expected shape (a wrong type for a key)
@@ -173,6 +176,7 @@ extension SettingsValues {
         cap.set("HideWindow", capture.hideWindow)
         cap.set("NotesInImage", capture.notesInImage)
         cap.set("Folder", jsonOrNull(capture.folder))
+        cap.set("Autostart", capture.autostart)
         root.set("Capture", cap)
 
         root.set("UpdatesCheckedAt", jsonOrNull(updatesCheckedAt.map { SettingsValues.formatDate($0) }))
@@ -234,6 +238,7 @@ extension SettingsValues {
             values.capture.hideWindow = try JSONField.bool(cap["HideWindow"], "Capture.HideWindow") ?? defaults.hideWindow
             values.capture.notesInImage = try JSONField.bool(cap["NotesInImage"], "Capture.NotesInImage") ?? defaults.notesInImage
             values.capture.folder = try JSONField.string(cap["Folder"], "Capture.Folder")
+            values.capture.autostart = try JSONField.bool(cap["Autostart"], "Capture.Autostart") ?? defaults.autostart
         }
         if let text = root["UpdatesCheckedAt"] as? String { values.updatesCheckedAt = parseDate(text) }
         values.migrations = try JSONField.int(root["Migrations"], "Migrations") ?? 0

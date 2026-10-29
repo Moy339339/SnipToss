@@ -3,8 +3,7 @@ import Foundation
 /// The bridge methods that look at items on disk: `scan`, `missing`, `sha256`, `fileUrl` (docs/host-api.md, "Library").
 /// Every question about a path on a volume goes through `Volumes` first: an unreachable network volume would otherwise hold a bridge
 /// thread for the system timeout.
-/// Not here yet: `decodeImage`, `addDropped`, `pasteClipboard`. The notes methods are in NotesMethods.swift, the checks for changes from
-/// outside in ChangeWatch.swift
+/// Not here yet: `decodeImage`. The notes methods are in NotesMethods.swift, the checks for changes from outside in ChangeWatch.swift
 func installScanMethods(into bridge: BridgeHost, settings: Settings, homes: NotesHomes, hashes: HashCache = HashCache.shared) {
     bridge.register("scan") { params in
         let values = settings.current
