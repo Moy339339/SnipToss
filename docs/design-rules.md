@@ -98,6 +98,7 @@ This font has a single weight, so writing 400 in the CSS means “use it as it i
 | The title bar at the top of the window (menu bar + Capture + the three window buttons) and the two side footers: **+ 1 for the line**; the line doesn't eat into the content, which is a full 32 | 32 + 1 |
 | Menu names and “Capture” in the title bar: the hover background block | 28 |
 | The three window buttons (minimize / maximize / close): as in the system, 46 wide, as high as the title bar, 10px line glyphs | 46 × 32 |
+| On the Mac the title bar has no window buttons of its own: the system's three (12 each, 8 apart) sit over its left end, and the strip leaves this much width for them (`--mac-traffic-inset`); in full screen they are hidden and the width is released (to be checked on a real Mac) | 78 |
 | The title bars of the three columns (library / toolbar / notes), whose lower edges join into one line: **+ 1 for the line**; 32 controls with 6 above and below | 44 + 1 |
 | The “hand off to AI” action bar at the bottom of the notes panel (“Select all” + the primary button, both 28, 8 above and below), + the line on its upper edge; the footer right below it draws no upper line. The button isn't 32: it is an action under a list, and a 32 blue block holding only 13px text looks empty and a size larger than the text beside it | 44 + 1 |
 | The logo at the top of the library: icon 20 (on a 1× display the version drawn on the pixel grid, on high-DPI displays the vector master) + gap 8 + product name 15; doubled in Settings → About | 20 |

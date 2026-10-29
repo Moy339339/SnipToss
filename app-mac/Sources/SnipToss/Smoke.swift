@@ -8,8 +8,9 @@ final class SmokeRun {
     /// preferences, app info, locale and library calls all went through (the e2e first-run test waits for the same element)
     static let welcomeScript = "!!document.querySelector('.stage-empty.is-welcome')"
 
-    /// With a project in the library and an item selected: the item is on the canvas, loaded through the media scheme and decoded
-    static let imageScript = "(() => { const el = document.querySelector('.zoom-media'); return !!el && el.complete && el.naturalWidth > 0; })()"
+    /// With a project in the library and an item selected: the item is on the canvas (it has a size there: right after a switch it is 0 × 0),
+    /// loaded through the media scheme and decoded
+    static let imageScript = "(() => { const el = document.querySelector('.zoom-media'); if (!el || !el.complete || el.naturalWidth === 0) return false; const r = el.getBoundingClientRect(); return r.width > 1 && r.height > 1; })()"
 
     /// The onboarding tour card is on screen (first run, an item shown)
     static let tourScript = "!!document.querySelector('.tour-card')"

@@ -46,7 +46,7 @@ final class KeyExperiment: NSObject {
                 '<textarea id="probe-b" style="position:fixed;left:8px;top:60px;width:200px;height:40px;z-index:99999"></textarea>');
               document.getElementById('probe-a').value = 'hello world';
               window.__keys = [];
-              window.__prevent = ';
+              window.__prevent = '';
               window.addEventListener('keydown', (e) => {
                 window.__keys.push(e.key + (e.metaKey ? ' meta' : '));
                 if (window.__prevent && e.key === window.__prevent) e.preventDefault();
