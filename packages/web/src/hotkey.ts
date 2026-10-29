@@ -25,6 +25,16 @@ const NAMED_KEYS: Record<string, string> = {
 /** The human-readable form, like shortcuts elsewhere in the UI (same as the shell's GlobalHotKey.Pretty): "Ctrl+Alt+A" → "Ctrl Alt A" */
 export const prettyKeys = (hotkey: string) => hotkey.split("+").join(" ");
 
+/** The Mac writes the modifiers of a shortcut in this order, ⌘ last; "Control" is the real Control key, "Ctrl" the Command key */
+const MAC_MODIFIER_ORDER = ["Control", "Alt", "Shift", "Ctrl"];
+
+/** The parts of a shortcut in the order they are drawn (one keycap each): on the Mac the modifiers come in the Mac's order, ⌃ ⌥ ⇧ ⌘ */
+export function hotkeyParts(hotkey: string, mac = platform === "mac"): string[] {
+  const parts = hotkey.split("+");
+  if (!mac) return parts;
+  return [...MAC_MODIFIER_ORDER.filter((m) => parts.includes(m)), ...parts.filter((p) => !MAC_MODIFIER_ORDER.includes(p))];
+}
+
 const KEYCAP_NAMES = /\b(Ctrl|Shift|Enter|Esc|Delete|Backspace|Space|Home|End)\b/g;
 /** The keycaps the Mac draws as symbols; Space, Home and End stay words there */
 const MAC_KEYCAPS: Record<string, string> = { Ctrl: "⌘", Shift: "⇧", Enter: "↩", Esc: "⎋", Delete: "⌦", Backspace: "⌫" };
@@ -42,8 +52,8 @@ export const keycaps = (text: string, t: (id: string) => string, mac = platform 
  * names is the Command key there, see keys.ts). Names without a symbol (Space, Home, End) go through the language's key name messages
  */
 function macKeycaps(text: string, t: (id: string) => string): string {
-  const run = new RegExp(`(?<![\\p{L}\\p{N}])((?:Ctrl|Alt|Shift)(?: (?:Ctrl|Alt|Shift))*)(?: (\\S+))?`, "gu");
-  const symbolOf: Record<string, string> = { Ctrl: "⌘", Alt: "⌥", Shift: "⇧" };
+  const run = new RegExp(`(?<![\\p{L}\\p{N}])((?:Control|Ctrl|Alt|Shift)(?: (?:Control|Ctrl|Alt|Shift))*)(?: (\\S+))?`, "gu");
+  const symbolOf: Record<string, string> = { Control: "⌃", Ctrl: "⌘", Alt: "⌥", Shift: "⇧" };
   const order = ["⌃", "⌥", "⇧", "⌘"];
   const name = (k: string) => MAC_KEYCAPS[k] ?? (/^(Space|Home|End)$/.test(k) ? t(`keycap.${k}`) : k);
   return text
@@ -80,14 +90,22 @@ export function hotkeyKey(code: string): { key: string; text: boolean } | undefi
  * Whether the pressed combination can be a global shortcut: it needs Ctrl, Alt or Win; with only Shift it can pair only with keys not used
  * for typing or selecting text, such as F keys, PrintScreen and Pause: once Shift+A is registered as a global shortcut, no program can type
  * a capital A and Shift+← cannot select text. Same rule as the shell's GlobalHotKey.Set.
+ * On the Mac the modifiers are Control ("Control"), Command ("Ctrl", as everywhere on the Mac), Option ("Alt") and Shift, written in that
+ * order, and it needs Command or Control: Option and Shift alone type characters (Option+A is å)
  * Returns the shortcut notation; undefined if it is incomplete (only a modifier pressed, or no modifier); "shiftOnly" if it is not allowed
  */
 export function hotkeyFrom(
   e: Pick<KeyboardEvent, "code" | "ctrlKey" | "altKey" | "shiftKey" | "metaKey">,
+  mac = platform === "mac",
 ): string | "shiftOnly" | undefined {
   const k = hotkeyKey(e.code);
-  const mods = [e.ctrlKey && "Ctrl", e.altKey && "Alt", e.shiftKey && "Shift", e.metaKey && "Win"].filter(Boolean) as string[];
+  const mods = (
+    mac
+      ? [e.ctrlKey && "Control", e.metaKey && "Ctrl", e.altKey && "Alt", e.shiftKey && "Shift"]
+      : [e.ctrlKey && "Ctrl", e.altKey && "Alt", e.shiftKey && "Shift", e.metaKey && "Win"]
+  ).filter(Boolean) as string[];
   if (!k || mods.length === 0) return undefined;
-  if (!e.ctrlKey && !e.altKey && !e.metaKey && k.text) return "shiftOnly";
+  const enough = mac ? e.ctrlKey || e.metaKey : e.ctrlKey || e.altKey || e.metaKey;
+  if (!enough && k.text) return "shiftOnly";
   return [...mods, k.key].join("+");
 }

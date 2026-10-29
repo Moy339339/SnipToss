@@ -63,3 +63,37 @@ test("without the Mac flag the shortcuts are the Windows ones, written with word
   await app.page.keyboard.press("Control+o");
   await expect(app.page).toHaveTitle("poster.jpg");
 });
+
+test("on the Mac the capture shortcut is recorded with Control, Command, Option and Shift (drawn in the Mac's order), and needs Command or Control", async ({ app }) => {
+  await asMac(app);
+  app.host.capture.hotkey = "Control+Ctrl+Alt+A";
+  await app.open();
+  await app.page.keyboard.press("Meta+,");
+  await app.page.locator(".settings-tab", { hasText: /^截图批注$/ }).click();
+  const input = app.page.locator(".hotkey-input");
+  // The default on the Mac, ⌃⌥⌘A, with one keycap for each part
+  await expect(input.locator("kbd")).toHaveText(["⌃", "⌥", "⌘", "A"]);
+  // The page says that a global shortcut takes the same shortcut away from other apps
+  await expect(app.page.locator(".set-row", { hasText: "快捷键" }).first()).toContainText("全局快捷键会使其他程序中相同的快捷键失效");
+  await input.click();
+  // Option alone and Shift alone are refused, with the reason in the box; the box keeps waiting
+  await app.page.keyboard.press("Alt+KeyK");
+  await expect(input.locator(".text-danger")).toContainText("⌘");
+  await app.page.keyboard.press("Shift+KeyK");
+  await expect(input.locator(".text-danger")).toBeVisible();
+  // Control + Command + Shift + K: kept as written, drawn ⌃⇧⌘K
+  await app.page.keyboard.press("Control+Meta+Shift+KeyK");
+  await expect.poll(() => app.host.capture.hotkey).toBe("Control+Ctrl+Shift+K");
+  await expect(input.locator("kbd")).toHaveText(["⌃", "⇧", "⌘", "K"]);
+});
+
+test("on Windows the capture shortcut still records Ctrl+Alt+K (Control is Ctrl, the Win key is Win) and nothing says Command", async ({ app }) => {
+  await app.open();
+  await app.page.keyboard.press("Control+,");
+  await app.page.locator(".settings-tab", { hasText: /^截图批注$/ }).click();
+  const input = app.page.locator(".hotkey-input");
+  await input.click();
+  await app.page.keyboard.press("Control+Alt+KeyK");
+  await expect.poll(() => app.host.capture.hotkey).toBe("Ctrl+Alt+K");
+  await expect(input.locator("kbd")).toHaveText(["Ctrl", "Alt", "K"]);
+});
