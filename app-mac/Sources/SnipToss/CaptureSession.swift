@@ -210,19 +210,41 @@ enum CaptureSmoke {
             }
             // Three pixels on the diagonal, a quarter, half and three quarters of the way down: the pattern's color at that place, dimmed
             // by half. The colors change along both axes, so a picture drawn upside down or at another scale does not match
-            let keep = 1 - FrozenView.dimming
+            let space = rep.colorSpace
+            info["colorSpace"] = space.localizedName ?? "\(space.colorSpaceModel.rawValue)"
             info["samples"] = [1, 2, 3].compactMap { quarter -> [String: Any]? in
                 let x = rep.pixelsWide * quarter / 4
                 let y = rep.pixelsHigh * quarter / 4
                 guard let actual = rep.colorAt(x: x, y: y)?.usingColorSpace(.sRGB) else { return nil }
-                let want = PatternScreenSource.color(x: x, y: y)
-                return [
-                    "at": [x, y],
-                    "actual": [actual.redComponent, actual.greenComponent, actual.blueComponent].map { Int(($0 * 255).rounded()) },
-                    "expected": [want.red, want.green, want.blue].map { Int((Double($0) * keep).rounded()) },
-                ]
+                return ["at": [x, y], "actual": srgb(actual), "expected": shown(PatternScreenSource.color(x: x, y: y), in: space) ?? []]
             }
         }
         return info
+    }
+
+    private static func srgb(_ color: NSColor) -> [Int] {
+        [color.redComponent, color.greenComponent, color.blueComponent].map { Int(($0 * 255).rounded()) }
+    }
+
+    /// The pattern's color as the layer shows it: matched into the layer's color space (as drawing the picture is), black at half strength
+    /// over it there, and read back in sRGB. The dimming happens in the screen's color space, so the result depends on the screen's
+    /// profile; working it out the same way keeps the check independent of it
+    private static func shown(_ c: (red: UInt8, green: UInt8, blue: UInt8), in space: NSColorSpace) -> [Int]? {
+        guard
+            let blank = NSBitmapImageRep(
+                bitmapDataPlanes: nil, pixelsWide: 1, pixelsHigh: 1, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0),
+            let rep = blank.retagging(with: space), let context = NSGraphicsContext(bitmapImageRep: rep)
+        else { return nil }
+        let pixel = NSRect(x: 0, y: 0, width: 1, height: 1)
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = context
+        NSColor(srgbRed: CGFloat(c.red) / 255, green: CGFloat(c.green) / 255, blue: CGFloat(c.blue) / 255, alpha: 1).setFill()
+        pixel.fill()
+        NSColor.black.withAlphaComponent(FrozenView.dimming).setFill()
+        pixel.fill(using: .sourceOver)
+        context.flushGraphics()
+        NSGraphicsContext.restoreGraphicsState()
+        return rep.colorAt(x: 0, y: 0)?.usingColorSpace(.sRGB).map(srgb)
     }
 }
