@@ -189,6 +189,49 @@ jobs:
             console.log("capture layers ok", JSON.stringify(c));
           '
 
+      # A package for trying the app on a Mac, not a release: SnipToss.app with the UI and the catalogs inside, signed ad hoc, zipped
+      - name: Package the app (trial)
+        if: ${{ !cancelled() }}
+        run: node app-mac/scripts/package-app.mjs "$RUNNER_TEMP/package" "${{ github.run_number }}"
+
+      # The packaged app on its own, as a user opens it: no UI folder or resources from the environment, so it must find both in the
+      # bundle; the language is set to Chinese, so the app menu shows a catalog message only when the bundle's catalogs were read
+      - name: Smoke run (packaged app)
+        if: ${{ !cancelled() }}
+        run: |
+          unset SNIPTOSS_RESOURCES_DIR
+          export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-package/settings.json"
+          export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/package"
+          mkdir -p "$RUNNER_TEMP/data-package"
+          echo '{ "Prefs": { "language": "zh-CN" } }' > "$SNIPTOSS_SETTINGS"
+          "$RUNNER_TEMP/package/SnipToss.app/Contents/MacOS/SnipToss"
+
+      - name: Check the packaged app
+        if: ${{ !cancelled() }}
+        run: |
+          node -e '
+            const r = require(process.env.RUNNER_TEMP + "/smoke/package/result.json");
+            const b = r.bundle || {};
+            const version = require("./package.json").version;
+            const problems = [];
+            if (!r.ready) problems.push("the UI did not come up from the bundle");
+            if (b.id !== "io.github.moy339339.sniptoss") problems.push("bundle id " + b.id);
+            if (b.version !== version) problems.push("bundle version " + b.version + ", package.json " + version);
+            if (b.about !== "关于超级批注") problems.push("the catalogs in the bundle were not read: " + b.about);
+            if ((r.menuBar?.titles || []).length !== 8) problems.push("menus: " + JSON.stringify(r.menuBar?.titles));
+            if (r.pageErrors.length) problems.push("page errors: " + JSON.stringify(r.pageErrors));
+            if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
+            console.log("packaged app ok", JSON.stringify(b));
+          '
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: SnipToss-mac-trial
+          path: ${{ runner.temp }}/package/SnipToss-mac-*.zip
+          if-no-files-found: warn
+          retention-days: 30
+
       - uses: actions/upload-artifact@v7
         if: always()
         with:

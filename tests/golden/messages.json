@@ -519,6 +519,34 @@
     },
     {
       "locale": "de",
+      "key": "shell.capture.noAccessTitle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app> benötigt die Berechtigung zur Bildschirmaufnahme"
+    },
+    {
+      "locale": "de",
+      "key": "shell.capture.noAccessBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Um den Bildschirm aufzunehmen, erlauben Sie <app> unter Systemeinstellungen → Datenschutz & Sicherheit. Beenden Sie <app> anschließend, und öffnen Sie es erneut."
+    },
+    {
+      "locale": "de",
+      "key": "shell.capture.openSettings",
+      "args": {},
+      "text": "Systemeinstellungen öffnen"
+    },
+    {
+      "locale": "de",
+      "key": "shell.capture.notNow",
+      "args": {},
+      "text": "Später"
+    },
+    {
+      "locale": "de",
       "key": "shell.notFound",
       "args": {
         "path": "<path>"
@@ -2827,6 +2855,34 @@
         "keys": "<keys>"
       },
       "text": "<keys> is already used by another app. Choose a different shortcut"
+    },
+    {
+      "locale": "en",
+      "key": "shell.capture.noAccessTitle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app> needs permission to record the screen"
+    },
+    {
+      "locale": "en",
+      "key": "shell.capture.noAccessBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "To capture the screen, allow <app> in System Settings → Privacy & Security, then quit <app> and open it again."
+    },
+    {
+      "locale": "en",
+      "key": "shell.capture.openSettings",
+      "args": {},
+      "text": "Open System Settings"
+    },
+    {
+      "locale": "en",
+      "key": "shell.capture.notNow",
+      "args": {},
+      "text": "Not Now"
     },
     {
       "locale": "en",
@@ -5141,6 +5197,34 @@
     },
     {
       "locale": "es",
+      "key": "shell.capture.noAccessTitle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app> necesita permiso para grabar la pantalla"
+    },
+    {
+      "locale": "es",
+      "key": "shell.capture.noAccessBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Para capturar la pantalla, activa <app> en Ajustes del Sistema → Privacidad y seguridad y, después, sal de <app> y vuelve a abrir la aplicación."
+    },
+    {
+      "locale": "es",
+      "key": "shell.capture.openSettings",
+      "args": {},
+      "text": "Abrir Ajustes del Sistema"
+    },
+    {
+      "locale": "es",
+      "key": "shell.capture.notNow",
+      "args": {},
+      "text": "Ahora no"
+    },
+    {
+      "locale": "es",
       "key": "shell.notFound",
       "args": {
         "path": "<path>"
@@ -7449,6 +7533,34 @@
         "keys": "<keys>"
       },
       "text": "<keys> est déjà utilisé par une autre application. Choisissez un autre raccourci"
+    },
+    {
+      "locale": "fr",
+      "key": "shell.capture.noAccessTitle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app> a besoin de l’autorisation d’enregistrer l’écran"
+    },
+    {
+      "locale": "fr",
+      "key": "shell.capture.noAccessBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Pour capturer l’écran, autorisez <app> dans Réglages Système → Confidentialité et sécurité, puis quittez <app> et rouvrez l’application."
+    },
+    {
+      "locale": "fr",
+      "key": "shell.capture.openSettings",
+      "args": {},
+      "text": "Ouvrir Réglages Système"
+    },
+    {
+      "locale": "fr",
+      "key": "shell.capture.notNow",
+      "args": {},
+      "text": "Plus tard"
     },
     {
       "locale": "fr",
@@ -9763,6 +9875,34 @@
     },
     {
       "locale": "it",
+      "key": "shell.capture.noAccessTitle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app> richiede l'autorizzazione per registrare lo schermo"
+    },
+    {
+      "locale": "it",
+      "key": "shell.capture.noAccessBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Per acquisire lo schermo, attiva <app> in Impostazioni di Sistema → Privacy e Sicurezza, poi esci da <app> e riaprila."
+    },
+    {
+      "locale": "it",
+      "key": "shell.capture.openSettings",
+      "args": {},
+      "text": "Apri Impostazioni di Sistema"
+    },
+    {
+      "locale": "it",
+      "key": "shell.capture.notNow",
+      "args": {},
+      "text": "Non ora"
+    },
+    {
+      "locale": "it",
       "key": "shell.notFound",
       "args": {
         "path": "<path>"
@@ -12074,6 +12214,34 @@
     },
     {
       "locale": "ja",
+      "key": "shell.capture.noAccessTitle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app> には画面収録の許可が必要です"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.capture.noAccessBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "画面をキャプチャするには、「システム設定 → プライバシーとセキュリティ」で <app> を許可してから、<app> を終了してもう一度開いてください。"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.capture.openSettings",
+      "args": {},
+      "text": "システム設定を開く"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.capture.notNow",
+      "args": {},
+      "text": "今はしない"
+    },
+    {
+      "locale": "ja",
       "key": "shell.notFound",
       "args": {
         "path": "<path>"
@@ -14331,6 +14499,34 @@
     },
     {
       "locale": "ko",
+      "key": "shell.capture.noAccessTitle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app> 앱에 화면 기록 권한이 필요합니다"
+    },
+    {
+      "locale": "ko",
+      "key": "shell.capture.noAccessBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "화면을 캡처하려면 시스템 설정 > 개인정보 보호 및 보안에서 <app> 앱을 허용한 다음, <app> 앱을 종료하고 다시 여세요."
+    },
+    {
+      "locale": "ko",
+      "key": "shell.capture.openSettings",
+      "args": {},
+      "text": "시스템 설정 열기"
+    },
+    {
+      "locale": "ko",
+      "key": "shell.capture.notNow",
+      "args": {},
+      "text": "지금 안 함"
+    },
+    {
+      "locale": "ko",
       "key": "shell.notFound",
       "args": {
         "path": "<path>"
@@ -16585,6 +16781,34 @@
         "keys": "<keys>"
       },
       "text": "<keys> já está em uso por outro aplicativo. Escolha um atalho diferente"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.capture.noAccessTitle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "O <app> precisa de permissão para gravar a tela"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.capture.noAccessBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Para capturar a tela, permita o <app> em Ajustes do Sistema → Privacidade e Segurança, depois saia do <app> e abra-o novamente."
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.capture.openSettings",
+      "args": {},
+      "text": "Abrir Ajustes do Sistema"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.capture.notNow",
+      "args": {},
+      "text": "Agora Não"
     },
     {
       "locale": "pt-BR",
@@ -18953,6 +19177,34 @@
     },
     {
       "locale": "ru",
+      "key": "shell.capture.noAccessTitle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Для <app> требуется разрешение на запись экрана"
+    },
+    {
+      "locale": "ru",
+      "key": "shell.capture.noAccessBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Чтобы захватывать экран, разрешите <app> запись экрана в разделе Системные настройки → Конфиденциальность и безопасность, затем завершите работу <app> и откройте приложение снова."
+    },
+    {
+      "locale": "ru",
+      "key": "shell.capture.openSettings",
+      "args": {},
+      "text": "Открыть «Системные настройки»"
+    },
+    {
+      "locale": "ru",
+      "key": "shell.capture.notNow",
+      "args": {},
+      "text": "Не сейчас"
+    },
+    {
+      "locale": "ru",
       "key": "shell.notFound",
       "args": {
         "path": "<path>"
@@ -21264,6 +21516,34 @@
     },
     {
       "locale": "zh-CN",
+      "key": "shell.capture.noAccessTitle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app>需要屏幕录制权限"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.capture.noAccessBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "要截图，请在「系统设置 → 隐私与安全性」中允许<app>，然后退出<app>并重新打开。"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.capture.openSettings",
+      "args": {},
+      "text": "打开系统设置"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.capture.notNow",
+      "args": {},
+      "text": "暂不"
+    },
+    {
+      "locale": "zh-CN",
       "key": "shell.notFound",
       "args": {
         "path": "<path>"
@@ -23008,6 +23288,34 @@
         "keys": "<keys>"
       },
       "text": "<keys> 已被其他程式佔用，請更換快速鍵"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.capture.noAccessTitle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app>需要螢幕錄製權限"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.capture.noAccessBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "若要截圖，請在「系統設定 → 隱私權與安全性」中允許<app>，然後結束<app>並重新開啟。"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.capture.openSettings",
+      "args": {},
+      "text": "打開系統設定"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.capture.notNow",
+      "args": {},
+      "text": "稍後再說"
     },
     {
       "locale": "zh-TW",

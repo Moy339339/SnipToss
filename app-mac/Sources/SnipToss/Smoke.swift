@@ -211,6 +211,11 @@ final class SmokeRun {
         if let laterShot { result["snapshotLater"] = laterShot }
         if let keyExperiment { result["keyExperiment"] = keyExperiment }
         result["menuBar"] = MenuReport.describe(NSApp.mainMenu)
+        // Which bundle this is and whether the shell found its catalogs: a message in the language in use (the built-in text is English)
+        result["bundle"] = [
+            "id": Bundle.main.bundleIdentifier ?? "", "version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "",
+            "about": ShellText.t("shell.menu.about", ["app": ShellText.t("brand.name")]),
+        ]
         for (name, value) in SmokeNotes.all { result[name] = value }
         if let firstShot { result["snapshotFirst"] = firstShot }
         if let data = try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys]) {

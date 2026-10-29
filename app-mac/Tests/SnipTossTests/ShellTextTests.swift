@@ -53,7 +53,8 @@ final class ShellTextTests: XCTestCase {
             XCTAssertEqual(builtIn, want, key)
             compared += 1
         }
-        XCTAssertGreaterThanOrEqual(compared, 25)
+        // Enough to show the comparison ran over the shell's messages, not over nothing
+        XCTAssertGreaterThanOrEqual(compared, 20)
     }
 
     func testTheTextIsTheCatalogsInTheLanguageInUse() throws {

@@ -427,6 +427,9 @@ export function locateIn(
   return undefined;
 }
 
+// Locating an item opens folders that are usually open already: nothing changed, nothing to write
+const sameKeys = (a: Set<string>, b: Set<string>) => a.size === b.size && [...a].every((k) => b.has(k));
+
 export function useLibrary() {
   const [entries, setEntries] = useState<LibraryEntry[]>([]);
   const [scans, setScans] = useState(() => new Map<string, ScanResult>());
@@ -507,6 +510,7 @@ export function useLibrary() {
           if (open) next.add(keyOf(p));
           else next.delete(keyOf(p));
         }
+        if (sameKeys(next, prev)) return prev;
         persist("libraryExpanded", next);
         return next;
       });
@@ -522,6 +526,7 @@ export function useLibrary() {
           if (open) next.delete(keyOf(h));
           else next.add(keyOf(h));
         }
+        if (sameKeys(next, prev)) return prev;
         persist("libraryCollapsed", next);
         return next;
       });

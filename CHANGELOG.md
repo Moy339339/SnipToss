@@ -10,6 +10,7 @@ The annotation data format has its own version (`"schema": "sniptoss/5"`); its h
 
 - Diagnostic info, logs and the diagnostics package take the user folder out more carefully: another account whose name starts with yours (`C:\Users\Anna` when you are `Ann`) is no longer mangled, and a user name followed by a quote or a period in an error message is taken out too.
 - The write lock that a crashed command line can leave in a project's `.sniptoss/` folder no longer holds the computer's name, only a short hash of it (computer names often carry their owner's name).
+- On a busy computer, a drive that was slow to answer could be taken as disconnected, and the next check then reported a change to the item being viewed that never happened; such a drive is now simply asked again.
 
 ## [1.0.0] — 2026-10-29
 
