@@ -1,0 +1,67 @@
+name: mac
+
+# macOS builds and probes for the Mac shell. Runs on every push to the mac branch only.
+# No workflow_dispatch: GitHub only offers it for workflow files on the default branch, and this file is kept off main.
+on:
+  push:
+    branches: [mac]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mac-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  spike-s:
+    runs-on: macos-26
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Toolchain
+        run: |
+          sw_vers
+          uname -m
+          xcodebuild -version
+          swift --version
+          dotnet --list-sdks || true
+          dotnet workload list || true
+          which ffmpeg || echo "no ffmpeg"
+
+      - name: Build
+        working-directory: spikes/mac-s
+        run: swift build -c release
+
+      - name: Run probe (write phase)
+        continue-on-error: true
+        run: |
+          mkdir -p "$RUNNER_TEMP/out"
+          export SPIKE_MEDIA_DIR="$RUNNER_TEMP/spike-media"
+          export SPIKE_VIDEO="$GITHUB_WORKSPACE/tests/e2e/fixtures/project/video/clip.mp4"
+          export SPIKE_OUT="$RUNNER_TEMP/out/write.json"
+          spikes/mac-s/.build/release/SpikeS --phase=write
+
+      - name: Run probe (read phase, same data store)
+        continue-on-error: true
+        run: |
+          export SPIKE_MEDIA_DIR="$RUNNER_TEMP/spike-media"
+          export SPIKE_VIDEO="$GITHUB_WORKSPACE/tests/e2e/fixtures/project/video/clip.mp4"
+          export SPIKE_OUT="$RUNNER_TEMP/out/read.json"
+          spikes/mac-s/.build/release/SpikeS --phase=read
+
+      - name: Run probe (Tab focuses links on)
+        continue-on-error: true
+        run: |
+          export SPIKE_MEDIA_DIR="$RUNNER_TEMP/spike-media"
+          export SPIKE_VIDEO="$GITHUB_WORKSPACE/tests/e2e/fixtures/project/video/clip.mp4"
+          export SPIKE_OUT="$RUNNER_TEMP/out/tab-focuses-links.json"
+          spikes/mac-s/.build/release/SpikeS --phase=read --tab-focuses-links
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: spike-s-results
+          path: ${{ runner.temp }}/out
+          if-no-files-found: warn
