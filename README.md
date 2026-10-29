@@ -10,7 +10,7 @@ Annotate the images and videos your coding agent made — then hand the notes st
 
 SnipToss is a Windows desktop app for reviewing AI-generated assets. Mark what needs to change with a pin, rectangle, pen or arrow, write the change you want, and SnipToss saves the note — its text, position, time and a cropped snapshot — as plain files in the project's `.sniptoss/` folder. Claude Code, Codex and other agents that can read local files pick the notes up from there and fix the assets.
 
-Web pages, mini programs, PDF and slides are planned.
+Web pages, PDF and slides are planned.
 
 ![SnipToss: drawing a box and an arrow on an AI-generated landing page, writing a note for each, and the notes panel listing them](docs/images/main-window.gif)
 

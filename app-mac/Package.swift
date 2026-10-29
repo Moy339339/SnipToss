@@ -6,6 +6,7 @@ let package = Package(
     name: "SnipToss",
     platforms: [.macOS(.v14)],
     targets: [
-        .executableTarget(name: "SnipToss", path: "Sources/SnipToss")
+        .executableTarget(name: "SnipToss", path: "Sources/SnipToss"),
+        .testTarget(name: "SnipTossTests", dependencies: ["SnipToss"], path: "Tests/SnipTossTests"),
     ]
 )

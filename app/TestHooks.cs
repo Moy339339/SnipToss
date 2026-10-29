@@ -80,7 +80,8 @@ static class TestHooks
     // ---------- Screen Capture: fake monitors, injected mouse and keyboard, reading state, reading results ----------
 
     /// <summary>
-    /// From now on, captures use fakes: monitors (monitors, in physical pixels; placed off-screen so the user can't see them; scale = scaling), windows (windows), the cursor position (cursor);
+    /// From now on, captures use fakes: monitors (monitors, in physical pixels; placed off-screen so the user can't see them; scale = scaling;
+    /// image = a PNG file of exactly the monitor's size to show as its picture, otherwise a test pattern), windows (windows), the cursor position (cursor);
     /// the clipboard is replaced by a recorder (clipboardFailures = the first few attempts count as busy), and notices and the composed result are recorded; fail = throw while capturing the screen.
     /// Each call first closes any open capture and clears what was recorded last time; off = switch back to the real ones
     /// </summary>
@@ -90,11 +91,15 @@ static class TestHooks
         CaptureSession.Current?.Cancel();
         CaptureFakes.Reset();
         if (a.TryGetProperty("off", out var off) && off.GetBoolean()) return null;
-        var specs = a.GetProperty("monitors").EnumerateArray().Select(m => (bounds: Rect(m), scale: m.TryGetProperty("scale", out var s) ? s.GetDouble() : 1)).ToList();
+        var specs = a.GetProperty("monitors").EnumerateArray().Select(m => (
+            bounds: Rect(m),
+            scale: m.TryGetProperty("scale", out var s) ? s.GetDouble() : 1,
+            image: m.TryGetProperty("image", out var im) && im.ValueKind == JsonValueKind.String ? im.GetString() : null)).ToList();
         var fail = a.TryGetProperty("fail", out var f) && f.GetBoolean();
         CaptureFakes.Monitors = () => fail
             ? throw new InvalidOperationException("Test hook: screen capture failed")
-            : specs.Select((m, i) => new MonitorShot(m.bounds, m.scale, CaptureFakes.Pattern(m.bounds.Width, m.bounds.Height, i))).ToList();
+            : specs.Select((m, i) => new MonitorShot(m.bounds, m.scale,
+                m.image is null ? CaptureFakes.Pattern(m.bounds.Width, m.bounds.Height, i) : CaptureFakes.Picture(m.image, m.bounds.Width, m.bounds.Height))).ToList();
         CaptureFakes.Windows = a.TryGetProperty("windows", out var w) ? w.EnumerateArray().Select(Rect).ToList() : [];
         CaptureFakes.Cursor = a.TryGetProperty("cursor", out var c) && c.ValueKind == JsonValueKind.Array ? (c[0].GetInt32(), c[1].GetInt32()) : null;
         CaptureFakes.Primary = specs.Count > 0 ? specs[0].bounds : new Int32Rect(-20000, -20000, 1280, 720);
@@ -301,6 +306,20 @@ static class CaptureFakes
                 px[i + 2] = (byte)((x >> 8) + (y >> 8) * 16 + index * 64);
                 px[i + 3] = 255;
             }
+        var bitmap = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, px, width * 4);
+        bitmap.Freeze();
+        return bitmap;
+    }
+
+    /// <summary>A fake picture read from a PNG file (monitors[].image): it must be exactly the monitor's size in physical pixels; the pixels are copied into a 96-dpi bitmap like Pattern's</summary>
+    public static BitmapSource Picture(string path, int width, int height)
+    {
+        var decoder = BitmapDecoder.Create(new Uri(path), BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+        var frame = new FormatConvertedBitmap(decoder.Frames[0], PixelFormats.Bgra32, null, 0);
+        if (frame.PixelWidth != width || frame.PixelHeight != height)
+            throw new InvalidOperationException($"Test hook: {path} is {frame.PixelWidth}×{frame.PixelHeight}, the monitor is {width}×{height}");
+        var px = new byte[width * height * 4];
+        frame.CopyPixels(px, width * 4, 0);
         var bitmap = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, px, width * 4);
         bitmap.Freeze();
         return bitmap;

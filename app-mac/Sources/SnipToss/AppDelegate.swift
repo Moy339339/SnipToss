@@ -46,6 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             exit(1)
         }
         installStubMethods(into: bridge)
+        installLibraryMethods(into: bridge, settings: Settings.load())
 
         let config = WKWebViewConfiguration()
         config.setURLSchemeHandler(FileSchemeHandler(resolve: uiResolver(root: root)), forURLScheme: uiScheme)

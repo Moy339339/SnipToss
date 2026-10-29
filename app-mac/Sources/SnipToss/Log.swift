@@ -4,11 +4,14 @@ import Foundation
 let uiScheme = "sniptoss"
 let uiHost = "app"
 
-/// Plain log file at ~/Library/Logs/SnipToss/SnipToss-yyyyMMdd.log, also echoed to stderr. The home folder is written as ~ because
-/// the log can end up attached to a public issue report
+/// Plain log file at SnipToss-yyyyMMdd.log in `AppPaths.logDir` (~/Library/Logs/SnipToss), also echoed to stderr. Every line goes through
+/// `Scrub` first because the log can end up attached to a public issue report
 enum Log {
     private static let lock = NSLock()
     private static let home = NSHomeDirectory()
+
+    /// Where the log goes instead of `AppPaths.logDir`; unit tests point it at a temporary folder
+    static var directory: URL?
 
     static func info(_ text: String) { write("INFO", text) }
     static func error(_ text: String) { write("ERROR", text) }
@@ -17,9 +20,9 @@ enum Log {
         lock.lock()
         defer { lock.unlock() }
         let stamp = ISO8601DateFormatter().string(from: Date())
-        let line = "\(stamp) \(level) \(text.replacingOccurrences(of: home, with: "~"))\n"
+        let line = "\(stamp) \(level) \(Scrub.text(text))\n"
         FileHandle.standardError.write(Data(line.utf8))
-        let dir = URL(fileURLWithPath: home).appendingPathComponent("Library/Logs/SnipToss", isDirectory: true)
+        let dir = directory ?? URL(fileURLWithPath: AppPaths.logDir, isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let day = String(stamp.prefix(10)).replacingOccurrences(of: "-", with: "")
         let file = dir.appendingPathComponent("SnipToss-\(day).log")

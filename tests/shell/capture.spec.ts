@@ -1,7 +1,7 @@
 // Screen Capture. The capture overlay is a native WPF window, tested through the test hooks (app/TestHooks.cs,
 // app/Capture/CaptureOverlay.TestHooks.cs, compiled only into the shell-test build):
 // - the fake monitors sit off screen (from -20000, -20000): the overlay can't be seen on screen and the screen of the machine running
-//   the test isn't captured; the picture is a pattern whose color follows from the coordinates (color())
+//   the test isn't captured; the picture is a pattern whose color follows from the coordinates (color()), or a PNG file when the monitor gives an image
 // - mouse and keyboard are injected by the test hooks and routed like the real ones (a captured mouse goes to the element that captured it;
 //   a covered button can't be clicked); the real mouse and keyboard are blocked by the overlay at that point, so someone using them
 //   next to the test can't interfere
@@ -12,6 +12,7 @@
 import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
+import { crc32, deflateSync } from "node:zlib";
 import { expect, test, waitFor, type Shell } from "./harness";
 
 type Box = { x: number; y: number; width: number; height: number };
@@ -83,7 +84,8 @@ type Result = {
 type Op = Record<string, unknown> & { op: string };
 
 const OFF = -20000;
-type Monitor = { x: number; y: number; width: number; height: number; scale?: number };
+/** image = a PNG file of exactly the monitor's size shown as its picture (the test pattern when absent) */
+type Monitor = { x: number; y: number; width: number; height: number; scale?: number; image?: string };
 const ONE: Monitor[] = [{ x: OFF, y: OFF, width: 1280, height: 720, scale: 1 }];
 /** Two: 1280×720 on the left and another 1280×720 right next to it */
 const TWO: Monitor[] = [ONE[0], { x: OFF + 1280, y: OFF, width: 1280, height: 720, scale: 1 }];
@@ -295,6 +297,54 @@ test("150% screen: the layer size is physical pixels divided by the scale and wi
   ]);
   expect(r.image).toEqual({ width: 300, height: 150 });
   expect(r.pixels).toEqual([color(150, 150), color(449, 299)]);
+});
+
+/** An 8-bit RGB PNG whose pixel colors come from rgb(x, y) */
+function png(width: number, height: number, rgb: (x: number, y: number) => number[]) {
+  const rows = Buffer.alloc((width * 3 + 1) * height); // each row starts with filter type 0
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) Buffer.from(rgb(x, y)).copy(rows, y * (width * 3 + 1) + 1 + x * 3);
+  const chunk = (type: string, data: Buffer) => {
+    const body = Buffer.concat([Buffer.from(type, "ascii"), data]);
+    const head = Buffer.alloc(4);
+    head.writeUInt32BE(data.length);
+    const tail = Buffer.alloc(4);
+    tail.writeUInt32BE(crc32(body));
+    return Buffer.concat([head, body, tail]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr.set([8, 2, 0, 0, 0], 8); // 8 bits, RGB, no interlace
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk("IHDR", ihdr), chunk("IDAT", deflateSync(rows)), chunk("IEND", Buffer.alloc(0))]);
+}
+
+test("A fake monitor can show a PNG file instead of the test pattern: the composited image is that picture, and a size mismatch is an error", async ({ shell }) => {
+  const file = join(shell.temp, "screen.png");
+  // Left half green, right half blue, and the bottom 100 rows yellow
+  writeFileSync(file, png(1280, 720, (x, y) => (y >= 620 ? [0xdd, 0xaa, 0x00] : x < 640 ? [0x11, 0xaa, 0x22] : [0x22, 0x55, 0xcc])));
+  await shell.launch();
+  shell.allowLogErrors(); // the wrong-size picture below is logged as an ERROR
+  await open(shell, { monitors: [{ ...ONE[0], image: file }] });
+  await select(shell, [500, 560], [780, 660]); // 280 × 100: crosses the green / blue edge at x 640 and the yellow band from y 620
+  await run(shell, [{ op: "key", key: "Enter" }]);
+  const r = await result(shell, [
+    [0, 0],
+    [139, 59],
+    [140, 0],
+    [279, 59],
+    [0, 60],
+    [279, 99],
+  ]);
+  expect(r.image).toEqual({ width: 280, height: 100 });
+  expect(r.pixels).toEqual(["11aa22", "11aa22", "2255cc", "2255cc", "ddaa00", "ddaa00"]);
+
+  // A picture of the wrong size makes the capture fail with an error notice instead of opening the overlay
+  writeFileSync(file, png(100, 100, () => [0, 0, 0]));
+  await shell.ask("debugCaptureFake", { monitors: [{ ...ONE[0], image: file }] });
+  await shell.callHost("captureStart");
+  await waitFor("the error to be shown", async () => (await result(shell)).shown.length > 0);
+  expect((await result(shell)).shown[0]).toMatchObject({ kind: "error", error: expect.stringContaining("is 100×100, the monitor is 1280×720") });
+  await closed(shell);
 });
 
 test("The selection snaps to physical pixels: at 125%, dragging to fractional DIPs lands the selection on whole pixels", async ({ shell }) => {

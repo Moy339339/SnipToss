@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -135,14 +136,24 @@ static class Crash
         """;
 
     /// <summary>Replaces the user directory (C:\Users\name) with %USERPROFILE%; where the user name appears in other paths (Users\name on another drive) that segment becomes &lt;user&gt;</summary>
-    internal static string Scrub(string text)
+    internal static string Scrub(string text) =>
+        Scrub(text, Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), Environment.UserName, "%USERPROFILE%");
+
+    /// <summary>
+    /// The rule behind Scrub, with the home folder, user name and the token for the home folder passed in. The Mac shell has the same rule;
+    /// tests/golden/scrub.json holds the cases both must agree on. Case is ignored (NTFS and the default APFS volume ignore it too).
+    /// A match counts only when the next character can't continue a folder name (a letter, digit, _ or -): C:\Users\Ann isn't taken out of
+    /// C:\Users\Anna, but is out of 'C:\Users\Ann' in an exception message. The home folder also can't follow such a character, so /Users/ann
+    /// isn't taken out of /Volumes/Disk/Users/ann (that one gets &lt;user&gt;). A root (/, C:\) as the home folder is ignored
+    /// </summary>
+    internal static string Scrub(string text, string home, string user, string homeToken)
     {
-        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (profile.Length > 3) text = text.Replace(profile, "%USERPROFILE%", StringComparison.OrdinalIgnoreCase);
-        var user = Environment.UserName;
-        if (user.Length > 0)
-            text = System.Text.RegularExpressions.Regex.Replace(text, $@"(?<=[\\/]){System.Text.RegularExpressions.Regex.Escape(user)}(?=[\\/]|$)", "<user>",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Multiline);
+        const string NotAfterNameChar = @"(?<![\p{L}\p{N}_-])";
+        const string NotNameChar = @"(?![\p{L}\p{N}_-])";
+        const RegexOptions Options = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant;
+        if (home.Length > 3)
+            text = Regex.Replace(text, NotAfterNameChar + Regex.Escape(home) + NotNameChar, homeToken.Replace("$", "$$", StringComparison.Ordinal), Options);
+        if (user.Length > 0) text = Regex.Replace(text, $@"(?<=[\\/]){Regex.Escape(user)}{NotNameChar}", "<user>", Options);
         return text;
     }
 

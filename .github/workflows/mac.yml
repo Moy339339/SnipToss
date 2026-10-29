@@ -40,8 +40,13 @@ jobs:
         working-directory: app-mac
         run: swift build -c release
 
+      - name: Unit tests
+        working-directory: app-mac
+        run: swift test
+
       # Opens the window, waits for the first screen, writes ui.png and result.json, and quits
       - name: Smoke run
+        if: ${{ !cancelled() }}
         run: |
           mkdir -p "$RUNNER_TEMP/smoke"
           export SNIPTOSS_VERSION="$(node -p "require('./package.json').version")"

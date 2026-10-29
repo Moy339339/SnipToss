@@ -11,20 +11,40 @@ struct BridgeError: Error {
     }
 }
 
-/// One bridge method: parameters in (the decoded JSON, nil when the UI sent none), the reply out (anything JSONSerialization accepts)
+/// One bridge method: parameters in (the decoded JSON, nil when the UI sent none), the reply out (anything JSONSerialization accepts).
+/// It runs on a background queue, never on the main thread, so a slow disk (an unreachable network drive) cannot freeze the window.
+/// A method that has to touch AppKit hops to the main thread itself (`onMain`)
 typealias BridgeMethod = (Any?) throws -> Any?
+
+/// Run `work` on the main thread and wait for it. Only for bridge methods (which run on a background queue), never from the main thread
+func onMain<T>(_ work: () -> T) -> T {
+    precondition(!Thread.isMainThread, "onMain is for background threads")
+    return DispatchQueue.main.sync(execute: work)
+}
 
 /// The shell end of the bridge in docs/host-api.md: `{ id, method, params }` in, `{ id, result }` or `{ id, error, code }` out,
 /// plus events the shell pushes by itself (`{ event, ...payload }`)
 final class BridgeHost: NSObject, WKScriptMessageHandler {
     weak var webView: WKWebView?
     private var methods: [String: BridgeMethod] = [:]
-    /// Method names in the order the UI called them, and the ones nobody implements (the smoke run reports both)
-    private(set) var calls: [String] = []
-    private(set) var unhandled: [String] = []
-    /// What the UI reported through the `log` method (its own errors, blocked-by-CSP notices); the smoke run reports it too
-    var pageLogs: [String] = []
+    /// Calls run concurrently: one slow call does not hold up the rest. Methods that write guard their own state with locks
+    private let queue = DispatchQueue(label: "snip.bridge", qos: .userInitiated, attributes: .concurrent)
+    private let recordLock = NSLock()
+    private var recordedCalls: [String] = []
+    private var recordedUnhandled: [String] = []
+    private var recordedPageLogs: [String] = []
 
+    /// Method names in the order the UI called them, and the ones nobody implements (the smoke run reports both)
+    var calls: [String] { recordLock.withLock { recordedCalls } }
+    var unhandled: [String] { recordLock.withLock { recordedUnhandled } }
+    /// What the UI reported through the `log` method (its own errors, blocked-by-CSP notices); the smoke run reports it too
+    var pageLogs: [String] { recordLock.withLock { recordedPageLogs } }
+
+    func addPageLog(_ line: String) {
+        recordLock.withLock { recordedPageLogs.append(line) }
+    }
+
+    /// Register before the page loads; the table is read-only afterwards
     func register(_ name: String, _ method: @escaping BridgeMethod) {
         methods[name] = method
     }
@@ -39,37 +59,44 @@ final class BridgeHost: NSObject, WKScriptMessageHandler {
             Log.info("bridge: malformed message dropped")
             return
         }
-        calls.append(method)
+        recordLock.withLock { recordedCalls.append(method) }
         guard let handler = methods[method] else {
-            unhandled.append(method)
+            recordLock.withLock { recordedUnhandled.append(method) }
             reply(["id": id, "error": "not implemented: \(method)"])
             return
         }
-        do {
-            let result = try handler(body["params"])
-            reply(["id": id, "result": result ?? NSNull()])
-        } catch let e as BridgeError {
-            reply(["id": id, "error": e.message, "code": e.code ?? NSNull()])
-        } catch {
-            Log.error("bridge: \(method) failed: \(error)")
-            reply(["id": id, "error": "\(error)"])
+        let params = body["params"]
+        queue.async { [self] in
+            do {
+                let result = try handler(params)
+                reply(["id": id, "result": result ?? NSNull()])
+            } catch let e as BridgeError {
+                Log.info("bridge: \(method) refused: \(e.message)")
+                reply(["id": id, "error": e.message, "code": e.code ?? NSNull()])
+            } catch {
+                Log.error("bridge: \(method) failed: \(error)")
+                reply(["id": id, "error": "\(error)", "code": NSNull()])
+            }
         }
     }
 
-    /// Push an event to the UI (`libraryChanged`, `annotationsChanged`, ...)
+    /// Push an event to the UI (`libraryChanged`, `annotationsChanged`, ...). Safe from any thread
     func emit(_ event: String, _ payload: [String: Any] = [:]) {
         var message = payload
         message["event"] = event
         reply(message)
     }
 
+    /// Safe from any thread: the page is only touched on the main thread
     private func reply(_ message: [String: Any]) {
-        guard let webView, JSONSerialization.isValidJSONObject(message),
-            let data = try? JSONSerialization.data(withJSONObject: message), let json = String(data: data, encoding: .utf8)
+        guard JSONSerialization.isValidJSONObject(message), let data = try? JSONSerialization.data(withJSONObject: message),
+            let json = String(data: data, encoding: .utf8)
         else {
-            Log.error("bridge: a reply could not be encoded or the page is gone")
+            Log.error("bridge: a reply could not be encoded")
             return
         }
-        webView.evaluateJavaScript("window.__sniptoss && window.__sniptoss.receive(\(json))", completionHandler: nil)
+        DispatchQueue.main.async { [weak self] in
+            self?.webView?.evaluateJavaScript("window.__sniptoss && window.__sniptoss.receive(\(json))", completionHandler: nil)
+        }
     }
 }
