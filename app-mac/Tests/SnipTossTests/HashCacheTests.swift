@@ -28,6 +28,18 @@ final class HashCacheTests: SnipTestCase {
         return Set(root.keys)
     }
 
+    /// The fingerprints the test project's notes record for its items (tests/e2e/fixtures/project): the page compares them with the item's
+    /// own, in lower case, to tell notes on an earlier version from the current ones
+    func testTheFixtureItemsHaveTheFingerprintsTheirNotesRecord() throws {
+        var root = URL(fileURLWithPath: #filePath)
+        for _ in 0..<4 { root.deleteLastPathComponent() }
+        let cache = makeCache(makeTempDir() + "/cache/sha256.json")
+        let hero = root.appendingPathComponent("tests/e2e/fixtures/project/assets/hero.png").path
+        XCTAssertEqual(try cache.sha256(of: hero), "4a55b5f936fd0481bd9dcb1b355e441ee181b5f1c2104fe1d310b9bb02adaec1")
+        let clip = root.appendingPathComponent("tests/e2e/fixtures/project/video/clip.mp4").path
+        XCTAssertEqual(try cache.sha256(of: clip), "ee7033a381718d4ef7449c5a8eb441e278512f3d7cec6cefffd25c1959cd1f43")
+    }
+
     func testComputesCorrectlyRecordsItAndReturnsTheRecordedValueWhileTheFileIsUnchanged() throws {
         let dir = makeTempDir()
         let location = dir + "/cache/sha256.json"

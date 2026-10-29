@@ -70,7 +70,7 @@ jobs:
               Library: [{ Path: project, Pinned: false }],
               Selected: project + "/assets/hero.png",
               // The tour and first-use hints count as seen, so the picture shows the screen itself
-              Prefs: { onboarding: ["tour", "hint.copy", "hint.video"] },
+              Prefs: { language: "en", onboarding: ["tour", "hint.copy", "hint.video"] },
             };
             require("fs").writeFileSync(process.env.SNIPTOSS_SETTINGS, JSON.stringify(settings, null, 2) + "\n");
           '

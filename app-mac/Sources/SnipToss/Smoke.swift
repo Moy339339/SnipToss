@@ -10,7 +10,17 @@ final class SmokeRun {
 
     /// With a project in the library and an item selected: the item is on the canvas (it has a size there: right after a switch it is 0 × 0),
     /// loaded through the media scheme and decoded
-    static let imageScript = "(() => { const el = document.querySelector('.zoom-media'); if (!el || !el.complete || el.naturalWidth === 0) return false; const r = el.getBoundingClientRect(); return r.width > 1 && r.height > 1; })()"
+    static let imageScript = """
+        (() => {
+          const el = document.querySelector('.zoom-media');
+          if (!el || !el.complete || el.naturalWidth === 0) return false;
+          const r = el.getBoundingClientRect();
+          if (r.width <= 1 || r.height <= 1) return false;
+          // Notes on an item whose fingerprint is not worked out yet count as being on an earlier version: wait until they are sorted
+          const text = document.body.innerText;
+          return /Canvas marks/.test(text) && !/earlier version/i.test(text);
+        })()
+        """
 
     /// The onboarding tour card is on screen (first run, an item shown)
     static let tourScript = "!!document.querySelector('.tour-card')"
@@ -46,6 +56,8 @@ final class SmokeRun {
             title: document.title,
             text: (document.body ? document.body.innerText : '').slice(0, 400),
             libraryRows: document.querySelectorAll('.lib-row').length,
+            earlierVersion: /earlier version/i.test(document.body ? document.body.innerText : ''),
+            canvasMarks: /Canvas marks/.test(document.body ? document.body.innerText : ''),
             media: media ? { width: media.naturalWidth, height: media.naturalHeight, src: media.currentSrc.slice(0, 200) } : null,
             tour: card ? { text: card.innerText, opacity: getComputedStyle(card).opacity, animation: getComputedStyle(card).animationName, parts } : null,
           });
