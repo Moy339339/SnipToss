@@ -45,7 +45,7 @@ final class SmokeRun {
 
     /// SNIPTOSS_SMOKE_READY picks what to wait for: `welcome` (default, an empty library), `image`, `tour`, `keys` (the welcome screen, then
     /// the key experiment of KeyExperiment.swift, whose answers go into result.json) or `capture` (the welcome screen, then the capture
-    /// layers over a made-up pattern, CaptureSmoke in CaptureSession.swift)
+    /// layers over a made-up pattern, CaptureSmoke.swift)
     static let mode = ProcessInfo.processInfo.environment["SNIPTOSS_SMOKE_READY"] ?? "welcome"
 
     static var readyScript: String {

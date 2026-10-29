@@ -49,6 +49,7 @@ enum ShellLocale {
     private static let lock = NSLock()
     private static var currentLanguage = fallback
     private static var catalogs: [String: [String: String]] = [:]
+    private static var macCatalogs: [String: [String: String]] = [:]
     private static var formatterLoaded = false
     private static var loadedFormatter: MessageFormatter?
 
@@ -80,6 +81,16 @@ enum ShellLocale {
     }
 
     static func text(_ key: String, in language: String, _ args: [String: Any] = [:]) -> String? {
+        format(key, in: language, args, catalog: catalog)
+    }
+
+    /// The same from the messages as i18n/locales has them, shortcuts not rewritten: word for word what the UI formats on Windows
+    /// (tests/golden/messages.json)
+    static func rawText(_ key: String, in language: String, _ args: [String: Any] = [:]) -> String? {
+        format(key, in: language, args, catalog: rawCatalog)
+    }
+
+    private static func format(_ key: String, in language: String, _ args: [String: Any], catalog: (String) -> [String: String]) -> String? {
         guard let formatter = formatter() else { return nil }
         var from = language
         var pattern = catalog(language)[key]
@@ -97,7 +108,25 @@ enum ShellLocale {
         }
     }
 
+    /// A language's messages as the Mac shows them: the shortcuts written inside them are rewritten the Mac way (⌘Z, ⌥1), as the UI does
     private static func catalog(_ language: String) -> [String: String] {
+        let raw = rawCatalog(language)
+        lock.lock()
+        if let known = macCatalogs[language] {
+            lock.unlock()
+            return known
+        }
+        lock.unlock()
+        // Outside the lock: the formatter takes it too
+        let rewritten = formatter()?.macify(raw) ?? raw
+        lock.lock()
+        defer { lock.unlock() }
+        macCatalogs[language] = rewritten
+        return rewritten
+    }
+
+    /// A language's messages as i18n/locales has them (the Windows wording)
+    static func rawCatalog(_ language: String) -> [String: String] {
         lock.lock()
         defer { lock.unlock() }
         if let known = catalogs[language] { return known }
@@ -109,6 +138,11 @@ enum ShellLocale {
         }
         catalogs[language] = loaded
         return loaded
+    }
+
+    /// A text written the way the Mac writes shortcuts, with the key names of `language`
+    static func macify(_ text: String, in language: String) -> String {
+        formatter()?.macifyText(text, catalog: rawCatalog(language)) ?? text
     }
 
     private static func formatter() -> MessageFormatter? {
@@ -131,6 +165,7 @@ enum ShellLocale {
         defer { lock.unlock() }
         currentLanguage = fallback
         catalogs = [:]
+        macCatalogs = [:]
         formatterLoaded = false
         loadedFormatter = nil
     }

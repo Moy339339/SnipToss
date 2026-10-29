@@ -140,8 +140,9 @@ jobs:
           app-mac/.build/release/SnipToss
 
       # The capture layers over a made-up pattern (the runner's real screen is never captured): one layer a screen, the kind of window it
-      # is, the picture drawn at the screen's resolution and dimmed by half, Esc sent through the event queue ends the capture, and a right
-      # click ends a second one
+      # is, the picture drawn at the screen's resolution and dimmed by half, Esc sent through the event queue ends the capture, a right
+      # click ends a second one, and a fourth goes through the main line with posted mouse and key events. In Chinese, so the pictures of
+      # the layer show the words most users see
       - name: Smoke run (capture layers)
         if: ${{ !cancelled() }}
         run: |
@@ -150,6 +151,8 @@ jobs:
           export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-capture/settings.json"
           export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/capture"
           export SNIPTOSS_SMOKE_READY=capture
+          mkdir -p "$RUNNER_TEMP/data-capture"
+          echo '{ "Prefs": { "language": "zh-CN" } }' > "$SNIPTOSS_SETTINGS"
           app-mac/.build/release/SnipToss
 
       # Level 1000 is NSWindow.Level.screenSaver; 262481 is canJoinAllSpaces | stationary | ignoresCycle | fullScreenAuxiliary |
@@ -175,8 +178,9 @@ jobs:
               if (JSON.stringify(l.frame) !== JSON.stringify(l.screenFrame)) say("frame " + JSON.stringify(l.frame) + " on screen " + JSON.stringify(l.screenFrame));
               const want = [Math.round(l.frame[2] * l.scale), Math.round(l.frame[3] * l.scale)];
               if (JSON.stringify(l.pixels) !== JSON.stringify(want)) say("pixels " + JSON.stringify(l.pixels) + ", expected " + JSON.stringify(want));
+              // A sample on the highlight's outline or under the size label is left out
               const samples = l.samples || [];
-              if (samples.length !== 3) say(samples.length + " samples");
+              if (samples.length < 1) say("no samples");
               // The expected colors are worked out in the color space of the layer (CaptureSmoke.shown), as the drawing is
               for (const s of samples) {
                 const off = s.expected.length !== 3 || s.actual.some((v, k) => !(Math.abs(v - s.expected[k]) <= 8));
@@ -195,6 +199,41 @@ jobs:
             console.log("with another program in front: " + JSON.stringify(front));
             if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
             console.log("capture layers ok", JSON.stringify(c));
+          '
+
+      # The main line of a capture, step by step (CaptureSmoke.mainLineRound): what the layer was after each posted click, drag and key
+      - name: Check the capture main line
+        if: ${{ !cancelled() }}
+        run: |
+          node -e '
+            const r = require(process.env.RUNNER_TEMP + "/smoke/capture/result.json");
+            const m = (r.capture || {}).mainLine || {};
+            const problems = [];
+            const step = {};
+            for (const s of m.steps || []) step[s.step] = s;
+            const expect = (name, what, ok) => { if (!step[name] || !ok(step[name])) problems.push(name + ": " + what + " " + JSON.stringify(step[name] || "missing")); };
+            const mark = (s, i) => (s.marks || [])[i] || {};
+            if (!m.opened) problems.push("the main line did not open: " + JSON.stringify(m));
+            expect("select", "a selection, the toolbar and its buttons", (s) => s.sel && s.toolbar && s.op === "noDrag" && (s.buttons || []).includes("done"));
+            expect("rectTool", "Rectangle chosen by a click on the toolbar", (s) => s.tool === "rect" && (s.buttons || []).includes("color-ff6a3d"));
+            expect("drawRect", "the note box open with the keyboard, the layer below the input method", (s) => s.noteOpen && s.note && s.note.title && s.firstResponder === "note" && s.level === 26 && mark(s, 0).kind === "rect");
+            expect("typeNote", "the typed note, the key x included", (s) => s.note && s.note.text === "Make this bluex" && s.note.saveEnabled);
+            expect("saveNote", "Save clicked: note 1 written, the keyboard back on the layer", (s) => !s.noteOpen && mark(s, 0).note === "Make this bluex" && mark(s, 0).number === 1 && s.firstResponder === "overlay" && s.level === 1000);
+            expect("pinTool", "the Pin chosen with C", (s) => s.tool === "note");
+            expect("placePin", "a Pin placed and its note box open", (s) => s.noteOpen && mark(s, 1).kind === "note" && mark(s, 1).pending === 2);
+            expect("typePin", "note 2 saved with Return", (s) => !s.noteOpen && mark(s, 1).note === "Remove this" && mark(s, 1).number === 2);
+            expect("textTool", "Text chosen with T", (s) => s.tool === "text");
+            expect("placeText", "the text box open with the keyboard", (s) => s.textOpen && s.firstResponder === "text");
+            expect("typeText", "the text ended with Esc", (s) => !s.textOpen && mark(s, 2).kind === "text" && mark(s, 2).text === "Hi");
+            expect("escapeWarns", "Esc after notes only warns", (s) => s.open && s.warn);
+            expect("finish", "Finish on the toolbar ends the capture", (s) => s.open === false);
+            if (!m.closed || m.whenClosedCalls !== 1) problems.push("the end: closed " + m.closed + ", announced " + m.whenClosedCalls + " times");
+            const res = m.result || {};
+            const notes = (res.marks || []).filter((k) => k.number > 0).length;
+            if ((res.marks || []).length !== 3 || notes !== 2) problems.push("collected: " + JSON.stringify(res));
+            if (!m.picture) problems.push("no picture of the layer");
+            if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
+            console.log("capture main line ok", JSON.stringify(res));
           '
 
       # The project's self-signed code signing certificate (CN=MoyGoldenAge), from the repository's secrets into a keychain of this run

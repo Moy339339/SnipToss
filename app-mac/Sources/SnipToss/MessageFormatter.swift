@@ -51,6 +51,37 @@ final class MessageFormatter {
         return result?.toString() ?? ""
     }
 
+    /// A catalog with the shortcuts in its messages written the Mac way: the messages spell them with words ("Undo (Ctrl Z)", German
+    /// "Strg Z"), the Mac writes ⌘Z. The UI's own function (packages/web/src/macKeys.ts), which rewrites the UI's messages on the Mac too.
+    /// The catalog as it was when the script cannot do it (an older script)
+    func macify(_ catalog: [String: String]) -> [String: String] {
+        guard let data = try? JSONEncoder().encode(catalog), let text = String(data: data, encoding: .utf8) else { return catalog }
+        lock.lock()
+        defer { lock.unlock() }
+        caught.text = nil
+        guard let function = context.objectForKeyedSubscript("snipMacify"), function.isObject,
+            let result = function.call(withArguments: [text])?.toString(), caught.text == nil, let out = result.data(using: .utf8),
+            let rewritten = try? JSONDecoder().decode([String: String].self, from: out)
+        else {
+            if let error = caught.text { Log.error("The messages could not be rewritten for the Mac: \(error)") }
+            return catalog
+        }
+        return rewritten
+    }
+
+    /// One text written the Mac way with the key names of `catalog` (the raw one): for comparing with the golden messages, which are the
+    /// Windows wording
+    func macifyText(_ text: String, catalog: [String: String]) -> String {
+        guard let data = try? JSONEncoder().encode(catalog), let json = String(data: data, encoding: .utf8) else { return text }
+        lock.lock()
+        defer { lock.unlock() }
+        caught.text = nil
+        guard let function = context.objectForKeyedSubscript("snipMacifyText"), function.isObject,
+            let result = function.call(withArguments: [text, json])?.toString(), caught.text == nil
+        else { return text }
+        return result
+    }
+
     /// Runs a script in the same context and returns its value as text: for tests that ask what the engine can do
     func evaluate(_ script: String) -> String? {
         lock.lock()

@@ -106,6 +106,9 @@ extension SettingsValues {
         return "#ff6a3d"
     }
 
+    /// The category new notes start with (Settings > Annotations); anything unknown is Change
+    var defaultCategory: String { Categories.valid(SettingsValues.text(prefs?["defaultCategory"])) }
+
     private static func isHexColor(_ text: String) -> Bool {
         let scalars = Array(text.unicodeScalars)
         guard scalars.count == 7, scalars[0] == "#" else { return false }

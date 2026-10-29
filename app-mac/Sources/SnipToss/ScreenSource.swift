@@ -26,6 +26,44 @@ enum ScreenCaptureFailure: Error, Equatable {
 protocol ScreenSource {
     /// A frozen picture of every screen, taken now
     func capture() async throws -> [FrozenScreen]
+
+    /// The windows on screen now, topmost first, in the window list's coordinates: points, origin at the top-left corner of the main
+    /// screen, y pointing down. Hovering one highlights it and a click selects it
+    func windows() -> [CGRect]
+}
+
+extension ScreenSource {
+    func windows() -> [CGRect] { [] }
+}
+
+enum WindowList {
+    /// The ordinary windows on screen, topmost first: the menu bar, the Dock, the desktop and other layers above or below the normal one
+    /// are left out, and so are invisible ones and ones smaller than 8 × 8. Reading where windows are needs no permission. This app's own
+    /// main window is included: it can be selected too
+    static func onScreen() -> [CGRect] {
+        guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]
+        else { return [] }
+        return list.compactMap { window -> CGRect? in
+            guard (window[kCGWindowLayer as String] as? Int) == 0 else { return nil }
+            if let alpha = window[kCGWindowAlpha as String] as? Double, alpha <= 0 { return nil }
+            guard let bounds = window[kCGWindowBounds as String] as? NSDictionary,
+                let rect = CGRect(dictionaryRepresentation: bounds as CFDictionary), rect.width >= 8, rect.height >= 8
+            else { return nil }
+            return rect
+        }
+    }
+
+    /// The windows on one screen in that screen's layer: moved to the screen's top-left corner, cut to the screen, and only the ones still
+    /// at least 8 × 8 points. `screen` is in AppKit's coordinates (origin at the bottom left of the main screen, whose height is
+    /// `mainHeight`), the windows in the window list's
+    static func onLayer(_ windows: [CGRect], screen: CGRect, mainHeight: CGFloat) -> [CGRect] {
+        let top = mainHeight - screen.maxY
+        let full = CGRect(x: 0, y: 0, width: screen.width, height: screen.height)
+        return windows.compactMap { w in
+            let r = CGRect(x: w.minX - screen.minX, y: w.minY - top, width: w.width, height: w.height).wpfIntersect(full)
+            return !r.wpfIsEmpty && r.wpfWidth >= 8 && r.wpfHeight >= 8 ? r : nil
+        }
+    }
 }
 
 /// The system's screen capture: one picture per display, at the display's own resolution, without the cursor
@@ -68,6 +106,8 @@ struct ScreenCaptureKitSource: ScreenSource {
         for screen in NSScreen.screens { frames[ScreenID.of(screen)] = screen.frame }
         return frames
     }
+
+    func windows() -> [CGRect] { WindowList.onScreen() }
 }
 
 enum ScreenID {
@@ -86,6 +126,10 @@ struct PatternScreenSource: ScreenSource {
     }
 
     let screens: [Screen]
+    /// Made-up windows, in the window list's coordinates
+    var windowRects: [CGRect] = []
+
+    func windows() -> [CGRect] { windowRects }
 
     static func color(x: Int, y: Int) -> (red: UInt8, green: UInt8, blue: UInt8) {
         (UInt8(x % 251), UInt8(y % 241), UInt8((x + y) % 239))

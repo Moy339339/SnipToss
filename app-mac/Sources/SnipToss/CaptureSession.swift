@@ -19,38 +19,59 @@ struct PermissionGuide: PermissionGuiding {
     }
 }
 
-/// One screen capture: the pictures of all screens are taken first, then a layer is put over each screen. Main thread only.
-/// What is drawn on the layers, and what the user does with them, comes in the next steps; this one makes the layers and closes them
-/// with Esc
+/// What a capture starts with, from the settings at the moment the shortcut is pressed
+struct CaptureOptions {
+    /// The mark color in Settings → Annotations
+    var markColor = ToolPrefs.colors[0]
+    /// The category new notes start with
+    var defaultCategory = "change"
+    /// Write how to select below the magnifier: until the first capture has been finished
+    var selectHint = false
+}
+
+/// One screen capture: the pictures of all screens are taken first, then a layer is put over each screen (CaptureOverlay). The selection can
+/// be on one screen only (`owner`). Finishing collects what was drawn (`CaptureResult`). Main thread only
 final class CaptureSession {
     private let source: ScreenSource
     private let access: ScreenAccess
     private let guide: PermissionGuiding
     private let defaults: UserDefaults
+    private let options: () -> CaptureOptions
     private var panels: [OverlayPanel] = []
+    private(set) var overlays: [CaptureOverlay] = []
+    /// The layer the selection is on
+    private(set) var owner: CaptureOverlay?
     private var screenObserver: NSObjectProtocol?
     private var starting = false
     private var whenClosed: [() -> Void] = []
     private(set) var isOpen = false
+    /// What the last finished capture collected
+    private(set) var lastResult: CaptureResult?
+    /// Called with what a finished capture collected, after its layers are gone
+    var onFinished: ((CaptureResult) -> Void)?
 
     private static let requestedKey = "ScreenAccessRequested"
 
-    init(source: ScreenSource, access: ScreenAccess = SystemScreenAccess(), guide: PermissionGuiding = PermissionGuide(), defaults: UserDefaults = .standard) {
+    init(
+        source: ScreenSource, access: ScreenAccess = SystemScreenAccess(), guide: PermissionGuiding = PermissionGuide(), defaults: UserDefaults = .standard,
+        options: @escaping () -> CaptureOptions = { CaptureOptions() }
+    ) {
         self.source = source
         self.access = access
         self.guide = guide
         self.defaults = defaults
+        self.options = options
     }
 
     /// The layers on screen now (for the tests and the smoke run)
     var overlayPanels: [OverlayPanel] { panels }
 
-    /// Starts a capture. While one is going on this only brings its layers to the front. `whenClosed` is called once, when it is over for
-    /// whatever reason (finished, cancelled, no permission, no pictures)
+    /// Starts a capture. While one is going on this only brings its layer to the front: the one with the selection, else the one under the
+    /// pointer. `whenClosed` is called once, when it is over for whatever reason (finished, cancelled, no permission, no pictures)
     func start(whenClosed done: @escaping () -> Void = {}) {
         whenClosed.append(done)
         if isOpen {
-            panels.forEach { $0.orderFrontRegardless() }
+            (owner ?? overlayUnderPointer() ?? overlays.first)?.activate()
             return
         }
         if starting { return }
@@ -58,7 +79,7 @@ final class CaptureSession {
         // would then stand next to ours
         if !access.allowed {
             noAccess()
-            finish()
+            announceClosed()
             return
         }
         starting = true
@@ -81,7 +102,7 @@ final class CaptureSession {
             } else {
                 Log.error("The screen could not be captured: \(error)")
             }
-            finish()
+            announceClosed()
         }
     }
 
@@ -97,24 +118,40 @@ final class CaptureSession {
     }
 
     private func show(_ screens: [FrozenScreen]) {
+        let chosen = options()
+        let windows = source.windows()
+        // The window list counts from the top of the main screen, which in AppKit's coordinates starts at 0
+        let mainHeight = NSScreen.screens.first?.frame.maxY ?? screens.first?.frame.maxY ?? 0
         let under = NSEvent.mouseLocation
         var keyPanel: OverlayPanel?
+        isOpen = true
+        owner = nil
         for screen in screens {
             let panel = OverlayPanel(frame: screen.frame)
-            let view = FrozenView(frame: screen.frame, picture: screen.image)
-            view.onCancel = { [weak self] in self?.close() }
-            panel.contentView = view
+            let overlay = CaptureOverlay(
+                session: self, shot: screen, windows: WindowList.onLayer(windows, screen: screen.frame, mainHeight: mainHeight),
+                defaultColor: chosen.markColor, defaultCategory: chosen.defaultCategory, selectHint: chosen.selectHint)
+            panel.contentView = overlay
             panel.orderFrontRegardless()
             if screen.frame.contains(under) || keyPanel == nil { keyPanel = panel }
             panels.append(panel)
+            overlays.append(overlay)
         }
-        isOpen = true
+        for overlay in overlays { overlay.appeared() }
         keyboardRoute = nil
         if let keyPanel { takeKeyboard(keyPanel) }
         // A screen that comes or goes, or changes its size, invalidates the pictures: the capture ends
         screenObserver = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) {
-            [weak self] _ in self?.close()
+            [weak self] _ in
+            Log.info("The screens changed during a capture: it ends")
+            self?.close()
         }
+    }
+
+    /// The layer on the screen the pointer is on
+    private func overlayUnderPointer() -> CaptureOverlay? {
+        let under = NSEvent.mouseLocation
+        return overlays.first { $0.window?.frame.contains(under) ?? false }
     }
 
     /// How the layer got the keyboard in this capture: "panel" (the panel became key by itself), "activated" (the app had to be brought to
@@ -146,202 +183,78 @@ final class CaptureSession {
         }
     }
 
+    // MARK: Several screens
+
+    /// Selecting has started on a screen: the other screens go back to fully dark. A selection that already has drawings cannot be taken over
+    func claim(_ overlay: CaptureOverlay) -> Bool {
+        if owner === overlay { return true }
+        if let other = owner, other.hasSelection {
+            if other.isLocked { return false }
+            other.idle()
+        }
+        owner = overlay
+        for o in overlays where o !== overlay { o.idle() }
+        return true
+    }
+
+    func release(_ overlay: CaptureOverlay) {
+        guard owner === overlay else { return }
+        owner = nil
+        for o in overlays { o.idle() }
+    }
+
+    /// Gives the keyboard back to the layer with the drawings (with several screens, clicking or right-clicking another one moves it there)
+    func focusOwner() {
+        guard isOpen, let owner, owner.window?.isVisible == true else { return }
+        owner.activate()
+    }
+
+    // MARK: Ending
+
+    /// Esc, ⌘W, ⌘. and the × on the toolbar: if notes have been written, warn once instead of discarding everything at once
+    func requestCancel() {
+        if owner?.guardCancel() == true { return }
+        close()
+    }
+
+    /// ✓, Return, ⌘C or a double click in the selection: collects what was drawn and ends the capture. Nothing happens without a selection
+    func finish() {
+        guard let owner, owner.hasSelection else { return }
+        let result = owner.result()
+        close()
+        lastResult = result
+        // Sizes and counts only: the notes and the picture never go into the log
+        let notes = result.marks.filter { $0.hasNote }.count
+        let w = Int((result.selection.width * result.screen.scale).rounded())
+        let h = Int((result.selection.height * result.screen.scale).rounded())
+        Log.info("Capture finished: \(w) × \(h) px, \(result.marks.count) marks, \(notes) notes, overall comment: \(!result.overall.isEmpty)")
+        onFinished?(result)
+    }
+
     /// Ends the capture and drops the pictures
     func close() {
         guard isOpen else { return }
         isOpen = false
+        owner = nil
         if let screenObserver { NotificationCenter.default.removeObserver(screenObserver) }
         screenObserver = nil
-        for panel in panels {
-            panel.orderOut(nil)
-            panel.contentView = nil
-        }
+        let gone = panels
+        let views = overlays
+        for overlay in views { overlay.teardown() }
+        for panel in gone { panel.orderOut(nil) }
         panels = []
-        finish()
+        overlays = []
+        // The views are let go on the next turn: this may run inside one of their own event handlers
+        DispatchQueue.main.async {
+            for panel in gone { panel.contentView = nil }
+            _ = views.count
+        }
+        announceClosed()
     }
 
-    private func finish() {
+    private func announceClosed() {
         let done = whenClosed
         whenClosed = []
         done.forEach { $0() }
-    }
-}
-
-/// The capture smoke run (SNIPTOSS_SMOKE_READY=capture): the layers are put over the screens with a made-up pattern as the picture, what
-/// they are is written into result.json, and they are drawn to pictures. Nothing real is ever captured here
-enum CaptureSmoke {
-    /// The made-up pattern needs no permission: the run says it has one, so the layers open without asking the system
-    struct Access: ScreenAccess {
-        var allowed: Bool { true }
-        func request() {}
-        func openSettings() {}
-    }
-
-    static func source() -> PatternScreenSource {
-        let screens = NSScreen.screens.map { screen in
-            PatternScreenSource.Screen(displayID: ScreenID.of(screen), frame: screen.frame, scale: screen.backingScaleFactor)
-        }
-        // A run without a screen still makes a layer, on a screen that is made up
-        return PatternScreenSource(
-            screens: screens.isEmpty ? [PatternScreenSource.Screen(displayID: 0, frame: CGRect(x: 0, y: 0, width: 800, height: 600), scale: 1)] : screens)
-    }
-
-    /// Opens the layers, describes them, then presses Esc the way the keyboard would (to the key window) and checks that the capture
-    /// ended; `close()` is the fallback when it did not
-    static func run(session: CaptureSession, outDir: URL, done: @escaping ([String: Any]) -> Void) {
-        var report: [String: Any] = ["screens": NSScreen.screens.count]
-        var closedCalls = 0
-        session.start(whenClosed: { closedCalls += 1 })
-        wait(tries: 50, until: { session.isOpen }) { opened in
-            report["opened"] = opened
-            guard opened else {
-                report["whenClosedCalls"] = closedCalls
-                return done(report)
-            }
-            // Let the first frame be drawn
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                let panels = session.overlayPanels
-                report["layers"] = panels.enumerated().map { Self.describe($1, index: $0, outDir: outDir) }
-                report["appActive"] = NSApp.isActive
-                report["keyLayer"] = panels.firstIndex { $0.isKeyWindow } ?? -1
-                report["keyWindowIsLayer"] = NSApp.keyWindow is OverlayPanel
-                Self.pressEscape()
-                Self.wait(tries: 20, until: { !session.isOpen }) { closedByEsc in
-                    report["closedByEsc"] = closedByEsc
-                    if !closedByEsc { session.close() }
-                    report["closed"] = !session.isOpen
-                    report["layersAfter"] = session.overlayPanels.count
-                    report["whenClosedCalls"] = closedCalls
-                    Self.rightClickRound(session) { found in
-                        report["rightClick"] = found
-                        Self.otherAppInFrontRound(session) { inFront in
-                            report["otherAppInFront"] = inFront
-                            done(report)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /// A second capture, ended with a right click in the middle of the first layer, posted the way the mouse sends it
-    private static func rightClickRound(_ session: CaptureSession, done: @escaping ([String: Any]) -> Void) {
-        var closedCalls = 0
-        session.start(whenClosed: { closedCalls += 1 })
-        Self.wait(tries: 50, until: { session.isOpen }) { opened in
-            guard opened, let panel = session.overlayPanels.first else { return done(["opened": opened]) }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                let middle = CGPoint(x: panel.frame.width / 2, y: panel.frame.height / 2)
-                for type in [NSEvent.EventType.rightMouseDown, .rightMouseUp] {
-                    if let event = NSEvent.mouseEvent(
-                        with: type, location: middle, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
-                        windowNumber: panel.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: type == .rightMouseDown ? 1 : 0)
-                    {
-                        NSApp.postEvent(event, atStart: false)
-                    }
-                }
-                Self.wait(tries: 20, until: { !session.isOpen }) { closed in
-                    if !closed { session.close() }
-                    done(["opened": true, "closedByRightClick": closed, "whenClosedCalls": closedCalls])
-                }
-            }
-        }
-    }
-
-    /// A third capture started while another program (Finder) is in front, as when the shortcut is pressed in another app: the layer must
-    /// still get the keyboard, and Esc must end it
-    private static func otherAppInFrontRound(_ session: CaptureSession, done: @escaping ([String: Any]) -> Void) {
-        _ = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first?.activate(options: [])
-        Self.wait(tries: 30, until: { !NSApp.isActive }) { otherInFront in
-            var report: [String: Any] = ["otherAppWasInFront": otherInFront]
-            session.start()
-            Self.wait(tries: 50, until: { session.isOpen && session.keyboardRoute != nil }) { known in
-                report["opened"] = session.isOpen
-                report["keyboardRoute"] = session.keyboardRoute ?? "unknown"
-                report["appActive"] = NSApp.isActive
-                guard known else { session.close(); return done(report) }
-                Self.pressEscape()
-                Self.wait(tries: 20, until: { !session.isOpen }) { closed in
-                    if !closed { session.close() }
-                    report["closedByEsc"] = closed
-                    done(report)
-                }
-            }
-        }
-    }
-
-    /// Esc as the keyboard sends it: into the app's event queue, from where it goes to the key window
-    private static func pressEscape() {
-        let window = NSApp.keyWindow?.windowNumber ?? 0
-        for type in [NSEvent.EventType.keyDown, .keyUp] {
-            if let event = NSEvent.keyEvent(
-                with: type, location: .zero, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window,
-                context: nil, characters: "\u{1B}", charactersIgnoringModifiers: "\u{1B}", isARepeat: false, keyCode: 53)
-            {
-                NSApp.postEvent(event, atStart: false)
-            }
-        }
-    }
-
-    private static func wait(tries: Int, until condition: @escaping () -> Bool, _ done: @escaping (Bool) -> Void) {
-        if condition() { return done(true) }
-        if tries == 0 { return done(false) }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { Self.wait(tries: tries - 1, until: condition, done) }
-    }
-
-    private static func describe(_ panel: OverlayPanel, index: Int, outDir: URL) -> [String: Any] {
-        func rect(_ r: CGRect) -> [Double] { [Double(r.minX), Double(r.minY), Double(r.width), Double(r.height)] }
-        var info: [String: Any] = [
-            "level": panel.level.rawValue, "behavior": panel.collectionBehavior.rawValue,
-            "nonactivating": panel.styleMask.contains(.nonactivatingPanel), "borderless": panel.styleMask.contains(.borderless),
-            "canBecomeKey": panel.canBecomeKey, "visible": panel.isVisible, "isKey": panel.isKeyWindow, "frame": rect(panel.frame),
-            "scale": Double(panel.backingScaleFactor),
-            "screenFrame": panel.screen.map { rect($0.frame) } ?? [],
-        ]
-        if let view = panel.contentView as? FrozenView, let rep = view.render() {
-            info["pixels"] = [rep.pixelsWide, rep.pixelsHigh]
-            if let png = rep.representation(using: .png, properties: [:]) {
-                let name = "capture-overlay-\(index).png"
-                try? png.write(to: outDir.appendingPathComponent(name))
-                info["picture"] = name
-            }
-            // Three pixels on the diagonal, a quarter, half and three quarters of the way down: the pattern's color at that place, dimmed
-            // by half. The colors change along both axes, so a picture drawn upside down or at another scale does not match
-            let space = rep.colorSpace
-            info["colorSpace"] = space.localizedName ?? "\(space.colorSpaceModel.rawValue)"
-            info["samples"] = [1, 2, 3].compactMap { quarter -> [String: Any]? in
-                let x = rep.pixelsWide * quarter / 4
-                let y = rep.pixelsHigh * quarter / 4
-                guard let actual = rep.colorAt(x: x, y: y)?.usingColorSpace(.sRGB) else { return nil }
-                return ["at": [x, y], "actual": srgb(actual), "expected": shown(PatternScreenSource.color(x: x, y: y), in: space) ?? []]
-            }
-        }
-        return info
-    }
-
-    private static func srgb(_ color: NSColor) -> [Int] {
-        [color.redComponent, color.greenComponent, color.blueComponent].map { Int(($0 * 255).rounded()) }
-    }
-
-    /// The pattern's color as the layer shows it: matched into the layer's color space (as drawing the picture is), black at half strength
-    /// over it there, and read back in sRGB. The dimming happens in the screen's color space, so the result depends on the screen's
-    /// profile; working it out the same way keeps the check independent of it
-    private static func shown(_ c: (red: UInt8, green: UInt8, blue: UInt8), in space: NSColorSpace) -> [Int]? {
-        guard
-            let blank = NSBitmapImageRep(
-                bitmapDataPlanes: nil, pixelsWide: 1, pixelsHigh: 1, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
-                colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0),
-            let rep = blank.retagging(with: space), let context = NSGraphicsContext(bitmapImageRep: rep)
-        else { return nil }
-        let pixel = NSRect(x: 0, y: 0, width: 1, height: 1)
-        NSGraphicsContext.saveGraphicsState()
-        NSGraphicsContext.current = context
-        NSColor(srgbRed: CGFloat(c.red) / 255, green: CGFloat(c.green) / 255, blue: CGFloat(c.blue) / 255, alpha: 1).setFill()
-        pixel.fill()
-        NSColor.black.withAlphaComponent(FrozenView.dimming).setFill()
-        pixel.fill(using: .sourceOver)
-        context.flushGraphics()
-        NSGraphicsContext.restoreGraphicsState()
-        return rep.colorAt(x: 0, y: 0)?.usingColorSpace(.sRGB).map(srgb)
     }
 }

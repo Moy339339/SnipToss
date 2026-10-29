@@ -93,10 +93,25 @@ final class MessageFormatterTests: XCTestCase {
             let key = try XCTUnwrap(c["key"] as? String)
             let args = try XCTUnwrap(c["args"] as? [String: Any])
             let want = try XCTUnwrap(c["text"] as? String)
-            let got = ShellLocale.text(key, in: locale, args)
+            let got = ShellLocale.rawText(key, in: locale, args)
             if got != want { different.append("\(locale) \(key) \(args): got \(got ?? "nil"), want \(want)") }
         }
         XCTAssertEqual(different.count, 0, "\(different.count) of \(cases.count) differ, first: \(different.prefix(5))")
+    }
+
+    /// What the Mac shows: the shortcuts inside the messages are written the Mac way, by the UI's own rule (macKeys.ts), with each
+    /// language's key names; messages without a shortcut are the same as the golden ones
+    func testShortcutsInTheMessagesAreWrittenTheMacWay() throws {
+        try requireResources()
+        _ = try formatter()
+        XCTAssertEqual(ShellLocale.text("capture.tool.undo", in: "en"), "Undo (⌘Z)")
+        XCTAssertEqual(ShellLocale.text("capture.tool.undo", in: "de"), "Rückgängig (⌘Z)")
+        XCTAssertEqual(ShellLocale.text("capture.tool.undo", in: "zh-CN"), "撤销（⌘Z）")
+        // The UI rewrites the messages before formatting them, so a key that is a placeholder keeps its space (the composer's tooltip)
+        XCTAssertEqual(ShellLocale.text("composer.categoryTitle", in: "en", ["name": "Change", "n": 1]), "Change (⌥ 1)")
+        XCTAssertEqual(ShellLocale.text("composer.keys", in: "en"), "Enter to save · ⇧ Enter for a new line")
+        XCTAssertEqual(ShellLocale.text("capture.note.cancelTip", in: "en"), ShellLocale.rawText("capture.note.cancelTip", in: "en"))
+        XCTAssertEqual(ShellLocale.macify("Press Ctrl V to paste", in: "en"), "Press ⌘V to paste")
     }
 
     // MARK: Which language

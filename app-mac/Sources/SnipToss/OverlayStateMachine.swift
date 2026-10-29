@@ -154,8 +154,10 @@ final class OverlayStateMachine {
 
     let prefs: ToolPrefs
 
-    private let view: OverlayView
-    private let host: OverlayHost
+    // Not owned: the overlay view owns this state machine (and the session the views), so owning them back would keep every capture's
+    // frozen pictures alive after it ends
+    private unowned let view: OverlayView
+    private unowned let host: OverlayHost
     private let scale: CGFloat
     private let full: CGRect
     private let windows: [CGRect]
