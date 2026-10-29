@@ -61,17 +61,19 @@ final class ShellTextTests: XCTestCase {
         ShellLocale.reset()
     }
 
+    /// The announcement is posted on the main queue a moment after the change, so earlier tests' announcements may still be on their way:
+    /// let them arrive first, then count the ones this change makes
     func testAChangeOfLanguageIsAnnouncedOnce() {
-        let announced = expectation(description: "language changed")
-        announced.expectedFulfillmentCount = 1
-        announced.assertForOverFulfill = true
+        RunLoop.main.run(until: Date().addingTimeInterval(0.2))
+        var announced = 0
         let observer = NotificationCenter.default.addObserver(forName: .shellLanguageChanged, object: nil, queue: .main) { _ in
-            announced.fulfill()
+            announced += 1
         }
         defer { NotificationCenter.default.removeObserver(observer) }
         XCTAssertTrue(ShellLocale.use(pref: "de", system: "en-US"))
         XCTAssertFalse(ShellLocale.use(pref: "de", system: "fr-FR"))
-        wait(for: [announced], timeout: 2)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+        XCTAssertEqual(announced, 1)
     }
 
     func testTheAppMenuSaysItsWordsAgainWhenAskedTo() {
