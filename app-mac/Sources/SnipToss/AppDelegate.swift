@@ -86,6 +86,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             contentRect: NSRect(x: 0, y: 0, width: 1280, height: 800), styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false)
         window.title = "SnipToss"
+        // The page draws its own title strip, under the system's three window buttons (TitleBar.tsx leaves room for them at the left)
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.styleMask.insert(.fullSizeContentView)
         window.minSize = NSSize(width: 960, height: 600)
         // Same as --bg in styles.css and Bg in MainWindow.cs, so a window that is still loading does not flash white
         window.backgroundColor = NSColor(srgbRed: 0x14 / 255, green: 0x14 / 255, blue: 0x16 / 255, alpha: 1)

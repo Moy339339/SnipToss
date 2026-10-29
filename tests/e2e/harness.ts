@@ -62,6 +62,8 @@ const SHIM = `(() => {
   const deliver = (data) => { for (const l of listeners) l({ data }); };
   window.chrome = window.chrome || {};
   window.chrome.webview = {
+    // The Mac shell's script sets platform: "mac" on its object; WebView2's has none. A test that wants the Mac sets __e2ePlatform before the page loads (test.use or addInitScript)
+    get platform() { return window.__e2ePlatform; },
     postMessage(msg) { window.__e2eHost(msg).then(deliver); },
     // Dropped files: the real shell takes the paths from the attached objects; here the file names go into the params, which simulates the shell
     // matching them by name to the paths the test prepared (nextDrop in mock-host.ts).

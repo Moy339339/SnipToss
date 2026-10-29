@@ -8,6 +8,8 @@ let bridgeShimScript = """
   const listeners = [];
   window.chrome = window.chrome || {};
   window.chrome.webview = {
+    // Which shell hosts the page (host.ts reads it; WebView2's own object has none, which means Windows)
+    platform: "mac",
     postMessage(message) {
       window.webkit.messageHandlers.bridge.postMessage(message);
     },

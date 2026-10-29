@@ -84,6 +84,7 @@
   --h-md: 28px; /* tool buttons, tabs, list rows, search box */
   --h-lg: 32px; /* buttons, inputs, menu items, play button, well */
   --h-bar: 32px; /* menu bar, bottom bar */
+  --mac-traffic-inset: 78px; /* Mac: room at the left of the title bar for the system's three window buttons (12 px each, 8 apart, 20 from the edge, then a gap) */
   --h-header: 44px; /* the title bar of the three columns */
   --h-transport: 48px;
 
@@ -778,6 +779,13 @@ kbd {
 .menu-open .titlebar {
   -webkit-app-region: no-drag;
   app-region: no-drag;
+}
+/* Mac: the system draws the three window buttons at the left over this strip, so leave room for them. A WKWebView page has no app-region: the shell
+   moves the window when a press on the blank part reaches it (TitleBar.tsx, windowDrag) */
+.titlebar.is-mac::before {
+  content: "";
+  flex: none;
+  width: var(--mac-traffic-inset);
 }
 /* In full screen the whole strip is not a drag region either (like browser full screen): full screen is a maximize that covers the taskbar, and the system would treat dragging its title bar as "drag down to restore" and a double-click as restore,
    leaving the window at normal size while the interface still thinks it is in full screen */

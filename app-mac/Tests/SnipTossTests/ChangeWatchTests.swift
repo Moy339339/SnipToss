@@ -819,7 +819,9 @@ final class ChangeWatchTests: SnipTestCase {
         watcher.flush()
 
         // The clock stays where it is, so no full scan is due and only the open file is looked at: a full scan on its own queue could
-        // otherwise replace what the open file's check has just recorded, and which of the two finishes last is not fixed
+        // otherwise replace what the open file's check has just recorded, and which of the two finishes last is not fixed. That ordering
+        // is a known weakness shared with the Windows shell (at worst one change to the open file is announced by the next full scan
+        // instead of a second sooner); a fix for both has to keep entries recorded after the scan began, and then this test can be widened
         writeText(bytes(200), to: hero)
         watcher.tick()
         watcher.flush()

@@ -46,9 +46,9 @@ final class KeyExperiment: NSObject {
                 '<textarea id="probe-b" style="position:fixed;left:8px;top:60px;width:200px;height:40px;z-index:99999"></textarea>');
               document.getElementById('probe-a').value = 'hello world';
               window.__keys = [];
-              window.__prevent = '';
+              window.__prevent = ';
               window.addEventListener('keydown', (e) => {
-                window.__keys.push(e.key + (e.metaKey ? ' meta' : ''));
+                window.__keys.push(e.key + (e.metaKey ? ' meta' : '));
                 if (window.__prevent && e.key === window.__prevent) e.preventDefault();
               }, true);
               document.getElementById('probe-a').focus();
@@ -115,9 +115,33 @@ final class KeyExperiment: NSObject {
                             next()
                         }
                     } then: { [self] in
-                        done(report)
+                        aboutSelectAll(done: done)
                     }
                 }
+            }
+        }
+    }
+
+    /// The same question with a key that has a standard menu item: with the page calling preventDefault on ⌘A, does the text still get
+    /// selected (the menu ran anyway) or not (the page was first and its preventDefault stopped the menu)? And the probe item asked
+    /// directly, to tell "the menu item does not fire" from "the key never reached the menu"
+    private func aboutSelectAll(done: @escaping ([String: Any]) -> Void) {
+        let reset = "(() => { const a = document.getElementById('probe-a'); a.focus(); a.setSelectionRange(11, 11); window.__keys = []; window.__prevent = 'a'; return true; })()"
+        eval(reset) { [self] _ in
+            step("selectAllPrevented") { [self] in
+                key("a", code: 0)
+            } read: { [self] next in
+                eval("(() => { const a = document.getElementById('probe-a'); return a.selectionStart + '-' + a.selectionEnd + ' / ' + window.__keys.join(','); })()") {
+                    [self] value in
+                    report["selectAllPagePrevents"] = ["selectionAndKeydowns": value ?? "?", "ifMenuRanAnyway": "0-11", "ifPageFirst": "11-11"]
+                    next()
+                }
+            } then: { [self] in
+                menuFired = 0
+                var handled = false
+                if let event = makeEvent(.keyDown, "b", code: 11) { handled = NSApp.mainMenu?.performKeyEquivalent(with: event) ?? false }
+                report["probeAskedDirectly"] = ["handled": handled, "menuFired": menuFired]
+                done(report)
             }
         }
     }
@@ -138,16 +162,17 @@ final class KeyExperiment: NSObject {
         }
     }
 
+    private func makeEvent(_ type: NSEvent.EventType, _ chars: String, code: UInt16) -> NSEvent? {
+        NSEvent.keyEvent(
+            with: type, location: .zero, modifierFlags: [.command], timestamp: ProcessInfo.processInfo.systemUptime,
+            windowNumber: window.windowNumber, context: nil, characters: chars, charactersIgnoringModifiers: chars, isARepeat: false,
+            keyCode: code)
+    }
+
     /// A ⌘ key press and release, posted to the app the way the system posts one
     private func key(_ chars: String, code: UInt16) {
         for type in [NSEvent.EventType.keyDown, .keyUp] {
-            if let event = NSEvent.keyEvent(
-                with: type, location: .zero, modifierFlags: [.command], timestamp: ProcessInfo.processInfo.systemUptime,
-                windowNumber: window.windowNumber, context: nil, characters: chars, charactersIgnoringModifiers: chars, isARepeat: false,
-                keyCode: code)
-            {
-                NSApp.sendEvent(event)
-            }
+            if let event = makeEvent(type, chars, code: code) { NSApp.sendEvent(event) }
         }
     }
 }

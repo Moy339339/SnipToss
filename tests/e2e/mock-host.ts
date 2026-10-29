@@ -153,6 +153,8 @@ export class MockHost {
   windowState() {
     return { ...this.window, maximized: this.window.maximized && !this.window.fullscreen };
   }
+  /** The Mac-only window calls the page made (windowDrag, windowZoom), in order */
+  windowCalls: string[] = [];
   capture = {
     hotkey: "Ctrl+Alt+A",
     hotkeyError: null as string | null,
@@ -501,6 +503,10 @@ export class MockHost {
       }
       case "windowState":
         return this.windowState();
+      case "windowDrag":
+      case "windowZoom":
+        this.windowCalls.push(method);
+        return null;
       case "captureSettings":
         return this.captureState();
       case "setCaptureSettings": {
