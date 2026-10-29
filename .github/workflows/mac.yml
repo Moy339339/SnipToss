@@ -44,19 +44,38 @@ jobs:
         working-directory: app-mac
         run: swift test
 
-      # Opens the window, waits for the first screen, writes ui.png and result.json, and quits
-      - name: Smoke run
+      # Opens the window with an empty library, waits for the welcome screen, writes ui.png and result.json, and quits
+      - name: Smoke run (empty library)
         if: ${{ !cancelled() }}
         run: |
-          mkdir -p "$RUNNER_TEMP/smoke"
           export SNIPTOSS_VERSION="$(node -p "require('./package.json').version")"
           export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
-          export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke"
+          export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-empty/settings.json"
+          export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/empty"
+          app-mac/.build/release/SnipToss
+
+      # The same with a project in the library and one item selected: the scan, the media scheme, and the image decoded on the canvas
+      - name: Smoke run (project with an image)
+        if: ${{ !cancelled() }}
+        run: |
+          export SNIPTOSS_VERSION="$(node -p "require('./package.json').version")"
+          export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
+          export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-project/settings.json"
+          export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/project"
+          export SNIPTOSS_SMOKE_READY=image
+          mkdir -p "$RUNNER_TEMP/data-project"
+          PROJECT="$GITHUB_WORKSPACE/tests/e2e/fixtures/project" node -e '
+            const project = process.env.PROJECT;
+            const settings = { Library: [{ Path: project, Pinned: false }], Selected: project + "/assets/hero.png" };
+            require("fs").writeFileSync(process.env.SNIPTOSS_SETTINGS, JSON.stringify(settings, null, 2) + "\n");
+          '
           app-mac/.build/release/SnipToss
 
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: app-mac-smoke
-          path: ${{ runner.temp }}/smoke
+          path: |
+            ${{ runner.temp }}/smoke
+            ${{ runner.temp }}/data-*/logs
           if-no-files-found: warn

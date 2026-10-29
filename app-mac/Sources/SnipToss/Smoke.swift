@@ -6,7 +6,15 @@ import WebKit
 final class SmokeRun {
     /// True once the UI has drawn its first screen. With an empty library that is the welcome screen, which only appears after the
     /// preferences, app info, locale and library calls all went through (the e2e first-run test waits for the same element)
-    static let readyScript = "!!document.querySelector('.stage-empty.is-welcome')"
+    static let welcomeScript = "!!document.querySelector('.stage-empty.is-welcome')"
+
+    /// With a project in the library and an item selected: the item is on the canvas, loaded through the media scheme and decoded
+    static let imageScript = "(() => { const el = document.querySelector('.zoom-media'); return !!el && el.complete && el.naturalWidth > 0; })()"
+
+    /// SNIPTOSS_SMOKE_READY picks what to wait for: `welcome` (default, an empty library) or `image`
+    static var readyScript: String {
+        ProcessInfo.processInfo.environment["SNIPTOSS_SMOKE_READY"] == "image" ? imageScript : welcomeScript
+    }
 
     private let outDir: URL
     private let web: WKWebView
@@ -47,7 +55,18 @@ final class SmokeRun {
         if finished { return }
         finished = true
         let elapsed = Int(Date().timeIntervalSince(began) * 1000)
-        web.evaluateJavaScript("JSON.stringify({ title: document.title, text: (document.body ? document.body.innerText : '').slice(0, 400) })") {
+        let probe = """
+            (() => {
+              const media = document.querySelector('.zoom-media');
+              return JSON.stringify({
+                title: document.title,
+                text: (document.body ? document.body.innerText : '').slice(0, 400),
+                libraryRows: document.querySelectorAll('.lib-row').length,
+                media: media ? { width: media.naturalWidth, height: media.naturalHeight, src: media.currentSrc.slice(0, 200) } : null,
+              });
+            })()
+            """
+        web.evaluateJavaScript(probe) {
             [self] page, _ in
             web.takeSnapshot(with: WKSnapshotConfiguration()) { [self] image, error in
                 var snapshot = "none"

@@ -15,7 +15,7 @@ import { copyFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ROOT, PROJECTS } from "./readme-shots/common.mjs";
-import { capture, languages, marking, prepareProject, stills, video } from "./readme-shots/scenes.mjs";
+import { capture, hero, languages, marking, prepareProject, stills, video } from "./readme-shots/scenes.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name) => {
@@ -37,7 +37,7 @@ const ctx = { exe, work, root: ROOT, tmp: join(work, "instances") };
 
 try {
   await prepareProject(work);
-  const perLocale = { marking, stills, video, capture };
+  const perLocale = { hero, marking, stills, video, capture };
   for (const name of only) {
     if (name === "languages") await languages(ctx);
     else if (name === "main") {

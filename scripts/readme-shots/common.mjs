@@ -14,6 +14,8 @@ export const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 /** The sample project lives under %TEMP%\Projects: the library shows the containing folder ("…\Temp\Projects"), so no other path is exposed */
 export const PROJECTS = join(tmpdir(), "Projects");
 export const PROJECT = join(PROJECTS, "slow-pour-site");
+/** The second sample project (a poster), for pictures that must not repeat the first */
+export const PROJECT2 = join(PROJECTS, "late-night-jazz");
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 export async function wait(what, fn, ms = 30_000) {
@@ -35,6 +37,9 @@ export const NOTES = {
     late: "The title fades in too late. Show it from the first frame.",
     screen: "Headline is too thin. Use a bold weight.",
     screenButton: "Button color doesn't match the brand.",
+    posterTitle: "Title is too small for a poster. Make it twice as large.",
+    posterDate: "Date and time are hard to read. Add more contrast.",
+    posterPin: "Add the venue address next to the date.",
   },
   "zh-CN": {
     title: "标题字太细，压在背景上看不清，改成粗体。",
@@ -45,6 +50,9 @@ export const NOTES = {
     late: "标题出现得太晚，从第一帧就显示。",
     screen: "标题字太细，改成粗体。",
     screenButton: "按钮颜色和品牌不搭。",
+    posterTitle: "海报标题太小，放大一倍。",
+    posterDate: "日期和时间看不清，加强对比。",
+    posterPin: "在日期旁补上场地地址。",
   },
 };
 

@@ -5,8 +5,8 @@
 import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
-import { NOTES, PROJECT, PROJECTS, Recorder, dismissToast, drawNote, ellipse, launch, pageShot, sleep, wait } from "./common.mjs";
-import { renderClip, renderLanding, renderScreen } from "./sample.mjs";
+import { NOTES, PROJECT, PROJECT2, PROJECTS, Recorder, dismissToast, drawNote, ellipse, launch, pageShot, sleep, wait } from "./common.mjs";
+import { renderClip, renderLanding, renderPoster, renderScreen } from "./sample.mjs";
 
 const OFF = -20000;
 const FAST = { steps: 10, type: 3, after: 300, between: 120 };
@@ -24,20 +24,29 @@ export async function prepareProject(work) {
   await renderClip(join(PROJECT, "video", "pour.mp4"));
   await renderScreen(join(sample, "screen.png"));
   seedBanner();
+  // The second sample project: an event poster and a wide flyer (the poster carries the resolved note, the flyer is the one that gets annotated)
+  mkdirSync(join(PROJECT2, "assets"), { recursive: true });
+  await renderPoster(sample);
+  copyFileSync(join(sample, "poster.png"), join(PROJECT2, "assets", "poster.png"));
+  copyFileSync(join(sample, "flyer.png"), join(PROJECT2, "assets", "flyer.png"));
+  seedResolved(PROJECT2, "poster.png", 1200, 1500);
 }
 
-function seedBanner() {
+const seedBanner = () => seedResolved(PROJECT, "banner.png", 1600, 500);
+
+/** A project with one resolved note on one of its pictures: with a note already there, the toast that says where notes are stored (with the full path) never appears */
+function seedResolved(project, file, width, height) {
   const sha = createHash("sha256")
-    .update(readFileSync(join(PROJECT, "assets", "banner.png")))
+    .update(readFileSync(join(project, "assets", file)))
     .digest("hex");
-  mkdirSync(join(PROJECT, ".sniptoss", "annotations"), { recursive: true });
+  mkdirSync(join(project, ".sniptoss", "annotations"), { recursive: true });
   const at = "2026-10-20T02:00:00Z";
   writeFileSync(
-    join(PROJECT, ".sniptoss", "annotations", "assets__banner.png.json"),
+    join(project, ".sniptoss", "annotations", `assets__${file}.json`),
     JSON.stringify(
       {
         schema: "sniptoss/5",
-        material: { path: "assets/banner.png", kind: "image", sha256: sha, width: 1600, height: 500 },
+        material: { path: `assets/${file}`, kind: "image", sha256: sha, width, height },
         annotations: [
           {
             id: "b4nn3r",
@@ -91,6 +100,38 @@ async function threeNotes(page, locale, pace) {
   await drawNote(page, { ...BUTTON, text: n.button, pace });
   await drawNote(page, { ...WATERMARK, text: n.mark, pace });
   await dismissToast(page);
+}
+
+/** Scene 0: the main window with a different sample (the poster), so a picture of the whole window doesn't repeat the content of the feature pictures */
+export async function hero(ctx, locale) {
+  const dir = join(ctx.work, locale, "hero");
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  rmSync(join(PROJECT2, ".sniptoss"), { recursive: true, force: true });
+  seedResolved(PROJECT2, "poster.png", 1200, 1500);
+  const inst = await launch(ctx.exe, {
+    locale,
+    dataDir: join(ctx.tmp, `hero-${locale}`),
+    library: [PROJECT2],
+    expanded: [join(PROJECT2, "assets")],
+  });
+  try {
+    const { page } = inst;
+    await open(page, "flyer.png");
+    const n = NOTES[locale];
+    await drawNote(page, { tool: "r", marks: [{ from: [0.14, 0.05], to: [0.86, 0.22] }], text: n.posterTitle, pace: FAST });
+    await drawNote(page, { tool: "a", marks: [{ from: [0.72, 0.68], to: [0.62, 0.86] }], text: n.posterDate, pace: FAST });
+    await drawNote(page, { tool: "c", marks: [{ from: [0.85, 0.9] }], category: 3, text: n.posterPin, pace: FAST });
+    await dismissToast(page);
+    await page.keyboard.press("v");
+    await page.locator("[data-annot]").first().click();
+    await page.mouse.move(10, 790);
+    await sleep(900);
+    await pageShot(page, join(dir, "main.png"), 2);
+    await page.screenshot({ path: join(dir, "main@1x.png") });
+  } finally {
+    await inst.close();
+  }
 }
 
 /** Scene 1: the four tools and one note on several places, recorded as frames (the first three notes are the ones the stills use) */

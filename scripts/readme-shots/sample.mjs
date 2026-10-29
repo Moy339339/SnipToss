@@ -10,8 +10,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
 
-const photo =
-  "data:image/jpeg;base64," + readFileSync(join(dirname(fileURLToPath(import.meta.url)), "assets", "coffee-pour.jpg")).toString("base64");
+const assets = join(dirname(fileURLToPath(import.meta.url)), "assets");
+const dataUrl = (file) => "data:image/jpeg;base64," + readFileSync(join(assets, file)).toString("base64");
+const photo = dataUrl("coffee-pour.jpg");
 
 /**
  * The landing page at 1600 × 1000.
@@ -38,6 +39,36 @@ export function landingHtml({ fixed = false, banner = false } = {}) {
   <div class="cta">Start a subscription</div><div class="ghost">See this week's beans →</div>
   ${fixed ? "" : '<div class="mark">STOCKPHOTO</div>'}
 </body></html>`;
+}
+
+/**
+ * The second sample, for pictures that must not repeat the first: an event poster (1200 × 1500, or a wide 1200 × 630 flyer) on an AI-generated photo.
+ * Flaws for the notes to point out: the title is too small and the date has too little contrast
+ */
+export function posterHtml({ wide = false } = {}) {
+  return `<!doctype html><html><head><style>
+  * { margin: 0; box-sizing: border-box; }
+  body { width: 1200px; height: ${wide ? 630 : 1500}px; font-family: "Segoe UI Variable Display", "Segoe UI", sans-serif;
+         background: #07131c url(${dataUrl("jazz-poster.jpg")}) center / cover no-repeat; overflow: hidden; position: relative; }
+  .title { position: absolute; top: ${wide ? 50 : 96}px; left: 0; right: 0; text-align: center; font-size: 64px; font-weight: 300; letter-spacing: 0.22em; color: #e9dcc0; }
+  .sub { position: absolute; top: ${wide ? 140 : 190}px; left: 0; right: 0; text-align: center; font-size: 26px; letter-spacing: 0.3em; color: #a99c82; }
+  .date { position: absolute; bottom: ${wide ? 40 : 120}px; left: 0; right: 0; text-align: center; font-size: 36px; letter-spacing: 0.08em; color: #6f5f40; }
+</style></head><body>
+  <div class="title">LATE NIGHT JAZZ</div><div class="sub">LIVE AT THE PIER</div><div class="date">Friday · 9 PM · Free entry</div>
+</body></html>`;
+}
+
+/** Renders the poster and the wide flyer to PNG files in dir: poster.png, flyer.png */
+export async function renderPoster(dir) {
+  mkdirSync(dir, { recursive: true });
+  const browser = await chromium.launch({ channel: "msedge" });
+  const page = await browser.newPage({ viewport: { width: 1200, height: 1500 } });
+  await page.setContent(posterHtml());
+  await page.screenshot({ path: join(dir, "poster.png") });
+  await page.setViewportSize({ width: 1200, height: 630 });
+  await page.setContent(posterHtml({ wide: true }));
+  await page.screenshot({ path: join(dir, "flyer.png") });
+  await browser.close();
 }
 
 /** The product clip: 6 seconds at 24 frames per second, 1280 × 720. A slow push-in on the photo; the headline fades in at 2.0 s and the button follows at 3.0 s */
