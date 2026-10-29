@@ -11,6 +11,7 @@ import {
   type NoteSection,
 } from "@sniptoss/core";
 import { fileKey, type Stored } from "./annotationStore";
+import { KeepPunctuation } from "./KeepPunctuation";
 import { CheckBox } from "./Checkbox";
 import type { useChecks, useHandoff } from "./handoff";
 import { annotationPath, baseName, homeJoin, keyOf, type MaterialEntry } from "./host";
@@ -475,44 +476,48 @@ export function AnnotationPanel(props: {
         )}
         {searching && passingCount === 0 && (
           <div className="panel-empty" role="status">
-            {intl.formatMessage({ id: "panel.search.none" }, { query: panelQuery.trim() })}
-            {resolvedHits > 0 && (
-              <>
-                <p>{intl.formatMessage({ id: "panel.search.inResolved" }, { count: resolvedHits })}</p>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-small panel-empty-action"
-                  onClick={() => setPrefs({ panelResolved: true })}
-                >
-                  {intl.formatMessage({ id: "panel.search.showResolved" })}
-                </button>
-              </>
-            )}
+            <KeepPunctuation>
+              {intl.formatMessage({ id: "panel.search.none" }, { query: panelQuery.trim() })}
+              {resolvedHits > 0 && (
+                <>
+                  <p>{intl.formatMessage({ id: "panel.search.inResolved" }, { count: resolvedHits })}</p>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-small panel-empty-action"
+                    onClick={() => setPrefs({ panelResolved: true })}
+                  >
+                    {intl.formatMessage({ id: "panel.search.showResolved" })}
+                  </button>
+                </>
+              )}
+            </KeepPunctuation>
           </div>
         )}
         {/* The notes file cannot be read: the red bar on top already says so, so don't also write "no notes" or "not supported" here
             (both would be wrong: it may hold notes, and the item can be annotated) */}
         {!searching && !grouped && current && passingCount === 0 && !draft && (annotations.length > 0 || !currentBlocked) && (
           <div className="panel-empty">
-            {allItems.some(filteredOut) ? (
-              <>
-                {intl.formatMessage({ id: "panel.filter.none" })}
-                <div>
-                  <button type="button" className="btn btn-secondary btn-small panel-empty-action" onClick={clearFilter}>
-                    {intl.formatMessage({ id: "panel.filter.clear" })}
-                  </button>
-                </div>
-              </>
-            ) : annotations.length > 0 ? (
-              intl.formatMessage({ id: "panel.empty.allDone" })
-            ) : annotatable ? (
-              <>
-                {intl.formatMessage({ id: "panel.empty.none" })}
-                <p>{intl.formatMessage({ id: "panel.empty.hint" })}</p>
-              </>
-            ) : (
-              intl.formatMessage({ id: "stage.unsupported" }, { kind: intl.formatMessage({ id: `kind.${current.kind}` }) })
-            )}
+            <KeepPunctuation>
+              {allItems.some(filteredOut) ? (
+                <>
+                  {intl.formatMessage({ id: "panel.filter.none" })}
+                  <div>
+                    <button type="button" className="btn btn-secondary btn-small panel-empty-action" onClick={clearFilter}>
+                      {intl.formatMessage({ id: "panel.filter.clear" })}
+                    </button>
+                  </div>
+                </>
+              ) : annotations.length > 0 ? (
+                intl.formatMessage({ id: "panel.empty.allDone" })
+              ) : annotatable ? (
+                <>
+                  {intl.formatMessage({ id: "panel.empty.none" })}
+                  <p>{intl.formatMessage({ id: "panel.empty.hint" })}</p>
+                </>
+              ) : (
+                intl.formatMessage({ id: "stage.unsupported" }, { kind: intl.formatMessage({ id: `kind.${current.kind}` }) })
+              )}
+            </KeepPunctuation>
           </div>
         )}
       </div>

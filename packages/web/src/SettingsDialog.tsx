@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 import { CATEGORIES, DATA_DIR, type MaterialKind } from "@sniptoss/core";
 import { APP_VERSION, AUTHOR, HOMEPAGE, IS_BETA, LICENSE_NAME, LICENSE_URL, shortTime, UI_BUILT, versionLabel } from "./brand";
+import { KeepPunctuation } from "./KeepPunctuation";
 import { call, homeJoin, platform, type AppInfo, type CaptureSettings, type HostError } from "./host";
 import { ConfirmDialog } from "./Confirm";
 import { copyDiagnostics, reportIssue } from "./diagnostics";
@@ -129,7 +130,11 @@ function Row(props: { label: string; desc?: ReactNode; children: ReactNode; wide
     <div className={`set-row${props.wide ? " is-wide" : ""}`}>
       <div className="set-text">
         <div className="set-label">{props.label}</div>
-        {props.desc && <div className="set-desc">{props.desc}</div>}
+        {props.desc && (
+          <div className="set-desc">
+            <KeepPunctuation>{props.desc}</KeepPunctuation>
+          </div>
+        )}
       </div>
       <div className="set-control">{props.children}</div>
     </div>
@@ -167,7 +172,11 @@ function Heading(props: { children: ReactNode; desc?: ReactNode }) {
   return (
     <div className="set-heading">
       <h2>{props.children}</h2>
-      {props.desc && <p className="muted">{props.desc}</p>}
+      {props.desc && (
+        <p className="muted">
+          <KeepPunctuation>{props.desc}</KeepPunctuation>
+        </p>
+      )}
     </div>
   );
 }
@@ -177,7 +186,11 @@ function Group(props: { title: string; desc?: string }) {
   return (
     <div className="set-group">
       <div className="set-group-title">{props.title}</div>
-      {props.desc && <div className="set-desc">{props.desc}</div>}
+      {props.desc && (
+        <div className="set-desc">
+          <KeepPunctuation>{props.desc}</KeepPunctuation>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { CloseIcon } from "./icons";
+import { KeepPunctuation } from "./KeepPunctuation";
 import { useKeys } from "./keys";
 import { trapTab, useRestoreFocus } from "./Menu";
 
@@ -51,7 +52,7 @@ export function ConfirmDialog(props: {
           </button>
         </div>
         <div className="confirm-body" id={bodyId}>
-          {props.body}
+          <KeepPunctuation>{props.body}</KeepPunctuation>
         </div>
         <div className="confirm-actions">
           <button ref={no} className="btn btn-secondary" onClick={props.onCancel}>

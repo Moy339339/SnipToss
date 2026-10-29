@@ -2,6 +2,7 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import type { Annotation, MaterialKind } from "@sniptoss/core";
 import { Ambient } from "./Ambient";
+import { KeepPunctuation } from "./KeepPunctuation";
 import { call, logError, materialUrl, type MaterialEntry } from "./host";
 import { FolderIcon } from "./icons";
 import { isSvg, needsDecode } from "./library";
@@ -94,7 +95,9 @@ export function Viewer(props: {
     default:
       return (
         <div className="stage-empty">
-          {intl.formatMessage({ id: "stage.unsupported" }, { kind: intl.formatMessage({ id: `kind.${props.material.kind}` }) })}
+          <KeepPunctuation>
+            {intl.formatMessage({ id: "stage.unsupported" }, { kind: intl.formatMessage({ id: `kind.${props.material.kind}` }) })}
+          </KeepPunctuation>
         </div>
       );
   }
@@ -218,8 +221,12 @@ function MediaFailed(props: { kind: MaterialKind; code?: number; problem?: Decod
         : "stage.mediaError.image.body";
   return (
     <div className="stage-empty" role="alert">
-      <div className="stage-empty-title">{t(props.kind === "video" ? "stage.mediaError.video.title" : "stage.mediaError.image.title")}</div>
-      <div className="muted">{t(body, { app: t("brand.name") })}</div>
+      <KeepPunctuation>
+        <div className="stage-empty-title">
+          {t(props.kind === "video" ? "stage.mediaError.video.title" : "stage.mediaError.image.title")}
+        </div>
+        <div className="muted">{t(body, { app: t("brand.name") })}</div>
+      </KeepPunctuation>
       <div className="stage-empty-actions">
         {store && (
           <button

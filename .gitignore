@@ -13,6 +13,7 @@ examples/demo/
 tests/**/bin/
 tests/**/obj/
 tests/e2e/.results/
+tests/e2e/.results-webkit/
 # The app built for the real-shell smoke tests (npm run e2e:shell) and the screenshots from failures
 tests/shell/.app/
 tests/shell/.app-r2r/

@@ -1,5 +1,6 @@
 import { useIntl } from "react-intl";
 import { keycaps } from "./hotkey";
+import { KeepPunctuation } from "./KeepPunctuation";
 import { Sheet } from "./Sheet";
 
 // Lists only shortcuts that already work; the full plan (including unimplemented ones) is in docs/shortcuts.md. The Settings window's Shortcuts page uses this list too.
@@ -124,8 +125,10 @@ export function ShortcutRow({ keys, label }: { keys: string[]; label: ShortcutLa
   return (
     <div className="shortcut-row">
       <span className="shortcut-label">
-        {m ? m[1] : text}
-        {m && <span className="shortcut-note">{m[2]}</span>}
+        <KeepPunctuation>
+          {m ? m[1] : text}
+          {m && <span className="shortcut-note">{m[2]}</span>}
+        </KeepPunctuation>
       </span>
       <span className="shortcut-keys">
         {keys.map((k) => (
