@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { useIntl, type IntlShape } from "react-intl";
+import { pathSep } from "@sniptoss/core";
 import { APP_VERSION, IS_BETA, shortTime, UI_BUILT, versionLabel } from "./brand";
 import type { AppInfo } from "./host";
 import type { FolderNote } from "./library";
@@ -31,9 +32,10 @@ export function TailPath(props: { path: string }) {
       const cs = getComputedStyle(el);
       measurer.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
       const room = el.clientWidth;
-      const parts = props.path.split("\\");
+      const sep = pathSep(props.path);
+      const parts = props.path.split(sep);
       let text = props.path;
-      for (let i = 1; i < parts.length && measurer.measureText(text).width > room; i++) text = `…\\${parts.slice(i).join("\\")}`;
+      for (let i = 1; i < parts.length && measurer.measureText(text).width > room; i++) text = `…${sep}${parts.slice(i).join(sep)}`;
       setShown(text);
     };
     fit();

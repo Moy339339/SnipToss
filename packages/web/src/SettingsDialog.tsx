@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 import { CATEGORIES, DATA_DIR, type MaterialKind } from "@sniptoss/core";
 import { APP_VERSION, AUTHOR, HOMEPAGE, IS_BETA, LICENSE_NAME, LICENSE_URL, shortTime, UI_BUILT, versionLabel } from "./brand";
-import { call, type AppInfo, type CaptureSettings, type HostError } from "./host";
+import { call, homeJoin, type AppInfo, type CaptureSettings, type HostError } from "./host";
 import { ConfirmDialog } from "./Confirm";
 import { copyDiagnostics, reportIssue } from "./diagnostics";
 import { AVAILABLE_LOCALES, LOCALE_NAMES, NEEDS_REVIEW, resolveLocale } from "./i18n";
@@ -306,7 +306,7 @@ function General(props: { home?: string; onNotify: (t: string) => void }) {
   const { prefs, setPrefs } = usePrefs();
   const capture = useCaptureSettings(props.onNotify);
   const portable = useAppInfo().info?.portable === true;
-  const dataDir = props.home ? `${props.home.replace(/[\\/]+$/, "")}\\${DATA_DIR}` : undefined;
+  const dataDir = props.home ? homeJoin(props.home, DATA_DIR) : undefined;
   return (
     <>
       <Heading>{t("settings.general.title")}</Heading>

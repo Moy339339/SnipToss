@@ -1,3 +1,4 @@
+import { joinPath } from "./paths.js";
 import { DATA_DIR, MaterialFileError } from "./store.js";
 import {
   MARK_COLOR_NAMES,
@@ -260,16 +261,6 @@ const projectName = (root: string) =>
     .replace(/[\\/]+$/, "")
     .split(/[\\/]/)
     .pop() || root;
-
-/**
- * Notes folder + relative path (forward slashes) → absolute path; . = the notes folder itself. The separator follows the notes folder:
- * Windows ones (E:\…, \\server\…) use backslashes, other systems' (/Users/…) use forward slashes, so paths also work for a macOS version
- */
-function joinPath(root: string, rel: string): string {
-  const base = root.replace(/[\\/]+$/, "");
-  const sep = root.includes("\\") || /^[A-Za-z]:/.test(root) ? "\\" : "/";
-  return rel === "." || rel === "" ? base : `${base}${sep}${rel.replaceAll("/", sep)}`;
-}
 
 /**
  * The text that Copy as Text puts on the clipboard: the notes themselves are written into it, so pasting it into any agent's conversation

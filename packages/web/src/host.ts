@@ -3,7 +3,7 @@
 //   shell → UI { id, result } or { id, error }
 // The shell side is app/Bridge.cs; the method names on both sides must match.
 
-import { ANNOTATIONS_DIR, parseMaterialFile, type MaterialFile, type MaterialKind } from "@sniptoss/core";
+import { ANNOTATIONS_DIR, parseMaterialFile, pathSep, type MaterialFile, type MaterialKind } from "@sniptoss/core";
 export type { MaterialFile };
 
 interface WebViewBridge {
@@ -537,26 +537,40 @@ export function baseName(p: string): string {
   const parts = p.split(/[\\/]/).filter(Boolean);
   const last = parts[parts.length - 1] ?? p;
   // A drive root is called E:\ (the shell gives the same form)
-  return parts.length === 1 && /^[a-z]:$/i.test(last) ? `${last}\\` : last;
+  return parts.length === 1 && /^[a-z]:$/i.test(last) && pathSep(p) === "\\" ? `${last}\\` : last;
 }
 
-/** The parent folder. A file at a drive root, or the drive root itself → E:\ (consistent with the shell's Path.GetDirectoryName) */
+/**
+ * The parent folder. A file at a drive root, or the drive root itself → E:\ (consistent with the shell's Path.GetDirectoryName);
+ * a file directly under / → /
+ */
 export function dirName(p: string): string {
-  // A network share root (\\srv\share) is treated like a drive root: its parent is itself (it used to step back to \\srv, and the project
-  // row subtitle showed the server name)
-  const share = /^[\\/]{2}[^\\/]+[\\/][^\\/]+(?=[\\/]*$|[\\/][^\\/]+[\\/]*$)/.exec(p);
-  if (share) return share[0];
+  const posix = pathSep(p) === "/";
+  if (!posix) {
+    // A network share root (\\srv\share) is treated like a drive root: its parent is itself (it used to step back to \\srv, and the project
+    // row subtitle showed the server name)
+    const share = /^[\\/]{2}[^\\/]+[\\/][^\\/]+(?=[\\/]*$|[\\/][^\\/]+[\\/]*$)/.exec(p);
+    if (share) return share[0];
+  }
   const i = Math.max(p.lastIndexOf("\\"), p.lastIndexOf("/"));
-  if (i <= 0) return p;
+  if (i < 0 || (i === 0 && !posix)) return p;
+  if (i === 0) return "/";
   const d = p.slice(0, i);
   return /^[a-z]:$/i.test(d) ? `${d}\\` : d;
 }
 
-/** The key for comparing paths: Windows paths are case-insensitive */
-export const keyOf = (path: string) => path.replaceAll("/", "\\").toLowerCase();
+/**
+ * The key for comparing paths. Every path is written in one form (backslashes, lowercase, composed Unicode), so a Windows and a POSIX
+ * path compare the same way: Windows paths are case-insensitive, a Mac volume is by default, and macOS can hand over the same file name in
+ * decomposed form (é as e + an accent)
+ */
+export const keyOf = (path: string) => path.replaceAll("/", "\\").normalize("NFC").toLowerCase();
 
-/** Notes folder + relative path → absolute path */
-export const homeJoin = (home: string, rel: string) => `${home.replace(/[\\/]+$/, "")}\\${rel.replaceAll("/", "\\")}`;
+/** Notes folder + relative path → absolute path (the separator follows the notes folder, see pathSep) */
+export const homeJoin = (home: string, rel: string) => {
+  const sep = pathSep(home);
+  return `${home.replace(/[\\/]+$/, "")}${sep}${rel.replaceAll("/", sep)}`;
+};
 
 /**
  * Parses the notes files in one notes folder. The validation rules are written only once, in core; damaged ones are listed separately and

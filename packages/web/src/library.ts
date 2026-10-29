@@ -1,7 +1,18 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { MaterialKind } from "@sniptoss/core";
+import { pathSep, type MaterialKind } from "@sniptoss/core";
 import { compareNames } from "./collate";
-import { addDropped, baseName, call, dirName, keyOf, type AddResult, type LibraryEntry, type MaterialEntry, type ScanResult } from "./host";
+import {
+  addDropped,
+  baseName,
+  call,
+  dirName,
+  homeJoin,
+  keyOf,
+  type AddResult,
+  type LibraryEntry,
+  type MaterialEntry,
+  type ScanResult,
+} from "./host";
 
 // The data of the library on the left: entries (the shell stores them in settings.json), the items scanned from each entry, project
 // groups, folder trees, expansion state. Every add / remove / change is handed to the shell first (it writes to disk), and then the state
@@ -32,7 +43,7 @@ function buildTree(root: string, materials: MaterialEntry[]): TreeFolder {
       rel = rel ? `${rel}/${part}` : part;
       let f = index.get(rel);
       if (!f) {
-        f = { path: `${root.replace(/[\\/]+$/, "")}\\${rel.replaceAll("/", "\\")}`, name: part, folders: [], files: [] };
+        f = { path: homeJoin(root, rel), name: part, folders: [], files: [] };
         index.set(rel, f);
         parent.folders.push(f);
       }
@@ -172,14 +183,15 @@ export type Row =
  * subtitles looked identical). E:\a\clientA\v1, E:\a\clientB\v1 → clientA\v1, clientB\v1
  */
 export function distinctPlaces(dirs: string[]): string[] {
-  const parts = dirs.map((d) => d.split("\\"));
-  const tail = (p: string[], n: number) => p.slice(-n).join("\\");
+  const parts = dirs.map((d) => d.split(/[\\/]/));
+  const seps = dirs.map(pathSep);
+  const tail = (p: string[], n: number, sep: string) => p.slice(-n).join(sep);
   return parts.map((p, i) => {
     for (let n = 1; n < p.length; n++) {
-      const mine = tail(p, n).toLowerCase();
-      if (parts.every((q, j) => j === i || tail(q, n).toLowerCase() !== mine)) return tail(p, n);
+      const mine = tail(p, n, seps[i]).toLowerCase();
+      if (parts.every((q, j) => j === i || tail(q, n, seps[j]).toLowerCase() !== mine)) return tail(p, n, seps[i]);
     }
-    return p.join("\\");
+    return p.join(seps[i]);
   });
 }
 
@@ -223,7 +235,8 @@ export function entryContaining(entries: LibraryEntry[], path: string): LibraryE
 export function projectPlace(home: string): string | undefined {
   const parent = dirName(home);
   if (keyOf(parent).replace(/\\+$/, "") === keyOf(home).replace(/\\+$/, "")) return undefined;
-  return parent.replace(/^[a-z]:\\users\\[^\\]+(?=\\|$)/i, "~");
+  // Windows: E:\Users\name; macOS: /Users/name (Linux's /home/name is written the same way)
+  return parent.replace(/^[a-z]:\\users\\[^\\]+(?=\\|$)/i, "~").replace(/^\/(?:Users|home)\/[^/]+(?=\/|$)/, "~");
 }
 
 /** The display name of a project: the name of the project folder (E:\ for a drive root) */

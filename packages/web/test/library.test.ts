@@ -23,6 +23,10 @@ describe("distinctPlaces: the subtitle of same-named projects goes up to the lev
   it("two of three end the same: each goes only as far as it needs", () => {
     expect(distinctPlaces(["E:\\a\\p\\out", "E:\\b\\p\\out", "E:\\a\\q"])).toEqual(["a\\p\\out", "b\\p\\out", "q"]);
   });
+  it("POSIX paths (macOS shell): the same rule, joined with slashes", () => {
+    expect(distinctPlaces(["/Users/alex/work/clientA/v1", "/Users/alex/work/clientB/v1"])).toEqual(["clientA/v1", "clientB/v1"]);
+    expect(distinctPlaces(["/Volumes/X/Renders", "/Volumes/x/renders"])).toEqual(["/Volumes/X/Renders", "/Volumes/x/renders"]);
+  });
 });
 
 describe("folderNote: what a folder does not list", () => {
@@ -62,6 +66,13 @@ describe("projectPlace: the location line under a project row", () => {
   });
   it("a drive root has no parent: nothing is written (otherwise the name and this line would both be E:\\)", () => {
     expect(projectPlace("E:\\")).toBeUndefined();
+  });
+  it("POSIX paths (macOS shell): the home folder is ~ as well; the root has no parent", () => {
+    expect(projectPlace("/Users/alex/work/demo")).toBe("~/work");
+    expect(projectPlace("/Users/alex/demo")).toBe("~");
+    expect(projectPlace("/Volumes/Work/demo")).toBe("/Volumes/Work");
+    expect(projectPlace("/demo")).toBe("/");
+    expect(projectPlace("/")).toBeUndefined();
   });
 });
 

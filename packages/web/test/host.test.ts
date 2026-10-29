@@ -37,6 +37,40 @@ describe("dirName", () => {
   });
 });
 
+// A shell on another system hands over its own kind of path (/Users/…): the functions follow the path they are given
+describe("POSIX paths (macOS shell)", () => {
+  it("baseName: the last segment; the root is itself; a folder that looks like a drive letter is not a drive", () => {
+    expect(baseName("/Users/alex/项目/a.png")).toBe("a.png");
+    expect(baseName("/Users/alex/项目/")).toBe("项目");
+    expect(baseName("/")).toBe("/");
+    expect(baseName("/e:")).toBe("e:");
+  });
+  it("dirName: the parent folder; a file directly under / has the parent /", () => {
+    expect(dirName("/Users/alex/项目/a.png")).toBe("/Users/alex/项目");
+    expect(dirName("/Users/a.png")).toBe("/Users");
+    expect(dirName("/a.png")).toBe("/");
+    expect(dirName("/")).toBe("/");
+  });
+  it("a path that starts with two slashes is not a network share", () => {
+    expect(dirName("//srv/share/a.png")).toBe("//srv/share");
+  });
+  it("homeJoin: slashes stay slashes", () => {
+    expect(homeJoin("/Users/alex/p", "a/b.png")).toBe("/Users/alex/p/a/b.png");
+    expect(homeJoin("/Users/alex/p/", "a")).toBe("/Users/alex/p/a");
+    expect(homeJoin("/", "a")).toBe("/a");
+  });
+  it("keyOf: one form for both kinds, so prefix tests with a trailing \\ work on either", () => {
+    expect(keyOf("/Users/Alex/P")).toBe("\\users\\alex\\p");
+    expect(keyOf("/Users/Alex/P/a.png").startsWith(keyOf("/Users/Alex/P") + "\\")).toBe(true);
+  });
+  it("keyOf: the same name in composed and decomposed Unicode (macOS can hand over either) is one key", () => {
+    const composed = "caf" + String.fromCharCode(0xe9);
+    const decomposed = "caf" + String.fromCharCode(0x65, 0x301);
+    expect(decomposed).not.toBe(composed);
+    expect(keyOf(`/Users/alex/${decomposed}.png`)).toBe(keyOf(`/Users/alex/${composed}.png`));
+  });
+});
+
 describe("keyOf / homeJoin / materialUrl", () => {
   it("keyOf: forward slashes become backslashes, everything is lowercased, and a trailing \\ is kept", () => {
     expect(keyOf("E:/Proj/A.PNG")).toBe("e:\\proj\\a.png");

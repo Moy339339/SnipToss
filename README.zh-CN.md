@@ -38,6 +38,13 @@
 - **绿色版**（`SnipToss-<版本>-win-x64-portable.zip`）：解压到任意位置，运行 `SnipToss.exe`。设置、日志、截图都存在旁边的 `data` 文件夹里，不写注册表，所以右键菜单、登录时启动两项不可用。删掉文件夹即彻底移除。
 - **安装版**（`SnipToss-<版本>-win-x64-setup.exe`）：默认只为当前账户安装，不需要管理员权限（第一步也可选择为所有用户安装）；会添加开始菜单项，并默认把「用超级批注打开」加进资源管理器右键菜单（可取消勾选）。升级时运行新版安装包即可，程序开着会先自动关闭。卸载请到「设置 → 应用 → 已安装的应用」。
 
+也可以用 [Scoop](https://scoop.sh) 安装绿色版（`scoop update` 升级时设置和截图都会保留）：
+
+```powershell
+scoop bucket add moygoldenage https://github.com/Moy339339/scoop-bucket
+scoop install moygoldenage/sniptoss
+```
+
 程序未进行代码签名。Windows SmartScreen 可能提示「Windows 已保护你的电脑」，点「更多信息 → 仍要运行」即可（每个新版本会再提示一次）。每个版本都附有 `SHA256SUMS.txt`，可以在 PowerShell 里用 `Get-FileHash <文件>` 核对下载的文件。
 
 如果开着**智能应用控制**（「Windows 安全中心 → 应用和浏览器控制 → 智能应用控制设置」），Windows 会拦下所有未签名的程序，包括超级批注，且无法单独放行某一个程序，只能关掉智能应用控制后再使用。2026 年 4 月的更新之后，Windows 11 关掉它以后还能重新打开、无需重装系统，但它开着时超级批注无法启动。

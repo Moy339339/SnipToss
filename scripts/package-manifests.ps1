@@ -25,7 +25,7 @@ if ($hash[$setup]) {
     $id = 'MoyGoldenAge.SnipToss'
     $dir = Join-Path $out "winget\$Version"
     New-Item -ItemType Directory $dir -Force | Out-Null
-    $schema = '1.10.0'
+    $schema = '1.12.0'
     $files = @{
         "$id.yaml"              = @"
 # yaml-language-server: `$schema=https://aka.ms/winget-manifest.version.$schema.schema.json

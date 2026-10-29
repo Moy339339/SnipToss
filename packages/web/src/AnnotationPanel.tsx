@@ -1,6 +1,15 @@
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { DATA_DIR, isWritable, NOTE_SECTIONS, slugFor, type Annotation, type AnnotationStatus, type NoteSection } from "@sniptoss/core";
+import {
+  DATA_DIR,
+  isWritable,
+  NOTE_SECTIONS,
+  pathSep,
+  slugFor,
+  type Annotation,
+  type AnnotationStatus,
+  type NoteSection,
+} from "@sniptoss/core";
 import { fileKey, type Stored } from "./annotationStore";
 import { CheckBox } from "./Checkbox";
 import type { useChecks, useHandoff } from "./handoff";
@@ -603,7 +612,9 @@ export function AnnotationPanel(props: {
               title={intl.formatMessage({ id: "panel.footer.title" }, { path: homeJoin(home, DATA_DIR) })}
             >
               <FolderIcon />
-              <span>{intl.formatMessage({ id: "panel.footer.saved" }, { path: `${baseName(home) || home}\\${DATA_DIR}` })}</span>
+              <span>
+                {intl.formatMessage({ id: "panel.footer.saved" }, { path: `${baseName(home) || home}${pathSep(home)}${DATA_DIR}` })}
+              </span>
             </button>
           ) : (
             <span>{intl.formatMessage({ id: "panel.footer.auto" })}</span>

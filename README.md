@@ -37,6 +37,13 @@ Download from [Releases](https://github.com/Moy339339/SnipToss/releases):
 - **Portable** (`SnipToss-<version>-win-x64-portable.zip`): unzip anywhere and run `SnipToss.exe`. Settings, logs and captures are kept in the `data` folder next to it, and nothing is written to the registry — so the context menu and start-at-sign-in options are unavailable. Delete the folder to remove it completely.
 - **Installer** (`SnipToss-<version>-win-x64-setup.exe`): installs for your account without administrator rights (or for all users, if you choose so in the first step), adds a Start menu entry and, unless you untick it, "Open with SnipToss" to the File Explorer context menu. To update, run the newer installer; it closes SnipToss if it's running. Uninstall from Settings → Apps → Installed apps.
 
+Or install the portable build with [Scoop](https://scoop.sh) (settings and captures are kept across `scoop update`):
+
+```powershell
+scoop bucket add moygoldenage https://github.com/Moy339339/scoop-bucket
+scoop install moygoldenage/sniptoss
+```
+
 The builds are not code-signed. Windows SmartScreen may say "Windows protected your PC": choose **More info → Run anyway** (it asks again for each new version). Each release lists the SHA256 of its files in `SHA256SUMS.txt`, so you can check a download with `Get-FileHash <file>` in PowerShell.
 
 If **Smart App Control** is on (Windows Security → App & browser control → Smart App Control settings), Windows blocks unsigned apps, SnipToss included, and there is no way to allow a single app. Using SnipToss then means turning Smart App Control off. Since the April 2026 update, Windows 11 can turn it back on later without reinstalling, but SnipToss won't start while it's on.
