@@ -126,7 +126,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and [ARCHITE
 
 ## Contributing
 
-Bug reports, translations and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Questions and ideas are welcome in [Discussions](https://github.com/Moy339339/SnipToss/discussions), where new releases are announced too. Translations other than English and Chinese haven't been reviewed by native speakers yet; corrections are especially welcome. Please follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+Bug reports, translations and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Questions and ideas are welcome as [issues](https://github.com/Moy339339/SnipToss/issues/new/choose); new releases are announced in [Discussions](https://github.com/Moy339339/SnipToss/discussions/categories/announcements). Translations other than English and Chinese haven't been reviewed by native speakers yet; corrections are especially welcome. Please follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 Found a security issue? Please report it privately as described in [SECURITY.md](SECURITY.md).
 

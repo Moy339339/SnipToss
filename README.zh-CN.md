@@ -129,7 +129,7 @@ npm run verify                             # 类型检查、lint、单元测试�
 
 ## 参与
 
-欢迎报告问题、改进翻译、提交 PR，见 [CONTRIBUTING.md](CONTRIBUTING.md)。使用中的疑问和建议欢迎发到[讨论区](https://github.com/Moy339339/SnipToss/discussions)，新版本也会在那里发布公告。英文、中文以外的翻译还没有经过母语者校对，特别欢迎指正。请遵守[行为准则](CODE_OF_CONDUCT.md)。
+欢迎报告问题、改进翻译、提交 PR，见 [CONTRIBUTING.md](CONTRIBUTING.md)。使用中的疑问和建议欢迎[提交 issue](https://github.com/Moy339339/SnipToss/issues/new/choose)，新版本会在[讨论区](https://github.com/Moy339339/SnipToss/discussions/categories/announcements)发布公告。英文、中文以外的翻译还没有经过母语者校对，特别欢迎指正。请遵守[行为准则](CODE_OF_CONDUCT.md)。
 
 发现安全问题请按 [SECURITY.md](SECURITY.md) 私下报告。
 

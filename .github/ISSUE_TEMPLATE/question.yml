@@ -1,0 +1,25 @@
+name: Question
+description: Ask how something works or how to do something with SnipToss
+labels: [question]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: What would you like to know?
+      description: What you're trying to do, and what you've tried so far.
+    validations:
+      required: true
+  - type: dropdown
+    id: app
+    attributes:
+      label: App
+      description: Which SnipToss app is this about?
+      options:
+        - SnipToss for Windows
+        - SnipToss for Mac (preview)
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown at the bottom of the left panel, and in Settings → About.
+      placeholder: e.g. 1.1.2

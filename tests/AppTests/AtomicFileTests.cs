@@ -72,16 +72,22 @@ public class AtomicFileTests
     public void Target_open_for_reading_is_still_replaced_and_the_reader_finishes_the_old_content()
     {
         // A plain rename would be refused (access denied) while someone has the file open; with frequent readers
-        // the writer never finds a gap and fails once its retries run out
+        // the writer never finds a gap and fails once its retries run out. The POSIX-semantics rename goes through at once, so the
+        // write never has to wait: checked on the rename itself, since timing the whole write also times the flush to disk, which
+        // takes hundreds of milliseconds on a slow disk
         using var dir = new TempDir();
         var path = dir.File("a.json");
         AtomicFile.Write(path, "old"u8);
         using (var reader = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
         {
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            AtomicFile.Write(path, "new"u8);
-            Assert.True(watch.ElapsedMilliseconds < 100, $"Waited {watch.ElapsedMilliseconds} ms (retrying)");
+            File.WriteAllText(dir.File("next.tmp"), "next");
+            Assert.True(AtomicFile.PosixRename(dir.File("next.tmp"), path));
             Assert.Equal("old", new StreamReader(reader).ReadToEnd());
+        }
+        using (var reader = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+        {
+            AtomicFile.Write(path, "new"u8);
+            Assert.Equal("next", new StreamReader(reader).ReadToEnd());
         }
         Assert.Equal("new", AtomicFile.ReadAllText(path));
         Assert.Empty(Directory.GetFiles(dir.Path, "*.tmp"));
