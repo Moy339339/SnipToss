@@ -125,11 +125,17 @@ export function ShortcutRow({ keys, label }: { keys: string[]; label: ShortcutLa
   const m = /^(.+?)[\uFF08(](.+)[\uFF09)]$/.exec(text);
   return (
     <div className="shortcut-row">
+      {/* A column: the description, then the addition. Each is one element, so the pieces KeepPunctuation cuts the text into stay in the
+          line instead of each becoming an item of the column */}
       <span className="shortcut-label">
-        <KeepPunctuation>
-          {m ? m[1] : text}
-          {m && <span className="shortcut-note">{m[2]}</span>}
-        </KeepPunctuation>
+        <span>
+          <KeepPunctuation>{m ? m[1] : text}</KeepPunctuation>
+        </span>
+        {m && (
+          <span className="shortcut-note">
+            <KeepPunctuation>{m[2]}</KeepPunctuation>
+          </span>
+        )}
       </span>
       <span className="shortcut-keys">
         {keys.map((k) => (

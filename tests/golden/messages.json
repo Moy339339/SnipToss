@@ -149,6 +149,18 @@
     },
     {
       "locale": "de",
+      "key": "markColor.deletePlace",
+      "args": {},
+      "text": "Diese Markierung löschen"
+    },
+    {
+      "locale": "de",
+      "key": "markColor.deleteNote",
+      "args": {},
+      "text": "Diese Notiz löschen"
+    },
+    {
+      "locale": "de",
       "key": "markColor.field",
       "args": {},
       "text": "Sättigung und Helligkeit"
@@ -2625,6 +2637,18 @@
         "name": "<name>"
       },
       "text": "<name> (recent)"
+    },
+    {
+      "locale": "en",
+      "key": "markColor.deletePlace",
+      "args": {},
+      "text": "Delete this mark"
+    },
+    {
+      "locale": "en",
+      "key": "markColor.deleteNote",
+      "args": {},
+      "text": "Delete this note"
     },
     {
       "locale": "en",
@@ -5107,6 +5131,18 @@
     },
     {
       "locale": "es",
+      "key": "markColor.deletePlace",
+      "args": {},
+      "text": "Eliminar esta marca"
+    },
+    {
+      "locale": "es",
+      "key": "markColor.deleteNote",
+      "args": {},
+      "text": "Eliminar esta nota"
+    },
+    {
+      "locale": "es",
       "key": "markColor.field",
       "args": {},
       "text": "Saturación y brillo"
@@ -7583,6 +7619,18 @@
         "name": "<name>"
       },
       "text": "<name> (récente)"
+    },
+    {
+      "locale": "fr",
+      "key": "markColor.deletePlace",
+      "args": {},
+      "text": "Supprimer ce repère"
+    },
+    {
+      "locale": "fr",
+      "key": "markColor.deleteNote",
+      "args": {},
+      "text": "Supprimer cette note"
     },
     {
       "locale": "fr",
@@ -10065,6 +10113,18 @@
     },
     {
       "locale": "it",
+      "key": "markColor.deletePlace",
+      "args": {},
+      "text": "Elimina questo segno"
+    },
+    {
+      "locale": "it",
+      "key": "markColor.deleteNote",
+      "args": {},
+      "text": "Elimina questa nota"
+    },
+    {
+      "locale": "it",
       "key": "markColor.field",
       "args": {},
       "text": "Saturazione e luminosità"
@@ -12544,6 +12604,18 @@
     },
     {
       "locale": "ja",
+      "key": "markColor.deletePlace",
+      "args": {},
+      "text": "このマークを削除"
+    },
+    {
+      "locale": "ja",
+      "key": "markColor.deleteNote",
+      "args": {},
+      "text": "このメモを削除"
+    },
+    {
+      "locale": "ja",
       "key": "markColor.field",
       "args": {},
       "text": "彩度と明度"
@@ -14969,6 +15041,18 @@
     },
     {
       "locale": "ko",
+      "key": "markColor.deletePlace",
+      "args": {},
+      "text": "이 마커 삭제"
+    },
+    {
+      "locale": "ko",
+      "key": "markColor.deleteNote",
+      "args": {},
+      "text": "이 메모 삭제"
+    },
+    {
+      "locale": "ko",
       "key": "markColor.field",
       "args": {},
       "text": "채도와 명도"
@@ -17391,6 +17475,18 @@
         "name": "<name>"
       },
       "text": "<name> (recente)"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "markColor.deletePlace",
+      "args": {},
+      "text": "Excluir esta marcação"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "markColor.deleteNote",
+      "args": {},
+      "text": "Excluir esta nota"
     },
     {
       "locale": "pt-BR",
@@ -19870,6 +19966,18 @@
         "name": "<name>"
       },
       "text": "<name> (недавний)"
+    },
+    {
+      "locale": "ru",
+      "key": "markColor.deletePlace",
+      "args": {},
+      "text": "Удалить эту метку"
+    },
+    {
+      "locale": "ru",
+      "key": "markColor.deleteNote",
+      "args": {},
+      "text": "Удалить эту заметку"
     },
     {
       "locale": "ru",
@@ -22406,6 +22514,18 @@
     },
     {
       "locale": "zh-CN",
+      "key": "markColor.deletePlace",
+      "args": {},
+      "text": "删除这处标记"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "markColor.deleteNote",
+      "args": {},
+      "text": "删除这条批注"
+    },
+    {
+      "locale": "zh-CN",
       "key": "markColor.field",
       "args": {},
       "text": "饱和度和亮度"
@@ -24318,6 +24438,18 @@
         "name": "<name>"
       },
       "text": "<name>（最近使用）"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "markColor.deletePlace",
+      "args": {},
+      "text": "刪除這處標記"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "markColor.deleteNote",
+      "args": {},
+      "text": "刪除這條批註"
     },
     {
       "locale": "zh-TW",

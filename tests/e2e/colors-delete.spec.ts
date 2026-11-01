@@ -182,8 +182,8 @@ test("Delete on the color bar: one of several places goes alone (no question, un
   await app.open();
   await badge(app, "k3f9a2", 1).click();
   await expect(colorBar(app)).toBeVisible();
-  const remove = colorBar(app).getByRole("button", { name: "移除这处标记" });
-  await expect(remove).toHaveAttribute("data-tip", "移除这处标记　Delete");
+  const remove = colorBar(app).getByRole("button", { name: "删除这处标记" });
+  await expect(remove).toHaveAttribute("data-tip", "删除这处标记　Delete");
   await remove.click();
   await expect(colorBar(app)).toHaveCount(0);
   await expect.poll(() => note(app, "k3f9a2")?.anchor.shapes?.length).toBe(1);
@@ -200,7 +200,7 @@ test("Delete on the color bar: one of several places goes alone (no question, un
 
   // Now it is the only place: Delete removes the whole note, after confirming
   await badge(app, "k3f9a2").click();
-  await colorBar(app).getByRole("button", { name: "删除批注" }).click();
+  await colorBar(app).getByRole("button", { name: "删除这条批注" }).click();
   await app.page.getByRole("alertdialog").getByRole("button", { name: "删除" }).click();
   await expect.poll(() => note(app, "k3f9a2")).toBeUndefined();
   await expect(badge(app, "k3f9a2")).toHaveCount(0);
@@ -231,12 +231,12 @@ test("while writing a note: Delete on the bar of one of its places removes that 
   await expect(draftBadges(app)).toHaveCount(2);
   const second = (await draftBadges(app).nth(1).boundingBox())!;
   await app.page.mouse.click(second.x + second.width / 2, second.y + second.height / 2);
-  await colorBar(app).getByRole("button", { name: "移除这处标记" }).click();
+  await colorBar(app).getByRole("button", { name: "删除这处标记" }).click();
   await expect(draftBadges(app)).toHaveCount(1);
   await expect(composer(app)).toBeVisible();
   const first = (await draftBadges(app).boundingBox())!;
   await app.page.mouse.click(first.x + first.width / 2, first.y + first.height / 2);
-  await colorBar(app).getByRole("button", { name: "删除批注" }).click();
+  await colorBar(app).getByRole("button", { name: "删除这条批注" }).click();
   await expect(composer(app)).toHaveCount(0);
   await expect(draftBadges(app)).toHaveCount(0);
 });

@@ -4,6 +4,18 @@ All notable changes to SnipToss for Windows are listed here. The format follows 
 
 The annotation data format has its own version (`"schema": "sniptoss/5"`); its history is in [docs/annotation-format.md](docs/annotation-format.md).
 
+## [1.1.2] — 2026-11-02
+
+### Fixed
+
+- Settings → Shortcuts and the Keyboard Shortcuts sheet: in Chinese and Japanese, descriptions with full-width punctuation were broken into stacked pieces of one or two characters. They wrap as whole lines again.
+- Undo and redo after dragging a mark's handle said the mark was moved; they now say it was resized.
+- The Delete button on a mark's color bar is labeled like the one in the screen-capture overlay ("Delete this mark", or "Delete this note" for a note's only mark) instead of borrowing the context menu's wording.
+
+### Changed
+
+- Updated the WebView2 SDK, React and other dependencies to their latest patch releases.
+
 ## [1.1.1] — 2026-11-02
 
 ### Changed
@@ -65,6 +77,7 @@ First public release.
 - Portable version: with a `data` folder next to the app, all data stays in it and the registry is never touched.
 - Command-line tool `sniptoss` (list, review, resolve, wontfix); its messages follow the system display language.
 
+[1.1.2]: https://github.com/Moy339339/SnipToss/releases/tag/v1.1.2
 [1.1.1]: https://github.com/Moy339339/SnipToss/releases/tag/v1.1.1
 [1.1.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.0.0

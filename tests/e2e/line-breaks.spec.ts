@@ -193,7 +193,9 @@ function badBreaks(app: App, screen: string) {
 /**
  * Full-width marks in the S9 boxes on screen now that are not kept with the character next to them: text that never went through
  * KeepPunctuation (put in by a component of its own, which the KeepPunctuation around it does not reach into). Whether that text breaks
- * the wrong way depends on the engine, the fonts and the width, so the measuring above can miss it; this does not depend on layout
+ * the wrong way depends on the engine, the fonts and the width, so the measuring above can miss it; this does not depend on layout.
+ * Also kept marks that are not in the line: the measuring above compares characters within one block, and a span made a block of its
+ * own by a flex container around it is not seen as breaking a word
  */
 function unkept(app: App, screen: string) {
   return app.page.evaluate(
@@ -203,6 +205,13 @@ function unkept(app: App, screen: string) {
       const found: string[] = [];
       for (const el of document.querySelectorAll<HTMLElement>(boxes)) {
         if (el.parentElement?.closest(boxes) || el.getBoundingClientRect().width === 0) continue;
+        // The spans must stay in the line: put straight into a flex or grid container, each one (and each run of text between them)
+        // becomes a box of its own and they stack apart, a character or two to a line, whatever the width
+        for (const kept of el.querySelectorAll<HTMLElement>(".keep-punctuation")) {
+          const display = getComputedStyle(kept).display;
+          if (display !== "inline")
+            found.push(`${where}: .${el.className.split(" ").join(".")}: “${kept.textContent}” laid out as a box of its own (${display})`);
+        }
         const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
         for (let node = walk.nextNode(); node; node = walk.nextNode()) {
           const parent = node.parentElement;
@@ -244,6 +253,8 @@ test("the detection itself works: a closing mark that starts a line and a word b
     add(6, "请使用「复制」");
     add(7, '请使用<wbr><span class="keep-punctuation">「复</span><span class="keep-punctuation">制」</span>');
     add(8, "见 「 x 」 中");
+    // Kept marks straight in a column flex container: every piece is a flex item of its own
+    add(9, '选<span class="keep-punctuation">择：</span>单击', "display:flex;flex-direction:column");
   });
   const found = await badBreaks(app, "self-check");
   const of = (box: number) => found.filter((f) => f.includes(`.box-${box} `));
@@ -261,6 +272,7 @@ test("the detection itself works: a closing mark that starts a line and a word b
     "self-check: .set-desc.box-6: “」” not kept with “制” in “请使用「复制」”",
   ]);
   expect([...looseOf(7), ...looseOf(8)]).toEqual([]);
+  expect(looseOf(9)).toEqual(["self-check: .set-desc.box-9: “择：” laid out as a box of its own (block)"]);
 });
 
 for (const locale of ["zh-CN", "zh-TW", "ja"]) {

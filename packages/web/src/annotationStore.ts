@@ -16,10 +16,12 @@ import {
   reviewLanguage,
   serializeMaterialFile,
   serializeProject,
+  shapesOf,
   slugFor,
   type Anchor,
   type Material,
   type MaterialFile,
+  type Shape,
 } from "@sniptoss/core";
 import { removeOldShim } from "./agent";
 import { translatorFor } from "./i18n";
@@ -82,8 +84,20 @@ export const partsOf = (op: Op): Op[] => [op, ...(op.rest ?? [])];
 /** Where a note's marks are, leaving out their colors */
 const geometry = (anchor: Anchor) => JSON.stringify(anchor, (key, value: unknown) => (key === "color" ? undefined : value));
 
+/**
+ * Whether a place changed size or shape rather than just moving: only handles do that (a rectangle's edges, an arrow's ends); moving keeps
+ * a rectangle's width and height and an arrow's direction and length. Points and freehand have no handles, so they only move
+ */
+function resized(before: Shape, after: Shape): boolean {
+  const differ = (a: number, b: number) => Math.abs(a - b) > 1e-6;
+  if (before.type === "rect" && after.type === "rect") return differ(before.w, after.w) || differ(before.h, after.h);
+  if (before.type === "arrow" && after.type === "arrow")
+    return [0, 1].some((i) => differ(before.to[i]! - before.from[i]!, after.to[i]! - after.from[i]!));
+  return before.type !== after.type;
+}
+
 /** What this step changed (so the undo / redo toast says what was undone; the message app.undo.what picks its wording by it) */
-export function opKind(op: Op): "add" | "delete" | "status" | "edit" | "move" | "other" {
+export function opKind(op: Op): "add" | "delete" | "status" | "edit" | "move" | "resize" | "other" {
   const before = new Map((op.before?.annotations ?? []).map((a) => [a.id, a]));
   const after = new Map(op.after.annotations.map((a) => [a.id, a]));
   if ([...after.keys()].some((id) => !before.has(id))) return "add";
@@ -92,8 +106,11 @@ export function opKind(op: Op): "add" | "delete" | "status" | "edit" | "move" | 
     const b = before.get(id)!;
     if (a.status !== b.status) return "status";
     if (a.body !== b.body || a.category !== b.category) return "edit";
-    // A place added or removed edits the note; only a changed position or size is a move (a place's color is not a move: "other")
-    if ((a.anchor.shapes?.length ?? 0) !== (b.anchor.shapes?.length ?? 0)) return "edit";
+    // A place added or removed edits the note; a changed size is a resize, any other change of position a move (a place's color is
+    // neither: "other")
+    const [shapes, was] = [shapesOf(a), shapesOf(b)];
+    if (shapes.length !== was.length) return "edit";
+    if (shapes.some((s, i) => resized(was[i]!, s))) return "resize";
     if (geometry(a.anchor) !== geometry(b.anchor)) return "move";
   }
   return "other";

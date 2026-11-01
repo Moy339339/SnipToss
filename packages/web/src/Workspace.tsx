@@ -926,8 +926,9 @@ export function WorkspaceView(props: {
   // with it (asks first, like Delete on a note; a note not saved yet is just dropped, asking only if text was written)
   const colorBar = (() => {
     if (!picked) return undefined;
-    const removePlace = intl.formatMessage({ id: "stage.menu.removePlace" });
-    const deleteNote = intl.formatMessage({ id: "card.menu.delete" });
+    // Tooltip wording, a sentence like the screenshot layer's Delete button (the right-click menu's items are commands in title case)
+    const removePlace = intl.formatMessage({ id: "markColor.deletePlace" });
+    const deleteNote = intl.formatMessage({ id: "markColor.deleteNote" });
     if (picked.id === undefined) {
       const shapes = draft?.id && currentEarlier.has(draft.id) ? undefined : draft?.shapes;
       const s = shapes?.[picked.part];

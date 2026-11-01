@@ -635,15 +635,23 @@ test("Select tool: the first press only selects (handles appear, the card highli
   expect(moved.w).toBe(before.w);
   await app.page.keyboard.press("Control+z");
   await expect.poll(() => k3(app)).toEqual(before);
+  await expect(app.page.locator(".toast")).toContainText("已撤销：移动标记");
 });
 
-test("Resizing with handles: a rectangle has 8 handles, dragging the bottom-right one enlarges it, dragging past the opposite corner flips it and keeps it positive; a pin has no handles", async ({ app }) => {
+test("Resizing with handles: a rectangle has 8 handles, dragging the bottom-right one enlarges it (undo and redo say it was a resize), dragging past the opposite corner flips it and keeps it positive; a pin has no handles", async ({ app }) => {
   await app.open();
   const before = k3(app);
   await app.page.mouse.click(...(await heroRectEdge(app)));
   const se = (await app.page.locator(".annot-handle.handle-se").boundingBox())!;
   await drag(app, [se.x + se.width / 2, se.y + se.height / 2], [se.x + 50, se.y + 30]);
   await expect.poll(() => k3(app).w).toBeGreaterThan(before.w!);
+  const enlarged = k3(app);
+  await app.page.keyboard.press("Control+z");
+  await expect(app.page.locator(".toast")).toContainText("已撤销：调整标记大小");
+  await expect.poll(() => k3(app)).toEqual(before);
+  await app.page.keyboard.press("Control+Shift+z");
+  await expect(app.page.locator(".toast")).toContainText("已重做：调整标记大小");
+  await expect.poll(() => k3(app)).toEqual(enlarged);
   // Drag the top-left handle past the bottom-right corner
   const nw = (await app.page.locator(".annot-handle.handle-nw").boundingBox())!;
   const box = await media(app);
