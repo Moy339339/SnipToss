@@ -4,6 +4,7 @@ Thanks for helping. Bug reports, translation fixes and pull requests are all wel
 
 - **Bugs**: open an issue with the steps, what you expected and what happened. Attach the diagnostic info (**Help → Copy Diagnostic Info**) — it has versions and the system, but no file paths. If the app misbehaved, **Help → Export Diagnostics Package…** saves a zip with recent logs and settings (item paths and your name removed); attach it if you're comfortable sharing it.
 - **Bigger changes** (new features, UI changes, changes to the data format): please open an issue first so we can agree on the approach before you spend time on code.
+- **Questions and ideas**: ask in [Discussions](https://github.com/Moy339339/SnipToss/discussions). Releases are announced there too.
 - **Security issues**: don't open a public issue — see [SECURITY.md](SECURITY.md).
 
 Code comments, tests and the docs are in English: start with [ARCHITECTURE.md](ARCHITECTURE.md), then the design notes in `docs/` and the decision records in `docs/adr/`. Feel free to ask in an issue when something isn't clear.
