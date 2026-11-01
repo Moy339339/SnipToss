@@ -4,10 +4,14 @@
 //
 //   pwsh -File scripts/build-app.ps1 -Out tests/shell/.app -TestHooks     the shell-test build (its test hooks draw the capture overlay to PNG; it looks the same as the installed app)
 //   node scripts/readme-shots.mjs [SnipToss.exe] [--only hero,marking,stills,video,capture,languages] [--locales en,zh-CN] [--work <folder>]
+//   node scripts/readme-shots.mjs --only colors,delete,movebox,capture-toolbar,colors-still --work <folder>     the 1.1 what's-new pictures (not part of the default run)
 //
-// Scenes (default: all): hero = the main window with the second sample (a poster) at 2×; marking = animation frames of the four tools and one note on several places;
+// README scenes (the default run): hero = the main window with the second sample (a poster) at 2×; marking = animation frames of the four tools and one note on several places;
 // stills = the main window at 2×, REVIEW.md, the images "Copy as Images" makes; video = animation frames of a note on a moment and another on a mark;
 // capture = the capture overlay step by step, drawn to PNG; languages = the main window in every interface language.
+// 1.1 (readme-shots/whatsnew.mjs): colors = black, white and a color from the color picker; delete = one place of a note deleted and undone;
+// movebox = the note box dragged away to mark what it covered; capture-toolbar = the same colors, color picker, Delete and note box on the capture overlay.
+// Each also leaves a 2× still for the overview picture in <work>/<locale>/whatsnew; colors-still makes the one of its colors card (on the poster).
 // Footage goes to --work (default %TEMP%\sniptoss-readme-footage). Doesn't touch the everyday settings (SNIPTOSS_SETTINGS points to a temp folder) or the clipboard.
 // Opens windows on screen and closes them when done
 
@@ -16,6 +20,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ROOT, PROJECTS } from "./readme-shots/common.mjs";
 import { capture, hero, languages, marking, prepareProject, stills, video } from "./readme-shots/scenes.mjs";
+import { captureToolbar, colors, colorsStill, deletePlace, movebox } from "./readme-shots/whatsnew.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name) => {
@@ -37,7 +42,18 @@ const ctx = { exe, work, root: ROOT, tmp: join(work, "instances") };
 
 try {
   await prepareProject(work);
-  const perLocale = { hero, marking, stills, video, capture };
+  const perLocale = {
+    hero,
+    marking,
+    stills,
+    video,
+    capture,
+    colors,
+    delete: deletePlace,
+    movebox,
+    "capture-toolbar": captureToolbar,
+    "colors-still": colorsStill,
+  };
   for (const name of only) {
     if (name === "languages") await languages(ctx);
     else if (perLocale[name]) for (const locale of locales) await perLocale[name](ctx, locale);

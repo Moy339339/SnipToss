@@ -16,6 +16,23 @@ Web pages, PDF and slides are planned. SnipToss for Mac is in progress.
 
 ![The SnipToss window with an AI-generated event flyer open: three numbered marks on the flyer and the matching notes in the panel on the right.](docs/images/hero.png)
 
+## What's new in 1.1
+
+![SnipToss for Windows 1.1: black, white and a color picker; deleting one place of a note; dragging the note box aside; the same tools in screen capture.](docs/images/whatsnew-1.1.png)
+
+<details>
+<summary>See each one in action</summary>
+
+![Animation: on a sample coffee landing page, one mark turns black, another white with a dark number, and an arrow gets a custom color from the color picker, which then shows up among the recent colors.](docs/images/whatsnew-1.1-colors.webp)
+
+![Animation: on a sample jazz poster, a note marks two places; one of them is deleted from its color bar while the note stays, then Ctrl+Z brings it back.](docs/images/whatsnew-1.1-delete.webp)
+
+![Animation: the note box covers a link next to the button just marked; it is dragged aside by its title row, and the link is marked as a second place of the same note.](docs/images/whatsnew-1.1-movebox.webp)
+
+![Animation: the screen-capture overlay over a web page: a custom color is picked for an arrow, the note box is dragged aside, and a selected mark is deleted with the toolbar's Delete button and brought back.](docs/images/whatsnew-1.1-capture-toolbar.webp)
+
+</details>
+
 ## Features
 
 ![Animation: a rectangle, an arrow, a pin and two pen strokes drawn on an AI-generated sample landing page, each with a note in the panel at the right.](docs/images/feature-marking.webp)

@@ -17,6 +17,23 @@
 
 ![超级批注窗口：打开着一张 AI 生成的活动传单，画面上有三个带编号的标记，右侧批注栏列着对应的三条批注。](docs/images/hero.zh-CN.png)
 
+## 1.1 新功能
+
+![超级批注 Windows 版 1.1：黑白两色与取色面板、单独删除一处标记、批注框可以拖开、截图批注同样支持。](docs/images/whatsnew-1.1.zh-CN.png)
+
+<details>
+<summary>逐个看动图</summary>
+
+![动图：在示例咖啡首页上，一处标记变成黑色，一处变成白色（编号改用深色字），箭头用取色面板换成自定义颜色，这个颜色随后出现在「最近使用」里。](docs/images/whatsnew-1.1-colors.zh-CN.webp)
+
+![动图：在示例爵士海报上，一条批注标了两处；从颜色条上删掉其中一处，批注还在；按 Ctrl+Z 找回。](docs/images/whatsnew-1.1-delete.zh-CN.webp)
+
+![动图：批注框挡住了刚标的按钮旁边的链接；按住标题行把它拖开，再把链接标成同一条批注的第二处。](docs/images/whatsnew-1.1-movebox.zh-CN.webp)
+
+![动图：截图批注盖在一个网页上：用取色面板给箭头选了自定义颜色，把批注框拖开，选中一处标记用工具条的「删除」删掉，再找回。](docs/images/whatsnew-1.1-capture-toolbar.zh-CN.webp)
+
+</details>
+
 ## 功能
 
 ![动图：在 AI 生成的示例落地页上依次画出矩形、箭头、图钉和两笔画笔，每处都写了批注，列在右边的批注栏里。](docs/images/feature-marking.zh-CN.webp)

@@ -8,9 +8,9 @@ import { join } from "node:path";
 import { NOTES, PROJECT, PROJECT2, PROJECTS, Recorder, dismissToast, drawNote, ellipse, launch, pageShot, sleep, wait } from "./common.mjs";
 import { renderClip, renderLanding, renderPoster, renderScreen } from "./sample.mjs";
 
-const OFF = -20000;
-const FAST = { steps: 10, type: 3, after: 300, between: 120 };
-const SLOW = { steps: 14, type: 16, after: 500, between: 280 };
+export const OFF = -20000;
+export const FAST = { steps: 10, type: 3, after: 300, between: 120 };
+export const SLOW = { steps: 14, type: 16, after: 500, between: 280 };
 
 /** The sample project: two pictures (one carries a note that is already resolved, so the "where notes are stored" toast, which has a full path in it, never appears) and the clip */
 export async function prepareProject(work) {
@@ -35,7 +35,7 @@ export async function prepareProject(work) {
 const seedBanner = () => seedResolved(PROJECT, "banner.png", 1600, 500);
 
 /** A project with one resolved note on one of its pictures: with a note already there, the toast that says where notes are stored (with the full path) never appears */
-function seedResolved(project, file, width, height) {
+export function seedResolved(project, file, width, height) {
   const sha = createHash("sha256")
     .update(readFileSync(join(project, "assets", file)))
     .digest("hex");
@@ -68,12 +68,12 @@ function seedResolved(project, file, width, height) {
 }
 
 /** Every scene starts from the same state: only the resolved note on the banner */
-function freshNotes() {
+export function freshNotes() {
   rmSync(join(PROJECT, ".sniptoss"), { recursive: true, force: true });
   seedBanner();
 }
 
-const start = (ctx, locale, name, o = {}) =>
+export const start = (ctx, locale, name, o = {}) =>
   launch(ctx.exe, {
     locale,
     dataDir: join(ctx.tmp, `${name}-${locale}`),
@@ -82,14 +82,14 @@ const start = (ctx, locale, name, o = {}) =>
     ...o,
   });
 
-const open = async (page, name) => {
+export const open = async (page, name) => {
   await page.locator(".lib-row", { hasText: name }).click();
   await sleep(1500); // the picture loads and fits the window
 };
 
 // Marks on hero.png, as fractions of the picture
-const TITLE = { tool: "r", marks: [{ from: [0.055, 0.235], to: [0.54, 0.44] }] };
-const BUTTON = { tool: "a", marks: [{ from: [0.36, 0.8], to: [0.25, 0.68] }] };
+export const TITLE = { tool: "r", marks: [{ from: [0.055, 0.235], to: [0.54, 0.44] }] };
+export const BUTTON = { tool: "a", marks: [{ from: [0.36, 0.8], to: [0.25, 0.68] }] };
 const WATERMARK = { tool: "c", marks: [{ from: [0.88, 0.17] }], category: 2 };
 // The coffee stream: one note, two places (the stream and the glass it falls into)
 const HIGHLIGHTS = { tool: "b", marks: [{ points: ellipse(0.775, 0.4, 0.04, 0.2) }, { points: ellipse(0.75, 0.66, 0.1, 0.085) }] };

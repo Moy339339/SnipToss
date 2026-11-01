@@ -40,6 +40,11 @@ export const NOTES = {
     posterTitle: "Title is too small for a poster. Make it twice as large.",
     posterDate: "Date and time are hard to read. Add more contrast.",
     posterPin: "Add the venue address next to the date.",
+    // The 1.1 scenes (scripts/readme-shots/whatsnew.mjs)
+    glass: "Fill the glass a little higher.",
+    sameStyle: "Give these two the same button style.",
+    label: "Brighten the record label a little.",
+    arm: "Tone down the glare on the tonearm.",
   },
   "zh-CN": {
     title: "标题字太细，压在背景上看不清，改成粗体。",
@@ -53,6 +58,10 @@ export const NOTES = {
     posterTitle: "海报标题太小，放大一倍。",
     posterDate: "日期和时间看不清，加强对比。",
     posterPin: "在日期旁补上场地地址。",
+    glass: "杯里的咖啡再满一点。",
+    sameStyle: "这两个改成同样的按钮样式。",
+    label: "唱片标签再提亮一点。",
+    arm: "唱臂上的反光压暗一些。",
   },
 };
 
