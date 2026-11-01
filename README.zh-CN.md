@@ -8,6 +8,8 @@
 
 **[下载 Windows 11 版](https://github.com/Moy339339/SnipToss/releases/latest)** · [安装说明](#安装)
 
+> **1.1 新功能：** 新增黑、白两种标记颜色和取色面板（可选任意颜色），可以单独删除一处标记，批注框可以拖到一边，主程序和截图批注都适用。[更新说明](https://github.com/Moy339339/SnipToss/releases/tag/v1.1.0) · [更新日志](CHANGELOG.md)
+
 超级批注是 Windows 桌面程序，用来审阅 Claude Code、Codex 等生成的素材：用图钉、矩形、画笔或箭头标出要改的位置，写下修改要求，
 批注的**内容、位置、时间点**和**标出位置的截图**都以普通文件保存在素材所在项目的 `.sniptoss/` 文件夹中。能读本机文件的 AI agent 直接从那里读取，按意见修改素材。
 
@@ -30,6 +32,7 @@
 ![批注栏的日语、德语、俄语界面，以及 11 种界面语言的名称。](docs/images/feature-languages.zh-CN.png)
 
 - **图片和视频**：PNG、JPEG、WebP、GIF、SVG、BMP、AVIF；MP4、WebM、MOV、M4V。在「设置 → 高级 → 更多格式」中开启后，文件夹和右键菜单还支持 TIFF、HEIC、ICO、APNG、JFIF、MKV（单独打开的文件不受此限）。HEIC 需要 Microsoft Store 里的「HEIF 图像扩展」和「HEVC 视频扩展」。视频批注对应某一时刻或一段时间，可逐帧查看。
+- **标记**：图钉、矩形、画笔、箭头，八种预设颜色，也能从取色面板选任意颜色（最近用过的四种自定义颜色随时可选）。一条批注可以标出几处，每一处都能单独换颜色或删除。
 - **AI 读得懂的批注**：`.sniptoss/REVIEW.md` 是全部待处理批注的文字汇总（位置换算成像素、时间写成 `mm:ss.mmm`），`.sniptoss/annotations/*.json` 是结构化数据，`.sniptoss/snapshots/` 是每条批注一张截图。格式有文档、有版本号：[docs/annotation-format.zh-CN.md](docs/annotation-format.zh-CN.md)。
 - **两种交法**：
   - **复制成文字**（`Ctrl+Shift+A`）：给 Claude Code、Codex 这类能读本机文件的 AI，内容是每条批注的原文，以及素材和截图在项目中的位置。
@@ -47,7 +50,7 @@
 
 从 [Releases](https://github.com/Moy339339/SnipToss/releases) 下载：
 
-- **绿色版**（`SnipToss-<版本>-win-x64-portable.zip`）：解压到任意位置，运行 `SnipToss.exe`。设置、日志、截图都存在旁边的 `data` 文件夹里，不写注册表，所以右键菜单、登录时启动两项不可用。删掉文件夹即彻底移除。
+- **绿色版**（`SnipToss-<版本>-win-x64-portable.zip`）：解压到任意位置，运行 `SnipToss.exe`。设置、日志、截图都存在旁边的 `data` 文件夹里，不写注册表，所以右键菜单、登录时启动两项不可用。升级时解压新版本，把 `data` 文件夹移进去即可。删掉文件夹即彻底移除。
 - **安装版**（`SnipToss-<版本>-win-x64-setup.exe`）：默认只为当前账户安装，不需要管理员权限（第一步也可选择为所有用户安装）；会添加开始菜单项，并默认把「用超级批注打开」加进资源管理器右键菜单（可取消勾选）。升级时运行新版安装包即可，程序开着会先自动关闭。卸载请到「设置 → 应用 → 已安装的应用」。
 
 也可以用 [Scoop](https://scoop.sh) 安装绿色版（`scoop update` 升级时设置和截图都会保留）：

@@ -56,7 +56,8 @@ export function MarkColorBar(props: {
     const gap = GAP * z;
     const b = badge.getBoundingClientRect();
     const area = badge.closest(".zoom-view")?.getBoundingClientRect() ?? new DOMRect(0, 0, innerWidth * z, innerHeight * z);
-    const { width: w, height: h } = el.getBoundingClientRect();
+    // Layout size, not getBoundingClientRect: the opening animation scales the bar down a little, which would put it off center until it ends
+    const [w, h] = [el.offsetWidth * z, el.offsetHeight * z];
     const x = Math.max(area.left + gap, Math.min(b.left + b.width / 2 - w / 2, area.right - gap - w));
     const composer = document.querySelector(".composer")?.getBoundingClientRect();
     const covers = (y: number) => !!composer && x < composer.right && x + w > composer.left && y < composer.bottom && y + h > composer.top;

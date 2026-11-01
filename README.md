@@ -8,6 +8,8 @@ Annotate the images and videos your coding agent made — then hand the notes st
 
 **[Download for Windows 11](https://github.com/Moy339339/SnipToss/releases/latest)** · [Install notes](#install)
 
+> **New in 1.1:** black and white marks and a color picker for any other color, deleting a single mark, and a note box you can drag out of the way, in the app and in screen capture. [Release notes](https://github.com/Moy339339/SnipToss/releases/tag/v1.1.0) · [Changelog](CHANGELOG.md)
+
 SnipToss is a Windows desktop app for reviewing AI-generated assets. Mark what needs to change with a pin, rectangle, pen or arrow, write the change you want, and SnipToss saves the note — its text, position, time and a cropped snapshot — as plain files in the project's `.sniptoss/` folder. Claude Code, Codex and other agents that can read local files pick the notes up from there and fix the assets.
 
 Web pages, PDF and slides are planned. A Mac version is in progress.
@@ -29,6 +31,7 @@ Web pages, PDF and slides are planned. A Mac version is in progress.
 ![The notes panel in Japanese, German and Russian, with the names of the 11 interface languages.](docs/images/feature-languages.png)
 
 - **Images and videos**: PNG, JPEG, WebP, GIF, SVG, BMP, AVIF; MP4, WebM, MOV, M4V. Turn on Settings → Advanced → More formats for TIFF, HEIC, ICO, APNG, JFIF and MKV in folders and the context menu (a file opened on its own works either way). HEIC needs the HEIF Image Extension and HEVC Video Extensions from the Microsoft Store. Notes on a video are tied to a moment or a time range, and you can step frame by frame.
+- **Marks**: pins, rectangles, freehand pen and arrows in eight preset colors, or any color from the color picker (the last four custom colors stay one click away). One note can mark several places, and each place can be recolored or deleted on its own.
 - **Notes agents can read**: `.sniptoss/REVIEW.md` lists every open note in plain text (positions in pixels, times as `mm:ss.mmm`), `.sniptoss/annotations/*.json` holds the structured data, `.sniptoss/snapshots/` has one snapshot per note. The format is documented and versioned: [docs/annotation-format.md](docs/annotation-format.md).
 - **Two ways to hand off**:
   - **Copy as Text** (`Ctrl+Shift+A`) — for agents that can read local files (Claude Code, Codex): each note's text, plus where the item and the snapshot are in the project.
@@ -46,7 +49,7 @@ Requirements: 64-bit Windows 11. The release builds include the .NET runtime; th
 
 Download from [Releases](https://github.com/Moy339339/SnipToss/releases):
 
-- **Portable** (`SnipToss-<version>-win-x64-portable.zip`): unzip anywhere and run `SnipToss.exe`. Settings, logs and captures are kept in the `data` folder next to it, and nothing is written to the registry — so the context menu and start-at-sign-in options are unavailable. Delete the folder to remove it completely.
+- **Portable** (`SnipToss-<version>-win-x64-portable.zip`): unzip anywhere and run `SnipToss.exe`. Settings, logs and captures are kept in the `data` folder next to it, and nothing is written to the registry — so the context menu and start-at-sign-in options are unavailable. To update, unzip the new version and move the `data` folder into it. Delete the folder to remove it completely.
 - **Installer** (`SnipToss-<version>-win-x64-setup.exe`): installs for your account without administrator rights (or for all users, if you choose so in the first step), adds a Start menu entry and, unless you untick it, "Open with SnipToss" to the File Explorer context menu. To update, run the newer installer; it closes SnipToss if it's running. Uninstall from Settings → Apps → Installed apps.
 
 Or install the portable build with [Scoop](https://scoop.sh) (settings and captures are kept across `scoop update`):
