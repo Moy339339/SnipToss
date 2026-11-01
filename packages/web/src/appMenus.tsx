@@ -350,7 +350,7 @@ export function buildMenus(c: MenuContext): TopMenu[] {
           disabled: !(s === "resolved" ? c.status.notResolved : s === "wontfix" ? c.status.notWontfix : c.status.notOpen),
         })),
         "-",
-        // The swatch tooltips mention the number keys 1–6; with nothing whose color can change (nothing selected, or an overall comment
+        // The swatch tooltips mention the number keys 1–8; with nothing whose color can change (nothing selected, or an overall comment
         // selected) the whole row is greyed out
         markColorRow(c.intl, {
           label: c.color.byCheck ? t("menu.note.colorChecked", { count: c.color.count }) : t("menu.note.color"),

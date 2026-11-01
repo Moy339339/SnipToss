@@ -2365,6 +2365,7 @@ kbd {
   border-radius: 999px;
   background: var(--mark);
   color: #fff;
+  color: oklch(from var(--mark) clamp(0.2, (0.9 - l) * 1000, 1) 0 0); /* dark on a light mark color, as on the canvas */
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }

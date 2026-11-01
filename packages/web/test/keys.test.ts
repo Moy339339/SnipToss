@@ -18,11 +18,13 @@ describe("keyName", () => {
     expect(keyName(ev({ key: ")", code: "Digit0", shiftKey: true }))).toBe("Shift+0");
   });
 
-  it("a digit key pressed alone is also recorded by key position (mark colors 1–6): & é on a French layout and ě on a Czech one are digits too; the numpad works as usual; Ctrl combinations use the character typed", () => {
+  it("a digit key pressed alone is also recorded by key position (mark colors 1–8): & é on a French layout and ě on a Czech one are digits too; the numpad works as usual; Ctrl combinations use the character typed", () => {
     expect(keyName(ev({ key: "1", code: "Digit1" }))).toBe("1");
     expect(keyName(ev({ key: "&", code: "Digit1" }))).toBe("1");
     expect(keyName(ev({ key: "é", code: "Digit2" }))).toBe("2");
     expect(keyName(ev({ key: "ě", code: "Digit2" }))).toBe("2");
+    expect(keyName(ev({ key: "è", code: "Digit7" }))).toBe("7");
+    expect(keyName(ev({ key: "_", code: "Digit8" }))).toBe("8");
     expect(keyName(ev({ key: "5", code: "Numpad5" }))).toBe("5");
     expect(keyName(ev({ key: "-", code: "Digit6", ctrlKey: true }))).toBe("Ctrl+-");
   });

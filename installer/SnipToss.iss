@@ -19,6 +19,12 @@
 #endif
 ; Install the WebView2 runtime when it is missing: Microsoft's Evergreen bootstrapper (https://go.microsoft.com/fwlink/p/?LinkId=2124703); it is only bundled when placed next to this file
 #define WebView2Bootstrapper "MicrosoftEdgeWebview2Setup.exe"
+; The file version of the installer takes only numbers: 1.1.0-beta.4 -> 1.1.0 (the full version goes into the text fields)
+#if Pos("-", AppVersion) > 0
+  #define NumericVersion Copy(AppVersion, 1, Pos("-", AppVersion) - 1)
+#else
+  #define NumericVersion AppVersion
+#endif
 
 [Setup]
 ; Never change AppId once set: upgrades and uninstalls identify the app by it
@@ -32,7 +38,12 @@ AppPublisherURL=https://github.com/Moy339339/SnipToss
 AppSupportURL=https://github.com/Moy339339/SnipToss/issues
 AppUpdatesURL=https://github.com/Moy339339/SnipToss/releases
 AppCopyright=Copyright (c) 2026 MoyGoldenAge
-VersionInfoVersion=1.0.0
+; The installer's file properties: AppName follows the wizard language and is empty at compile time, so the product name and description are spelled out
+VersionInfoVersion={#NumericVersion}
+VersionInfoTextVersion={#AppVersion}
+VersionInfoProductTextVersion={#AppVersion}
+VersionInfoProductName=SnipToss
+VersionInfoDescription=SnipToss Setup
 DefaultDirName={autopf}\SnipToss
 DefaultGroupName=SnipToss
 DisableProgramGroupPage=yes

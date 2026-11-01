@@ -90,16 +90,27 @@ describe("KeepPunctuation", () => {
     );
   });
 
+  it("a block next to a string starts a line of its own, so the string's end there is the end of a block", () => {
+    const line = (tag: string) => createElement(tag, { className: "set-desc-line" }, "「下」一行");
+    for (const tag of ["div", "p", "ul", "ol", "li"])
+      expect(html("已保存。", line(tag), "（另起）")).toBe(
+        `已保<span class="keep-punctuation">存。</span><${tag} class="set-desc-line"><span class="keep-punctuation">「下」</span><wbr/>一行</${tag}>` +
+          '<span class="keep-punctuation">（另</span><span class="keep-punctuation">起）</span>',
+      );
+    // An inline element is still against it
+    expect(html("已保存。", createElement("span", null, "x"))).toBe('已保<span class="keep-punctuation">存。</span><wbr/><span>x</span>');
+  });
+
   it("goes down through plain elements and fragments, keeping their attributes", () => {
     const tree = createElement(
       "div",
       { className: "set-desc" },
-      createElement("span", { className: "set-desc-line" }, "已关闭。"),
+      createElement("span", { className: "confirm-name" }, "已关闭。"),
       createElement(Fragment, null, "然后「复制」"),
       createElement("br"),
     );
     expect(html(tree)).toBe(
-      '<div class="set-desc"><span class="set-desc-line">已关<span class="keep-punctuation">闭。</span></span>' +
+      '<div class="set-desc"><span class="confirm-name">已关<span class="keep-punctuation">闭。</span></span>' +
         '然后<wbr/><span class="keep-punctuation">「复</span><span class="keep-punctuation">制」</span><br/></div>',
     );
   });

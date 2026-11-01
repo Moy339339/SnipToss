@@ -16,9 +16,10 @@ describe("version: package.json and the app itself (csproj) agree", () => {
 });
 
 describe("how a version is written", () => {
-  it("the version tag: a beta as Beta N, a release with a v", () => {
-    expect(versionLabel("1.0.0-beta.44")).toBe("Beta 44");
-    expect(versionLabel("1.0.0")).toBe("v1.0.0");
+  it("the version tag: a beta names the version its series leads to, a release has just the version", () => {
+    expect(versionLabel("1.0.0-beta.44")).toBe("v1.0.0 Beta 44");
+    expect(versionLabel("1.1.0-beta.2")).toBe("v1.1.0 Beta 2");
+    expect(versionLabel("1.1.0")).toBe("v1.1.0");
   });
 
   it("the About page's Version line: on a Mac package x.y.z and the build number, otherwise the whole version", () => {

@@ -16,12 +16,12 @@ test("Help → Check for Updates…: a new version shows its version number with
   await expect(app.page.locator(".titlebar-update")).toHaveCount(0);
   await help(app);
   await menuItem(app, "检查更新…").click();
-  await expect(toast(app)).toContainText("有新版本：Beta 99");
+  await expect(toast(app)).toContainText("有新版本：v1.0.0 Beta 99");
   await toast(app).getByRole("button", { name: "打开下载页" }).click();
   await expect.poll(() => app.host.opened.at(-1)).toBe(RELEASE);
   await expect(app.page.locator(".titlebar-update")).toHaveText("有新版本");
   await help(app);
-  await menuItem(app, "下载新版本 Beta 99…").click();
+  await menuItem(app, "下载新版本 v1.0.0 Beta 99…").click();
   expect(app.host.opened.filter((u) => u === RELEASE)).toHaveLength(2);
   expect(app.host.calls.filter((c) => c.method === "checkUpdates")).toHaveLength(1); // Once a new version is known it isn't checked again
 });

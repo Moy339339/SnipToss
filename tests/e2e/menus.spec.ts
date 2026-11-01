@@ -121,13 +121,14 @@ test("after clicking the video row (focus is in the library), Space still plays 
   await expect(app.page.locator(".lib-row", { hasText: "clip.mp4" })).toBeVisible();
 });
 
-test("with text in the note box but focus outside it (the canvas was clicked), Ctrl+Enter still saves", async ({ app }) => {
+test("with text in the note box but focus outside it, Ctrl+Enter still saves", async ({ app }) => {
   await app.open();
   await app.page.locator(".lib-row", { hasText: "poster.jpg" }).click();
   await focusStage(app);
   await app.page.keyboard.press("n");
   await app.page.locator(".composer-text").fill("整体再亮一点");
-  await focusStage(app);
+  // A click on the canvas gives focus back to the box (colors-delete.spec), so take it away directly, as a click elsewhere in the window would
+  await app.page.locator(".composer-text").evaluate((el: HTMLElement) => el.blur());
   await expect(app.page.locator(".composer-text")).not.toBeFocused();
   await app.page.keyboard.press("Control+Enter");
   await expect(app.page.locator(".composer")).toHaveCount(0);

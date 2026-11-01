@@ -1,5 +1,5 @@
 // Changing the color of a single mark. The notes file's `color` is only written for marks that were recolored; no `color` = use the mark color from Settings.
-// Changing back to the Settings color drops `color`. Entry points: press 1–6 after selecting (acts on the checked notes when some are checked),
+// Changing back to the Settings color drops `color`. Entry points: press 1–8 after selecting (acts on the checked notes when some are checked),
 // the "Color" swatch row in the right-click menu of a mark / card, menu bar "Annotate → Mark Color".
 // The mark and its number on the canvas, the number in the notes panel, the play bar, snapshots and Copy as Images all use the note's own color;
 // overall comments and notes on old versions have no mark to recolor
@@ -105,7 +105,7 @@ test("right-clicking a pin shows the Color swatch row with the default orange li
   await expect(app.page.getByRole("group", { name: "颜色" })).toHaveCount(0);
 });
 
-test("number keys 1–6 switch the selected note to the nth color (pressing the Settings color drops color); with several checked they act on the checked notes in one undo step; ignored for overall comments and inside text inputs", async ({
+test("number keys 1–8 switch the selected note to the nth color (pressing the Settings color drops color); with several checked they act on the checked notes in one undo step; ignored for overall comments and inside text inputs", async ({
   app,
 }) => {
   moreNotes(app);
@@ -344,7 +344,7 @@ test("with the composer open, right-clicking one place and picking its mark colo
   await expect.poll(() => bg(placeBadge(app, id, 1))).toBe(YELLOW);
 });
 
-// Clicking a mark gave no hint that it could be recolored: after selecting it, only keys 1–6 and the right-click menu worked, a left click did nothing,
+// Clicking a mark gave no hint that it could be recolored: after selecting it, only number keys and the right-click menu worked, a left click did nothing,
 // and clicking the places being drawn while the composer was open did nothing at all. Now a click on a mark pops up a row of colors next to it (MarkColorBar), as in Screen Capture
 const colorBar = (app: App) => app.page.locator(".mark-colors");
 const barSwatch = (app: App, name: string) => colorBar(app).getByRole("radio", { name, exact: true });

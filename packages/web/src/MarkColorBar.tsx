@@ -1,10 +1,13 @@
 import { useEffect, useEffectEvent, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
+import { openColorPicker } from "./ColorPicker";
 import { cssZoom } from "./cssZoom";
+import { TrashIcon } from "./icons";
 import { useKeys } from "./keys";
-import { sameColor, swatchLabel } from "./markColors";
+import { darkSwatch, recentRow, sameColor, swatchLabel } from "./markColors";
 import { MARK_COLORS } from "./prefs";
+import { useRecentColors } from "./recentColors";
 
 /** Gap to the badge and to the canvas edge, 8 each (scales with the interface size) */
 const GAP = 8;
@@ -16,7 +19,9 @@ const GAP = 8;
  * Sits above the badge; below it when there is no room or it would cover the composer; kept inside the canvas horizontally.
  * Follows the badge every frame, so zoom, pan and window resizing need no extra notification;
  * closes when the badge is gone (other item, mark hidden, video moved to another frame, composer saved).
- * Closes on a click elsewhere or Esc; number keys 1–6 do the same as the swatches.
+ * Closes on a click elsewhere or Esc; number keys 1–8 do the same as the swatches.
+ * After the presets: the recent custom colors and the hue disc that opens the color picker; last, Delete (this mark, or the note when it is
+ * its only mark; the Delete / Backspace keys do the same).
  * Swatches do not take focus on press, so the caret in the composer stays where it was after the color changes
  */
 export function MarkColorBar(props: {
@@ -30,9 +35,14 @@ export function MarkColorBar(props: {
   label: string;
   onPick: (color: string | undefined) => void;
   onClose: () => void;
+  /** Delete this mark (its note when it is the only one); not given = no Delete button (an item that cannot be changed) */
+  onDelete?: () => void;
+  /** What Delete does, for its tooltip: remove this mark, or delete the whole note */
+  deleteLabel?: string;
 }) {
   const intl = useIntl();
   const bar = useRef<HTMLDivElement>(null);
+  const recent = recentRow(useRecentColors(), props.current);
   // Every frame and every press needs the latest props: call through an Effect Event (like Composer's tellLive), so listeners attach once
   const close = useEffectEvent(() => props.onClose());
 
@@ -81,24 +91,44 @@ export function MarkColorBar(props: {
     return () => cancelAnimationFrame(frame);
   }, []);
 
-  // A press elsewhere closes it (clicking another mark pops up that mark's bar on release)
+  // A press elsewhere closes it (clicking another mark pops up that mark's bar on release); the color picker opened from it is part of it
   useEffect(() => {
     const down = (e: PointerEvent) => {
-      if (!bar.current?.contains(e.target as Node)) close();
+      const target = e.target as Element;
+      if (!bar.current?.contains(target) && !target.closest?.(".color-picker")) close();
     };
     window.addEventListener("pointerdown", down, true);
     return () => window.removeEventListener("pointerdown", down, true);
   }, []);
 
   const pick = (color: string) => props.onPick(sameColor(color, props.defaultColor) ? undefined : color);
-  // Runs before other shortcuts: Esc closes only this row (not the note being written), and 1–6 recolor the mark that was clicked
+  // Runs before other shortcuts: Esc closes only this row (not the note being written), 1–8 recolor the mark that was clicked, and
+  // Delete / Backspace delete it (with the caret in the composer they still edit the text, see useKeys)
   useKeys(
     {
       Escape: () => props.onClose(),
       ...Object.fromEntries(MARK_COLORS.map((c, i) => [String(i + 1), () => pick(c)])),
+      ...(props.onDelete ? { Delete: props.onDelete, Backspace: props.onDelete } : {}),
     },
     { first: true },
   );
+  const swatch = (color: string, name: string, tip: string) => {
+    const on = sameColor(color, props.current);
+    return (
+      <button
+        key={color}
+        type="button"
+        className={`menu-swatch${on ? " is-on" : ""}`}
+        role="radio"
+        aria-checked={on}
+        aria-label={name}
+        data-tip={tip}
+        style={{ "--swatch": color } as React.CSSProperties}
+        data-dark={darkSwatch(color) || undefined}
+        onClick={() => pick(color)}
+      />
+    );
+  };
 
   return createPortal(
     <div
@@ -118,23 +148,38 @@ export function MarkColorBar(props: {
       onDoubleClick={(e) => e.stopPropagation()}
     >
       {MARK_COLORS.map((color, i) => {
-        const on = sameColor(color, props.current);
         const name = swatchLabel(intl, color, props.defaultColor);
-        return (
-          <button
-            key={color}
-            type="button"
-            className={`menu-swatch${on ? " is-on" : ""}`}
-            role="radio"
-            aria-checked={on}
-            aria-label={name}
-            // Name + fullwidth space + number key: Tooltip draws the part after the space as a keycap (same as the row in the menu)
-            data-tip={`${name}\u3000${i + 1}`}
-            style={{ "--swatch": color } as React.CSSProperties}
-            onClick={() => pick(color)}
-          />
-        );
+        // Name + fullwidth space + number key: Tooltip draws the part after the space as a keycap (same as the row in the menu)
+        return swatch(color, name, `${name}\u3000${i + 1}`);
       })}
+      <span className="menu-swatch-sep" />
+      {recent.map((color) => {
+        const name = intl.formatMessage({ id: "markColor.recent" }, { name: swatchLabel(intl, color, props.defaultColor) });
+        return swatch(color, name, name);
+      })}
+      <button
+        type="button"
+        className="menu-swatch is-custom"
+        aria-label={intl.formatMessage({ id: "markColor.custom" })}
+        data-tip={intl.formatMessage({ id: "markColor.custom" })}
+        onClick={(e) =>
+          openColorPicker({ at: e.currentTarget.getBoundingClientRect(), initial: props.current, onPick: pick, owner: e.currentTarget })
+        }
+      />
+      {props.onDelete && (
+        <>
+          <span className="menu-swatch-sep" />
+          <button
+            type="button"
+            className="mark-colors-delete"
+            aria-label={props.deleteLabel}
+            data-tip={`${props.deleteLabel ?? ""}\u3000Delete`}
+            onClick={props.onDelete}
+          >
+            <TrashIcon />
+          </button>
+        </>
+      )}
     </div>,
     document.body,
   );

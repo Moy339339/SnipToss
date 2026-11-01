@@ -278,6 +278,10 @@ test("Dragging the library edge across its whole range with 20 files in the list
   await shell.launch();
   const page = shell.page;
   await expect(page.locator(".lib-row", { hasText: "img-19.png" })).toBeVisible();
+  // The default layout opens on the screen the mouse is on; a narrow (portrait) one leaves no room for the widest library
+  // (the panels are fitted to the window), so put the window on the primary screen at a size where 180–520 all fits
+  shell.moveWindow(40, 40, 1600, 1000);
+  await expect.poll(() => page.evaluate(() => innerWidth)).toBeGreaterThanOrEqual(1500);
   const sidebarWidth = async () => Math.round((await page.locator("aside.sidebar").boundingBox())!.width);
   const storedWidth = () => page.evaluate(() => JSON.parse(localStorage.getItem("sniptoss.panels") ?? "null")?.left?.width ?? null);
   expect(await sidebarWidth()).toBe(260);

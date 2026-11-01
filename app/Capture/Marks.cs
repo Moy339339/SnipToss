@@ -51,6 +51,12 @@ sealed class Mark
     /// <summary>The order in which it was added to the screenshot (assigned by the state machine): undo compares it with color changes to see which is later</summary>
     public int Seq;
 
+    /// <summary>
+    /// Deleted (Delete, the toolbar's Delete): no longer drawn, hit or composited, but kept in the list so undo can bring it back.
+    /// A deleted first place still holds its note's text, category and number for the places that remain (see OverlayStateMachine.Delete)
+    /// </summary>
+    public bool Removed;
+
     public Rect Bounds
     {
         get
@@ -250,15 +256,17 @@ static class MarkPainter
     /// </summary>
     public static Point BadgeCenter(Mark m, Rect keepInside) => Clamp(m.BadgeAt, keepInside, 10);
 
-    /// <summary>The number: a solid circle with white text, looking the same as the numbers on the main app's canvas</summary>
+    /// <summary>The number: a solid circle with white text, looking the same as the numbers on the main app's canvas. On a light color (white, a pale custom color) the text and ring are dark, or the number would vanish</summary>
     public static void DrawBadge(DrawingContext dc, int number, Color color, Point center, double pixelsPerDip, double radius = 10)
     {
         var fill = Frozen(new SolidColorBrush(color));
-        // The white ring scales with the circle (when the screenshot is enlarged for compositing the circle is scaled back; a ring that did not shrink would become a thick white band)
-        var ring = new Pen(Frozen(new SolidColorBrush(Color.FromArgb(0xcc, 0xff, 0xff, 0xff))), 1.5 * radius / 10);
+        var light = ColorMath.IsLight(color);
+        // The ring scales with the circle (when the screenshot is enlarged for compositing the circle is scaled back; a ring that did not shrink would become a thick white band)
+        var ring = new Pen(Frozen(new SolidColorBrush(light ? Color.FromArgb(0x8c, 0, 0, 0) : Color.FromArgb(0xcc, 0xff, 0xff, 0xff))), 1.5 * radius / 10);
         ring.Freeze();
         dc.DrawEllipse(fill, ring, center, radius, radius);
-        var text = Text(number.ToString(CultureInfo.InvariantCulture), radius * 1.2, Brushes.White, pixelsPerDip, bold: true);
+        var ink = light ? Frozen(new SolidColorBrush(ColorMath.DarkInk)) : Brushes.White;
+        var text = Text(number.ToString(CultureInfo.InvariantCulture), radius * 1.2, ink, pixelsPerDip, bold: true);
         dc.DrawText(text, new Point(center.X - text.Width / 2, center.Y - text.Height / 2));
     }
 

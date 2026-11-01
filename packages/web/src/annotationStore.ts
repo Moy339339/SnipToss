@@ -17,6 +17,7 @@ import {
   serializeMaterialFile,
   serializeProject,
   slugFor,
+  type Anchor,
   type Material,
   type MaterialFile,
 } from "@sniptoss/core";
@@ -78,6 +79,9 @@ export interface Op {
 /** Every notes file touched by one step */
 export const partsOf = (op: Op): Op[] => [op, ...(op.rest ?? [])];
 
+/** Where a note's marks are, leaving out their colors */
+const geometry = (anchor: Anchor) => JSON.stringify(anchor, (key, value: unknown) => (key === "color" ? undefined : value));
+
 /** What this step changed (so the undo / redo toast says what was undone; the message app.undo.what picks its wording by it) */
 export function opKind(op: Op): "add" | "delete" | "status" | "edit" | "move" | "other" {
   const before = new Map((op.before?.annotations ?? []).map((a) => [a.id, a]));
@@ -87,9 +91,10 @@ export function opKind(op: Op): "add" | "delete" | "status" | "edit" | "move" | 
   for (const [id, a] of after) {
     const b = before.get(id)!;
     if (a.status !== b.status) return "status";
-    const anchor = JSON.stringify(a.anchor) !== JSON.stringify(b.anchor);
     if (a.body !== b.body || a.category !== b.category) return "edit";
-    if (anchor) return "move";
+    // A place added or removed edits the note; only a changed position or size is a move (a place's color is not a move: "other")
+    if ((a.anchor.shapes?.length ?? 0) !== (b.anchor.shapes?.length ?? 0)) return "edit";
+    if (geometry(a.anchor) !== geometry(b.anchor)) return "move";
   }
   return "other";
 }
@@ -178,6 +183,14 @@ export function useAnnotationStore(opts: {
   const olderThanSeen = (key: string, seq: number | undefined) => seq !== undefined && seq < (observed.current.get(key) ?? 0);
   const lateEcho = (key: string, text: string) =>
     superseded.current.get(key)?.some((w) => w.text === text && Date.now() - w.at < 5_000) ?? false;
+  /**
+   * The text of the write to each notes file that is still waiting for the shell's reply. An external-change notification can overtake
+   * that reply: the shell read the file just after our write, while the UI still takes the version before it as what is on disk. Merged
+   * against that older base, our own write looks like a change made elsewhere and undoes what the user changed since (a status toggled
+   * again before the reply arrived went back). A notification carrying exactly this text is our own write, and is skipped like one that
+   * arrives after the reply
+   */
+  const writing = useRef(new Map<string, string>());
   /**
    * Writes to the same notes file are queued: when changes come in quick succession (arrow-key moves, fast undo) writes cannot get out of
    * order, so an earlier write never overwrites a later one
@@ -422,12 +435,13 @@ export function useAnnotationStore(opts: {
         const text = serializeMaterialFile(mine);
         const known = onDisk.current.get(key);
         if (known === text) return; // the disk already holds exactly this
+        writing.current.set(key, text);
         const res = await call("writeAnnotation", {
           home,
           path: annotationFileFor(mine.material.path, mine.material.kind),
           text,
           expectSha256: known ? await textSha256(known) : null,
-        });
+        }).finally(() => writing.current.delete(key));
         observe(key, res.seq);
         if (res.written) {
           knowDisk(key, text);
@@ -629,9 +643,9 @@ export function useAnnotationStore(opts: {
         observe(key, seq);
         // The notification holds all notes files of this folder; skip those whose raw text equals the disk content we know (our own
         // write, or unchanged); also skip an old version that was just superseded (the notification arrived late and the disk already
-        // holds the version the UI wrote afterwards)
+        // holds the version the UI wrote afterwards), and our own write whose reply hasn't arrived yet (see writing)
         const known = onDisk.current.get(key);
-        if (known === text || lateEcho(key, text)) continue;
+        if (known === text || lateEcho(key, text) || writing.current.get(key) === text) continue;
         knowDisk(key, text);
         // If the UI's copy equals the disk content we last knew (no pending changes): switch straight to what is on disk; otherwise
         // three-way merge so this side's changes aren't lost

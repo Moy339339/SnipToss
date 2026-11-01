@@ -7,7 +7,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { posix, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DATA_DIR, LEGACY_DATA_DIR } from "@sniptoss/core";
+import { DATA_DIR, LEGACY_DATA_DIR, MARK_COLORS } from "@sniptoss/core";
 // The write lock is the command line's own (app/FileLock.cs uses the same name and the same rules)
 import { withFileLock } from "../../packages/cli/dist/fs-store.js";
 
@@ -46,8 +46,8 @@ const GIT_IGNORE =
 export const VERSION = (JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as { version: string }).version;
 /** Whether this build is a beta (1.0.0-beta.N); a release version (1.0.0) is not */
 export const IS_BETA = /-beta\.\d+$/.test(VERSION);
-/** How the UI writes this version (versionLabel in packages/web/src/brand.ts): "Beta N" during the beta, "v1.0.0" once released */
-export const VERSION_LABEL = IS_BETA ? `Beta ${/-beta\.(\d+)$/.exec(VERSION)![1]}` : `v${VERSION}`;
+/** How the UI writes this version (versionLabel in packages/web/src/brand.ts): "v1.1.0 Beta N" for a beta, "v1.1.0" for a release */
+export const VERSION_LABEL = `v${VERSION.replace(/-beta\.(\d+)$/, " Beta $1")}`;
 
 export interface Call {
   method: string;
@@ -239,6 +239,23 @@ export class MockHost {
     if (this.poller) clearInterval(this.poller);
     for (const t of this.timers) clearTimeout(t);
     this.timers.clear();
+  }
+
+  /** The recent custom colors (Settings.RecentColors in the shell): tests may preset them */
+  recentColors: string[] = [];
+
+  /**
+   * Same as Settings.AddRecentColor: the color goes to the front, presets and repeats are left out, at most 4; the UI is told with a
+   * "recentColors" event (a color picked on the capture overlay comes this way too)
+   */
+  addRecentColor(color: string) {
+    const hex = color.trim().toLowerCase();
+    if (!/^#[0-9a-f]{6}$/.test(hex)) throw new Error(`Not a #rrggbb color: ${color}`);
+    const next = [hex, ...this.recentColors].filter((c, i, all) => !MARK_COLORS.includes(c) && all.indexOf(c) === i).slice(0, 4);
+    if (next.join() === this.recentColors.join()) return this.recentColors;
+    this.recentColors = next;
+    this.emit({ event: "recentColors", colors: next });
+    return next;
   }
 
   private emit(payload: object) {
@@ -447,6 +464,10 @@ export class MockHost {
         this.prefs = this.onboarded ? rest : { ...rest, ...(onboarding === undefined ? {} : { onboarding }) };
         return null;
       }
+      case "recentColors":
+        return this.recentColors;
+      case "addRecentColor":
+        return this.addRecentColor(str("color"));
       case "appInfo": {
         // Same as Bridge.AppInfo: the rename notice must be computed before the startup notice is taken (both are given only the first time)
         const renamed = !this.startupNoticeTaken && this.renamedFromPizhu;

@@ -821,7 +821,7 @@ test("About page: version, author, license, homepage, runtime and issue reportin
   await app.page.reload();
   await expect(row(app, "project")).toBeVisible();
   await openSettings(app, "关于");
-  await expect(body.locator(".text-danger")).toHaveText("程序版本为 Beta 1，与界面不一致，请重新安装");
+  await expect(body.locator(".text-danger")).toHaveText("程序版本为 v1.0.0 Beta 1，与界面不一致，请重新安装");
 });
 
 test("About page: third-party notices can be read inside the app and are only loaded when opened; they are listed by component, a click on a row shows the license text; Esc closes only the notices and Settings stays open", async ({ app }) => {
@@ -863,6 +863,23 @@ test("About page: third-party notices can be read inside the app and are only lo
   await app.page.keyboard.press("Escape");
   await expect(sheet).toHaveCount(0);
   await expect(app.page.locator(".settings-body")).toBeVisible();
+});
+
+test("on the Mac the third-party notices leave out what only the Windows app ships (the .NET runtime, WebView2, MessageFormat) and keep the rest", async ({ app }) => {
+  await app.page.addInitScript(() => {
+    (window as unknown as { __e2ePlatform: string }).__e2ePlatform = "mac";
+  });
+  await app.open();
+  await focusStage(app);
+  await app.page.keyboard.press("Meta+,");
+  await expect(settings(app)).toBeVisible();
+  await app.page.locator(".settings-tab", { hasText: /^关于$/ }).click();
+  await setRow(app, "第三方声明").getByRole("button", { name: "查看" }).click();
+  const sheet = app.page.getByRole("dialog", { name: "第三方声明" });
+  const names = sheet.locator(".notice-name");
+  await expect(names).toContainText(["Noto Sans SC", "intl-messageformat", "react", "react-intl"]);
+  for (const windowsOnly of [".NET Runtime", ".NET Windows Desktop Runtime (WPF, Windows Forms)", "Microsoft.Web.WebView2", "MessageFormat (messageformat.net)"])
+    await expect(names.filter({ hasText: new RegExp(`^${escape(windowsOnly)}$`) })).toHaveCount(0);
 });
 
 test("third-party notices follow the UI language: the intro and header use the chosen language while component names and license texts stay as they are (English)", async ({ app }) => {

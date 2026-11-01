@@ -57,7 +57,8 @@ if ($Out) {
 }
 
 # ---------- Normal install: bump the version (in two places: the root package.json and the app's csproj; the UI build reads package.json) ----------
-# During the beta the version is 1.0.0-beta.N (shown as "Beta N" in the UI) and N is incremented; for the release, change package.json to 1.0.0, after which the last number is incremented
+# Semantic versioning: a round of changes starts as the beta series of the version it leads to, x.y.z-beta.0 in package.json (fixes only: the next patch; new features: the next minor),
+# and each install increments the beta number (shown as "v1.1.0 Beta N" in the UI); once its tests pass, change package.json to x.y.z and build with -NoBump
 $utf8 = [Text.UTF8Encoding]::new($false)
 $pkgPath = Join-Path $root 'package.json'
 $pkg = [IO.File]::ReadAllText($pkgPath)
@@ -88,5 +89,5 @@ if ($Publish) { throw '-Publish is only used together with -Out (performance bud
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Assert-NoTestHooks (Join-Path (Split-Path $exe) 'SnipToss.dll')
 Remove-LegacyFiles
-$label = if ($version -match '-beta\.(\d+)$') { "Beta $($Matches[1]) ($version)" } else { "v$version" }
+$label = if ($version -match '^(.+)-beta\.(\d+)$') { "v$($Matches[1]) Beta $($Matches[2]) ($version)" } else { "v$version" }
 Write-Host "Built $label ($dotnet): $exe"

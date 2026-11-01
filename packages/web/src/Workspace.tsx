@@ -32,6 +32,7 @@ import { useChecks, useHandoff } from "./handoff";
 import { useMaterialVersions } from "./materialVersions";
 import { EarlierShot } from "./EarlierShot";
 import { MarkColorBar } from "./MarkColorBar";
+import { useRecentColors } from "./recentColors";
 import { AnnotationPanel } from "./AnnotationPanel";
 import { blockedReason, isFolderKey, opKind, useAnnotationStore, type Op } from "./annotationStore";
 import { type SeekRequest } from "./VideoPlayer";
@@ -66,6 +67,8 @@ export function WorkspaceView(props: {
   const { onNotify } = props;
   const intl = useIntl();
   const { prefs, setPrefs } = usePrefs();
+  // The color rows in the menus (built on each render) show the recent custom colors: render again when they change
+  useRecentColors();
   const library = useLibrary();
   const { revealInExplorer, reasonOf, notifyError, copyReason, describeBad } = useReport(onNotify);
   const updates = useUpdates(onNotify);
@@ -832,6 +835,23 @@ export function WorkspaceView(props: {
    * While the composer is open, further drawing on the canvas all counts toward this note (ADR-0009); overall comments, timestamped comments and folder comments cannot be drawn on (so they do not silently turn into ones marked somewhere)
    */
   const draftTakesMarks = !!draft?.shapes?.length && !draft.folder && canDraw && !(draft.id && currentEarlier.has(draft.id));
+  /** Goes up each time a click on blank canvas leaves the composer open (Composer's refocus) */
+  const [composerRefocus, setComposerRefocus] = useState(0);
+  /**
+   * A click on blank canvas while a new note's composer is open and nothing is written in it yet: the note is dropped together with its marks
+   * (a mark never stays behind without its note; same as clicking away from an empty note box in Screen Capture). Once text is written the
+   * composer stays (a stray click must not lose it), and so does an existing note being edited (Esc / Cancel closes it). Returns whether it did
+   */
+  const leaveEmptyDraft = () => {
+    if (!draft?.composing) return false;
+    if (draft.id || liveDraft.current?.body.trim()) {
+      // The composer stays: the click took focus out of its input box, give it back so Enter saves and typing carries on
+      setComposerRefocus((n) => n + 1);
+      return false;
+    }
+    setDraft(undefined);
+    return true;
+  };
   /**
    * The tool actually in effect on the canvas: while writing a note the chosen tool works as usual (further drawing is added to this note), and when marks cannot be added only Select works; while H is held it is Hand.
    * A draft whose composer did not pop up after drawing (auto-open turned off in Settings) does not hold on to the tool: drawing again adds to that note (otherwise the draft would be replaced by the newly drawn mark, or the tool would silently turn into a pan)
@@ -902,17 +922,24 @@ export function WorkspaceView(props: {
     setArmed({ id: a.id, part: hit.part });
     setPicked(hit);
   };
+  // Its last button deletes the mark that was clicked: one of several places goes alone (undoable, no question), the only place takes the note
+  // with it (asks first, like Delete on a note; a note not saved yet is just dropped, asking only if text was written)
   const colorBar = (() => {
     if (!picked) return undefined;
+    const removePlace = intl.formatMessage({ id: "stage.menu.removePlace" });
+    const deleteNote = intl.formatMessage({ id: "card.menu.delete" });
     if (picked.id === undefined) {
       const shapes = draft?.id && currentEarlier.has(draft.id) ? undefined : draft?.shapes;
       const s = shapes?.[picked.part];
       if (!s) return undefined;
+      const many = shapes.length > 1;
       return {
         anchor: `.annot-badge[data-draft-part="${picked.part}"]`,
         current: s.color ?? draftColor ?? prefs.markColor,
-        many: shapes.length > 1,
+        many,
         pick: (c: string | undefined) => recolorDraftPlace(picked.part, c),
+        remove: many ? () => removeDraftPlace(picked.part) : draftOf ? () => remove(draftOf) : () => unlessDirty(() => setDraft(undefined)),
+        removeLabel: many ? removePlace : deleteNote,
       };
     }
     const it = currentItems.find((x) => x.a.id === picked.id && x.section === "marked");
@@ -923,6 +950,8 @@ export function WorkspaceView(props: {
       current: many ? placeColorOf(it.a, picked.part, prefs.markColor) : (noteColorOf(it.a, prefs.markColor) ?? prefs.markColor),
       many,
       pick: (c: string | undefined) => void (many ? setPlaceColor(it, picked.part, c) : setColorMany([it], c)),
+      remove: many ? () => void changeShape(it.a.id, picked.part) : () => remove(it.a, it.key),
+      removeLabel: many ? removePlace : deleteNote,
     };
   })();
   // The clicked mark is gone (composer saved / canceled, item switched, started writing a note): forget it, so the same mark of a note written later does not pop up by itself
@@ -959,6 +988,7 @@ export function WorkspaceView(props: {
       locked={!!currentBlocked}
       drawOnBlank={activeTool === "select" && (!draft?.composing || draftTakesMarks) && canDraw}
       onDrawStart={pauseVideo}
+      onBlankClick={leaveEmptyDraft}
     />
   );
 
@@ -1098,6 +1128,7 @@ export function WorkspaceView(props: {
                     selectedId={selectedId}
                     onSize={setDims}
                     onBackgroundClick={() => {
+                      if (leaveEmptyDraft()) return true; // the click only dropped the empty note (a video does not start playing)
                       const had = !!(selectedId || selectedNote);
                       setSelectedId(undefined);
                       setSelectedNote(undefined);
@@ -1150,6 +1181,7 @@ export function WorkspaceView(props: {
                   places={draft.shapes?.length ?? 0}
                   onUndoPlace={() => removeDraftPlace()}
                   keepDrawing={draftTakesMarks}
+                  refocus={composerRefocus}
                   onSave={(v) => void saveDraft(v)}
                   saving={saving}
                   onCancel={() => setDraft(undefined)}
@@ -1168,6 +1200,11 @@ export function WorkspaceView(props: {
                 label={intl.formatMessage({ id: colorBar.many ? "stage.menu.placeColor" : "menu.note.color" })}
                 onPick={colorBar.pick}
                 onClose={() => setPicked(undefined)}
+                onDelete={() => {
+                  setPicked(undefined);
+                  colorBar.remove();
+                }}
+                deleteLabel={colorBar.removeLabel}
               />
             )}
           </main>

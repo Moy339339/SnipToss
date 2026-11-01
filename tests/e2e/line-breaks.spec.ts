@@ -27,7 +27,15 @@ const S9 = [
 /** Lines that break the wrong way, in the S9 boxes on screen now */
 function badBreaks(app: App, screen: string) {
   return app.page.evaluate(
-    ({ where, boxes }) => {
+    async ({ where, boxes }) => {
+      // A box still in its opening animation (sheet-in starts it at 98.5% of its size) measures smaller than it is laid out, so a word that
+      // does not fit its line looked as if it would: wait for animations that end to end first
+      await Promise.all(
+        document
+          .getAnimations()
+          .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
+          .map((a) => a.finished.catch(() => undefined)),
+      );
       const CLOSE = "」』）〉》】〕。，、；：！？…";
       const OPEN = "「『（〈《【〔";
       const CJK = /[\p{sc=Han}\p{sc=Hiragana}\p{sc=Katakana}ー々]/u;
@@ -92,6 +100,16 @@ function badBreaks(app: App, screen: string) {
       };
 
       const found: string[] = [];
+      interface Box {
+        el: HTMLElement;
+        width: number;
+        chars: (Char | Gap)[];
+        pairs: [Char, Char][];
+        words: Char[][];
+        names: Char[][];
+        saved: string;
+      }
+      const boxed: Box[] = [];
       for (const el of document.querySelectorAll<HTMLElement>(boxes)) {
         // Measured once, at the outermost S9 box
         if (el.parentElement?.closest(boxes)) continue;
@@ -141,9 +159,14 @@ function badBreaks(app: App, screen: string) {
           if (name.length > 1) names.push(name);
         });
 
-        const saved = el.style.width;
-        for (const share of [1, 0.8, 0.6]) {
-          if (share < 1) el.style.width = `${Math.floor(width * share)}px`;
+        boxed.push({ el, width, chars, pairs, words, names, saved: el.style.width });
+      }
+
+      // All boxes are narrowed together, so the page is laid out once a width rather than once a box (a screen like the shortcut list has
+      // a hundred boxes, which took minutes in WebKit on a CI machine)
+      for (const share of [1, 0.8, 0.6]) {
+        if (share < 1) for (const b of boxed) b.el.style.width = `${Math.floor(b.width * share)}px`;
+        for (const { el, chars, pairs, words, names } of boxed) {
           const problems: string[] = [];
           if (pairs.some(([a, b]) => apart(a, b))) problems.push("a mark on the wrong side of a break");
           for (const w of words) {
@@ -159,7 +182,39 @@ function badBreaks(app: App, screen: string) {
           if (problems.length > 0)
             found.push(`${where}: .${el.className.split(" ").join(".")} at ${Math.round(share * 100)}%: ${problems.join("; ")}: ${linesOf(chars).join(" / ")}`);
         }
-        el.style.width = saved;
+      }
+      for (const b of boxed) b.el.style.width = b.saved;
+      return found;
+    },
+    { where: screen, boxes: S9 },
+  );
+}
+
+/**
+ * Full-width marks in the S9 boxes on screen now that are not kept with the character next to them: text that never went through
+ * KeepPunctuation (put in by a component of its own, which the KeepPunctuation around it does not reach into). Whether that text breaks
+ * the wrong way depends on the engine, the fonts and the width, so the measuring above can miss it; this does not depend on layout
+ */
+function unkept(app: App, screen: string) {
+  return app.page.evaluate(
+    ({ where, boxes }) => {
+      const CLOSE = "」』）〉》】〕。，、；：！？…";
+      const OPEN = "「『（〈《【〔";
+      const found: string[] = [];
+      for (const el of document.querySelectorAll<HTMLElement>(boxes)) {
+        if (el.parentElement?.closest(boxes) || el.getBoundingClientRect().width === 0) continue;
+        const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        for (let node = walk.nextNode(); node; node = walk.nextNode()) {
+          const parent = node.parentElement;
+          if (!(node instanceof Text) || parent?.closest("button, kbd, svg") || parent?.classList.contains("keep-punctuation")) continue;
+          const chars = Array.from(node.data);
+          chars.forEach((c, i) => {
+            // A mark with white space on its side is free to break there; one at the edge of the text node sits against another element
+            const other = CLOSE.includes(c) ? chars[i - 1] : OPEN.includes(c) ? chars[i + 1] : undefined;
+            if (other !== undefined && !/\s/.test(other))
+              found.push(`${where}: .${el.className.split(" ").join(".")}: “${c}” not kept with “${other}” in “${node.data}”`);
+          });
+        }
       }
       return found;
     },
@@ -185,6 +240,10 @@ test("the detection itself works: a closing mark that starts a line and a word b
     add(4, '从列表中移<span class="keep-punctuation">除。</span><wbr>'.repeat(8), "word-break:keep-all");
     // A box narrower than the name: it has to be broken
     add(5, "见 .sniptoss 文件夹", "width:30px");
+    // Text that did not go through KeepPunctuation, the same as it writes it, and marks with white space on their side
+    add(6, "请使用「复制」");
+    add(7, '请使用<wbr><span class="keep-punctuation">「复</span><span class="keep-punctuation">制」</span>');
+    add(8, "见 「 x 」 中");
   });
   const found = await badBreaks(app, "self-check");
   const of = (box: number) => found.filter((f) => f.includes(`.box-${box} `));
@@ -195,12 +254,19 @@ test("the detection itself works: a closing mark that starts a line and a word b
   for (const f of of(3)) expect(f).toMatch(/“从列表中移除。” broken after “从/);
   expect([...of(2), ...of(4)]).toEqual([]);
   expect(of(5).join("\n")).toContain("the name “.sniptoss” broken");
+  const loose = await unkept(app, "self-check");
+  const looseOf = (box: number) => loose.filter((f) => f.includes(`.box-${box}:`));
+  expect(looseOf(6)).toEqual([
+    "self-check: .set-desc.box-6: “「” not kept with “复” in “请使用「复制」”",
+    "self-check: .set-desc.box-6: “」” not kept with “制” in “请使用「复制」”",
+  ]);
+  expect([...looseOf(7), ...looseOf(8)]).toEqual([]);
 });
 
 for (const locale of ["zh-CN", "zh-TW", "ja"]) {
   test(`${locale}: on every UI screen (screens.ts), including a tooltip, explanatory text breaks only where it may, at the box's width and narrowed to 80% and 60%`, async ({ app }) => {
-    // Every screen, with each box laid out three times
-    test.slow();
+    // Every screen laid out at three widths: a few seconds in Edge, over a minute in WebKit on a CI machine
+    test.setTimeout(240_000);
     prepare(app, locale);
     await app.page.setViewportSize({ width: 960, height: 600 });
     await app.open();
@@ -208,13 +274,13 @@ for (const locale of ["zh-CN", "zh-TW", "ja"]) {
     const problems: string[] = [];
     let tooltips = 0;
     await walkScreens(app, async (screen) => {
-      problems.push(...(await badBreaks(app, screen)));
+      problems.push(...(await badBreaks(app, screen)), ...(await unkept(app, screen)));
       // The skip button of the tour has a long tooltip with a quoted menu path
       const skip = app.page.locator(".tour-skip");
       if (screen.startsWith("引导") && (await skip.isVisible())) {
         await skip.hover();
         await expect(app.page.locator(".tooltip.is-on")).toBeVisible();
-        problems.push(...(await badBreaks(app, `${screen}, tooltip`)));
+        problems.push(...(await badBreaks(app, `${screen}, tooltip`)), ...(await unkept(app, `${screen}, tooltip`)));
         tooltips++;
         await app.page.mouse.move(0, 0);
       }
@@ -227,7 +293,7 @@ for (const locale of ["zh-CN", "zh-TW", "ja"]) {
     prepare(app, locale);
     await app.page.setViewportSize({ width: 960, height: 600 });
     const problems: string[] = [];
-    await welcome(app, async (screen) => void problems.push(...(await badBreaks(app, screen))));
+    await welcome(app, async (screen) => void problems.push(...(await badBreaks(app, screen)), ...(await unkept(app, screen))));
     expect(problems, problems.join("\n")).toEqual([]);
   });
 }

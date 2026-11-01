@@ -143,6 +143,31 @@ public class NativeUiTests
         Assert.Equal((0, 0), Toast.Place(new Int32Rect(0, 0, 800, 600), 1000, 900));
     }
 
+    [Fact]
+    public void Shared_button_templates_are_sealed_so_any_thread_can_apply_them()
+    {
+        // The templates are static and built on whichever thread touches NativeUi first; every test runs on its own STA thread,
+        // so an unsealed template made the error toast throw "a different thread owns it" depending on test order
+        var templates = new List<ControlTemplate>();
+        CaptureTests.OnSta(() => templates.AddRange(typeof(NativeUi).GetFields(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+            .Where(f => f.FieldType == typeof(ControlTemplate))
+            .Select(f => (ControlTemplate)f.GetValue(null)!)));
+        Assert.Equal(4, templates.Count);
+        Assert.All(templates, t => Assert.True(t.IsSealed));
+        for (var i = 0; i < 2; i++)
+        {
+            CaptureTests.OnSta(() =>
+            {
+                foreach (var template in templates)
+                {
+                    var button = new Button { Template = template };
+                    button.Measure(new Size(100, 32)); // applies the template
+                    Assert.IsType<Border>(VisualTreeHelper.GetChild(button, 0));
+                }
+            });
+        }
+    }
+
     static IEnumerable<object> Descendants(object node)
     {
         if (node is not DependencyObject d) yield break;

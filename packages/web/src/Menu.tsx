@@ -1,10 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 import { cssZoom } from "./cssZoom";
 import { keycaps } from "./hotkey";
 import { onHostEvent } from "./host";
 import { CheckIcon } from "./icons";
+import { darkSwatch } from "./markColors";
 
 export interface MenuItem {
   label: string;
@@ -40,7 +41,12 @@ export interface MenuSwatch {
   /** Shortcut, shown in the hover tooltip (as a keycap) */
   key?: string;
   checked: boolean;
-  onClick: () => void;
+  /** A thin divider before this swatch (between the presets and the custom colors) */
+  sep?: boolean;
+  /** The hue disc that opens the color picker (not a color itself; color is unused) */
+  custom?: boolean;
+  /** at: where the swatch was on screen (the color picker opens there) */
+  onClick: (at?: DOMRect) => void;
 }
 
 /** Minimum distance between the menu and the window edge */
@@ -279,22 +285,26 @@ export function MenuBody(props: {
             <span className="menu-label">{item.label}</span>
             <span className="menu-swatch-set">
               {item.swatches.map((s) => (
-                <button
-                  key={s.color}
-                  className={`menu-swatch${s.checked ? " is-on" : ""}`}
-                  role="menuitemradio"
-                  aria-checked={s.checked}
-                  aria-label={s.label}
-                  // Name + fullwidth space + shortcut: Tooltip draws the part after the space as a keycap (same as the toolbar)
-                  data-tip={s.key ? `${s.label}\u3000${s.key}` : s.label}
-                  disabled={item.disabled}
-                  style={{ "--swatch": s.color } as React.CSSProperties}
-                  onPointerMove={(e) => document.activeElement !== e.currentTarget && e.currentTarget.focus({ preventScroll: true })}
-                  onClick={() => {
-                    props.onPick();
-                    s.onClick();
-                  }}
-                />
+                <Fragment key={s.custom ? "custom" : s.color}>
+                  {s.sep && <span className="menu-swatch-sep" />}
+                  <button
+                    className={`menu-swatch${s.checked ? " is-on" : ""}${s.custom ? " is-custom" : ""}`}
+                    role={s.custom ? "menuitem" : "menuitemradio"}
+                    aria-checked={s.custom ? undefined : s.checked}
+                    aria-label={s.label}
+                    // Name + fullwidth space + shortcut: Tooltip draws the part after the space as a keycap (same as the toolbar)
+                    data-tip={s.key ? `${s.label}\u3000${s.key}` : s.label}
+                    disabled={item.disabled}
+                    style={s.custom ? undefined : ({ "--swatch": s.color } as React.CSSProperties)}
+                    data-dark={(!s.custom && darkSwatch(s.color)) || undefined}
+                    onPointerMove={(e) => document.activeElement !== e.currentTarget && e.currentTarget.focus({ preventScroll: true })}
+                    onClick={(e) => {
+                      const at = e.currentTarget.getBoundingClientRect();
+                      props.onPick();
+                      s.onClick(at);
+                    }}
+                  />
+                </Fragment>
               ))}
             </span>
           </div>

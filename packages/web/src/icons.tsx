@@ -224,6 +224,12 @@ export const ChevronIcon = () => (
     <path d="M4.5 6.5L8 10l3.5-3.5" />
   </I>
 );
+/** Drag handle: two columns of three dots (the composer's title row can be dragged; same as the capture overlay's note box) */
+export const GripIcon = () => (
+  <I>
+    <path d="M6 4h.01M10 4h.01M6 8h.01M10 8h.01M6 12h.01M10 12h.01" strokeWidth={2.2} />
+  </I>
+);
 export const PlusIcon = () => (
   <I>
     <path d="M8 3v10M3 8h10" />

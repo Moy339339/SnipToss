@@ -65,6 +65,40 @@ sealed partial class Settings
     [System.Text.RegularExpressions.GeneratedRegex(@"^#[0-9a-fA-F]{6}\z")]
     private static partial System.Text.RegularExpressions.Regex HexColor();
 
+    /// <summary>
+    /// Custom mark colors picked lately (#rrggbb, newest first): shown after the preset colors in the main window and on the capture overlay alike, so a color picked once is one click away next time.
+    /// Kept by the shell (not in Prefs): Screen Capture adds to it too, and the UI writes Prefs back as a whole
+    /// </summary>
+    public List<string> RecentColors { get; set; } = [];
+
+    public const int RecentColorsMax = 4;
+
+    /// <summary>RecentColors as used: well-formed, lowercase, no presets, no repeats, at most <see cref="RecentColorsMax"/> (a hand-edited file may hold anything)</summary>
+    [JsonIgnore]
+    public List<string> RecentColorList => CleanRecent(RecentColors);
+
+    static List<string> CleanRecent(IEnumerable<string?> colors) =>
+        colors.Select(c => c?.Trim().ToLowerInvariant() ?? "")
+            .Where(c => HexColor().IsMatch(c) && !SnipToss.App.Capture.ToolPrefs.Colors.Any(p => SnipToss.App.Capture.ColorMath.Hex(p) == c))
+            .Distinct()
+            .Take(RecentColorsMax)
+            .ToList();
+
+    /// <summary>Raised after <see cref="RecentColors"/> changed (a color picked in the main window or on the capture overlay): the main window passes the list on to the UI</summary>
+    public event Action? RecentColorsChanged;
+
+    /// <summary>A custom color was picked: it moves to the front of the recent colors (a preset color is not added). Returns the list after the change</summary>
+    public List<string> AddRecentColor(string color)
+    {
+        var hex = color.Trim().ToLowerInvariant();
+        if (!HexColor().IsMatch(hex)) throw new ArgumentException($"Not a #rrggbb color: {color}");
+        var next = CleanRecent(RecentColorList.Prepend(hex));
+        if (next.SequenceEqual(RecentColorList)) return next;
+        Update(s => s.RecentColors = CleanRecent(s.RecentColors.Prepend(hex)));
+        RecentColorsChanged?.Invoke();
+        return RecentColorList;
+    }
+
     /// <summary>The default category of a new note (Settings → Annotations)</summary>
     public string DefaultCategory => SnipToss.App.Capture.Categories.Valid(Text(Prefs?["defaultCategory"]));
 
@@ -219,6 +253,8 @@ sealed partial class Settings
         Topmost = target.Topmost;
         Prefs = target.Prefs;
         Capture = target.Capture;
+        RecentColors = target.RecentColors;
+        UpdatesCheckedAt = target.UpdatesCheckedAt;
         Migrations = target.Migrations;
         return !unsaved;
     }
@@ -336,6 +372,14 @@ sealed class CaptureSettings
 
     /// <summary>Where screenshots are stored; empty = %LOCALAPPDATA%\SnipToss\captures (kept 30 days)</summary>
     public string? Folder { get; set; }
+
+    /// <summary>
+    /// The color last chosen on the capture overlay (#rrggbb) and the Settings mark color it was chosen over: the next run starts with it,
+    /// unless the mark color in Settings has changed since (then the new setting wins, as within one run; Capture.ToolPrefs)
+    /// </summary>
+    public string? ToolColor { get; set; }
+
+    public string? ToolColorOver { get; set; }
 
     public static string DefaultFolder => System.IO.Path.Combine(AppPaths.LocalDir, "captures");
 

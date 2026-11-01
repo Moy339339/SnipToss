@@ -163,7 +163,7 @@ In files SnipToss writes: when the places differ in color, **every place carries
 when the places become the same color again, the per-place colors are removed and only the note's is kept; recoloring the whole note removes the per-place colors. A note with one place never has a per-place color.
 
 Colors only decide how marks are drawn (on the image, in snapshots, in Copy as Images) and are not part of the comment itself. But users refer to places by color in their comments,
-so **when the places of a note differ in color, `REVIEW.md` and Copy as Text put the color before each place** (“2 places — (Orange) Point: …; (Yellow) Point: …”; the six presets are named, any other color is written as its value); when they are all the same, colors are not mentioned.
+so **when the places of a note differ in color, `REVIEW.md` and Copy as Text put the color before each place** (“2 places — (Orange) Point: …; (Yellow) Point: …”; the eight presets are named, any other color (a custom color) is written as its value); when they are all the same, colors are not mentioned.
 
 ### Notes on an earlier version (`material_sha256`, an optional field)
 

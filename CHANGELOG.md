@@ -4,13 +4,26 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 The annotation data format has its own version (`"schema": "sniptoss/5"`); its history is in [docs/annotation-format.md](docs/annotation-format.md).
 
-## [Unreleased]
+## [1.1.0] — 2026-11-02
+
+### Added
+
+- Black and white mark colors (keys `7` and `8`). The number on a light mark is drawn in a dark color, so it stays readable.
+- Custom mark colors: a hue disc at the end of every color row (the color bar on the canvas, the context menus, Annotate → Mark Color, Settings, and the screen-capture overlay) opens a color picker with a saturation / brightness field, a hue strip and the hex code. The last four custom colors are offered in every color row, in the app and in the screen-capture overlay alike, and are kept after a restart. The screen-capture overlay also remembers the last color used.
+- Delete a single mark. In the app, the color bar that pops up when a mark is clicked ends with a Delete button (`Delete` / `Backspace` do the same): one place of a note with several goes on its own and can be undone; a note's only place deletes the note, after asking. The screen-capture overlay has Delete after Undo on its toolbar (`Delete` / `Backspace`) for the selected mark; `Ctrl+Z` brings it back.
+- The note box can be dragged by its title row, in the app and in the screen-capture overlay, and stays where it was put while more places are marked.
+
+### Changed
+
+- A mark no longer stays without its note. In the screen-capture overlay, a rectangle, ellipse, arrow or pen stroke whose note is left empty goes away with it (`Esc`, Cancel, a click elsewhere, switching tools, right-click or Finish); emptying a saved note and saving deletes it with its marks (`Ctrl+Z` brings it back). Pixelate and Text are drawings and stay. In the app, a click on empty canvas while a new note box is still empty drops the note with its marks; once text is written the box stays, and the cursor goes back into it, so `Enter` still saves.
+- In the screen-capture overlay, clicking a mark's line only selects it, so `Delete` and the color keys act on that mark; clicking its number still opens its note for editing.
 
 ### Fixed
 
 - Diagnostic info, logs and the diagnostics package take the user folder out more carefully: another account whose name starts with yours (`C:\Users\Anna` when you are `Ann`) is no longer mangled, and a user name followed by a quote or a period in an error message is taken out too.
 - The write lock that a crashed command line can leave in a project's `.sniptoss/` folder no longer holds the computer's name, only a short hash of it (computer names often carry their owner's name).
 - On a busy computer, a drive that was slow to answer could be taken as disconnected, and the next check then reported a change to the item being viewed that never happened; such a drive is now simply asked again.
+- The installer's file properties show the product name, a description and the installer's own version (they were empty, and the file version always read 1.0.0).
 
 ## [1.0.0] — 2026-10-29
 
@@ -44,4 +57,5 @@ First public release.
 - Portable version: with a `data` folder next to the app, all data stays in it and the registry is never touched.
 - Command-line tool `sniptoss` (list, review, resolve, wontfix); its messages follow the system display language.
 
+[1.1.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.0.0

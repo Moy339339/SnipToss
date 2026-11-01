@@ -110,6 +110,8 @@ export function AnnotationLayer(props: {
   drawOnBlank?: boolean;
   /** With the Select tool, the drag started and a rectangle is being drawn (a video pauses on this frame first) */
   onDrawStart?: () => void;
+  /** A click with a drawing tool that drew nothing (no drag): a click on blank canvas, like one with the Select tool */
+  onBlankClick?: () => void;
 }) {
   const { w, h } = props.size;
   /**
@@ -219,7 +221,12 @@ export function AnnotationLayer(props: {
     if (!d) return;
     const p = drawPoint(d.tool, x, y);
     const shape = recorded(d.tool, d.start, p, d.points);
-    if (!shape) return; // entirely outside the canvas, or so small it counts as a shaky hand
+    if (!shape) {
+      // Entirely outside the canvas, or so small it counts as a shaky hand. Without a drag at all it was a click on blank space: the same
+      // as a click on blank canvas with the Select tool (an empty new note is dropped)
+      if (screenDist(d.start, p) < 4) props.onBlankClick?.();
+      return;
+    }
     // The note being written already has a pin at almost the same spot (a fast double-click, an extra click): don't drop another on top
     if (shape.type === "point" && props.draft?.some((s) => s.type === "point" && screenDist([s.x, s.y], [shape.x, shape.y]) < 6)) return;
     const [l, t, r, b] = bounds(shape);
@@ -361,7 +368,9 @@ export function AnnotationLayer(props: {
     e.stopPropagation();
     armed.current = { id: a.id, part };
     props.onArm?.(armed.current);
-    if (handle === "move") press.current = { hit: { id: a.id, part }, x: e.clientX, y: e.clientY };
+    // A press that ends without a drag is a click on this mark (color bar), on its body or on one of its handles alike: a just-saved note
+    // stays selected with its handles showing, and the middle handle of an edge is right where a click on that edge lands
+    press.current = { hit: { id: a.id, part }, x: e.clientX, y: e.clientY };
     if (a.id !== props.selectedId) {
       // The first click only selects; dragging after it is selected moves
       props.onSelect(a.id);

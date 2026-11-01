@@ -58,6 +58,7 @@ sealed class CaptureSession
             const int Side = 64;
             var blank = BitmapSource.Create(Side, Side, 96, 96, PixelFormats.Bgra32, null, new byte[Side * Side * 4], Side * 4);
             blank.Freeze();
+            RestoreToolColor(settings);
             var color = ParseColor(settings.MarkColor) ?? ToolPrefs.Colors[0];
             var overlay = new CaptureOverlay(new CaptureSession(settings, null), new MonitorShot(new Int32Rect(0, 0, Side, Side), 1, blank), [], color, settings.DefaultCategory);
             if (overlay.Content is UIElement content)
@@ -107,6 +108,7 @@ sealed class CaptureSession
             // Any failure below is undone in the catch, otherwise Current would stay set, later presses would only "activate that overlay",
             // and Screen Capture could never open again
             Current = session;
+            RestoreToolColor(settings);
             var markColor = ParseColor(settings.MarkColor) ?? ToolPrefs.Colors[0];
             var cursor = Screens.Cursor();
             CaptureOverlay? active = null;
@@ -200,7 +202,7 @@ sealed class CaptureSession
 #if TEST_HOOKS
         CaptureFakes.Composed = output.Image;
 #endif
-        var notes = result.Marks.Where(m => m.HasNote).ToList();
+        var notes = result.Marks.Where(m => m.HasNote).OrderBy(m => m.Number).ToList();
         // If saving the file fails (disk full, the chosen folder is gone) the clipboard still gets the image: saving and copying used to be one step, so a failed save gave no image at all and everything drawn was lost
         string? file = null;
         string? saveError = null;
@@ -309,8 +311,41 @@ sealed class CaptureSession
         foreach (var o in overlays.ToList()) o.Close();
         overlays.Clear();
         if (Current == this) Current = null;
+        SaveToolColor();
         done?.Invoke();
     }
+
+    // ---------- Colors kept across captures and restarts ----------
+
+    static bool toolColorRestored;
+
+    /// <summary>Once per run, before the first overlay is built: start with the color chosen last time (ToolPrefs.Start then decides whether the Settings color has changed since)</summary>
+    static void RestoreToolColor(Settings settings)
+    {
+        if (toolColorRestored) return;
+        toolColorRestored = true;
+        if (ColorMath.Parse(settings.Capture.ToolColor) is { } color && ColorMath.Parse(settings.Capture.ToolColorOver) is { } over) ToolPrefs.Shared.Restore(color, over);
+    }
+
+    /// <summary>When the capture closes: remember the color chosen on the overlay for the next run (written only when it changed)</summary>
+    void SaveToolColor()
+    {
+        var prefs = ToolPrefs.Shared;
+        var over = prefs.ChosenOver is { } o ? ColorMath.Hex(o) : null;
+        var color = over is null ? null : ColorMath.Hex(prefs.Color);
+        if (settings.Capture.ToolColor == color && settings.Capture.ToolColorOver == over) return;
+        settings.Update(s =>
+        {
+            s.Capture.ToolColor = color;
+            s.Capture.ToolColorOver = over;
+        });
+    }
+
+    /// <summary>The custom colors picked lately (shared with the main window): the sub-toolbar shows them after the presets</summary>
+    public IReadOnlyList<Color> RecentColors => settings.RecentColorList.Select(c => ColorMath.Parse(c)!.Value).ToList();
+
+    /// <summary>A custom color was picked on the overlay: it joins the recent colors (the main window's UI gets the new list)</summary>
+    public void AddRecentColor(Color color) => settings.AddRecentColor(ColorMath.Hex(color));
 
     // ---------- Compositing the image ----------
 
@@ -330,7 +365,7 @@ sealed class CaptureSession
         var y = (int)Math.Round(sel.Y * scale);
         var w = Math.Clamp((int)Math.Round(sel.Width * scale), 1, r.Monitor.Shot.PixelWidth - x);
         var h = Math.Clamp((int)Math.Round(sel.Height * scale), 1, r.Monitor.Shot.PixelHeight - y);
-        var notes = r.Marks.Where(m => m.HasNote).ToList();
+        var notes = r.Marks.Where(m => m.HasNote).OrderBy(m => m.Number).ToList(); // by number: a note whose first place was deleted is listed by its number, not where its remaining place sits
         var withPanel = notesInImage && (notes.Count > 0 || r.Overall.Length > 0);
         // A very small selection with a notes area below: enlarge the screenshot by a whole factor to nearly the notes area's width and center it (it used to sit in the top-left corner of a large dark canvas)
         var k = withPanel ? Zoom(w, (int)Math.Ceiling(NotesBlock.MinWidth * scale)) : 1;

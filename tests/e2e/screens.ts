@@ -70,6 +70,19 @@ export async function walkScreens(app: App, visit: (screen: string) => Promise<v
   await page.keyboard.press("Escape");
   await expect(page.getByRole("alertdialog")).toHaveCount(0);
 
+  // The color bar of a mark clicked on the canvas (presets, recent colors, hue disc, Delete) and the color picker behind its hue disc
+  for (const c of ["#8b5a2b", "#17a998"]) app.host.addRecentColor(c);
+  await page.locator('.annot-badge[data-id="k3f9a2"][data-part="0"]').click();
+  await expect(page.locator(".mark-colors")).toBeVisible();
+  await visit("标记颜色条");
+  await page.locator(".mark-colors .menu-swatch.is-custom").click();
+  await expect(page.locator(".color-picker")).toBeVisible();
+  await visit("自定义颜色");
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".color-picker")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".mark-colors")).toHaveCount(0);
+
   // Every page of Settings
   await page.locator(".stage").click({ position: { x: 5, y: 5 } });
   await page.keyboard.press(native ? "Meta+," : "Control+,");

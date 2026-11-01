@@ -38,6 +38,17 @@ static class NativeUi
     public static Brush AccentFill => HighContrast ? SystemColors.HighlightBrush : accentFill;
     public static Brush ButtonBg => HighContrast ? SystemColors.ControlBrush : buttonBg;
 
+    /// <summary>
+    /// Parses a template and seals it at once. The templates are static, so they are built on whichever thread first touches this class;
+    /// an unsealed template is owned by that thread and throws when another thread applies it, while a sealed one can be used on any thread
+    /// </summary>
+    static ControlTemplate Sealed(string xaml)
+    {
+        var template = (ControlTemplate)System.Windows.Markup.XamlReader.Parse(xaml);
+        template.Seal();
+        return template;
+    }
+
     /// <summary>UI font (UiFonts.Current)</summary>
     public static FontFamily UiFont => UiFonts.Current;
     public static readonly FontFamily MonoFont = new("Cascadia Mono, Consolas");
@@ -46,7 +57,7 @@ static class NativeUi
     /// Button look, same as the UI's .btn (corner radius --r-control 6, slightly darker on hover / press, a ring of --accent for keyboard focus).
     /// Uses a real Button (Enter, Tab and screen readers all work), only replacing WPF's default light-blue look
     /// </summary>
-    static readonly ControlTemplate ButtonTemplate = (ControlTemplate)System.Windows.Markup.XamlReader.Parse("""
+    static readonly ControlTemplate ButtonTemplate = Sealed("""
         <ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" TargetType="Button">
           <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
@@ -62,7 +73,7 @@ static class NativeUi
         """);
 
     /// <summary>Button under a contrast theme: no darkening (it can't be seen); hover and keyboard focus both thicken the border to 2</summary>
-    static readonly ControlTemplate ButtonTemplateHighContrast = (ControlTemplate)System.Windows.Markup.XamlReader.Parse("""
+    static readonly ControlTemplate ButtonTemplateHighContrast = Sealed("""
         <ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" TargetType="Button">
           <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
@@ -128,7 +139,7 @@ static class NativeUi
         return b;
     }
 
-    static readonly ControlTemplate CloseTemplate = (ControlTemplate)System.Windows.Markup.XamlReader.Parse("""
+    static readonly ControlTemplate CloseTemplate = Sealed("""
         <ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" TargetType="Button">
           <Border x:Name="b" Background="Transparent" CornerRadius="4" SnapsToDevicePixels="True">
@@ -142,7 +153,7 @@ static class NativeUi
         """);
 
     /// <summary>× under a contrast theme: hover and keyboard focus draw a border in the system text color (no background fill)</summary>
-    static readonly ControlTemplate CloseTemplateHighContrast = (ControlTemplate)System.Windows.Markup.XamlReader.Parse("""
+    static readonly ControlTemplate CloseTemplateHighContrast = Sealed("""
         <ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" TargetType="Button">
           <Border x:Name="b" Background="Transparent" BorderThickness="1" BorderBrush="Transparent" CornerRadius="4" SnapsToDevicePixels="True">

@@ -1,8 +1,10 @@
 import type { CSSProperties } from "react";
 import type { IntlShape } from "react-intl";
-import { isMarkColor, MARK_COLOR_NAMES, shapesOf, type Annotation, type Shape } from "@sniptoss/core";
+import { isMarkColor, MARK_COLOR_NAMES, markLightness, shapesOf, type Annotation, type Shape } from "@sniptoss/core";
+import { openColorPicker } from "./ColorPicker";
 import type { MenuItem } from "./Menu";
 import { MARK_COLORS } from "./prefs";
+import { getRecentColors, RECENT_COLORS_MAX } from "./recentColors";
 
 // Per-note mark color: a note's color is stored only when it was changed individually; none = use the mark color from Settings.
 // Switching back to the Settings color removes color, and the note follows Settings again. Number keys 1–6 follow the order of MARK_COLORS (Workspace).
@@ -36,6 +38,9 @@ export function noteColorOf(a: Pick<Annotation, "anchor" | "color">, fallback: s
 }
 
 export const sameColor = (a: string | undefined, b: string | undefined) => (a ?? "").toLowerCase() === (b ?? "").toLowerCase();
+
+/** A swatch dark enough to vanish into the dark panels (black, dark custom colors): it gets a faint light rim (data-dark in the styles) */
+export const darkSwatch = (color: string) => isMarkColor(color) && markLightness(color) < 0.3;
 
 /** Remove each mark's individual color (when recoloring the whole note: all marks become that color together) */
 export const withoutPlaceColors = (shapes: readonly Shape[]): Shape[] =>
@@ -79,7 +84,18 @@ export function recolorPlace(
   );
 }
 
-/** A color's name: presets use their name, others (written by hand in the settings or note files) use the color value */
+/**
+ * The custom colors shown after the presets in a color row: the recent ones, with the color in use put first when it is a custom color not
+ * among them (a mark drawn in an older custom color), so the row always shows what is in use (same as the capture overlay's sub-toolbar)
+ */
+export function recentRow(recent: readonly string[], current: string | undefined): string[] {
+  const list = [...recent];
+  if (current && isMarkColor(current) && !MARK_COLORS.some((c) => sameColor(c, current)) && !list.some((c) => sameColor(c, current)))
+    list.unshift(current.toLowerCase());
+  return list.slice(0, RECENT_COLORS_MAX);
+}
+
+/** A color's name: presets use their name, others (custom colors, or written by hand in the settings or note files) use the color value */
 export function colorName(intl: IntlShape, color: string): string {
   const i = MARK_COLORS.findIndex((c) => sameColor(c, color));
   return i < 0 ? color : intl.formatMessage({ id: "markColor.name" }, { color: MARK_COLOR_NAMES[i] });
@@ -107,18 +123,39 @@ export function markColorRow(
     pick: (color: string | undefined) => void;
   },
 ): MenuItem {
+  const pickColor = (color: string) => opts.pick(sameColor(color, opts.defaultColor) ? undefined : color);
+  const recent = recentRow(getRecentColors(), opts.current);
   return {
     label: opts.label,
     title: intl.formatMessage({ id: "markColor.title" }),
     disabled: opts.disabled,
     // The row itself is not a button; the swatches are what get clicked
     onClick: () => {},
-    swatches: MARK_COLORS.map((color, i) => ({
-      color,
-      label: swatchLabel(intl, color, opts.defaultColor),
-      key: opts.keys === false ? undefined : String(i + 1),
-      checked: !!opts.current && sameColor(color, opts.current),
-      onClick: () => opts.pick(sameColor(color, opts.defaultColor) ? undefined : color),
-    })),
+    swatches: [
+      ...MARK_COLORS.map((color, i) => ({
+        color,
+        label: swatchLabel(intl, color, opts.defaultColor),
+        key: opts.keys === false ? undefined : String(i + 1),
+        checked: !!opts.current && sameColor(color, opts.current),
+        onClick: () => pickColor(color),
+      })),
+      // After a divider: the recent custom colors, then the hue disc that opens the color picker (the menu closes first, so the picker is
+      // the window-wide one, anchored where the disc was)
+      ...recent.map((color, i) => ({
+        color,
+        label: intl.formatMessage({ id: "markColor.recent" }, { name: swatchLabel(intl, color, opts.defaultColor) }),
+        checked: !!opts.current && sameColor(color, opts.current),
+        sep: i === 0,
+        onClick: () => pickColor(color),
+      })),
+      {
+        color: "",
+        custom: true,
+        label: intl.formatMessage({ id: "markColor.custom" }),
+        checked: false,
+        sep: recent.length === 0,
+        onClick: (at?: DOMRect) => openColorPicker({ at, initial: opts.current ?? opts.defaultColor, onPick: pickColor }),
+      },
+    ],
   };
 }

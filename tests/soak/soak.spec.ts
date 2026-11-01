@@ -183,7 +183,7 @@ class RawInput {
     const pressed = [];
     for (const k of combo.split("+")) pressed.push({ k, d: await this.down(k) });
     if (delay) await new Promise((r) => setTimeout(r, delay));
-    for (const { k, d } of pressed.reverse()) await this.up(k, d);
+    for (const { k, d } of pressed.toReversed()) await this.up(k, d);
   }
 
   /** Types text key by key; characters that aren't on the keyboard (Chinese) are inserted as text, as Playwright's keyboard.type does */

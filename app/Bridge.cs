@@ -93,6 +93,8 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
                 "getPrefs" => settings.Prefs,
                 "setPrefs" => Run(() => SetPrefs(args.GetProperty("prefs"))),
                 "appInfo" => AppInfo(),
+                "recentColors" => settings.RecentColorList,
+                "addRecentColor" => settings.AddRecentColor(Str(args, "color")),
                 "copyImages" => new { count = HandoffImages.Copy(HandoffItems(args), args.TryGetProperty("extra", out var extra) ? extra.GetString() : null) },
                 "reveal" => await RevealAsync(Allowed(Special(Str(args, "path")), RevealRoots())),
                 "openExternal" => Run(() => Shell.OpenUrl(Str(args, "url"))),

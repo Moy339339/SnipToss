@@ -84,15 +84,16 @@ interface IOverlayHost
 }
 
 /// <summary>
-/// The last color and thickness used (remembered while the app runs, shared by displays and captures through <see cref="Shared"/>).
+/// The last color and thickness used (shared by displays and captures through <see cref="Shared"/>; the color is also kept across restarts, see CaptureSession.RestoreToolColor).
 /// Three sizes: line width, text font size, Pixelate brush width. Even the thinnest Pixelate size must cover a line of body text in one stroke (16 px text with its ascenders and descenders is about 20):
 /// it used to be 12 / 20 / 32, and with the thinnest size the top and bottom halves of the text still showed
 /// </summary>
 sealed class ToolPrefs
 {
-    public static readonly Color[] Colors = [Rgb(0xff6a3d), Rgb(0xff4d6d), Rgb(0xffc233), Rgb(0x3ddc84), Rgb(0x5b8cff), Rgb(0xb07cff)];
-    /// <summary>The names of the preset colors (the options of the message markColor.name), matching Colors one to one (same as markColors.ts in the main app)</summary>
-    static readonly string[] Names = ["orange", "red", "yellow", "green", "blue", "purple"];
+    /// <summary>The preset colors, in the order of the number keys 1–8 (same as MARK_COLORS in packages/core)</summary>
+    public static readonly Color[] Colors = [Rgb(0xff6a3d), Rgb(0xff4d6d), Rgb(0xffc233), Rgb(0x3ddc84), Rgb(0x5b8cff), Rgb(0xb07cff), Rgb(0x000000), Rgb(0xffffff)];
+    /// <summary>The names of the preset colors (the options of the message markColor.name), matching Colors one to one (same as MARK_COLOR_NAMES in packages/core)</summary>
+    static readonly string[] Names = ["orange", "red", "yellow", "green", "blue", "purple", "black", "white"];
     static readonly double[] LineSizes = [2, 4, 6], TextSizes = [14, 18, 24], MosaicSizes = [20, 32, 56];
 
     // Placed after Colors: static fields initialize in the order written, and creating one needs Colors[0]
@@ -133,6 +134,16 @@ sealed class ToolPrefs
         chosenOver = defaultColor;
     }
 
+    /// <summary>The Settings mark color at the time a color was chosen (null = none chosen since the setting last changed): saved with the color so a restart keeps the same rule</summary>
+    public Color? ChosenOver => chosenOver;
+
+    /// <summary>The color kept from an earlier run (see <see cref="ChosenOver"/>); the next <see cref="Start"/> decides whether it still applies</summary>
+    public void Restore(Color color, Color over)
+    {
+        Color = color;
+        chosenOver = over;
+    }
+
     static Color Rgb(int rgb) => Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb);
 }
 
@@ -149,9 +160,11 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
 
     public ToolPrefs Prefs { get; } = prefs;
 
+    /// <summary>Everything drawn, in drawing order, including deleted marks kept for undo (<see cref="Mark.Removed"/>)</summary>
     readonly List<Mark> marks = [];
 
-    public IReadOnlyList<Mark> Marks => marks;
+    /// <summary>The marks on the screenshot (deleted ones left out)</summary>
+    public IReadOnlyList<Mark> Marks => marks.Where(m => !m.Removed).ToList();
 
     /// <summary>null = still choosing</summary>
     public Rect? Sel { get; private set; }
@@ -188,7 +201,7 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
     readonly List<Mark> added = [];
 
     /// <summary>How many places the note being written marks (0 for the overall comment)</summary>
-    public int NotePlaces => NoteFor is { } lead ? marks.Count(m => m.Head == lead) : 0;
+    public int NotePlaces => NoteFor is { } lead ? marks.Count(m => !m.Removed && m.Head == lead) : 0;
 
     /// <summary>
     /// While the note box is open and the note being written marks a place, clicking or drawing with these tools in the selection = this note gains another place and the box stays open (one comment covers several places without repeating it; ADR-0009).
@@ -205,10 +218,13 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
     /// <summary>Colors that were changed (restored on undo): Seq is ordered together with the marks' Seq, and undo undoes the later one first</summary>
     readonly List<(Mark Mark, Color Was, int Seq)> recolored = [];
 
-    /// <summary>The ordering of marks and color changes (Mark.Seq and recolored's Seq are taken from here)</summary>
+    /// <summary>Marks deleted together in one step (a place, a whole note, a text): undo brings them back, ordered with the rest by Seq</summary>
+    readonly List<(List<Mark> Marks, int Seq)> removals = [];
+
+    /// <summary>The ordering of marks, color changes and deletions (Mark.Seq and the Seq of recolored / removals are taken from here)</summary>
     int clock;
 
-    /// <summary>The clock when this note box opened: while the box is open undo only undoes color changes made after this, and Esc / cancel restores all of them</summary>
+    /// <summary>The clock when this note box opened: while the box is open undo only undoes color changes and deletions made after this, and Esc / cancel restores all of them</summary>
     int noteSince;
 
     public string NoteCategory { get; private set; } = "change";
@@ -226,11 +242,11 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
     /// There are drawings on this display: marks, an overall comment, or text typed in an input box and not yet saved. This locks the selection (it cannot be moved or re-selected with a right-click),
     /// another display cannot start selecting, and cancelling warns once first (unsaved typed text used to not count: switching displays or clicking × lost it at once)
     /// </summary>
-    public bool Locked => marks.Count > 0 || Overall.Length > 0 || PendingText;
+    public bool Locked => marks.Any(m => !m.Removed) || Overall.Length > 0 || PendingText;
 
     bool PendingText => (TextOpen && view.TextDraft.Trim().Length > 0) || (NoteOpen && view.NoteDraft.Trim().Length > 0);
 
-    public bool HasNotes => marks.Any(m => m.HasNote) || Overall.Length > 0 || PendingText;
+    public bool HasNotes => marks.Any(m => !m.Removed && m.Head.HasNote) || Overall.Length > 0 || PendingText;
 
     /// <summary>Numbers must not be drawn outside this range (the selection)</summary>
     public Rect Keep => Sel ?? Rect.Empty;
@@ -256,7 +272,7 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
             // If the first click placed a numbered dot while the note box was open: remove it, and the text being written is saved as usual (it used to cancel here, so a double-click-to-finish with the box open lost the typed text together with this note)
             if (NoteOpen)
             {
-                if (added.Count > 0 && added[^1].Kind == Tool.Note && (added[^1].Points[0] - p).Length < 6) RemoveLastPlace();
+                if (LastAdded is { Kind: Tool.Note } last && (last.Points[0] - p).Length < 6) RemoveLastPlace();
                 CommitNote();
             }
             CommitText();
@@ -304,8 +320,9 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
         }
         else if (PlaceAt(p) is { } m)
         {
-            // Hit a mark (a number or a line): pick it; if it has a note, open that note too (clicking a number = edit that note)
-            if (m.Head.HasNote) OpenNote(m.Head);
+            // Hit a mark: pick it. A number also opens its note (clicking a number = edit that note); a line only picks, so Delete / Backspace and
+            // the color keys act on the mark instead of going into a note box (the main window picks a clicked mark the same way)
+            if (m.Head.HasNote && BadgePlaceAt(p) == m) OpenNote(m.Head);
             Pick(m);
             return false;
         }
@@ -486,6 +503,7 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
         marks.Clear();
         Picked = null;
         recolored.Clear();
+        removals.Clear();
         Overall = "";
         Tool = Tool.None;
         view.Refresh();
@@ -524,7 +542,7 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
                 if (NoteOpen && NoteFor is { } lead)
                 {
                     // Mark one more place. If this note already has a numbered dot at almost the same spot (a double click), do not stack another
-                    if (!marks.Any(x => x.Head == lead && x.Kind == Tool.Note && (x.Points[0] - p).Length < 6))
+                    if (!marks.Any(x => !x.Removed && x.Head == lead && x.Kind == Tool.Note && (x.Points[0] - p).Length < 6))
                         AddPlace(new Mark { Kind = Tool.Note, Color = Prefs.Color, Size = 2, Points = [p], Lead = lead });
                     return;
                 }
@@ -581,7 +599,8 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
         }
         Put(m);
         view.RedrawMarks();
-        // After drawing a rectangle, ellipse, arrow or pen stroke: pop up the note box next to it (Esc writes nothing and just keeps the mark)
+        // After drawing a rectangle, ellipse, arrow or pen stroke: pop up the note box next to it. These marks exist only together with a note: leaving the box without writing
+        // anything (a click elsewhere, Esc, Cancel) takes the mark away too, the same as in the main app (it used to stay behind as a plain drawing that could not be removed)
         if (m.Kind is Tool.Rect or Tool.Ellipse or Tool.Arrow or Tool.Pen) OpenNote(m);
     }
 
@@ -601,12 +620,15 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
         marks.Add(m);
     }
 
+    /// <summary>The last place marked this time that is still on the screenshot (not deleted)</summary>
+    Mark? LastAdded => added.LastOrDefault(m => !m.Removed);
+
     /// <summary>Removes the last place marked this time (undo, Alt+Z in the note box). Returns false = nothing was marked this time</summary>
     bool RemoveLastPlace()
     {
-        if (added.Count == 0) return false;
-        marks.Remove(added[^1]);
-        added.RemoveAt(added.Count - 1);
+        if (LastAdded is not { } last) return false;
+        marks.Remove(last);
+        added.Remove(last);
         view.RedrawMarks();
         view.ShowNotePlaces();
         return true;
@@ -616,10 +638,11 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
     {
         if (NoteOpen)
         {
-            // First undo what was done while this box was open: the places marked and the colors changed, the later one first; only when none is left cancel the note being written;
+            // First undo what was done while this box was open: the places marked, the colors changed and the places deleted, the later one first; only when none is left cancel the note being written;
             // one more press is needed to undo the last mark (undoing while editing note 1 used to delete the last mark as well)
-            if (!UndoRecolor(Math.Max(noteSince, added.Count > 0 ? added[^1].Seq : 0)) && !RemoveLastPlace()) CancelNote();
+            if (!UndoStep(Math.Max(noteSince, LastAdded?.Seq ?? 0)) && !RemoveLastPlace()) CancelNote();
             KeepPick();
+            if (NoteOpen) view.ShowNotePlaces();
             return;
         }
         if (TextOpen)
@@ -628,27 +651,43 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
             HideText();
             return;
         }
-        // The last action was a color change (later than the last drawn mark): change it back
-        if (UndoRecolor(marks.Count > 0 ? marks[^1].Seq : 0))
+        // The last action was a color change or a deletion (later than the last drawn mark): undo that
+        var last = marks.LastOrDefault(m => !m.Removed);
+        if (UndoStep(last?.Seq ?? 0))
         {
             KeepPick();
             return;
         }
-        if (marks.Count > 0) marks.RemoveAt(marks.Count - 1);
+        if (last is not null) marks.Remove(last);
         else Overall = "";
         KeepPick();
         Renumber();
         view.Refresh();
     }
 
-    /// <summary>Undoes the last color change if it is later than after (the last drawn mark, or the moment this note box opened). Returns false = nothing to undo</summary>
-    bool UndoRecolor(int after)
+    /// <summary>
+    /// Undoes the last color change or deletion if it is later than after (the last drawn mark, or the moment this note box opened). Returns false = nothing to undo.
+    /// Steps on marks that are gone for good (undone, taken back with the note box) are skipped
+    /// </summary>
+    bool UndoStep(int after)
     {
-        recolored.RemoveAll(r => !marks.Contains(r.Mark)); // ignore marks that are gone (undone, taken back)
-        if (recolored.Count == 0 || recolored[^1].Seq <= after) return false;
-        var (m, was, _) = recolored[^1];
-        recolored.RemoveAt(recolored.Count - 1);
-        m.Color = was;
+        recolored.RemoveAll(r => !marks.Contains(r.Mark));
+        removals.RemoveAll(r => !r.Marks.All(marks.Contains));
+        var color = recolored.Count > 0 ? recolored[^1].Seq : 0;
+        var removal = removals.Count > 0 ? removals[^1].Seq : 0;
+        if (Math.Max(color, removal) <= after) return false;
+        if (removal > color)
+        {
+            foreach (var m in removals[^1].Marks) m.Removed = false;
+            removals.RemoveAt(removals.Count - 1);
+            Renumber();
+        }
+        else
+        {
+            var (m, was, _) = recolored[^1];
+            recolored.RemoveAt(recolored.Count - 1);
+            m.Color = was;
+        }
         view.Refresh();
         return true;
     }
@@ -656,7 +695,73 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
     /// <summary>After an undo the picked mark is gone: it is no longer picked</summary>
     void KeepPick()
     {
-        if (Picked is { } m && !marks.Contains(m)) Unpick();
+        if (Picked is { } m && (m.Removed || !marks.Contains(m))) Unpick();
+    }
+
+    /// <summary>Deletes these marks as one step that undo can bring back</summary>
+    void Delete(List<Mark> gone)
+    {
+        if (gone.Count == 0) return;
+        foreach (var m in gone) m.Removed = true;
+        removals.Add((gone, ++clock));
+    }
+
+    /// <summary>Deletes a whole note (all its places), or a mark without a note (text, a numbered dot without words)</summary>
+    void DeleteNote(Mark head) => Delete(marks.Where(m => !m.Removed && m.Head == head).ToList());
+
+    /// <summary>
+    /// The toolbar's Delete, or Delete / Backspace on the overlay: deletes the picked mark. A place of a note with other places left takes only that place away and the note stays;
+    /// its last place takes the note with it. While that note's box is open: a note not saved yet is simply cancelled, a saved one is deleted (the box closes). Undo brings it back
+    /// </summary>
+    public void DeletePicked()
+    {
+        if (Picked is not { } x || x.Removed) return;
+        Picked = null;
+        var head = x.Head;
+        var places = marks.Count(m => !m.Removed && m.Head == head);
+        if (NoteOpen && head == NoteFor)
+        {
+            if (places > 1)
+            {
+                Delete([x]);
+                view.RedrawMarks();
+                view.Refresh();
+                view.ShowNotePlaces();
+                return;
+            }
+            var saved = head.HasNote;
+            CancelNote();
+            if (!saved) return;
+            DeleteNote(head);
+            Renumber();
+            view.Refresh();
+            return;
+        }
+        if (NoteOpen) CommitNote(); // not expected (a box only lets its own places be picked), but never delete under another note's open box
+        if (places > 1) Delete([x]);
+        else DeleteNote(head);
+        Renumber();
+        view.Refresh();
+    }
+
+    /// <summary>
+    /// The marks to composite on finish: deleted ones left out. A note whose first place was deleted moves its text, category and number to its first remaining place,
+    /// so the result is the same as if that place had been drawn first. Called once, when the overlay is finished
+    /// </summary>
+    public List<Mark> Finished()
+    {
+        foreach (var lead in marks.Where(m => m.Removed && m.Lead is null).ToList())
+        {
+            var rest = marks.Where(m => !m.Removed && m.Lead == lead).ToList();
+            if (rest.Count == 0) continue;
+            var heir = rest[0];
+            heir.Lead = null;
+            heir.Note = lead.Note;
+            heir.Category = lead.Category;
+            heir.Number = lead.Number;
+            foreach (var m in rest.Skip(1)) m.Lead = heir;
+        }
+        return marks.Where(m => !m.Removed).ToList();
     }
 
     void Pick(Mark m)
@@ -675,8 +780,9 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
     void Renumber()
     {
         var n = 0;
-        // The number is kept on the first place, and the places marked afterwards draw the first place's number (MarkPainter)
-        foreach (var m in marks) m.Number = m.Lead is null && m.Note.Length > 0 ? ++n : 0;
+        // The number is kept on the first place, and the places marked afterwards draw the first place's number (MarkPainter).
+        // A note counts while any of its places is left: a deleted first place keeps the note's number for the others
+        foreach (var m in marks) m.Number = m.Lead is null && m.Note.Length > 0 && marks.Any(x => !x.Removed && x.Head == m) ? ++n : 0;
         view.RedrawMarks();
     }
 
@@ -684,10 +790,10 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
     Mark? BadgeAt(Point p) => BadgePlaceAt(p)?.Head;
 
     /// <summary>Which place's number was hit (the note being written and not yet saved counts too: its number is already drawn)</summary>
-    Mark? BadgePlaceAt(Point p) => marks.LastOrDefault(m => (m.Head.HasNote || m.Head.PendingNumber > 0) && (MarkPainter.BadgeCenter(m, Keep) - p).Length <= 11);
+    Mark? BadgePlaceAt(Point p) => marks.LastOrDefault(m => !m.Removed && (m.Head.HasNote || m.Head.PendingNumber > 0) && (MarkPainter.BadgeCenter(m, Keep) - p).Length <= 11);
 
     /// <summary>Which mark was hit: numbers are drawn on top, so check numbers first, then lines and text (later ones are on top); Pixelate does not count (it has no color to change)</summary>
-    Mark? PlaceAt(Point p) => BadgePlaceAt(p) ?? marks.LastOrDefault(m => m.Kind == Tool.Note ? (MarkPainter.BadgeCenter(m, Keep) - p).Length <= 11 : m.Hits(p));
+    Mark? PlaceAt(Point p) => BadgePlaceAt(p) ?? marks.LastOrDefault(m => !m.Removed && (m.Kind == Tool.Note ? (MarkPainter.BadgeCenter(m, Keep) - p).Length <= 11 : m.Hits(p)));
 
     // ---------- Writing notes (the words for the AI) ----------
 
@@ -745,14 +851,20 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
         if (text.Length > 0) lastCategory = NoteCategory;
         if (NoteFor is { } m)
         {
-            m.Note = text;
-            m.Category = NoteCategory;
             if (text.Length == 0)
             {
-                // No text written (or all of it deleted) = no note wanted: remove the numbered dots, and keep the rectangles and arrows as plain drawings
-                foreach (var x in marks.Where(x => x.Lead == m).ToList()) Drop(x);
-                if (m.Kind == Tool.Note) marks.Remove(m);
+                // No text written = no note wanted: the same as cancelling, so a new note's marks go away with it (they used to stay as plain drawings that could not be removed).
+                // A saved note whose text was all deleted is deleted with its places, as one step undo can bring back
+                var saved = m.HasNote;
+                CancelNote();
+                if (!saved) return;
+                DeleteNote(m);
+                Renumber();
+                view.Refresh();
+                return;
             }
+            m.Note = text;
+            m.Category = NoteCategory;
         }
         else
         {
@@ -765,18 +877,12 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
     public void CancelNote()
     {
         if (!NoteOpen) return;
-        // Colors changed while this box was open are changed back; places marked since, and a newly placed numbered dot that never had text, are taken back together (the dot is removed, rectangles and arrows stay as plain drawings without a note); when editing an existing note its original places are left alone
-        while (UndoRecolor(noteSince)) { }
-        foreach (var x in added) Drop(x);
-        if (NoteFor is { Kind: Tool.Note, Note.Length: 0 } pin) marks.Remove(pin);
+        // Everything done while this box was open is taken back: colors changed and places deleted are restored, places marked since are removed,
+        // and a new note's own first mark goes too (a note not written has no marks, as in the main app); when editing a saved note its original places and text stay as they were
+        while (UndoStep(noteSince)) { }
+        foreach (var x in added) marks.Remove(x);
+        if (NoteFor is { HasNote: false } fresh) marks.Remove(fresh);
         CloseNote();
-    }
-
-    /// <summary>A place no longer belongs to this note: a numbered dot (there only to mark a position) is removed, while rectangles, arrows and pen strokes stay as drawings</summary>
-    void Drop(Mark x)
-    {
-        if (x.Kind == Tool.Note) marks.Remove(x);
-        else x.Lead = null;
     }
 
     void CloseNote()
@@ -850,10 +956,13 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
             case Key.Escape:
                 host.RequestCancel();
                 break;
-            case >= Key.D1 and <= Key.D6 when mods == ModifierKeys.None && Sel is not null:
-                SetColor(ToolPrefs.Colors[key - Key.D1]); // same order as the colors on the sub-toolbar (same as 1–6 in the main app)
+            case Key.Delete or Key.Back when Picked is not null && mods == ModifierKeys.None:
+                DeletePicked(); // same as the toolbar's Delete (and Delete in the main app)
                 break;
-            case >= Key.NumPad1 and <= Key.NumPad6 when mods == ModifierKeys.None && Sel is not null:
+            case >= Key.D1 and <= Key.D8 when mods == ModifierKeys.None && Sel is not null:
+                SetColor(ToolPrefs.Colors[key - Key.D1]); // same order as the colors on the sub-toolbar (same as 1–8 in the main app)
+                break;
+            case >= Key.NumPad1 and <= Key.NumPad8 when mods == ModifierKeys.None && Sel is not null:
                 SetColor(ToolPrefs.Colors[key - Key.NumPad1]);
                 break;
             case Key.Enter:

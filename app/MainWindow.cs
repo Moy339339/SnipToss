@@ -65,6 +65,8 @@ sealed partial class MainWindow : Window
         settings.Migrate(System.Globalization.CultureInfo.CurrentUICulture.Name);
         Locale.Use(settings.Language);
         Locale.Changed += ApplyLanguage;
+        // A custom color picked on the capture overlay (or in the UI): the UI's color rows show the new recent colors at once
+        settings.RecentColorsChanged += () => Post(new { @event = "recentColors", colors = settings.RecentColorList });
         Title = AppName;
         Icon = System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/SnipToss.ico"));
         Background = new SolidColorBrush(Bg);

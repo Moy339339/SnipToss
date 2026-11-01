@@ -23,8 +23,10 @@ import { ChevronIcon, CloseIcon } from "./icons";
 import { useKeys } from "./keys";
 import { Menu, trapTab, useRestoreFocus } from "./Menu";
 import { hotkeyFrom, hotkeyParts, keycaps, prettyKeys } from "./hotkey";
-import { colorName } from "./markColors";
-import { parseNotices, type Notice } from "./notices";
+import { openColorPicker, useColorPickerOpen } from "./ColorPicker";
+import { colorName, darkSwatch, recentRow, sameColor } from "./markColors";
+import { useRecentColors } from "./recentColors";
+import { noticesFor, parseNotices, type Notice } from "./notices";
 import { DEFAULT_PREFS, MARK_COLORS, NOT_SETTINGS, usePrefs, type Prefs } from "./prefs";
 import { Sheet } from "./Sheet";
 import { SHORTCUT_GROUPS, ShortcutRow, shortcutKey } from "./ShortcutHelp";
@@ -75,7 +77,12 @@ export function SettingsDialog(props: {
   useRestoreFocus(overlay);
   useEffect(() => dialog.current?.querySelector<HTMLElement>(".settings-tab.is-on")?.focus(), []);
   const tab = (e: KeyboardEvent) => trapTab(dialog.current, e);
-  useKeys({ Escape: props.onClose, Tab: tab, "Shift+Tab": tab }, { modal: true, enabled: !recording && !confirmReset && !notices });
+  // The color picker (mark color) takes the keys while it is open: Esc closes it, not Settings
+  const picking = useColorPickerOpen();
+  useKeys(
+    { Escape: props.onClose, Tab: tab, "Shift+Tab": tab },
+    { modal: true, enabled: !recording && !confirmReset && !notices && !picking },
+  );
 
   return (
     <div className="overlay fade-in" ref={overlay} onPointerDown={props.onClose}>
@@ -311,14 +318,15 @@ function LanguagePicker() {
   );
 }
 
-/** The description for the items that write to the registry (launch at startup, context menu): in the portable build a separate line says why they are unavailable (the switch is grayed out) */
+/** The description for the items that write to the registry (launch at startup, context menu): in the portable build a separate line says why they are unavailable (the switch is grayed out).
+ * A component of its own, so Row's KeepPunctuation does not reach into it: the text is put in KeepPunctuation here (S9) */
 function RegistryDesc(props: { desc: string; portable: boolean }) {
   const t = useT();
   return (
-    <>
+    <KeepPunctuation>
       {props.desc}
-      {props.portable && <span className="set-desc-line">{t("settings.portable.unavailable")}</span>}
-    </>
+      {props.portable && <div className="set-desc-line">{t("settings.portable.unavailable")}</div>}
+    </KeepPunctuation>
   );
 }
 
@@ -341,7 +349,7 @@ function General(props: { home?: string; onNotify: (t: string) => void }) {
             {t("settings.general.languageDesc")}
             {/* Second-tier languages have not been reviewed by native speakers yet: say so and welcome corrections (ADR-0001 item 4) */}
             {(NEEDS_REVIEW as readonly string[]).includes(locale) && (
-              <span className="set-desc-line">{t("settings.general.languageReview")}</span>
+              <div className="set-desc-line">{t("settings.general.languageReview")}</div>
             )}
           </>
         }
@@ -418,6 +426,18 @@ function Annotate() {
   const t = useT();
   const intl = useIntl();
   const { prefs, setPrefs } = usePrefs();
+  const recent = recentRow(useRecentColors(), prefs.markColor);
+  const swatch = (c: string, name: string) => (
+    <button
+      key={c}
+      className={`swatch${sameColor(prefs.markColor, c) ? " is-on" : ""}`}
+      style={{ background: c }}
+      data-dark={darkSwatch(c) || undefined}
+      onClick={() => setPrefs({ markColor: c })}
+      aria-label={name}
+      data-tip={name}
+    />
+  );
   return (
     <>
       <Heading>{t("settings.annotate.title")}</Heading>
@@ -442,16 +462,23 @@ function Annotate() {
       </Row>
       <Row label={t("settings.annotate.color")} desc={t("settings.annotate.colorDesc")}>
         <div className="swatches">
-          {MARK_COLORS.map((c) => (
-            <button
-              key={c}
-              className={`swatch${prefs.markColor === c ? " is-on" : ""}`}
-              style={{ background: c }}
-              onClick={() => setPrefs({ markColor: c })}
-              aria-label={colorName(intl, c)}
-              data-tip={colorName(intl, c)}
-            />
-          ))}
+          {MARK_COLORS.map((c) => swatch(c, colorName(intl, c)))}
+          {/* After a divider: the recent custom colors and the hue disc that opens the color picker (same as the color rows on the canvas) */}
+          <span className="swatch-sep" />
+          {recent.map((c) => swatch(c, intl.formatMessage({ id: "markColor.recent" }, { name: colorName(intl, c) })))}
+          <button
+            className="swatch is-custom"
+            onClick={(e) =>
+              openColorPicker({
+                at: e.currentTarget.getBoundingClientRect(),
+                initial: prefs.markColor,
+                onPick: (c) => setPrefs({ markColor: c }),
+                owner: e.currentTarget,
+              })
+            }
+            aria-label={t("markColor.custom")}
+            data-tip={t("markColor.custom")}
+          />
         </div>
       </Row>
       <Row label={t("settings.annotate.width")}>
@@ -869,7 +896,8 @@ function Advanced(props: { onNotify: (t: string) => void; onReset: () => void })
 
 /**
  * Third-party notices (shipped with the app and visible under About): the root THIRD-PARTY-NOTICES.txt (generated by scripts/build-notices.mjs),
- * about 100 KB, loaded only when opened (a separate bundle, so startup is not slowed). Listed component by component (split by notices.ts); the intro and table header follow the interface language;
+ * about 100 KB, loaded only when opened (a separate bundle, so startup is not slowed). Listed component by component (split by notices.ts; the Mac app leaves out the components
+ * only the Windows app ships); the intro and table header follow the interface language;
  * the license texts stay in English and are not translated (the original governs, a translation has no force), and a row expands only when clicked (a whole page of English would be unreadable for people who do not read English)
  */
 function NoticesSheet(props: { onClose: () => void; onNotify: (t: string) => void }) {
@@ -879,7 +907,7 @@ function NoticesSheet(props: { onClose: () => void; onNotify: (t: string) => voi
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
   useEffect(() => {
     import("../../../THIRD-PARTY-NOTICES.txt?raw").then(
-      (m) => setList(parseNotices(m.default)),
+      (m) => setList(noticesFor(parseNotices(m.default), platform)),
       (e: Error) => setFailed(e.message),
     );
   }, []);

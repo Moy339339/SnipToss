@@ -149,7 +149,7 @@ export function describeShape(shape: Shape, size: { width: number; height: numbe
   }
 }
 
-/** How a color is described: the six presets by name (message markColor.name, per language), anything else (a hand-written color value) as is */
+/** How a color is described: the presets by name (message markColor.name, per language), anything else (a custom color) as its #rrggbb value */
 export function colorLabel(color: string, t: Translate): string {
   const i = MARK_COLORS.findIndex((c) => c.toLowerCase() === color.toLowerCase());
   return i < 0 ? color.toLowerCase() : t("markColor.name", { color: MARK_COLOR_NAMES[i] });

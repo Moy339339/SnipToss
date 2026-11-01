@@ -22,13 +22,12 @@ export const APP_VERSION = typeof __APP_VERSION__ === "string" ? __APP_VERSION__
 export const UI_BUILT = typeof __UI_BUILT__ === "string" ? __UI_BUILT__ : "";
 
 /**
- * How a version is written for people. During testing it is labelled as a beta series, and a release version is used once it is mature:
- * the version is 1.0.0-beta.N (the Nth beta before the 1.0 release) and is shown as "Beta N"; once mature it becomes a release version
- * from 1.0.0 on, shown as "v1.0.0"
+ * How a version is written for people (semantic versioning): every release x.y.z is preceded by its own beta series x.y.z-beta.N, N counting
+ * from 1 for each version, shown as "v1.1.0 Beta 2"; the release itself is shown as "v1.1.0"
  */
 export function versionLabel(v: string): string {
-  const beta = /^\d+\.\d+\.\d+-beta\.(\d+)$/.exec(v);
-  return beta ? `Beta ${beta[1]}` : `v${v}`;
+  const beta = /^(\d+\.\d+\.\d+)-beta\.(\d+)$/.exec(v);
+  return beta ? `v${beta[1]} Beta ${beta[2]}` : `v${v}`;
 }
 /** Whether this is a beta */
 export const IS_BETA = /-beta\.\d+$/.test(APP_VERSION);

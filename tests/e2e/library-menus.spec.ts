@@ -437,7 +437,7 @@ test("Footer stats read \"N projects · a images · b videos\"; a project withou
   await expect(app.page.locator(".footer-stats")).toHaveText("1 个项目");
 });
 
-test("The version tag reads the version (\"Beta N\" during the beta, \"v1.0.0\" once released) and its tooltip gives the product name, version and the build times of the UI and the app; on a mismatch it reads \"≠ app Beta M\" and asks to reinstall", async ({ app }) => {
+test("The version tag reads the version (\"v1.1.0 Beta N\" for a beta, \"v1.1.0\" for a release) and its tooltip gives the product name, version and the build times of the UI and the app; on a mismatch it reads \"≠ app v1.0.0 Beta M\" and asks to reinstall", async ({ app }) => {
   await app.open();
   const tag = app.page.locator(".app-version");
   await expect(tag).toHaveText(VERSION_LABEL);
@@ -446,7 +446,7 @@ test("The version tag reads the version (\"Beta N\" during the beta, \"v1.0.0\" 
   await expect(tag).toHaveAttribute("title", new RegExp(title));
   app.host.appInfoPatch = { version: "1.0.0-beta.1" };
   await app.page.reload();
-  await expect(tag).toHaveText(`${VERSION_LABEL} ≠ 程序 Beta 1`);
+  await expect(tag).toHaveText(`${VERSION_LABEL} ≠ 程序 v1.0.0 Beta 1`);
   await expect(tag).toHaveAttribute("title", /\n界面与程序版本不一致。请退出程序后重新安装超级批注$/);
 });
 

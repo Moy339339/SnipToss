@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { parseNotices } from "../src/notices";
+import { noticesFor, parseNotices } from "../src/notices";
 
 const RULE = "=".repeat(78);
 
@@ -58,5 +58,50 @@ describe("parseNotices: splits the third-party notices into entries (Settings â†
       for (const url of n.sources) expect(url).toMatch(/^https:\/\/\S+$/);
     }
     expect(notices[0].text).toMatch(/^The MIT License/);
+  });
+
+  it("an Only in: line belongs to the header, not the text; the Mac app leaves out what only the Windows app ships", () => {
+    const file = [
+      RULE,
+      "Runtime 10.0.1",
+      "License: MIT",
+      "Source: https://r.example",
+      "Only in: Windows",
+      RULE,
+      "",
+      "Runtime text",
+      "",
+      RULE,
+      "shared 1.0.0",
+      "License: MIT",
+      "Source: https://s.example",
+      RULE,
+      "",
+      "Shared text",
+    ].join("\n");
+    const notices = parseNotices(file);
+    expect(notices.map((n) => [n.name, n.only, n.text])).toEqual([
+      ["Runtime", ["Windows"], "Runtime text"],
+      ["shared", undefined, "Shared text"],
+    ]);
+    expect(noticesFor(notices, "windows").map((n) => n.name)).toEqual(["Runtime", "shared"]);
+    expect(noticesFor(notices, "mac").map((n) => n.name)).toEqual(["shared"]);
+  });
+
+  it("the one in the repository: what only the Windows app ships is the .NET runtime, WebView2 and MessageFormat; everything else is in the Mac app too", () => {
+    const file = readFileSync(fileURLToPath(new URL("../../../THIRD-PARTY-NOTICES.txt", import.meta.url)), "utf8");
+    const notices = parseNotices(file);
+    expect(notices.filter((n) => n.only).map((n) => `${n.name}: ${n.only?.join(", ")}`)).toEqual([
+      ".NET Runtime: Windows",
+      ".NET Windows Desktop Runtime (WPF, Windows Forms): Windows",
+      "Microsoft.Web.WebView2: Windows",
+      "MessageFormat (messageformat.net): Windows",
+    ]);
+    // Windows lists every one; the Mac has the UI's packages (the shell's message formatter is the same intl-messageformat) and the font
+    expect(noticesFor(notices, "windows")).toHaveLength(notices.length);
+    const mac = noticesFor(notices, "mac").map((n) => n.name);
+    expect(mac).toContain("intl-messageformat");
+    expect(mac).toContain("Noto Sans SC");
+    expect(mac).toHaveLength(notices.length - 4);
   });
 });

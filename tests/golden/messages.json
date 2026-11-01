@@ -99,6 +99,22 @@
       "locale": "de",
       "key": "markColor.name",
       "args": {
+        "color": "black"
+      },
+      "text": "Schwarz"
+    },
+    {
+      "locale": "de",
+      "key": "markColor.name",
+      "args": {
+        "color": "white"
+      },
+      "text": "Weiß"
+    },
+    {
+      "locale": "de",
+      "key": "markColor.name",
+      "args": {
         "color": "something-else"
       },
       "text": "Violett"
@@ -116,6 +132,44 @@
       "key": "markColor.title",
       "args": {},
       "text": "Ändert nur die Darstellung der Markierung (Arbeitsfläche, Momentaufnahmen, Bilder), nicht die Notiz. Mit der Standardfarbe folgt die Markierung den Einstellungen."
+    },
+    {
+      "locale": "de",
+      "key": "markColor.custom",
+      "args": {},
+      "text": "Eigene Farbe…"
+    },
+    {
+      "locale": "de",
+      "key": "markColor.recent",
+      "args": {
+        "name": "<name>"
+      },
+      "text": "<name> (zuletzt verwendet)"
+    },
+    {
+      "locale": "de",
+      "key": "markColor.field",
+      "args": {},
+      "text": "Sättigung und Helligkeit"
+    },
+    {
+      "locale": "de",
+      "key": "markColor.hue",
+      "args": {},
+      "text": "Farbton"
+    },
+    {
+      "locale": "de",
+      "key": "markColor.hex",
+      "args": {},
+      "text": "Hex-Code"
+    },
+    {
+      "locale": "de",
+      "key": "markColor.apply",
+      "args": {},
+      "text": "OK"
     },
     {
       "locale": "de",
@@ -553,6 +607,52 @@
     },
     {
       "locale": "de",
+      "key": "shell.move.title",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Bewegen Sie <app> in den Ordner „Programme“"
+    },
+    {
+      "locale": "de",
+      "key": "shell.move.why",
+      "args": {
+        "where": "diskImage",
+        "app": "<app>"
+      },
+      "text": "<app> wurde direkt vom Disk-Image geöffnet. Nach dem Auswerfen des Disk-Images lässt es sich nicht mehr öffnen."
+    },
+    {
+      "locale": "de",
+      "key": "shell.move.why",
+      "args": {
+        "where": "something-else",
+        "app": "<app>"
+      },
+      "text": "<app> wurde direkt aus dem Ordner „Downloads“ oder vom Disk-Image geöffnet. Bei dieser Art des Öffnens behandelt macOS <app> bei jedem Start so, als läge es an einem neuen Ort, weshalb beim Aufnehmen des Bildschirms die Bestätigung des Systems immer wieder erscheint."
+    },
+    {
+      "locale": "de",
+      "key": "shell.move.steps",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Ziehen Sie <app> nach dem Beenden in den Ordner „Programme“, und öffnen Sie es künftig von dort aus."
+    },
+    {
+      "locale": "de",
+      "key": "shell.move.quit",
+      "args": {},
+      "text": "Beenden und „Programme“ öffnen"
+    },
+    {
+      "locale": "de",
+      "key": "shell.move.notNow",
+      "args": {},
+      "text": "Später"
+    },
+    {
+      "locale": "de",
       "key": "shell.notFound",
       "args": {
         "path": "<path>"
@@ -874,7 +974,13 @@
       "locale": "de",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "Notiz überspringen (Esc)"
+      "text": "Diese Notiz verwerfen (Esc)"
+    },
+    {
+      "locale": "de",
+      "key": "capture.note.dragTip",
+      "args": {},
+      "text": "Zum Verschieben ziehen"
     },
     {
       "locale": "de",
@@ -941,6 +1047,12 @@
       "key": "capture.tool.undo",
       "args": {},
       "text": "Rückgängig (Strg Z)"
+    },
+    {
+      "locale": "de",
+      "key": "capture.tool.delete",
+      "args": {},
+      "text": "Ausgewählte Markierung löschen (Entf)"
     },
     {
       "locale": "de",
@@ -2444,6 +2556,22 @@
       "locale": "en",
       "key": "markColor.name",
       "args": {
+        "color": "black"
+      },
+      "text": "Black"
+    },
+    {
+      "locale": "en",
+      "key": "markColor.name",
+      "args": {
+        "color": "white"
+      },
+      "text": "White"
+    },
+    {
+      "locale": "en",
+      "key": "markColor.name",
+      "args": {
         "color": "something-else"
       },
       "text": "Purple"
@@ -2461,6 +2589,44 @@
       "key": "markColor.title",
       "args": {},
       "text": "Changes only how the mark is drawn (canvas, snapshots, images), not the note. Pick the default color to follow Settings."
+    },
+    {
+      "locale": "en",
+      "key": "markColor.custom",
+      "args": {},
+      "text": "Custom Color…"
+    },
+    {
+      "locale": "en",
+      "key": "markColor.recent",
+      "args": {
+        "name": "<name>"
+      },
+      "text": "<name> (recent)"
+    },
+    {
+      "locale": "en",
+      "key": "markColor.field",
+      "args": {},
+      "text": "Saturation and brightness"
+    },
+    {
+      "locale": "en",
+      "key": "markColor.hue",
+      "args": {},
+      "text": "Hue"
+    },
+    {
+      "locale": "en",
+      "key": "markColor.hex",
+      "args": {},
+      "text": "Hex code"
+    },
+    {
+      "locale": "en",
+      "key": "markColor.apply",
+      "args": {},
+      "text": "OK"
     },
     {
       "locale": "en",
@@ -2898,6 +3064,52 @@
     },
     {
       "locale": "en",
+      "key": "shell.move.title",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Move <app> to the Applications folder"
+    },
+    {
+      "locale": "en",
+      "key": "shell.move.why",
+      "args": {
+        "where": "diskImage",
+        "app": "<app>"
+      },
+      "text": "<app> was opened directly from the disk image, so it can't be opened once the disk image is ejected."
+    },
+    {
+      "locale": "en",
+      "key": "shell.move.why",
+      "args": {
+        "where": "something-else",
+        "app": "<app>"
+      },
+      "text": "<app> was opened directly from Downloads or the disk image. When it's opened this way, macOS treats it as being in a new location every time, so the system's screen capture confirmation keeps coming up."
+    },
+    {
+      "locale": "en",
+      "key": "shell.move.steps",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "After quitting, drag <app> to the Applications folder and open it from there from now on."
+    },
+    {
+      "locale": "en",
+      "key": "shell.move.quit",
+      "args": {},
+      "text": "Quit and Open Applications"
+    },
+    {
+      "locale": "en",
+      "key": "shell.move.notNow",
+      "args": {},
+      "text": "Not Now"
+    },
+    {
+      "locale": "en",
       "key": "shell.notFound",
       "args": {
         "path": "<path>"
@@ -3219,7 +3431,13 @@
       "locale": "en",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "Skip the note (Esc)"
+      "text": "Cancel this note (Esc)"
+    },
+    {
+      "locale": "en",
+      "key": "capture.note.dragTip",
+      "args": {},
+      "text": "Drag to move"
     },
     {
       "locale": "en",
@@ -3286,6 +3504,12 @@
       "key": "capture.tool.undo",
       "args": {},
       "text": "Undo (Ctrl Z)"
+    },
+    {
+      "locale": "en",
+      "key": "capture.tool.delete",
+      "args": {},
+      "text": "Delete selected mark (Delete)"
     },
     {
       "locale": "en",
@@ -4789,6 +5013,22 @@
       "locale": "es",
       "key": "markColor.name",
       "args": {
+        "color": "black"
+      },
+      "text": "Negro"
+    },
+    {
+      "locale": "es",
+      "key": "markColor.name",
+      "args": {
+        "color": "white"
+      },
+      "text": "Blanco"
+    },
+    {
+      "locale": "es",
+      "key": "markColor.name",
+      "args": {
         "color": "something-else"
       },
       "text": "Morado"
@@ -4806,6 +5046,44 @@
       "key": "markColor.title",
       "args": {},
       "text": "Cambia solo el color con el que se dibuja la marca (lienzo, instantáneas, imágenes), no la nota. Elige el color predeterminado para usar el de Configuración."
+    },
+    {
+      "locale": "es",
+      "key": "markColor.custom",
+      "args": {},
+      "text": "Color personalizado…"
+    },
+    {
+      "locale": "es",
+      "key": "markColor.recent",
+      "args": {
+        "name": "<name>"
+      },
+      "text": "<name> (reciente)"
+    },
+    {
+      "locale": "es",
+      "key": "markColor.field",
+      "args": {},
+      "text": "Saturación y brillo"
+    },
+    {
+      "locale": "es",
+      "key": "markColor.hue",
+      "args": {},
+      "text": "Tono"
+    },
+    {
+      "locale": "es",
+      "key": "markColor.hex",
+      "args": {},
+      "text": "Código hexadecimal"
+    },
+    {
+      "locale": "es",
+      "key": "markColor.apply",
+      "args": {},
+      "text": "Aceptar"
     },
     {
       "locale": "es",
@@ -5243,6 +5521,52 @@
     },
     {
       "locale": "es",
+      "key": "shell.move.title",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Mueve <app> a la carpeta Aplicaciones"
+    },
+    {
+      "locale": "es",
+      "key": "shell.move.why",
+      "args": {
+        "where": "diskImage",
+        "app": "<app>"
+      },
+      "text": "Has abierto <app> directamente desde la imagen de disco. Cuando expulses la imagen de disco, ya no se podrá abrir."
+    },
+    {
+      "locale": "es",
+      "key": "shell.move.why",
+      "args": {
+        "where": "something-else",
+        "app": "<app>"
+      },
+      "text": "Has abierto <app> directamente desde la carpeta Descargas o desde la imagen de disco. Al abrirla así, macOS la trata como si estuviera en una ubicación nueva cada vez, por lo que la confirmación del sistema para capturar la pantalla vuelve a aparecer una y otra vez."
+    },
+    {
+      "locale": "es",
+      "key": "shell.move.steps",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Tras salir de <app>, arrástrala a la carpeta Aplicaciones y ábrela desde ahí a partir de ahora."
+    },
+    {
+      "locale": "es",
+      "key": "shell.move.quit",
+      "args": {},
+      "text": "Salir y abrir Aplicaciones"
+    },
+    {
+      "locale": "es",
+      "key": "shell.move.notNow",
+      "args": {},
+      "text": "Ahora no"
+    },
+    {
+      "locale": "es",
       "key": "shell.notFound",
       "args": {
         "path": "<path>"
@@ -5564,7 +5888,13 @@
       "locale": "es",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "Omitir la nota (Esc)"
+      "text": "Cancelar esta nota (Esc)"
+    },
+    {
+      "locale": "es",
+      "key": "capture.note.dragTip",
+      "args": {},
+      "text": "Arrastra para mover"
     },
     {
       "locale": "es",
@@ -5631,6 +5961,12 @@
       "key": "capture.tool.undo",
       "args": {},
       "text": "Deshacer (Ctrl Z)"
+    },
+    {
+      "locale": "es",
+      "key": "capture.tool.delete",
+      "args": {},
+      "text": "Eliminar la marca seleccionada (Supr)"
     },
     {
       "locale": "es",
@@ -7134,6 +7470,22 @@
       "locale": "fr",
       "key": "markColor.name",
       "args": {
+        "color": "black"
+      },
+      "text": "Noir"
+    },
+    {
+      "locale": "fr",
+      "key": "markColor.name",
+      "args": {
+        "color": "white"
+      },
+      "text": "Blanc"
+    },
+    {
+      "locale": "fr",
+      "key": "markColor.name",
+      "args": {
         "color": "something-else"
       },
       "text": "Violet"
@@ -7151,6 +7503,44 @@
       "key": "markColor.title",
       "args": {},
       "text": "Ne modifie que l’affichage du repère (canevas, instantanés, images), pas la note. Choisissez la couleur par défaut pour reprendre celle définie dans Paramètres."
+    },
+    {
+      "locale": "fr",
+      "key": "markColor.custom",
+      "args": {},
+      "text": "Couleur personnalisée…"
+    },
+    {
+      "locale": "fr",
+      "key": "markColor.recent",
+      "args": {
+        "name": "<name>"
+      },
+      "text": "<name> (récente)"
+    },
+    {
+      "locale": "fr",
+      "key": "markColor.field",
+      "args": {},
+      "text": "Saturation et luminosité"
+    },
+    {
+      "locale": "fr",
+      "key": "markColor.hue",
+      "args": {},
+      "text": "Teinte"
+    },
+    {
+      "locale": "fr",
+      "key": "markColor.hex",
+      "args": {},
+      "text": "Code hexadécimal"
+    },
+    {
+      "locale": "fr",
+      "key": "markColor.apply",
+      "args": {},
+      "text": "OK"
     },
     {
       "locale": "fr",
@@ -7588,6 +7978,52 @@
     },
     {
       "locale": "fr",
+      "key": "shell.move.title",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Déplacez <app> dans le dossier Applications"
+    },
+    {
+      "locale": "fr",
+      "key": "shell.move.why",
+      "args": {
+        "where": "diskImage",
+        "app": "<app>"
+      },
+      "text": "Vous avez ouvert <app> directement depuis l’image disque. Une fois l’image disque éjectée, l’application ne pourra plus s’ouvrir."
+    },
+    {
+      "locale": "fr",
+      "key": "shell.move.why",
+      "args": {
+        "where": "something-else",
+        "app": "<app>"
+      },
+      "text": "Vous avez ouvert <app> directement depuis le dossier Téléchargements ou depuis l’image disque. Dans ce cas, macOS considère l’application comme se trouvant à un nouvel emplacement à chaque ouverture, si bien que la confirmation du système pour la capture de l’écran réapparaît sans cesse."
+    },
+    {
+      "locale": "fr",
+      "key": "shell.move.steps",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Après avoir quitté <app>, faites glisser l’application dans le dossier Applications, puis ouvrez-la désormais depuis ce dossier."
+    },
+    {
+      "locale": "fr",
+      "key": "shell.move.quit",
+      "args": {},
+      "text": "Quitter et ouvrir Applications"
+    },
+    {
+      "locale": "fr",
+      "key": "shell.move.notNow",
+      "args": {},
+      "text": "Plus tard"
+    },
+    {
+      "locale": "fr",
       "key": "shell.notFound",
       "args": {
         "path": "<path>"
@@ -7909,7 +8345,13 @@
       "locale": "fr",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "Ignorer la note (Échap)"
+      "text": "Annuler cette note (Échap)"
+    },
+    {
+      "locale": "fr",
+      "key": "capture.note.dragTip",
+      "args": {},
+      "text": "Faites glisser pour déplacer"
     },
     {
       "locale": "fr",
@@ -7976,6 +8418,12 @@
       "key": "capture.tool.undo",
       "args": {},
       "text": "Annuler (Ctrl Z)"
+    },
+    {
+      "locale": "fr",
+      "key": "capture.tool.delete",
+      "args": {},
+      "text": "Supprimer le repère sélectionné (Suppr)"
     },
     {
       "locale": "fr",
@@ -9479,6 +9927,22 @@
       "locale": "it",
       "key": "markColor.name",
       "args": {
+        "color": "black"
+      },
+      "text": "Nero"
+    },
+    {
+      "locale": "it",
+      "key": "markColor.name",
+      "args": {
+        "color": "white"
+      },
+      "text": "Bianco"
+    },
+    {
+      "locale": "it",
+      "key": "markColor.name",
+      "args": {
         "color": "something-else"
       },
       "text": "Viola"
@@ -9496,6 +9960,44 @@
       "key": "markColor.title",
       "args": {},
       "text": "Modifica solo il colore con cui viene disegnato il segno (area di disegno, istantanee, immagini), non la nota. Scegli il colore predefinito per usare quello impostato in Impostazioni."
+    },
+    {
+      "locale": "it",
+      "key": "markColor.custom",
+      "args": {},
+      "text": "Colore personalizzato…"
+    },
+    {
+      "locale": "it",
+      "key": "markColor.recent",
+      "args": {
+        "name": "<name>"
+      },
+      "text": "<name> (recente)"
+    },
+    {
+      "locale": "it",
+      "key": "markColor.field",
+      "args": {},
+      "text": "Saturazione e luminosità"
+    },
+    {
+      "locale": "it",
+      "key": "markColor.hue",
+      "args": {},
+      "text": "Tonalità"
+    },
+    {
+      "locale": "it",
+      "key": "markColor.hex",
+      "args": {},
+      "text": "Codice esadecimale"
+    },
+    {
+      "locale": "it",
+      "key": "markColor.apply",
+      "args": {},
+      "text": "OK"
     },
     {
       "locale": "it",
@@ -9933,6 +10435,52 @@
     },
     {
       "locale": "it",
+      "key": "shell.move.title",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Sposta <app> nella cartella Applicazioni"
+    },
+    {
+      "locale": "it",
+      "key": "shell.move.why",
+      "args": {
+        "where": "diskImage",
+        "app": "<app>"
+      },
+      "text": "Hai aperto <app> direttamente dall'immagine disco. Dopo l'espulsione dell'immagine disco non sarà più possibile aprirla."
+    },
+    {
+      "locale": "it",
+      "key": "shell.move.why",
+      "args": {
+        "where": "something-else",
+        "app": "<app>"
+      },
+      "text": "Hai aperto <app> direttamente dalla cartella Download o dall'immagine disco. In questo caso macOS la considera in una posizione nuova a ogni apertura, quindi la conferma del sistema per l'acquisizione dello schermo continua a comparire."
+    },
+    {
+      "locale": "it",
+      "key": "shell.move.steps",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Esci da <app>, poi trascinala nella cartella Applicazioni e aprila sempre da lì."
+    },
+    {
+      "locale": "it",
+      "key": "shell.move.quit",
+      "args": {},
+      "text": "Esci e apri Applicazioni"
+    },
+    {
+      "locale": "it",
+      "key": "shell.move.notNow",
+      "args": {},
+      "text": "Non ora"
+    },
+    {
+      "locale": "it",
       "key": "shell.notFound",
       "args": {
         "path": "<path>"
@@ -10254,7 +10802,13 @@
       "locale": "it",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "Salta la nota (Esc)"
+      "text": "Annulla questa nota (Esc)"
+    },
+    {
+      "locale": "it",
+      "key": "capture.note.dragTip",
+      "args": {},
+      "text": "Trascina per spostare"
     },
     {
       "locale": "it",
@@ -10321,6 +10875,12 @@
       "key": "capture.tool.undo",
       "args": {},
       "text": "Annulla (Ctrl Z)"
+    },
+    {
+      "locale": "it",
+      "key": "capture.tool.delete",
+      "args": {},
+      "text": "Elimina il segno selezionato (Canc)"
     },
     {
       "locale": "it",
@@ -11824,6 +12384,22 @@
       "locale": "ja",
       "key": "markColor.name",
       "args": {
+        "color": "black"
+      },
+      "text": "黒"
+    },
+    {
+      "locale": "ja",
+      "key": "markColor.name",
+      "args": {
+        "color": "white"
+      },
+      "text": "白"
+    },
+    {
+      "locale": "ja",
+      "key": "markColor.name",
+      "args": {
         "color": "something-else"
       },
       "text": "紫"
@@ -11841,6 +12417,44 @@
       "key": "markColor.title",
       "args": {},
       "text": "マークの表示色（キャンバス、スナップショット、画像）のみを変更し、メモの内容には影響しません。既定の色を選ぶと、設定の色に従います。"
+    },
+    {
+      "locale": "ja",
+      "key": "markColor.custom",
+      "args": {},
+      "text": "カスタムカラー…"
+    },
+    {
+      "locale": "ja",
+      "key": "markColor.recent",
+      "args": {
+        "name": "<name>"
+      },
+      "text": "<name>（最近使用）"
+    },
+    {
+      "locale": "ja",
+      "key": "markColor.field",
+      "args": {},
+      "text": "彩度と明度"
+    },
+    {
+      "locale": "ja",
+      "key": "markColor.hue",
+      "args": {},
+      "text": "色相"
+    },
+    {
+      "locale": "ja",
+      "key": "markColor.hex",
+      "args": {},
+      "text": "カラーコード"
+    },
+    {
+      "locale": "ja",
+      "key": "markColor.apply",
+      "args": {},
+      "text": "OK"
     },
     {
       "locale": "ja",
@@ -12278,6 +12892,52 @@
     },
     {
       "locale": "ja",
+      "key": "shell.move.title",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app> を「アプリケーション」フォルダーに移動してください"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.move.why",
+      "args": {
+        "where": "diskImage",
+        "app": "<app>"
+      },
+      "text": "<app> はディスクイメージから直接開かれています。ディスクイメージを取り出すと、開けなくなります。"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.move.why",
+      "args": {
+        "where": "something-else",
+        "app": "<app>"
+      },
+      "text": "<app> は「ダウンロード」フォルダーまたはディスクイメージから直接開かれています。この方法で開くと、macOS は起動のたびに新しい場所にあるものとして扱うため、画面キャプチャ時のシステムの確認が繰り返し表示されます。"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.move.steps",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "終了後、<app> を「アプリケーション」フォルダーにドラッグし、今後は「アプリケーション」フォルダーから開いてください。"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.move.quit",
+      "args": {},
+      "text": "終了して「アプリケーション」を開く"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.move.notNow",
+      "args": {},
+      "text": "今はしない"
+    },
+    {
+      "locale": "ja",
       "key": "shell.notFound",
       "args": {
         "path": "<path>"
@@ -12545,7 +13205,13 @@
       "locale": "ja",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "メモをスキップ（Esc）"
+      "text": "このメモを取り消す（Esc）"
+    },
+    {
+      "locale": "ja",
+      "key": "capture.note.dragTip",
+      "args": {},
+      "text": "ドラッグして移動"
     },
     {
       "locale": "ja",
@@ -12612,6 +13278,12 @@
       "key": "capture.tool.undo",
       "args": {},
       "text": "元に戻す（Ctrl Z）"
+    },
+    {
+      "locale": "ja",
+      "key": "capture.tool.delete",
+      "args": {},
+      "text": "選択したマークを削除（Delete）"
     },
     {
       "locale": "ja",
@@ -14115,6 +14787,22 @@
       "locale": "ko",
       "key": "markColor.name",
       "args": {
+        "color": "black"
+      },
+      "text": "검정"
+    },
+    {
+      "locale": "ko",
+      "key": "markColor.name",
+      "args": {
+        "color": "white"
+      },
+      "text": "흰색"
+    },
+    {
+      "locale": "ko",
+      "key": "markColor.name",
+      "args": {
         "color": "something-else"
       },
       "text": "보라"
@@ -14132,6 +14820,44 @@
       "key": "markColor.title",
       "args": {},
       "text": "마커가 표시되는 색(캔버스, 스냅샷, 이미지)만 바꾸며 메모 내용에는 영향을 주지 않습니다. 기본 색을 고르면 설정의 색을 따릅니다."
+    },
+    {
+      "locale": "ko",
+      "key": "markColor.custom",
+      "args": {},
+      "text": "사용자 지정 색…"
+    },
+    {
+      "locale": "ko",
+      "key": "markColor.recent",
+      "args": {
+        "name": "<name>"
+      },
+      "text": "<name>(최근 사용)"
+    },
+    {
+      "locale": "ko",
+      "key": "markColor.field",
+      "args": {},
+      "text": "채도와 명도"
+    },
+    {
+      "locale": "ko",
+      "key": "markColor.hue",
+      "args": {},
+      "text": "색상"
+    },
+    {
+      "locale": "ko",
+      "key": "markColor.hex",
+      "args": {},
+      "text": "색상 코드"
+    },
+    {
+      "locale": "ko",
+      "key": "markColor.apply",
+      "args": {},
+      "text": "확인"
     },
     {
       "locale": "ko",
@@ -14569,6 +15295,52 @@
     },
     {
       "locale": "ko",
+      "key": "shell.move.title",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app> 앱을 응용 프로그램 폴더로 이동하세요"
+    },
+    {
+      "locale": "ko",
+      "key": "shell.move.why",
+      "args": {
+        "where": "diskImage",
+        "app": "<app>"
+      },
+      "text": "<app> 앱을 디스크 이미지에서 직접 열었습니다. 디스크 이미지를 추출하면 앱을 열 수 없게 됩니다."
+    },
+    {
+      "locale": "ko",
+      "key": "shell.move.why",
+      "args": {
+        "where": "something-else",
+        "app": "<app>"
+      },
+      "text": "<app> 앱을 다운로드 폴더 또는 디스크 이미지에서 직접 열었습니다. 이렇게 열면 macOS가 실행할 때마다 앱이 새로운 위치에 있는 것으로 간주하여, 화면을 캡처할 때 시스템 확인 메시지가 계속 나타납니다."
+    },
+    {
+      "locale": "ko",
+      "key": "shell.move.steps",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "종료한 후 <app> 앱을 응용 프로그램 폴더로 드래그하고, 앞으로는 응용 프로그램 폴더에서 여세요."
+    },
+    {
+      "locale": "ko",
+      "key": "shell.move.quit",
+      "args": {},
+      "text": "종료하고 응용 프로그램 폴더 열기"
+    },
+    {
+      "locale": "ko",
+      "key": "shell.move.notNow",
+      "args": {},
+      "text": "지금 안 함"
+    },
+    {
+      "locale": "ko",
       "key": "shell.notFound",
       "args": {
         "path": "<path>"
@@ -14836,7 +15608,13 @@
       "locale": "ko",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "메모 건너뛰기(Esc)"
+      "text": "이 메모 취소(Esc)"
+    },
+    {
+      "locale": "ko",
+      "key": "capture.note.dragTip",
+      "args": {},
+      "text": "끌어서 이동"
     },
     {
       "locale": "ko",
@@ -14903,6 +15681,12 @@
       "key": "capture.tool.undo",
       "args": {},
       "text": "실행 취소(Ctrl Z)"
+    },
+    {
+      "locale": "ko",
+      "key": "capture.tool.delete",
+      "args": {},
+      "text": "선택한 마커 삭제(Delete)"
     },
     {
       "locale": "ko",
@@ -16406,6 +17190,22 @@
       "locale": "pt-BR",
       "key": "markColor.name",
       "args": {
+        "color": "black"
+      },
+      "text": "Preto"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "markColor.name",
+      "args": {
+        "color": "white"
+      },
+      "text": "Branco"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "markColor.name",
+      "args": {
         "color": "something-else"
       },
       "text": "Roxo"
@@ -16423,6 +17223,44 @@
       "key": "markColor.title",
       "args": {},
       "text": "Altera apenas a cor com que a marcação é desenhada (área de visualização, instantâneos, imagens), não a nota. Escolha a cor padrão para usar a das Configurações."
+    },
+    {
+      "locale": "pt-BR",
+      "key": "markColor.custom",
+      "args": {},
+      "text": "Cor personalizada…"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "markColor.recent",
+      "args": {
+        "name": "<name>"
+      },
+      "text": "<name> (recente)"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "markColor.field",
+      "args": {},
+      "text": "Saturação e brilho"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "markColor.hue",
+      "args": {},
+      "text": "Matiz"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "markColor.hex",
+      "args": {},
+      "text": "Código hexadecimal"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "markColor.apply",
+      "args": {},
+      "text": "OK"
     },
     {
       "locale": "pt-BR",
@@ -16860,6 +17698,52 @@
     },
     {
       "locale": "pt-BR",
+      "key": "shell.move.title",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Mova o <app> para a pasta Aplicativos"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.move.why",
+      "args": {
+        "where": "diskImage",
+        "app": "<app>"
+      },
+      "text": "O <app> foi aberto diretamente da imagem de disco. Depois que a imagem de disco for ejetada, ele não poderá mais ser aberto."
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.move.why",
+      "args": {
+        "where": "something-else",
+        "app": "<app>"
+      },
+      "text": "O <app> foi aberto diretamente da pasta Downloads ou da imagem de disco. Quando é aberto assim, o macOS o trata como se estivesse em um local novo a cada vez, por isso a confirmação do sistema para capturar a tela continua aparecendo."
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.move.steps",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Depois de encerrar o <app>, arraste-o para a pasta Aplicativos e, a partir de agora, abra-o por lá."
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.move.quit",
+      "args": {},
+      "text": "Encerrar e Abrir Aplicativos"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.move.notNow",
+      "args": {},
+      "text": "Agora Não"
+    },
+    {
+      "locale": "pt-BR",
       "key": "shell.notFound",
       "args": {
         "path": "<path>"
@@ -17181,7 +18065,13 @@
       "locale": "pt-BR",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "Pular a nota (Esc)"
+      "text": "Cancelar esta nota (Esc)"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "capture.note.dragTip",
+      "args": {},
+      "text": "Arraste para mover"
     },
     {
       "locale": "pt-BR",
@@ -17248,6 +18138,12 @@
       "key": "capture.tool.undo",
       "args": {},
       "text": "Desfazer (Ctrl Z)"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "capture.tool.delete",
+      "args": {},
+      "text": "Excluir a marcação selecionada (Delete)"
     },
     {
       "locale": "pt-BR",
@@ -18751,6 +19647,22 @@
       "locale": "ru",
       "key": "markColor.name",
       "args": {
+        "color": "black"
+      },
+      "text": "Чёрный"
+    },
+    {
+      "locale": "ru",
+      "key": "markColor.name",
+      "args": {
+        "color": "white"
+      },
+      "text": "Белый"
+    },
+    {
+      "locale": "ru",
+      "key": "markColor.name",
+      "args": {
         "color": "something-else"
       },
       "text": "Фиолетовый"
@@ -18768,6 +19680,44 @@
       "key": "markColor.title",
       "args": {},
       "text": "Меняет только цвет отображения метки (холст, снимки, изображения), но не заметку. Выберите цвет по умолчанию, чтобы метка использовала цвет из параметров."
+    },
+    {
+      "locale": "ru",
+      "key": "markColor.custom",
+      "args": {},
+      "text": "Другой цвет…"
+    },
+    {
+      "locale": "ru",
+      "key": "markColor.recent",
+      "args": {
+        "name": "<name>"
+      },
+      "text": "<name> (недавний)"
+    },
+    {
+      "locale": "ru",
+      "key": "markColor.field",
+      "args": {},
+      "text": "Насыщенность и яркость"
+    },
+    {
+      "locale": "ru",
+      "key": "markColor.hue",
+      "args": {},
+      "text": "Оттенок"
+    },
+    {
+      "locale": "ru",
+      "key": "markColor.hex",
+      "args": {},
+      "text": "HEX-код"
+    },
+    {
+      "locale": "ru",
+      "key": "markColor.apply",
+      "args": {},
+      "text": "ОК"
     },
     {
       "locale": "ru",
@@ -19259,6 +20209,52 @@
     },
     {
       "locale": "ru",
+      "key": "shell.move.title",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Переместите <app> в папку «Программы»"
+    },
+    {
+      "locale": "ru",
+      "key": "shell.move.why",
+      "args": {
+        "where": "diskImage",
+        "app": "<app>"
+      },
+      "text": "Приложение <app> открыто непосредственно с образа диска. После извлечения образа диска его нельзя будет открыть."
+    },
+    {
+      "locale": "ru",
+      "key": "shell.move.why",
+      "args": {
+        "where": "something-else",
+        "app": "<app>"
+      },
+      "text": "Приложение <app> открыто непосредственно из папки «Загрузки» или с образа диска. При таком способе открытия macOS каждый раз считает, что приложение находится в новом месте, поэтому системное подтверждение при захвате экрана появляется снова и снова."
+    },
+    {
+      "locale": "ru",
+      "key": "shell.move.steps",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "После завершения работы перетащите приложение <app> в папку «Программы» и в дальнейшем открывайте его оттуда."
+    },
+    {
+      "locale": "ru",
+      "key": "shell.move.quit",
+      "args": {},
+      "text": "Завершить и открыть «Программы»"
+    },
+    {
+      "locale": "ru",
+      "key": "shell.move.notNow",
+      "args": {},
+      "text": "Не сейчас"
+    },
+    {
+      "locale": "ru",
       "key": "shell.notFound",
       "args": {
         "path": "<path>"
@@ -19580,7 +20576,13 @@
       "locale": "ru",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "Пропустить заметку (Esc)"
+      "text": "Отменить эту заметку (Esc)"
+    },
+    {
+      "locale": "ru",
+      "key": "capture.note.dragTip",
+      "args": {},
+      "text": "Перетащите, чтобы переместить"
     },
     {
       "locale": "ru",
@@ -19647,6 +20649,12 @@
       "key": "capture.tool.undo",
       "args": {},
       "text": "Отменить (Ctrl Z)"
+    },
+    {
+      "locale": "ru",
+      "key": "capture.tool.delete",
+      "args": {},
+      "text": "Удалить выбранную метку (Delete)"
     },
     {
       "locale": "ru",
@@ -21150,6 +22158,22 @@
       "locale": "zh-CN",
       "key": "markColor.name",
       "args": {
+        "color": "black"
+      },
+      "text": "黑色"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "markColor.name",
+      "args": {
+        "color": "white"
+      },
+      "text": "白色"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "markColor.name",
+      "args": {
         "color": "something-else"
       },
       "text": "紫色"
@@ -21167,6 +22191,44 @@
       "key": "markColor.title",
       "args": {},
       "text": "仅改变标记的显示颜色（画面、截图、图片），不影响批注内容；选默认颜色即跟随设置"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "markColor.custom",
+      "args": {},
+      "text": "自定义颜色…"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "markColor.recent",
+      "args": {
+        "name": "<name>"
+      },
+      "text": "<name>（最近使用）"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "markColor.field",
+      "args": {},
+      "text": "饱和度和亮度"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "markColor.hue",
+      "args": {},
+      "text": "色相"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "markColor.hex",
+      "args": {},
+      "text": "色号"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "markColor.apply",
+      "args": {},
+      "text": "确定"
     },
     {
       "locale": "zh-CN",
@@ -21604,6 +22666,52 @@
     },
     {
       "locale": "zh-CN",
+      "key": "shell.move.title",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "请把<app>移到「应用程序」文件夹"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.move.why",
+      "args": {
+        "where": "diskImage",
+        "app": "<app>"
+      },
+      "text": "<app>现在是直接从安装盘里打开的，推出安装盘后就打不开了。"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.move.why",
+      "args": {
+        "where": "something-else",
+        "app": "<app>"
+      },
+      "text": "<app>现在是从「下载」或安装盘里直接打开的。这样打开时，macOS 每次都把它当成放在一个新的位置，截图时系统的确认会反复出现。"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.move.steps",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "退出后，把<app>拖进「应用程序」文件夹，以后从「应用程序」里打开。"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.move.quit",
+      "args": {},
+      "text": "退出并打开「应用程序」"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.move.notNow",
+      "args": {},
+      "text": "这次仍从这里打开"
+    },
+    {
+      "locale": "zh-CN",
       "key": "shell.notFound",
       "args": {
         "path": "<path>"
@@ -21871,7 +22979,13 @@
       "locale": "zh-CN",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "不写批注（Esc）"
+      "text": "取消这条批注（Esc）"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "capture.note.dragTip",
+      "args": {},
+      "text": "拖动可移动"
     },
     {
       "locale": "zh-CN",
@@ -21938,6 +23052,12 @@
       "key": "capture.tool.undo",
       "args": {},
       "text": "撤销（Ctrl Z）"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "capture.tool.delete",
+      "args": {},
+      "text": "删除选中的标记（Delete）"
     },
     {
       "locale": "zh-CN",
@@ -22931,6 +24051,22 @@
       "locale": "zh-TW",
       "key": "markColor.name",
       "args": {
+        "color": "black"
+      },
+      "text": "黑色"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "markColor.name",
+      "args": {
+        "color": "white"
+      },
+      "text": "白色"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "markColor.name",
+      "args": {
         "color": "something-else"
       },
       "text": "紫色"
@@ -22948,6 +24084,44 @@
       "key": "markColor.title",
       "args": {},
       "text": "僅變更標記的顯示顏色（畫面、截圖、圖片），不影響批註內容；選擇預設顏色即跟隨設定"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "markColor.custom",
+      "args": {},
+      "text": "自訂顏色…"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "markColor.recent",
+      "args": {
+        "name": "<name>"
+      },
+      "text": "<name>（最近使用）"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "markColor.field",
+      "args": {},
+      "text": "飽和度和亮度"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "markColor.hue",
+      "args": {},
+      "text": "色相"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "markColor.hex",
+      "args": {},
+      "text": "色碼"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "markColor.apply",
+      "args": {},
+      "text": "確定"
     },
     {
       "locale": "zh-TW",
@@ -23385,6 +24559,52 @@
     },
     {
       "locale": "zh-TW",
+      "key": "shell.move.title",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "請將<app>移到「應用程式」資料夾"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.move.why",
+      "args": {
+        "where": "diskImage",
+        "app": "<app>"
+      },
+      "text": "<app>目前是直接從磁碟映像檔開啟的，推出磁碟映像檔後就無法再開啟了。"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.move.why",
+      "args": {
+        "where": "something-else",
+        "app": "<app>"
+      },
+      "text": "<app>目前是直接從「下載項目」或磁碟映像檔開啟的。以這種方式開啟時，macOS 每次都會把它當成放在一個新的位置，因此截圖時系統的確認會反覆出現。"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.move.steps",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "結束後，請將<app>拖進「應用程式」資料夾，之後都從「應用程式」開啟。"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.move.quit",
+      "args": {},
+      "text": "結束並開啟「應用程式」"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.move.notNow",
+      "args": {},
+      "text": "這次仍從這裡開啟"
+    },
+    {
+      "locale": "zh-TW",
       "key": "shell.notFound",
       "args": {
         "path": "<path>"
@@ -23652,7 +24872,13 @@
       "locale": "zh-TW",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "不寫批註（Esc）"
+      "text": "取消這則批註（Esc）"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "capture.note.dragTip",
+      "args": {},
+      "text": "拖曳即可移動"
     },
     {
       "locale": "zh-TW",
@@ -23719,6 +24945,12 @@
       "key": "capture.tool.undo",
       "args": {},
       "text": "復原（Ctrl Z）"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "capture.tool.delete",
+      "args": {},
+      "text": "刪除選取的標記（Delete）"
     },
     {
       "locale": "zh-TW",

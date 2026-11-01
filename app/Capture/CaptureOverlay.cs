@@ -63,7 +63,8 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
     readonly Border textBox;
     readonly TextBox textInput;
 
-    readonly List<(Border button, Func<bool> on, bool primary)> toolButtons = [];
+    /// <summary>The toolbar buttons and their state: on = selected (blue), enabled = can be clicked now (null = always)</summary>
+    readonly List<(Border button, Func<bool> on, bool primary, Func<bool>? enabled)> toolButtons = [];
 
     /// <param name="defaultColor">The mark color in Settings</param>
     /// <param name="defaultCategory">The default category for new notes (Settings → Annotations → Default category)</param>
@@ -132,6 +133,11 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
         (noteBox, noteInput) = BuildNoteEditor();
         root.Children.Add(noteBox);
 
+        picker = BuildPicker();
+        root.Children.Add(picker);
+        // Working in the note box puts the color picker away (a press anywhere outside it closes it, as on the canvas and the toolbar)
+        noteBox.PreviewMouseLeftButtonDown += (_, _) => ClosePicker();
+
         if (selectHint)
         {
             magHint = Txt(KeepWords.Of(string.Join("\n", Locale.T("capture.hint.drag"), Locale.T("capture.hint.click"), Locale.T("capture.hint.esc"))), 12, Text2);
@@ -160,7 +166,14 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
         PreviewKeyDown += (_, e) =>
         {
             // In case the IME got it first: ImeProcessedKey is the key actually pressed
-            if (state.Press(e.Key switch { Key.System => e.SystemKey, Key.ImeProcessed => e.ImeProcessedKey, _ => e.Key }, Keyboard.Modifiers)) e.Handled = true;
+            var key = e.Key switch { Key.System => e.SystemKey, Key.ImeProcessed => e.ImeProcessedKey, _ => e.Key };
+            // While the color picker is open its keys come first (Enter applies, Esc closes); anything else is typed into its color box, never a tool key
+            if (PickerOpen)
+            {
+                if (PickerKey(key)) e.Handled = true;
+                return;
+            }
+            if (state.Press(key, Keyboard.Modifiers)) e.Handled = true;
         };
         Closed += (_, _) => session.OverlayClosed(this);
         SourceInitialized += (_, _) =>
@@ -213,6 +226,12 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
     /// <summary>Left button down (p is already snapped to physical pixels). Returns true = a drag started and the mouse is captured (captured only when the state machine says to drag)</summary>
     bool Down(Point p, int clicks)
     {
+        // A click on the canvas while the color picker is open only closes it (nothing is picked, nothing is drawn)
+        if (PickerOpen)
+        {
+            ClosePicker();
+            return false;
+        }
         if (!state.Down(p, clicks)) return false;
         surface.CaptureMouse();
         return true;
@@ -379,8 +398,8 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
         };
 
         // Bottom row: hint + Cancel + Save. The hint is the same sentence as in the main app's composer; there used to be an extra "Esc skips the note" that did not fit on one line with the two buttons
-        // and was cut off at "Esc skips…", so it moved into the Cancel button's hover tip
-        // Esc only skips this note: rectangles and arrows stay on the image (a screenshot can be drawn on without a note); in the main app Esc cancels the mark along with it (the two sides keep their own behavior)
+        // and was cut off at "Esc skips…", so it moved into the Cancel button's hover tip.
+        // Cancel / Esc take back the mark that opened the box along with the note (as in the main app)
         // When it does not fit, it wraps to two lines (like the main app composer's .composer-hint): it used to be cut with an ellipsis, so in German, French, Spanish, Italian, Portuguese and Russian the "Shift Enter for a new line" half was invisible
         var hint = Txt(KeepWords.Of(Locale.T("composer.keys")), 12, Muted);
         hint.TextWrapping = TextWrapping.Wrap;
@@ -398,10 +417,9 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
         foot.Children.Add(noteCancel);
         foot.Children.Add(noteSave);
 
-        noteTitle.Margin = new Thickness(0, 0, 0, 8);
         // Inner width 336 (box width 360, same as the main window's composer): the four categories in Italian, German, Russian and Portuguese need a bit over 320, and at a width of 340 the last one was clipped
         var stack = new StackPanel { Width = 336 };
-        stack.Children.Add(noteTitle);
+        stack.Children.Add(BuildNoteHandle());
         stack.Children.Add(segGroup);
         stack.Children.Add(field);
         stack.Children.Add(foot);
@@ -462,6 +480,7 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
         notePlaceholder.Text = KeepWords.Of(Locale.T(state.NoteFor is null ? "capture.note.placeholder" : "capture.note.placeholderMarks"));
         noteInput.Text = text;
         PaintNoteButtons();
+        noteMoved = false; // a new box opens next to its own mark again
         noteBox.Visibility = Visibility.Visible;
         noteBox.UpdateLayout();
         PlaceNote();
@@ -496,11 +515,101 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
     {
         noteBox.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         var size = noteBox.DesiredSize;
+        if (noteMoved)
+        {
+            // Dragged somewhere by hand: it stays there (only kept on the display when it grows taller)
+            MoveNoteTo(new Point(Canvas.GetLeft(noteBox), Canvas.GetTop(noteBox)));
+            return;
+        }
         Rect anchor = state.NoteFor is { } m ? Inflate(m.Bounds, 12) : new Rect(Canvas.GetLeft(toolbar), Canvas.GetTop(toolbar), toolbar.ActualWidth, toolbar.ActualHeight);
         var at = OverlayGeometry.NoteAt(anchor, size, full);
         Canvas.SetLeft(noteBox, at.X);
         Canvas.SetTop(noteBox, at.Y);
     }
+
+    // ---------- Moving the note box: drag its title row (when it covers what still needs marking) ----------
+
+    /// <summary>The note box was dragged since it opened: it no longer follows its mark (reset when it opens again)</summary>
+    bool noteMoved;
+    Point noteDragFrom;
+    Point noteBoxFrom;
+
+    /// <summary>The title row: "Note 1 · 2 marks" + a grip. Pressing anywhere on it and dragging moves the box; the pointer shows a four-way arrow over it</summary>
+    Border BuildNoteHandle()
+    {
+        var grip = new Canvas { Width = 16, Height = 16, Background = Brushes.Transparent, ToolTip = Tip(Locale.T("capture.note.dragTip")) };
+        foreach (var (x, y) in new[] { (6, 4), (10, 4), (6, 8), (10, 8), (6, 12), (10, 12) })
+        {
+            var dot = new Ellipse { Width = 2.2, Height = 2.2, Fill = Solid(Muted) };
+            Canvas.SetLeft(dot, x - 1.1);
+            Canvas.SetTop(dot, y - 1.1);
+            grip.Children.Add(dot);
+        }
+        var row = new Grid();
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        Grid.SetColumn(grip, 1);
+        row.Children.Add(noteTitle);
+        row.Children.Add(grip);
+        var handle = Named(new Border
+        {
+            Child = row,
+            Background = Brushes.Transparent,
+            Cursor = Cursors.SizeAll,
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(4, 2, 2, 2),
+            Margin = new Thickness(-4, -2, -2, 6),
+        }, "note-handle", null);
+        handle.MouseEnter += (_, _) => handle.Background = Solid(Hover);
+        handle.MouseLeave += (_, _) =>
+        {
+            if (!handle.IsMouseCaptured) handle.Background = Brushes.Transparent;
+        };
+        handle.MouseLeftButtonDown += (_, e) =>
+        {
+            e.Handled = true;
+            ClosePicker();
+            noteDragFrom = MouseAt(e);
+            noteBoxFrom = new Point(Canvas.GetLeft(noteBox), Canvas.GetTop(noteBox));
+            handle.CaptureMouse();
+        };
+        handle.MouseMove += (_, e) =>
+        {
+            if (!handle.IsMouseCaptured) return;
+            noteMoved = true;
+            MoveNoteTo(noteBoxFrom + (MouseAt(e) - noteDragFrom));
+        };
+        handle.MouseLeftButtonUp += (_, e) =>
+        {
+            e.Handled = true;
+            handle.ReleaseMouseCapture();
+        };
+        handle.LostMouseCapture += (_, _) =>
+        {
+            if (!handle.IsMouseOver) handle.Background = Brushes.Transparent;
+            // Typing continues right after the drag
+            if (state.NoteOpen) noteInput.Focus();
+        };
+        return handle;
+    }
+
+    /// <summary>Puts the note box's top-left corner at p, kept whole on this display (4 from the edges), on whole pixels</summary>
+    void MoveNoteTo(Point p)
+    {
+        var size = noteBox.DesiredSize;
+        var x = Math.Clamp(p.X, full.Left + 4, Math.Max(full.Left + 4, full.Right - 4 - size.Width));
+        var y = Math.Clamp(p.Y, full.Top + 4, Math.Max(full.Top + 4, full.Bottom - 4 - size.Height));
+        var at = Snap(new Point(x, y));
+        Canvas.SetLeft(noteBox, at.X);
+        Canvas.SetTop(noteBox, at.Y);
+    }
+
+    /// <summary>Where the mouse is for this event, in this layer's DIPs (with the shell tests' fake displays: the injected position, see CaptureOverlay.TestHooks.cs)</summary>
+#if TEST_HOOKS
+    Point MouseAt(MouseEventArgs e) => RealInput ? e.GetPosition(root) : testMouse;
+#else
+    Point MouseAt(MouseEventArgs e) => e.GetPosition(root);
+#endif
 
     // ---------- Text tool (text written on the image) ----------
 
@@ -584,6 +693,8 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
         row.Children.Add(IconButton("overall", Icons.Overall, Locale.T("capture.tool.overall"), state.ToggleOverall, () => state.NoteOpen && state.NoteFor is null));
         row.Children.Add(Separator());
         row.Children.Add(IconButton("undo", Icons.Undo, Locale.T("capture.tool.undo"), state.Undo, () => false));
+        // Deletes the mark picked by a click (grayed out until one is picked); same as Delete / Backspace
+        row.Children.Add(IconButton("delete", Icons.Trash, Locale.T("capture.tool.delete"), state.DeletePicked, () => false, () => state.Picked is not null));
         row.Children.Add(IconButton("cancel", Icons.Close, Locale.T("capture.tool.cancel"), session.RequestCancel, () => false));
         row.Children.Add(DoneButton());
         return row;
@@ -597,7 +708,7 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
         return element;
     }
 
-    Border IconButton(string id, string[] icon, string tip, Action click, Func<bool> on)
+    Border IconButton(string id, string[] icon, string tip, Action click, Func<bool> on, Func<bool>? enabled = null)
     {
         var canvas = new Canvas { Width = 16, Height = 16 };
         foreach (var d in icon)
@@ -615,8 +726,12 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
             });
         }
         var b = Named(new Border { Width = 32, Height = 32, CornerRadius = new CornerRadius(6), Child = canvas, Background = Brushes.Transparent, ToolTip = Tip(tip) }, id, tip);
-        Wire(b, click);
-        toolButtons.Add((b, on, false));
+        // A grayed-out button is only drawn faded (Paint): its tooltip still says what it is for, and a click does nothing
+        Wire(b, () =>
+        {
+            if (enabled?.Invoke() != false) click();
+        });
+        toolButtons.Add((b, on, false, enabled));
         return b;
     }
 
@@ -639,7 +754,7 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
         var tip = Locale.T("capture.doneTip");
         var b = Named(new Border { Height = 32, Padding = new Thickness(10, 0, 12, 0), Margin = new Thickness(4, 0, 0, 0), CornerRadius = new CornerRadius(6), Child = row, Background = Solid(AccentFill), ToolTip = Tip(tip) }, "done", tip);
         Wire(b, session.Finish);
-        toolButtons.Add((b, () => false, true));
+        toolButtons.Add((b, () => false, true, null));
         return b;
     }
 
@@ -651,14 +766,15 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
         b.MouseLeftButtonUp += (_, e) =>
         {
             e.Handled = true;
+            ClosePicker(); // any toolbar action puts the color picker away first
             click();
         };
     }
 
-    /// <summary>Toolbar button backgrounds: the current tool = blue background with a white icon, hover = one step lighter</summary>
+    /// <summary>Toolbar button backgrounds: the current tool = blue background with a white icon, hover = one step lighter; a button that cannot be used now is faded and does not light up</summary>
     void Paint()
     {
-        foreach (var (b, on, primary) in toolButtons)
+        foreach (var (b, on, primary, enabled) in toolButtons)
         {
             var isOn = on();
             if (primary)
@@ -666,11 +782,14 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
                 b.Background = Solid(b.IsMouseOver ? AccentFillHover : AccentFill);
                 continue;
             }
-            b.Background = isOn ? Solid(AccentFill) : b.IsMouseOver ? Solid(Hover) : Brushes.Transparent;
+            var usable = enabled?.Invoke() != false;
+            var hover = usable && b.IsMouseOver;
+            b.Opacity = usable ? 1 : 0.35;
+            b.Background = isOn ? Solid(AccentFill) : hover ? Solid(Hover) : Brushes.Transparent;
             if (b.Child is Canvas c)
                 foreach (var path in c.Children.OfType<Path>())
                 {
-                    var ink = Solid(isOn ? Colors.White : b.IsMouseOver ? Text : Text2);
+                    var ink = Solid(isOn ? Colors.White : hover ? Text : Text2);
                     if (path.Stroke is not null) path.Stroke = ink;
                     if (path.Fill is not null) path.Fill = ink;
                 }
@@ -709,18 +828,86 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
         for (var i = 0; i < ToolPrefs.Colors.Length; i++)
         {
             var c = ToolPrefs.Colors[i];
-            var on = c == current;
-            var swatch = new Ellipse { Width = 14, Height = 14, Fill = Solid(c), Stroke = on ? Brushes.White : null, StrokeThickness = 2 };
-            var tip = Locale.T("capture.colorTip", ("name", ToolPrefs.Name(c)), ("n", i + 1));
-            var b = Named(new Border { Width = 28, Height = 28, CornerRadius = new CornerRadius(6), Child = swatch, Background = Brushes.Transparent, ToolTip = Tip(tip) }, $"color-{Hex(c)}", ToolPrefs.Name(c));
-            b.MouseLeftButtonUp += (_, e) =>
-            {
-                e.Handled = true;
-                state.SetColor(c);
-            };
-            b.MouseLeftButtonDown += (_, e) => e.Handled = true;
-            subbarItems.Children.Add(b);
+            subbarItems.Children.Add(SwatchButton(c, c == current, Locale.T("capture.colorTip", ("name", ToolPrefs.Name(c)), ("n", i + 1))));
         }
+        // After a separator: the custom colors picked lately (shared with the main window, kept across restarts) and the button that opens the color picker.
+        // A current color that is neither a preset nor recent (picked mark drawn in an older custom color) is lit here too, so the row always shows what is in use
+        subbarItems.Children.Add(Separator());
+        var recent = session.RecentColors.ToList();
+        if (!ToolPrefs.Colors.Contains(current) && !recent.Contains(current)) recent.Insert(0, current);
+        foreach (var c in recent.Take(Settings.RecentColorsMax)) subbarItems.Children.Add(SwatchButton(c, c == current, Locale.T("markColor.recent", ("name", ToolPrefs.Name(c)))));
+        subbarItems.Children.Add(CustomColorButton(current));
+    }
+
+    /// <summary>One color on the sub-toolbar: a 14 circle; the color in use gets a ring around it with a gap (visible for white and black too)</summary>
+    Border SwatchButton(Color c, bool on, string tip)
+    {
+        var dot = new Grid { Width = 20, Height = 20 };
+        // Black and very dark colors get a faint light edge, or they disappear into the dark panel
+        dot.Children.Add(new Ellipse { Width = 14, Height = 14, Fill = Solid(c), Stroke = ColorMath.OkLightness(c) < 0.3 ? Solid(Color.FromArgb(0x48, 0xff, 0xff, 0xff)) : null, StrokeThickness = 1 });
+        if (on) dot.Children.Add(new Ellipse { Width = 20, Height = 20, Stroke = Solid(Text), StrokeThickness = 1.5 });
+        // A preset is read as its name (the tooltip adds the key); a custom color as its tooltip ("#17a998 (recent)"), the same as in the main window
+        var name = ToolPrefs.Colors.Contains(c) ? ToolPrefs.Name(c) : tip;
+        var b = Named(new Border { Width = 28, Height = 28, CornerRadius = new CornerRadius(6), Child = dot, Background = Brushes.Transparent, ToolTip = Tip(tip) }, $"color-{Hex(c)}", name);
+        b.MouseEnter += (_, _) => b.Background = Solid(Hover);
+        b.MouseLeave += (_, _) => b.Background = Brushes.Transparent;
+        b.MouseLeftButtonDown += (_, e) => e.Handled = true;
+        b.MouseLeftButtonUp += (_, e) =>
+        {
+            e.Handled = true;
+            ClosePicker();
+            state.SetColor(c);
+        };
+        return b;
+    }
+
+    /// <summary>The last button of the color row: a ring of hues; opens the color picker starting from the color in use (clicking it again closes it)</summary>
+    Border CustomColorButton(Color current)
+    {
+        var wheel = new Image { Width = 14, Height = 14, Source = HueWheel() };
+        var dot = new Grid { Width = 20, Height = 20 };
+        dot.Children.Add(wheel);
+        if (PickerOpen) dot.Children.Add(new Ellipse { Width = 20, Height = 20, Stroke = Solid(Text), StrokeThickness = 1.5 });
+        var tip = Locale.T("markColor.custom");
+        var b = Named(new Border { Width = 28, Height = 28, CornerRadius = new CornerRadius(6), Child = dot, Background = Brushes.Transparent, ToolTip = Tip(tip) }, "color-custom", tip);
+        b.MouseEnter += (_, _) => b.Background = Solid(Hover);
+        b.MouseLeave += (_, _) => b.Background = Brushes.Transparent;
+        b.MouseLeftButtonDown += (_, e) => e.Handled = true;
+        b.MouseLeftButtonUp += (_, e) =>
+        {
+            e.Handled = true;
+            if (PickerOpen) ClosePicker();
+            else OpenPicker(current);
+        };
+        return b;
+    }
+
+    static DrawingImage? hueWheel;
+
+    /// <summary>A disc of 24 hue slices (WPF has no conic gradient), the usual sign for "any color"</summary>
+    static DrawingImage HueWheel()
+    {
+        if (hueWheel is not null) return hueWheel;
+        var group = new DrawingGroup();
+        const int Slices = 24;
+        for (var i = 0; i < Slices; i++)
+        {
+            double a0 = i * 2 * Math.PI / Slices - Math.PI / 2, a1 = (i + 1) * 2 * Math.PI / Slices - Math.PI / 2;
+            var slice = new StreamGeometry();
+            using (var g = slice.Open())
+            {
+                g.BeginFigure(new Point(7, 7), true, true);
+                g.LineTo(new Point(7 + 7 * Math.Cos(a0), 7 + 7 * Math.Sin(a0)), true, false);
+                g.ArcTo(new Point(7 + 7 * Math.Cos(a1), 7 + 7 * Math.Sin(a1)), new Size(7, 7), 0, false, SweepDirection.Clockwise, true, false);
+            }
+            var fill = Solid(ColorMath.FromHsv(i * 360.0 / Slices, 0.75, 1));
+            // A hairline of the same color closes the seams between slices
+            group.Children.Add(new GeometryDrawing(fill, new Pen(fill, 0.4), slice));
+        }
+        group.Freeze();
+        hueWheel = new DrawingImage(group);
+        hueWheel.Freeze();
+        return hueWheel;
     }
 
     // ---------- Magnifier ----------
@@ -857,6 +1044,7 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
         {
             toolbar.Visibility = Visibility.Collapsed;
             subbar.Visibility = Visibility.Collapsed;
+            picker.Visibility = Visibility.Collapsed; // the color picker belongs to the color row
             return;
         }
         Paint();
@@ -876,6 +1064,10 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
             Canvas.SetLeft(subbar, sub.X);
             Canvas.SetTop(subbar, sub.Y);
         }
+        // The color picker goes with the color row: closed when the row is gone (tool put down, mark no longer picked), otherwise kept next to it
+        if (!PickerOpen) return;
+        if (sb.Height > 0) PlacePicker();
+        else picker.Visibility = Visibility.Collapsed;
     }
 
     // ---------- What the state machine needs from the window (the rest of IOverlayView; the input-box members are in their own sections above) ----------
@@ -929,7 +1121,7 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
     public CaptureResult Result()
     {
         state.CommitOpenEdits();
-        var marks = state.Marks;
+        var marks = state.Finished();
         return new CaptureResult(mon, state.Sel ?? full, marks.ToList(), state.Overall, state.OverallCategory, pixelated ?? (marks.Any(m => m.Kind == Tool.Mosaic) ? MarkPainter.Pixelate(mon.Shot, scale) : null), full);
     }
 
@@ -1049,6 +1241,7 @@ static class Icons
     public static readonly string[] Note = ["M8 14 C8 14 12.5 9.9 12.5 6.6 A4.5 4.5 0 0 0 3.5 6.6 C3.5 9.9 8 14 8 14 Z", "M9.6 6.6 A1.6 1.6 0 1 1 6.4 6.6 A1.6 1.6 0 1 1 9.6 6.6 Z"];
     public static readonly string[] Overall = ["M3 3.5 H13 A1 1 0 0 1 14 4.5 V10.5 A1 1 0 0 1 13 11.5 H7 L4 14 V11.5 H3 A1 1 0 0 1 2 10.5 V4.5 A1 1 0 0 1 3 3.5 Z", "M5 6.5 H11 M5 8.5 H9"];
     public static readonly string[] Undo = ["M5 4 L2.5 6.5 L5 9", "M2.5 6.5 H10 A3.5 3.5 0 0 1 10 13.5 H7"];
+    public static readonly string[] Trash = ["M3 4.5 H13 M6.5 4.5 V3 H9.5 V4.5 M4.5 4.5 L5.1 12.7 A1 1 0 0 0 6.1 13.5 H9.9 A1 1 0 0 0 10.9 12.7 L11.5 4.5"];
     public static readonly string[] Close = ["M4.5 4.5 L11.5 11.5 M11.5 4.5 L4.5 11.5"];
     public static readonly string[] Check = ["M3 8.5 L6.2 11.5 L13 4.5"];
 }

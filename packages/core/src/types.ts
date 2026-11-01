@@ -112,11 +112,31 @@ export interface Annotation {
 export const isMarkColor = (v: unknown): v is string => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
 
 /**
- * The preset mark colors in Settings, the context menu and the capture overlay (in order = number keys 1–6), and their names (the options
- * of the message markColor.name)
+ * The preset mark colors in Settings, the context menu and the capture overlay (in order = number keys 1–8), and their names (the options
+ * of the message markColor.name). Any other #rrggbb can be picked as a custom color
  */
-export const MARK_COLORS: readonly string[] = ["#ff6a3d", "#ff4d6d", "#ffc233", "#3ddc84", "#5b8cff", "#b07cff"];
-export const MARK_COLOR_NAMES: readonly string[] = ["orange", "red", "yellow", "green", "blue", "purple"];
+export const MARK_COLORS: readonly string[] = ["#ff6a3d", "#ff4d6d", "#ffc233", "#3ddc84", "#5b8cff", "#b07cff", "#000000", "#ffffff"];
+export const MARK_COLOR_NAMES: readonly string[] = ["orange", "red", "yellow", "green", "blue", "purple", "black", "white"];
+
+/**
+ * A mark color too light for a white number on it (white, very pale custom colors): such numbers use dark text. The test is OKLab
+ * lightness above 0.9, so the preset yellow (about 0.85) keeps white text. The shell uses the same rule (ColorMath.IsLight), and the
+ * UI's CSS the same threshold (oklch lightness); tests/golden/light-colors.json holds the cases both check
+ */
+export const isLightMark = (color: string): boolean => isMarkColor(color) && markLightness(color) > 0.9;
+
+/** OKLab lightness (0 black – 1 white) of a #rrggbb color */
+export function markLightness(color: string): number {
+  const lin = (i: number) => {
+    const x = parseInt(color.slice(i, i + 2), 16) / 255;
+    return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+  };
+  const [r, g, b] = [lin(1), lin(3), lin(5)];
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s;
+}
 
 /**
  * The color each place of a note is drawn in: the place's own, else the note's; undefined if neither (it follows the mark color in

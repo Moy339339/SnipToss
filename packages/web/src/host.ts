@@ -210,6 +210,13 @@ interface Methods {
   copyImages: [{ items: HandoffImageItem[]; extra: string }, { count: number }];
   getPrefs: [void, Record<string, unknown> | null];
   setPrefs: [{ prefs: object }, void];
+  /**
+   * The custom mark colors picked lately (#rrggbb, newest first, at most 4): shown after the preset colors here and on the capture overlay.
+   * Kept by the shell, not in the prefs, because Screen Capture adds to it too
+   */
+  recentColors: [void, string[]];
+  /** A custom color was picked: it moves to the front of the recent colors (a preset is ignored); returns the list after the change */
+  addRecentColor: [{ color: string }, string[]];
   appInfo: [void, AppInfo];
   /** path: an absolute path; "@settings" = the settings file; "@app" = the app folder */
   reveal: [{ path: string }, void];
@@ -386,6 +393,8 @@ type HostEvents = {
    * of a SettingsDialog section
    */
   openSettings: { section: string };
+  /** The recent custom colors changed (a color picked on the capture overlay, or in this window): the color rows show the new list */
+  recentColors: { colors: string[] };
   /** Mac: an item of the native menu bar was chosen; `version` is the version of the setMenus it was in (menuModel.ts) */
   menuCommand: NativeCommand;
   /** After startup the shell found a new version automatically (checked at most once a day, can be turned off in Settings): shown in the title bar */

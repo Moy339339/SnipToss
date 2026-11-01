@@ -1,3 +1,4 @@
+import { isLightMark } from "@sniptoss/core";
 import type { Tool } from "./annotate";
 
 // Mouse cursors for the annotation tools. A crosshair feels too "engineering", so it is replaced by a rounded pointer plus a small tool
@@ -25,7 +26,8 @@ function pointerSvg(color: string, glyph: string) {
     `<path d="${POINTER}" fill="${color}" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>` +
     `<circle cx="18.5" cy="18.5" r="7.8" fill="${HALO}"/>` +
     `<circle cx="18.5" cy="18.5" r="7" fill="#fff"/>` +
-    `<g transform="translate(13.7 13.7) scale(0.6)" fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${glyph}</g>`
+    // On a light mark color (white) the icon in the white circle would vanish: it is drawn dark instead (same as the capture overlay)
+    `<g transform="translate(13.7 13.7) scale(0.6)" fill="none" stroke="${isLightMark(color) ? "#141416" : color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${glyph}</g>`
   );
 }
 

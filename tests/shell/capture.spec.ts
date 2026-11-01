@@ -60,7 +60,14 @@ type Layer = {
   text: { text: string; size: number; color: string; box: Box } | null;
   toolbar: Box | null;
   subbar: Box | null;
-  buttons: { id: string; name: string; on: boolean | null }[];
+  /** The color picker opened by the hue disc: the color it shows (rrggbb) and its digits box */
+  picker: { color: string; digits: string; box: Box; field: Box; hue: Box } | null;
+  /** The recent custom colors (shared with the main window), newest first */
+  recent: string[];
+  /** The note box was dragged by its title row since it opened */
+  noteMoved: boolean;
+  /** enabled: whether a toolbar button can be clicked now (null for other buttons) */
+  buttons: { id: string; name: string; on: boolean | null; enabled: boolean | null }[];
   warn: { text: string; box: Box } | null;
 };
 type State = { open: boolean; overlays: Layer[] };
@@ -365,10 +372,10 @@ test("Multiple monitors: a selection lives on one monitor; pressing on another h
   expect(b.sel).toEqual({ x: 0, y: 0, width: 1280, height: 720 }); // no windows: a single click = the whole monitor
   expect(b.all[0].sel).toBeNull();
   expect(b.all[0].toolbar).toBeNull();
-  // back to the first monitor: select and draw a box (locks it)
+  // back to the first monitor: select and draw a box with its note (locks it)
   await run(shell, [{ op: "right", x: 50, y: 50 }], 1);
   await select(shell);
-  await run(shell, [{ op: "key", key: "R" }, { op: "drag", from: [250, 250], to: [350, 350] }, { op: "key", key: "Escape" }]);
+  await run(shell, [{ op: "key", key: "R" }, { op: "drag", from: [250, 250], to: [350, 350] }, { op: "type", text: "框" }, { op: "key", key: "Enter" }]);
   b = await run(shell, [{ op: "drag", from: [100, 100], to: [500, 400] }], 1);
   expect(b.sel).toBeNull();
   expect(b.owner).toBe(false);
@@ -572,8 +579,8 @@ test("With a tool picked a drag inside the box draws while handles within 6 of t
   // The half of the handle outside the box resizes (also works with a tool picked)
   o = await run(shell, [{ op: "drag", from: [1004, 404], to: [1100, 500] }]);
   expect(o.sel).toEqual({ x: 700, y: 100, width: 400, height: 400 });
-  // A drag inside the box = draw a rectangle
-  o = await run(shell, [{ op: "drag", from: [750, 150], to: [850, 250] }, { op: "key", key: "Escape" }]);
+  // A drag inside the box = draw a rectangle (with its note: a rectangle without one is not kept)
+  o = await run(shell, [{ op: "drag", from: [750, 150], to: [850, 250] }, { op: "type", text: "框" }, { op: "key", key: "Enter" }]);
   expect(o.marks.map((m) => m.kind)).toEqual(["rect"]);
   expect(o.locked).toBe(true);
   expect(o.handles).toBe(false);
@@ -612,6 +619,7 @@ test("Toolbar: right-aligned under the selection, above it when there's no room 
     ["note", "图钉：单击放置标记并填写批注（C）"],
     ["overall", "整体意见：不指定位置（N）"],
     ["undo", "撤销（Ctrl Z）"],
+    ["delete", "删除选中的标记（Delete）"],
     ["cancel", "取消截图（Esc）"],
     ["done", "完成并复制到剪贴板（Enter 或双击选区）"],
   ]);
@@ -628,7 +636,7 @@ test("Toolbar: right-aligned under the selection, above it when there's no room 
   expect(o.toolbar!.x).toBe(4);
 });
 
-test("Sub-toolbar: only when a drawing tool is picked; three thicknesses (none for Pin), six colors (none for Pixelate); Text has font sizes; each tool remembers its own step", async ({
+test("Sub-toolbar: only when a drawing tool is picked; three thicknesses (none for Pin), eight colors and the hue disc (none for Pixelate); Text has font sizes; each tool remembers its own step", async ({
   shell,
 }) => {
   await shell.launch();
@@ -636,7 +644,17 @@ test("Sub-toolbar: only when a drawing tool is picked; three thicknesses (none f
   let o = await select(shell);
   expect(o.subbar).toBeNull();
   const ids = (l: Layer) => l.buttons.filter((b) => b.id.startsWith("size") || b.id.startsWith("color")).map((b) => (b.name ? `${b.id}:${b.name}` : b.id));
-  const colors = ["color-ff6a3d:橙色", "color-ff4d6d:红色", "color-ffc233:黄色", "color-3ddc84:绿色", "color-5b8cff:蓝色", "color-b07cff:紫色"];
+  const colors = [
+    "color-ff6a3d:橙色",
+    "color-ff4d6d:红色",
+    "color-ffc233:黄色",
+    "color-3ddc84:绿色",
+    "color-5b8cff:蓝色",
+    "color-b07cff:紫色",
+    "color-000000:黑色",
+    "color-ffffff:白色",
+    "color-custom:自定义颜色…",
+  ];
   o = await run(shell, [{ op: "click", id: "rect" }]);
   expect(ids(o)).toEqual(["size-0:粗细 2", "size-1:粗细 4", "size-2:粗细 6", ...colors]);
   expect(o.size).toBe(2);
@@ -675,10 +693,16 @@ test("Clicking a tool picks it or puts it down; a tool key always picks; thickne
   expect(o.tool).toBe("none");
   o = await run(shell, [{ op: "key", key: "A" }, { op: "key", key: "A" }]);
   expect(o.tool).toBe("arrow");
-  o = await run(shell, [{ op: "drag", from: [250, 250], to: [400, 300] }, { op: "key", key: "Escape" }, { op: "click", id: "size-2" }, { op: "click", id: "color-b07cff" }]);
+  o = await run(shell, [
+    { op: "drag", from: [250, 250], to: [400, 300] },
+    { op: "type", text: "箭头" },
+    { op: "key", key: "Enter" },
+    { op: "click", id: "size-2" },
+    { op: "click", id: "color-b07cff" },
+  ]);
   expect(o.marks[0]).toMatchObject({ kind: "arrow", size: 2, color: "3ddc84" });
   expect([o.size, o.color]).toEqual([6, "b07cff"]);
-  await run(shell, [{ op: "key", key: "Escape" }]); // no note written: one press cancels
+  await run(shell, [{ op: "key", key: "Escape" }, { op: "key", key: "Escape" }]); // a note was written: the first press warns, the second cancels
   await closed(shell);
   // Next time: still purple (remembered for this run)
   await open(shell);
@@ -708,23 +732,21 @@ test("Rectangle, ellipse, arrow, pen: the note box pops up after drawing; Shift 
   let o = await run(shell, [{ op: "key", key: "R" }, { op: "drag", from: [250, 250], to: [350, 300], shift: true }]);
   expect(o.marks[0]).toMatchObject({ kind: "rect", points: [[250, 250], [350, 350]], size: 2 });
   expect(o.note!.title).toBe("批注 1");
+  // Each one gets its note (saved with Enter) before the next is drawn: a mark left without a note is not kept
+  const save = (text: string) => [{ op: "type", text }, { op: "key", key: "Enter" }];
   // A square near the bottom-right of the selection: the side is clamped into the selection
-  o = await run(shell, [{ op: "key", key: "Escape" }, { op: "key", key: "O" }, { op: "drag", from: [550, 450], to: [700, 480], shift: true }]);
+  o = await run(shell, [...save("一"), { op: "key", key: "O" }, { op: "drag", from: [550, 450], to: [700, 480], shift: true }]);
   expect(o.marks[1]).toMatchObject({ kind: "ellipse", points: [[550, 450], [600, 500]] });
   // Dragged outside the selection: clamped at the selection edge
-  o = await run(shell, [{ op: "key", key: "Escape" }, { op: "key", key: "A" }, { op: "drag", from: [300, 400], to: [900, 900] }]);
+  o = await run(shell, [...save("二"), { op: "key", key: "A" }, { op: "drag", from: [300, 400], to: [900, 900] }]);
   expect(o.marks[2]).toMatchObject({ kind: "arrow", points: [[300, 400], [600, 500]] });
-  o = await run(shell, [
-    { op: "key", key: "Escape" },
-    { op: "key", key: "B" },
-    { op: "drag", from: [220, 220], to: [260, 240], steps: 4 },
-  ]);
+  o = await run(shell, [...save("三"), { op: "key", key: "B" }, { op: "drag", from: [220, 220], to: [260, 240], steps: 4 }]);
   expect(o.marks[3].kind).toBe("pen");
   expect(o.marks[3].points.length).toBe(5);
   expect(o.note).not.toBeNull();
   // Too small: a box narrower than 4, an arrow shorter than 8, a pen click without moving: none are kept and no note box pops up
   o = await run(shell, [
-    { op: "key", key: "Escape" },
+    ...save("四"),
     { op: "key", key: "R" },
     { op: "drag", from: [400, 220], to: [403, 300] },
     { op: "key", key: "A" },
@@ -910,40 +932,42 @@ test("Numbers: only notes with text get one, in drawing order, renumbered after 
     { op: "key", key: "Enter" },
     { op: "key", key: "O" },
     { op: "drag", from: [450, 220], to: [550, 260] },
-    { op: "key", key: "Escape" }, // no note written: the ellipse stays and has no number
+    { op: "key", key: "Escape" }, // no note written: the ellipse goes with it and takes no number
     { op: "key", key: "A" },
     { op: "drag", from: [400, 400], to: [500, 300] },
   ]);
   expect(o.note!.title).toBe("批注 2"); // preview number = existing numbers + 1
-  expect(o.marks[2]).toMatchObject({ pending: 2, badge: [400, 400] }); // an arrow's number is at its tail
+  expect(o.marks[1]).toMatchObject({ kind: "arrow", pending: 2, badge: [400, 400] }); // an arrow's number is at its tail
   o = await run(shell, [{ op: "type", text: "二" }, { op: "key", key: "Enter" }, { op: "key", key: "B" }, { op: "drag", from: [300, 450], to: [380, 480] }]);
   o = await run(shell, [{ op: "type", text: "三" }, { op: "key", key: "Enter" }]);
   expect(o.marks.map((m) => [m.kind, m.number])).toEqual([
     ["rect", 1],
-    ["ellipse", 0],
     ["arrow", 2],
     ["pen", 3],
   ]);
   expect(o.marks[0].badge).toEqual([210, 210]);
-  expect(o.marks[1].badge).toBeNull();
-  expect(o.marks[3].badge).toEqual([300, 450]); // the pen's is at the start of the stroke
-  // Click number 1: hand cursor, brings back the text; save it emptied: the box stays, the number goes, and later ones move up
+  expect(o.marks[2].badge).toEqual([300, 450]); // the pen's is at the start of the stroke
+  // Click number 1: hand cursor, brings back the text; save it emptied: the note goes with its box, and later ones move up
   o = await run(shell, [{ op: "move", x: 212, y: 212 }]);
   expect(o.cursor).toBe("hand");
   o = await run(shell, [{ op: "down", x: 212, y: 212 }, { op: "up" }]);
   expect(o.note).toMatchObject({ title: "批注 1", text: "一" });
   o = await run(shell, [{ op: "type", text: "", replace: true }, { op: "key", key: "Enter" }]);
   expect(o.marks.map((m) => [m.kind, m.number])).toEqual([
-    ["rect", 0],
-    ["ellipse", 0],
     ["arrow", 1],
     ["pen", 2],
   ]);
-  // Undo removes the last one: numbers are reassigned; adding one more, the new number is 2
+  // Undo brings that note back (it was the last step) with its number; the next undo removes the last mark, and a new one takes the next number
   o = await run(shell, [{ op: "key", key: "Z", ctrl: true }]);
-  expect(o.marks.map((m) => m.number)).toEqual([0, 0, 1]);
+  expect(o.marks.map((m) => [m.kind, m.number, m.note])).toEqual([
+    ["rect", 1, "一"],
+    ["arrow", 2, "二"],
+    ["pen", 3, "三"],
+  ]);
+  o = await run(shell, [{ op: "key", key: "Z", ctrl: true }]);
+  expect(o.marks.map((m) => m.number)).toEqual([1, 2]);
   o = await run(shell, [{ op: "key", key: "C" }, { op: "down", x: 550, y: 450 }, { op: "up" }, { op: "type", text: "四" }, { op: "key", key: "Enter" }]);
-  expect(o.marks.map((m) => m.number)).toEqual([0, 0, 1, 2]);
+  expect(o.marks.map((m) => m.number)).toEqual([1, 2, 3]);
 });
 
 test("One note, several marks: with the note box open, the Pin tool and boxes keep adding marks under the same number (the title shows the count); Alt+Z removes the last; the text for AI lists the places (ADR-0009)", async ({
@@ -1009,10 +1033,18 @@ test("Clicking a mark to change its color: with the note box open it selects tha
   o = await run(shell, [{ op: "type", text: "这处改成圆角，黄色那处去掉" }, { op: "key", key: "Enter" }]);
   expect([o.note, o.picked]).toEqual([null, -1]);
 
-  // A box with no note written: clicking its edge selects it (select only, no note box), 5 turns it blue; Esc puts it down first without cancelling the capture
-  o = await run(shell, [{ op: "key", key: "R" }, { op: "drag", from: [250, 350], to: [350, 450] }, { op: "key", key: "Escape" }, { op: "move", x: 350, y: 400 }]);
-  expect(o.cursor).toBe("hand");
-  o = await run(shell, [{ op: "down", x: 350, y: 400 }, { op: "up" }, { op: "key", key: "D5" }]);
+  // A mark without a note (text): clicking it selects it (select only, no note box), 5 turns it blue; Esc puts it down first without cancelling the capture
+  o = await run(shell, [
+    { op: "key", key: "T" },
+    { op: "down", x: 250, y: 380 },
+    { op: "up" },
+    { op: "type", text: "文字" },
+    { op: "key", key: "Escape" },
+    { op: "click", id: "text" },
+    { op: "move", x: 262, y: 392 },
+  ]);
+  expect([o.tool, o.cursor]).toEqual(["none", "hand"]);
+  o = await run(shell, [{ op: "down", x: 262, y: 392 }, { op: "up" }, { op: "key", key: "D5" }]);
   expect([o.picked, o.marks[2].color, o.note]).toEqual([2, "5b8cff", null]);
   o = await run(shell, [{ op: "key", key: "Escape" }]);
   expect([o.picked, o.open]).toEqual([-1, true]);
@@ -1020,6 +1052,198 @@ test("Clicking a mark to change its color: with the note box open it selects tha
   await run(shell, [{ op: "key", key: "Enter" }]);
   const r = await result(shell);
   expect(r.clipboard!.text).toMatch(/\n1\. 修改 · 2 处：（橙色）位置 [^；]+；（黄色）位置 [^；]+：这处改成圆角，黄色那处去掉\r\n/);
+});
+
+test("Delete (toolbar button, Delete / Backspace): grayed out until a mark is picked; one place of a note goes alone and its box stays, the last place takes the note; undo brings it back; a note whose first place was deleted keeps its number and text on the places left", async ({
+  shell,
+}) => {
+  await shell.launch();
+  await shell.ask("setCaptureSettings", { notesInImage: false });
+  await open(shell);
+  await select(shell);
+  const del = (l: Layer) => l.buttons.find((b) => b.id === "delete")!;
+  // One note marking three places (the first against the right edge of the selection: its box goes outside, clear of the next clicks)
+  let o = await run(shell, [
+    { op: "key", key: "C" },
+    { op: "down", x: 580, y: 250 },
+    { op: "up" },
+    { op: "down", x: 450, y: 250 },
+    { op: "up" },
+    { op: "down", x: 300, y: 250 },
+    { op: "up" },
+    { op: "type", text: "这三个按钮改成圆角" },
+    { op: "key", key: "Enter" },
+  ]);
+  expect(o.marks.map((m) => m.number)).toEqual([1, 1, 1]);
+  expect(del(o)).toMatchObject({ name: "删除选中的标记（Delete）", enabled: false });
+  // Nothing picked: the grayed-out button and the keys do nothing (the keys go back to the system)
+  o = await run(shell, [{ op: "click", id: "delete" }, { op: "key", key: "Delete" }]);
+  expect([o.marks.length, o.results[1]]).toEqual([3, { handled: false, by: "none" }]);
+  // Clicking the second place opens its note and picks that place: Delete takes only it, and the box stays open
+  o = await run(shell, [{ op: "down", x: 450, y: 250 }, { op: "up" }]);
+  expect([o.note!.title, o.picked, del(o).enabled]).toEqual(["批注 1 · 3 处", 1, true]);
+  o = await run(shell, [{ op: "click", id: "delete" }]);
+  expect([o.note!.title, o.marks.length, o.picked, del(o).enabled]).toEqual(["批注 1 · 2 处", 2, -1, false]);
+  // Undo with the box still open brings that place back
+  o = await run(shell, [{ op: "click", id: "undo" }]);
+  expect([o.note!.title, o.marks.map((m) => m.badge)]).toEqual([
+    "批注 1 · 3 处",
+    [
+      [580, 250],
+      [450, 250],
+      [300, 250],
+    ],
+  ]);
+  // Deleting the first place: the places left keep the note's number (and its text, see the end)
+  o = await run(shell, [{ op: "down", x: 580, y: 250 }, { op: "up" }, { op: "click", id: "delete" }, { op: "key", key: "Enter" }]);
+  expect([o.note, o.marks.map((m) => [m.number, m.badge])]).toEqual([
+    null,
+    [
+      [1, [450, 250]],
+      [1, [300, 250]],
+    ],
+  ]);
+  // A mark without a note (text): a click picks it without opening anything, then Delete or Backspace deletes it; Ctrl+Z brings it back
+  o = await run(shell, [
+    { op: "key", key: "T" },
+    { op: "down", x: 250, y: 400 },
+    { op: "up" },
+    { op: "type", text: "字" },
+    { op: "key", key: "Escape" },
+    { op: "click", id: "text" },
+    { op: "down", x: 256, y: 410 },
+    { op: "up" },
+  ]);
+  expect([o.picked, o.note, del(o).enabled]).toEqual([2, null, true]);
+  o = await run(shell, [{ op: "key", key: "Delete" }]);
+  expect([o.marks.map((m) => m.kind), o.results[0], o.picked]).toEqual([["note", "note"], { handled: true, by: "overlay" }, -1]);
+  o = await run(shell, [{ op: "key", key: "Z", ctrl: true }, { op: "down", x: 256, y: 410 }, { op: "up" }, { op: "key", key: "Back" }]);
+  expect(o.marks.map((m) => m.kind)).toEqual(["note", "note"]);
+  o = await run(shell, [{ op: "key", key: "Z", ctrl: true }]);
+  expect(o.marks.map((m) => m.kind)).toEqual(["note", "note", "text"]);
+  // The note's last place: Delete takes the whole note and closes its box; one undo brings the note back as it was before the box opened
+  o = await run(shell, [{ op: "down", x: 450, y: 250 }, { op: "up" }, { op: "click", id: "delete" }]);
+  expect(o.note!.title).toBe("批注 1");
+  o = await run(shell, [{ op: "down", x: 300, y: 250 }, { op: "up" }, { op: "click", id: "delete" }]);
+  expect([o.note, o.marks.map((m) => m.kind)]).toEqual([null, ["text"]]);
+  o = await run(shell, [{ op: "key", key: "Z", ctrl: true }]);
+  expect(o.marks.map((m) => [m.kind, m.number])).toEqual([
+    ["note", 1],
+    ["note", 1],
+    ["text", 0],
+  ]);
+  // Finished: the note lists the two places left with the text written on the deleted first place
+  await run(shell, [{ op: "key", key: "Enter" }]);
+  const r = await result(shell);
+  expect(r.clipboard!.text).toMatch(/\n1\. 修改 · 2 处：位置 [^；]+；位置 [^；]+：这三个按钮改成圆角\r\n/);
+});
+
+test("A rectangle, ellipse, arrow or pen stroke goes away with its note when nothing is written: Esc, Cancel, a click elsewhere, right-click, Enter on an empty box and Finish leave no mark and unlock the selection; Pixelate and Text stay", async ({
+  shell,
+}) => {
+  await shell.launch();
+  await open(shell);
+  await select(shell);
+  const box = { op: "drag", from: [250, 250], to: [350, 320] };
+  let o = await run(shell, [{ op: "key", key: "R" }, box]);
+  expect([o.note!.title, o.marks.length, o.locked]).toEqual(["批注 1", 1, true]);
+  o = await run(shell, [{ op: "key", key: "Escape" }]);
+  expect([o.note, o.marks.length, o.locked, o.open]).toEqual([null, 0, false, true]);
+  o = await run(shell, [box, { op: "click", id: "note-cancel" }]);
+  expect([o.note, o.marks.length]).toEqual([null, 0]);
+  // A click elsewhere on the canvas saves a note that has text; with none it drops the box (and that click draws nothing)
+  o = await run(shell, [{ op: "key", key: "O" }, box, { op: "down", x: 500, y: 450 }, { op: "up" }]);
+  expect([o.note, o.marks.length]).toEqual([null, 0]);
+  o = await run(shell, [{ op: "key", key: "A" }, box, { op: "right", x: 500, y: 450 }]);
+  expect([o.note, o.marks.length, o.open, o.sel]).toEqual([null, 0, true, { x: 200, y: 200, width: 400, height: 300 }]);
+  o = await run(shell, [{ op: "key", key: "B" }, box, { op: "type", text: "  " }, { op: "key", key: "Enter" }]);
+  expect([o.note, o.marks.length, o.locked]).toEqual([null, 0, false]);
+  // Drawings without a note
+  o = await run(shell, [
+    { op: "key", key: "M" },
+    { op: "drag", from: [450, 260], to: [520, 300] },
+    { op: "key", key: "T" },
+    { op: "down", x: 250, y: 420 },
+    { op: "up" },
+    { op: "type", text: "字" },
+    { op: "key", key: "Escape" },
+  ]);
+  expect(o.marks.map((m) => m.kind)).toEqual(["mosaic", "text"]);
+  // Finish with an empty box open: its rectangle is not in the image, and with no notes it is a plain screenshot
+  o = await run(shell, [{ op: "key", key: "R" }, box, { op: "click", id: "done" }]);
+  expect(o.open).toBe(false);
+  const r = await result(shell, [[50, 70]]);
+  expect(r.pixels).toEqual([color(250, 270)]);
+  expect(r.shown[0].title).toBe("截图\n已添加到剪贴板");
+});
+
+test("More colors: 7 and 8 are black and white; the hue disc after the colors opens the color picker on the color in use; Esc closes only it; typed digits + Enter use the color and add it to the recent colors (shared with the main window, kept for the next capture and after a restart); dragging the hue strip and field picks as it goes; a click on the canvas only closes it; with a mark picked only that mark changes", async ({
+  shell,
+}) => {
+  await shell.launch();
+  await open(shell);
+  await select(shell);
+  const row = (l: Layer) => l.buttons.filter((b) => b.id.startsWith("color-")).map((b) => b.id);
+  let o = await run(shell, [{ op: "key", key: "R" }, { op: "key", key: "D8" }]);
+  expect(o.color).toBe("ffffff");
+  o = await run(shell, [{ op: "key", key: "D7" }]);
+  expect(o.color).toBe("000000");
+  o = await run(shell, [{ op: "key", key: "D1" }, { op: "click", id: "color-custom" }]);
+  expect(o.picker).toMatchObject({ color: "ff6a3d", digits: "FF6A3D" });
+  // Above the toolbar and the color row (they are below the selection here), clear of both
+  expect(o.picker!.box.y + o.picker!.box.height).toBeLessThanOrEqual(Math.min(o.toolbar!.y, o.subbar!.y) - 8);
+  o = await run(shell, [{ op: "key", key: "Escape" }]);
+  expect([o.picker, o.open, o.color]).toEqual([null, true, "ff6a3d"]);
+  o = await run(shell, [{ op: "click", id: "color-custom" }, { op: "type", text: "17a998", replace: true }, { op: "key", key: "Enter" }]);
+  expect([o.picker, o.color, o.recent]).toEqual([null, "17a998", ["17a998"]]);
+  expect(o.buttons.find((b) => b.id === "color-17a998")?.name).toBe("#17a998（最近使用）");
+  expect(row(o).slice(8)).toEqual(["color-17a998", "color-custom"]);
+  expect(JSON.parse(readFileSync(join(shell.temp, "settings.json"), "utf8")).RecentColors).toEqual(["#17a998"]);
+  // The hue strip, then the field: the middle of the strip is cyan, and the field's top-right corner its pure color (dragged past it: clamped)
+  o = await run(shell, [{ op: "click", id: "color-custom" }]);
+  const { hue, field } = o.picker!;
+  o = await run(shell, [{ op: "drag", from: [hue.x + 4, hue.y + hue.height / 2], to: [hue.x + hue.width / 2, hue.y + hue.height / 2] }]);
+  expect(o.picker!.color).not.toBe("17a998");
+  o = await run(shell, [{ op: "drag", from: [field.x + field.width / 2, field.y + field.height / 2], to: [field.x + field.width + 30, field.y - 30] }]);
+  expect(o.picker).toMatchObject({ color: "00ffff", digits: "00FFFF" });
+  // A click on the canvas only closes it: the color is not used and nothing is drawn
+  o = await run(shell, [{ op: "down", x: 220, y: 220 }, { op: "up" }]);
+  expect([o.picker, o.color, o.marks.length, o.note]).toEqual([null, "17a998", 0, null]);
+  // With a mark picked (a click on its line: no note box) the picker starts from its color and changes only it
+  o = await run(shell, [
+    { op: "drag", from: [250, 250], to: [350, 320] },
+    { op: "type", text: "框" },
+    { op: "key", key: "Enter" },
+    { op: "click", id: "rect" },
+    { op: "down", x: 350, y: 290 },
+    { op: "up" },
+    { op: "click", id: "color-custom" },
+  ]);
+  expect([o.picked, o.picker!.color]).toEqual([0, "17a998"]);
+  o = await run(shell, [{ op: "type", text: "#8B5A2B", replace: true }, { op: "click", id: "picker-apply" }]);
+  expect([o.picker, o.note, o.marks[0].color, o.color, o.recent]).toEqual([null, null, "8b5a2b", "17a998", ["8b5a2b", "17a998"]]);
+  // Esc: puts the picked mark down, warns (notes were written), cancels
+  await run(shell, [{ op: "key", key: "Escape" }, { op: "key", key: "Escape" }, { op: "key", key: "Escape" }]);
+  await closed(shell);
+  // The main window's UI has the new recent colors at once (the Annotate menu's color row)
+  await shell.page.locator(".menubar").getByRole("menuitem", { name: "批注" }).click();
+  await expect(shell.page.getByRole("menuitemradio", { name: "#8b5a2b（最近使用）", exact: true })).toBeVisible();
+  await shell.page.keyboard.press("Escape");
+  // The next capture and, after a restart, the one after: the color for drawing and the recent colors are still there
+  const again = async () => {
+    await open(shell);
+    await select(shell);
+    o = await run(shell, [{ op: "key", key: "R" }]);
+    expect([o.color, row(o).slice(8)]).toEqual(["17a998", ["color-8b5a2b", "color-17a998", "color-custom"]]);
+    await run(shell, [{ op: "key", key: "Escape" }]);
+    await closed(shell);
+  };
+  await again();
+  const saved = JSON.parse(readFileSync(join(shell.temp, "settings.json"), "utf8"));
+  expect([saved.Capture.ToolColor, saved.Capture.ToolColorOver, saved.RecentColors]).toEqual(["#17a998", "#ff6a3d", ["#8b5a2b", "#17a998"]]);
+  await shell.kill();
+  await shell.launch();
+  await again();
 });
 
 // ---------- 6. Note box ----------
@@ -1041,6 +1265,34 @@ test("Note box: right of the mark, left if there's no room on the right, below i
   for (let i = 0; i < 8; i++) o = await run(shell, [{ op: "type", text: `第 ${i} 行` }, { op: "key", key: "Enter", shift: true }]);
   expect(o.note!.box.y + o.note!.box.height).toBeLessThanOrEqual(712);
   expect(o.note!.box.y).toBeGreaterThanOrEqual(8);
+});
+
+test("Note box: dragging its title row moves it (four-way arrow pointer there); it stays put while more places are marked, is kept whole on the display, and the next note's box opens next to its mark again", async ({
+  shell,
+}) => {
+  await shell.launch();
+  await open(shell);
+  await run(shell, [{ op: "down", x: 640, y: 360 }, { op: "up" }]); // the whole monitor
+  let o = await run(shell, [{ op: "key", key: "R" }, { op: "drag", from: [100, 100], to: [200, 200] }]);
+  expect([o.note!.box.x, o.note!.box.y, o.noteMoved]).toEqual([220, 88, false]);
+  // Where the title row is (a click without moving does not move the box)
+  o = await run(shell, [{ op: "click", id: "note-handle" }]);
+  const h = o.results[0] as { x: number; y: number };
+  expect([o.note!.box.x, o.noteMoved]).toEqual([220, false]);
+  expect((await run(shell, [{ op: "cursorAt", x: h.x, y: h.y }])).results[0]).toBe("sizeall");
+  o = await run(shell, [{ op: "drag", from: [h.x, h.y], to: [h.x + 300, h.y + 250] }]);
+  expect([o.note!.box.x, o.note!.box.y, o.noteMoved, o.captured]).toEqual([520, 338, true, false]);
+  // Typing goes on, and another place marked while the box is open leaves the box where it was put
+  o = await run(shell, [{ op: "type", text: "两处" }, { op: "drag", from: [100, 400], to: [200, 500] }]);
+  expect([o.note!.title, o.note!.text, o.note!.box.x, o.note!.box.y]).toEqual(["批注 1 · 2 处", "两处", 520, 338]);
+  // Dragged far off: kept whole on the display, 4 from its edges
+  const h2 = (await run(shell, [{ op: "click", id: "note-handle" }])).results[0] as { x: number; y: number };
+  o = await run(shell, [{ op: "drag", from: [h2.x, h2.y], to: [h2.x + 5000, h2.y + 5000] }]);
+  expect(o.note!.box.x + o.note!.box.width).toBeCloseTo(1276, 0);
+  expect(o.note!.box.y + o.note!.box.height).toBeCloseTo(716, 0);
+  // Saved; the next note's box opens next to its own mark again
+  o = await run(shell, [{ op: "key", key: "Enter" }, { op: "drag", from: [700, 100], to: [800, 200] }]);
+  expect([o.note!.title, o.note!.box.x, o.note!.box.y, o.noteMoved]).toEqual(["批注 2", 820, 88, false]);
 });
 
 test("Note box: category defaults to the setting and follows the previous note, Alt+1–4 or a click changes it; Enter / Ctrl+Enter / Save / clicking outside save, Shift+Enter breaks the line; Esc / right-click / Cancel write nothing", async ({
@@ -1069,9 +1321,9 @@ test("Note box: category defaults to the setting and follows the previous note, 
   o = await run(shell, [{ op: "down", x: 400, y: 250 }, { op: "up" }, { op: "type", text: "改" }, { op: "right" }]);
   o = await run(shell, [{ op: "down", x: 400, y: 250 }, { op: "up" }, { op: "type", text: "改" }, { op: "click", id: "note-cancel" }]);
   expect(o.marks[1].note).toBe("二");
-  // Esc after drawing a box: the box stays, with no note (a screenshot can have drawings without text)
+  // Esc after drawing a box: the box goes with the note (rectangles, ellipses, arrows and pen strokes exist only with a note, as in the main app)
   o = await run(shell, [{ op: "key", key: "O" }, { op: "drag", from: [450, 400], to: [550, 480] }, { op: "type", text: "不要" }, { op: "key", key: "Escape" }]);
-  expect(o.marks[2]).toMatchObject({ kind: "ellipse", note: "", number: 0 });
+  expect([o.note, o.marks.length]).toEqual([null, 2]);
 });
 
 // ---------- 7. Keyboard and mouse ----------
@@ -1252,12 +1504,13 @@ test("The mouse never gets stuck: after every kind of operation it is released; 
 
 // ---------- 8. Finish and compositing ----------
 
-test("Compositing: with no notes the image is the selection in physical pixels (no dimming or handles in it); marks are drawn into it; the clipboard gets a bitmap (Bgr32) and a PNG, no text", async ({
+test("Compositing: with no notes the image is the selection in physical pixels (no dimming or handles in it, no rectangle left without a note); marks are drawn into it; the clipboard gets a bitmap (Bgr32) and a PNG, no text", async ({
   shell,
 }) => {
   await shell.launch();
   await open(shell);
   await select(shell);
+  // A rectangle whose note box is left with Esc goes with it, so it is not in the image either
   await run(shell, [{ op: "key", key: "R" }, { op: "drag", from: [250, 250], to: [400, 350] }, { op: "key", key: "Escape" }, { op: "key", key: "Enter" }]);
   const r = await result(shell, [
     [0, 0],
@@ -1266,7 +1519,7 @@ test("Compositing: with no notes the image is the selection in physical pixels (
     [100, 100],
   ]);
   expect(r.image).toEqual({ width: 400, height: 300 });
-  expect(r.pixels).toEqual([color(200, 200), color(599, 499), "ff6a3d", color(300, 300)]);
+  expect(r.pixels).toEqual([color(200, 200), color(599, 499), color(250, 300), color(300, 300)]);
   expect(r.clipboard).toEqual({
     formats: ["Bitmap", "PNG"],
     text: null,
@@ -1274,6 +1527,23 @@ test("Compositing: with no notes the image is the selection in physical pixels (
     bitmap: { width: 400, height: 300, format: "Bgr32" },
   });
   expect(r.shown).toEqual([{ kind: "toast", title: "截图\n已添加到剪贴板", detail: "", path: null, error: null }]); // just one line, no second line
+  // Marks are drawn into it: with the notes area turned off the image is still just the selection, and the rectangle's edge has the mark color
+  await shell.ask("setCaptureSettings", { notesInImage: false });
+  await open(shell);
+  await select(shell);
+  await run(shell, [
+    { op: "key", key: "R" },
+    { op: "drag", from: [250, 250], to: [400, 350] },
+    { op: "type", text: "框" },
+    { op: "key", key: "Enter" },
+    { op: "key", key: "Enter" },
+  ]);
+  const marked = await result(shell, [
+    [50, 100],
+    [100, 100],
+  ]);
+  expect(marked.image).toEqual({ width: 400, height: 300 });
+  expect(marked.pixels).toEqual(["ff6a3d", color(300, 300)]);
 });
 
 test("Compositing: with notes a notes area is added below the image (padded with #141416), at least 420 wide; a small selection is enlarged by a whole multiple; the clipboard gets the image only", async ({
@@ -1543,7 +1813,7 @@ test("Captures older than 30 days in the default folder are cleaned up (the olde
 
 // ---------- 10. Regression cases ----------
 
-test("Clicking Overall comment with the note box open saves the note being written first (no text lost, no number left for a note without text); clicking it again closes it", async ({
+test("Clicking Overall comment with the note box open saves the note being written first (no text lost; a new box with nothing written goes with its note and number); clicking it again closes it", async ({
   shell,
 }) => {
   await shell.launch();
@@ -1552,9 +1822,9 @@ test("Clicking Overall comment with the note box open saves the note being writt
   let o = await run(shell, [{ op: "key", key: "R" }, { op: "drag", from: [250, 250], to: [350, 350] }, { op: "type", text: "没保存的字" }, { op: "click", id: "overall" }]);
   expect(o.marks[0]).toMatchObject({ note: "没保存的字", number: 1, pending: 0 });
   expect(o.note).toMatchObject({ overall: true, title: "整体意见（不指定位置）" });
-  // A newly drawn box with nothing written, then Overall comment: the box stays and the preview number is taken back
+  // A newly drawn box with nothing written, then Overall comment: the box goes with its empty note, and the preview number with it
   o = await run(shell, [{ op: "key", key: "Escape" }, { op: "drag", from: [400, 250], to: [500, 350] }, { op: "click", id: "overall" }]);
-  expect(o.marks[1]).toMatchObject({ note: "", number: 0, pending: 0, badge: null });
+  expect([o.marks.length, o.marks[0].number, o.note!.overall]).toEqual([1, 1, true]);
   // Click again while the overall comment is open: done writing, closes
   o = await run(shell, [{ op: "type", text: "整体" }, { op: "click", id: "overall" }]);
   expect([o.note, o.overall]).toEqual([null, "整体"]);
@@ -1569,7 +1839,8 @@ test("Clicking Undo while the text box is open: it undoes the text being written
   let o = await run(shell, [
     { op: "key", key: "R" },
     { op: "drag", from: [250, 250], to: [350, 350] },
-    { op: "key", key: "Escape" },
+    { op: "type", text: "框" },
+    { op: "key", key: "Enter" },
     { op: "key", key: "T" },
     { op: "down", x: 400, y: 400 },
     { op: "up" },
@@ -1591,9 +1862,11 @@ test("Ctrl+Shift+Z is not undo (the overlay has no redo; it used to undo one mor
   const o = await run(shell, [
     { op: "key", key: "R" },
     { op: "drag", from: [250, 250], to: [300, 300] },
-    { op: "key", key: "Escape" },
+    { op: "type", text: "一" },
+    { op: "key", key: "Enter" },
     { op: "drag", from: [350, 250], to: [400, 300] },
-    { op: "key", key: "Escape" },
+    { op: "type", text: "二" },
+    { op: "key", key: "Enter" },
     { op: "key", key: "Z", ctrl: true, shift: true },
   ]);
   expect(o.results.at(-1)).toEqual({ handled: false, by: "none" });

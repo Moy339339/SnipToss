@@ -149,7 +149,7 @@ export function keyName(e: KeyboardEvent, byPosition = true, mac = platform === 
   if (key.length === 1 && /^\p{L}$/u.test(key) && !/^\p{Script=Latin}$/u.test(key)) key = letterOf(e) || key;
   const altGraph = typeof e.getModifierState === "function" && e.getModifierState("AltGraph");
   // Digit keys are recorded by key position: Shift+digit is "Shift+1" and does not become ! ) etc. with the keyboard layout; a bare press
-  // is also the digit (mark colors 1–6): on a French layout a bare press types & é, on Czech + ě, and they still count as 1, 2. Ctrl and
+  // is also the digit (mark colors 1–8): on a French layout a bare press types & é, on Czech + ě, and they still count as 1, 2. Ctrl and
   // Alt combinations still go by the character typed (Ctrl+- on a French layout is that key). While AltGr is held the key position is not
   // used: a symbol is typed (German AltGr+8 = [). When WebView2 reports AltGr, ctrlKey and altKey are both false, and it used to be taken
   // as 8

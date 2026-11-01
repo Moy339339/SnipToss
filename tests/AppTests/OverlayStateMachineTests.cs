@@ -282,10 +282,13 @@ public class OverlayStateMachineTests
         var a = new Layer().Selected();
         a.State.ChooseTool(Tool.Rect);
         a.Drag((250, 250), (300, 300));
+        a.View.NoteDraft = "一";
+        a.State.CommitNote();
+        a.Drag((350, 350), (400, 400));
         Assert.True(a.State.NoteOpen); // the note box pops up after drawing
         a.State.Undo();
         Assert.False(a.State.NoteOpen);
-        Assert.Single(a.State.Marks); // only the note box was cancelled, the rectangle is still there
+        Assert.Single(a.State.Marks); // the note box was cancelled together with the rectangle that opened it; the note written before stays
 
         a.State.ChooseTool(Tool.Text);
         a.Click(400, 400);
@@ -371,7 +374,8 @@ public class OverlayStateMachineTests
         var a = new Layer().Selected();
         a.State.ChooseTool(Tool.Rect);
         a.Drag((250, 250), (300, 300));
-        a.State.CancelNote();
+        a.View.NoteDraft = "框";
+        a.State.CommitNote();
         a.State.ChooseTool(Tool.Rect); // put the tool down
         Assert.False(a.Down(700, 600));
         Assert.Equal(Sel, a.State.Sel);
@@ -413,7 +417,8 @@ public class OverlayStateMachineTests
         var a = new Layer().Selected();
         a.State.ChooseTool(Tool.Rect);
         a.Drag((250, 250), (300, 300));
-        a.State.CancelNote();
+        a.View.NoteDraft = "框";
+        a.State.CommitNote();
         Assert.False(a.Press(Key.Z, ModifierKeys.Control | ModifierKeys.Shift));
         Assert.Single(a.State.Marks);
         Assert.True(a.Press(Key.Z, ModifierKeys.Control));
@@ -482,10 +487,14 @@ public class OverlayStateMachineTests
         a.State.CommitNote();
         Assert.Equal([1, 2], a.State.Marks.Select(m => m.Number));
 
-        a.Down(250, 250); // click the number of note 1 and delete all its text
+        a.Down(250, 250); // click the number of note 1 and delete all its text: the note goes, together with its rectangle
         a.View.NoteDraft = "";
         a.State.CommitNote();
-        Assert.Equal([0, 1], a.State.Marks.Select(m => m.Number));
+        Assert.Equal([1], a.State.Marks.Select(m => m.Number));
+        Assert.Equal("二", a.State.Marks.Single().Note);
+        a.State.Undo(); // it comes back with its number
+        Assert.Equal([1, 2], a.State.Marks.Select(m => m.Number));
+        Assert.Equal("一", a.State.Marks[0].Note);
     }
 
     [Fact]
@@ -618,7 +627,7 @@ public class OverlayStateMachineTests
     }
 
     [Fact]
-    public void Esc_and_saving_empty_remove_the_added_number_pins_keep_the_rectangle_as_a_plain_drawing_and_leave_original_places_alone()
+    public void Esc_removes_the_places_added_while_editing_and_saving_a_saved_note_empty_deletes_it_with_all_its_places_until_undone()
     {
         var a = new Layer().Selected();
         a.State.ChooseTool(Tool.Rect);
@@ -645,12 +654,221 @@ public class OverlayStateMachineTests
         Assert.Same(rect, a.State.NoteFor);
         Assert.Equal(2, a.State.NotePlaces);
 
-        // Deleting all the text and saving means dropping the note: the number pin is removed and the rectangle stays, without a number
+        // Deleting all the text and saving means dropping the note: the rectangle and the number pin go with it (nothing is left behind on the screenshot)
         a.View.NoteDraft = "";
         a.State.CommitNote();
+        Assert.Empty(a.State.Marks);
+        Assert.False(a.State.Locked);
+        // One undo brings back the whole note
+        a.State.Undo();
+        Assert.Equal(2, a.State.Marks.Count);
+        Assert.Equal("两处", rect.Note);
+        Assert.Equal(1, rect.Number);
+    }
+
+    // ---------- Marks exist only with a note: leaving a new one unwritten takes its mark away ----------
+
+    public static TheoryData<string> WaysToLeave => ["click outside", "click inside", "Esc", "Cancel", "right-click", "Enter", "switch to Pixelate", "overall comment", "double-click to finish"];
+
+    [Theory]
+    [MemberData(nameof(WaysToLeave))]
+    public void Leaving_a_new_marks_note_box_without_writing_takes_the_mark_away(string how)
+    {
+        foreach (var tool in new[] { Tool.Rect, Tool.Ellipse, Tool.Arrow, Tool.Pen })
+        {
+            var a = new Layer().Selected();
+            a.State.ChooseTool(tool);
+            a.Drag((250, 250), (330, 320));
+            Assert.True(a.State.NoteOpen);
+            Assert.Single(a.State.Marks);
+            a.View.NoteDraft = "  "; // only spaces count as nothing written
+            switch (how)
+            {
+                case "click outside": a.Click(700, 600); break;
+                case "click inside": a.Click(450, 450); break;
+                case "Esc": Assert.True(a.State.NoteKey(Key.Escape, ModifierKeys.None)); break;
+                case "Cancel": a.State.CancelNote(); break;
+                case "right-click": a.State.Right(); break;
+                case "Enter": Assert.True(a.State.NoteKey(Key.Enter, ModifierKeys.None)); break;
+                case "switch to Pixelate": a.State.ChooseTool(Tool.Mosaic); break;
+                case "overall comment": a.State.ToggleOverall(); break;
+                case "double-click to finish": a.Down(450, 450, 2); break;
+            }
+            Assert.Empty(a.State.Marks);
+            Assert.Null(a.State.NoteFor);
+        }
+    }
+
+    [Fact]
+    public void A_second_place_drawn_into_a_new_note_goes_too_when_the_note_is_left_unwritten()
+    {
+        var a = new Layer().Selected();
+        a.State.ChooseTool(Tool.Rect);
+        a.Drag((250, 250), (300, 300));
+        a.Drag((350, 350), (420, 420)); // the box is still open: another place of the same note
+        Assert.Equal(2, a.State.NotePlaces);
+        a.Click(700, 600);
+        Assert.Empty(a.State.Marks);
+        Assert.False(a.State.Locked); // nothing left, so the selection can be moved and re-selected again
+    }
+
+    // ---------- Deleting a picked mark (the toolbar's Delete, Delete / Backspace) ----------
+
+    [Fact]
+    public void Deleting_a_place_keeps_the_note_until_its_last_place_and_undo_brings_each_back()
+    {
+        var a = new Layer().Selected();
+        a.State.ChooseTool(Tool.Note);
+        a.Click(300, 300);
+        a.Click(400, 300);
+        a.View.NoteDraft = "两处";
+        a.State.CommitNote();
+        var (first, second) = (a.State.Marks[0], a.State.Marks[1]);
+
+        // Clicking the second place opens the note and picks it; Delete takes only that place away and the box stays open
+        a.Click(400, 300);
+        Assert.Same(second, a.State.Picked);
+        a.State.DeletePicked();
+        Assert.True(a.State.NoteOpen);
+        Assert.Equal(1, a.State.NotePlaces);
+        Assert.Same(first, a.State.Marks.Single());
+        Assert.Contains("ShowNotePlaces", a.View.Log); // the title says "1 mark" again and typing continues
+        a.State.Undo(); // with the box open, undo first brings back what was deleted in it
+        Assert.Equal(2, a.State.NotePlaces);
+        a.Click(400, 300);
+        a.State.DeletePicked();
+        Assert.True(a.State.NoteKey(Key.Enter, ModifierKeys.None));
+        Assert.Equal(1, first.Number);
+
+        // Deleting the last place deletes the note (the box closes); undo brings back the note, then the place deleted before
+        a.Click(300, 300);
+        Assert.Same(first, a.State.Picked);
+        a.State.DeletePicked();
+        Assert.False(a.State.NoteOpen);
+        Assert.Empty(a.State.Marks);
+        Assert.False(a.State.HasNotes);
+        a.State.Undo();
+        Assert.Same(first, a.State.Marks.Single());
+        Assert.Equal(1, first.Number);
+        Assert.Equal("两处", first.Note);
+        a.State.Undo();
+        Assert.Equal(2, a.State.Marks.Count);
+    }
+
+    [Fact]
+    public void Esc_in_the_box_brings_back_a_place_deleted_while_it_was_open()
+    {
+        var a = new Layer().Selected();
+        a.State.ChooseTool(Tool.Note);
+        a.Click(300, 300);
+        a.Click(400, 300);
+        a.View.NoteDraft = "两处";
+        a.State.CommitNote();
+        a.Click(400, 300);
+        a.State.DeletePicked();
+        Assert.Single(a.State.Marks);
+        Assert.True(a.State.NoteKey(Key.Escape, ModifierKeys.None));
+        Assert.Equal(2, a.State.Marks.Count);
+        Assert.Equal(2, a.State.Marks.Count(m => m.Head.Number == 1));
+    }
+
+    [Fact]
+    public void Deleting_a_notes_first_place_leaves_the_note_on_the_rest_and_finishing_hands_it_to_the_next_place()
+    {
+        var a = new Layer().Selected();
+        a.State.ChooseTool(Tool.Rect);
+        a.Drag((250, 250), (330, 330));
+        a.State.ChooseTool(Tool.Note);
+        a.Click(450, 400);
+        a.View.NoteDraft = "改成圆角";
+        a.State.CommitNote();
+        a.State.ChooseTool(Tool.Rect);
+        a.Drag((480, 250), (560, 330)); // a second note, so the numbers are 1 and 2
+        a.View.NoteDraft = "第二条";
+        a.State.CommitNote();
+        var (rect, pin, other) = (a.State.Marks[0], a.State.Marks[1], a.State.Marks[2]);
+
+        a.Click(331, 300); // the rectangle's right edge: a line only picks the rectangle, note 1 stays closed
+        Assert.Same(rect, a.State.Picked);
+        Assert.Null(a.State.NoteFor);
+        Assert.True(a.State.Press(Key.Delete, ModifierKeys.None)); // the Delete key reaches the overlay, not a note box
+        Assert.Equal([pin, other], a.State.Marks);
+        Assert.Equal(1, pin.Head.Number); // the pin still shows number 1
+        Assert.Equal(2, other.Number);
+
+        // What is composited: the pin carries the note now, and the numbers are as shown
+        var done = a.State.Finished();
+        Assert.Equal([pin, other], done);
+        Assert.Null(pin.Lead);
+        Assert.Equal("改成圆角", pin.Note);
+        Assert.Equal(1, pin.Number);
+    }
+
+    [Fact]
+    public void Without_a_box_Delete_and_Backspace_delete_the_picked_text_and_nothing_happens_when_nothing_is_picked()
+    {
+        var a = new Layer().Selected();
+        a.State.ChooseTool(Tool.Text);
+        a.Click(300, 300);
+        a.View.TextDraft = "甲";
+        a.State.TextKey(Key.Escape);
+        a.Click(400, 400);
+        a.View.TextDraft = "乙";
+        a.State.TextKey(Key.Escape);
+        Assert.False(a.Press(Key.Delete)); // nothing picked: the key is not used
+        Assert.Equal(2, a.State.Marks.Count);
+        a.State.ChooseTool(Tool.Text); // put the tool down
+        a.Click(302, 305);
+        Assert.Equal("甲", a.State.Picked?.Text);
+        Assert.True(a.Press(Key.Delete));
+        Assert.Equal("乙", a.State.Marks.Single().Text);
+        Assert.Null(a.State.Picked);
+        a.Click(402, 405);
+        Assert.True(a.Press(Key.Back));
+        Assert.Empty(a.State.Marks);
+        a.State.Undo();
+        a.State.Undo();
+        Assert.Equal(["甲", "乙"], a.State.Marks.Select(m => m.Text));
+    }
+
+    [Fact]
+    public void Clicking_a_marks_line_only_picks_it_so_Delete_reaches_the_overlay_while_clicking_its_number_opens_the_note()
+    {
+        var a = new Layer().Selected();
+        a.State.ChooseTool(Tool.Rect);
+        a.Drag((250, 250), (330, 330));
+        a.View.NoteDraft = "改成圆角";
+        a.State.CommitNote();
+        a.State.ChooseTool(Tool.Rect); // put the tool down
+        var rect = a.State.Marks.Single();
+
+        a.Click(331, 300); // the right edge: picked, no note box, so the keys are the overlay's
+        Assert.Same(rect, a.State.Picked);
+        Assert.Null(a.State.NoteFor);
+        Assert.True(a.Press(Key.Delete));
+        Assert.Empty(a.State.Marks); // its only place: the note goes with it
+        a.State.Undo();
         Assert.Same(rect, a.State.Marks.Single());
-        Assert.Equal(0, rect.Number);
-        Assert.Null(rect.Lead);
+        Assert.Equal("改成圆角", rect.Note);
+
+        var badge = rect.BadgeAt; // the number: edit that note
+        a.Click((int)Math.Round(badge.X), (int)Math.Round(badge.Y));
+        Assert.Same(rect, a.State.NoteFor);
+        Assert.Same(rect, a.State.Picked);
+        Assert.False(a.Press(Key.Delete)); // the box is open: Delete edits its text
+        Assert.Same(rect, a.State.Marks.Single());
+    }
+
+    [Fact]
+    public void Keys_7_and_8_are_black_and_white()
+    {
+        var a = new Layer().Selected();
+        Assert.True(a.Press(Key.D7));
+        Assert.Equal(Colors.Black, a.State.Prefs.Color);
+        Assert.True(a.Press(Key.NumPad8));
+        Assert.Equal(Colors.White, a.State.Prefs.Color);
+        Assert.False(a.Press(Key.D9)); // no ninth preset
+        Assert.Equal(8, ToolPrefs.Colors.Length);
     }
 
     // ---------- Clicking a mark changes its color (so a note with several places can refer to them by color) ----------
@@ -695,47 +913,49 @@ public class OverlayStateMachineTests
     }
 
     [Fact]
-    public void Without_the_note_box_clicking_a_marks_line_selects_it_keys_1_to_6_recolor_it_undo_reverts_the_color_first_and_Esc_deselects_first()
+    public void Without_the_note_box_clicking_a_text_selects_it_keys_1_to_8_recolor_it_undo_reverts_the_color_first_and_Esc_deselects_first()
     {
+        // Text is the mark that lives without a note (rectangles, arrows and pen strokes come with one, and clicking them opens it)
         var a = new Layer().Selected();
-        a.State.ChooseTool(Tool.Rect);
-        a.Drag((250, 250), (350, 350));
-        a.State.CancelNote(); // drawn but no note written
-        a.State.ChooseTool(Tool.Arrow);
-        a.Drag((400, 400), (500, 450));
-        a.State.CancelNote();
-        var rect = a.State.Marks[0];
-        Assert.Equal(CursorKind.Hand, CursorAt(a, 351, 300)); // the right edge line of the rectangle
-        Assert.Equal(CursorKind.Tool, CursorAt(a, 300, 300)); // inside the rectangle: a new mark is drawn as usual
-        Assert.False(a.Down(351, 300));
+        a.State.ChooseTool(Tool.Text);
+        a.Click(300, 300);
+        a.View.TextDraft = "甲";
+        a.State.TextKey(Key.Escape);
+        a.Click(400, 400);
+        a.View.TextDraft = "乙";
+        a.State.TextKey(Key.Escape);
+        var text = a.State.Marks[0];
+        Assert.Equal(CursorKind.Hand, CursorAt(a, 305, 305));
+        Assert.Equal(CursorKind.Tool, CursorAt(a, 500, 300)); // blank space: a new mark is drawn as usual
+        Assert.False(a.Down(305, 305));
         a.Up();
-        Assert.Same(rect, a.State.Picked);
+        Assert.Same(text, a.State.Picked);
         Assert.False(a.State.NoteOpen); // a mark without a note is only selected
         Assert.True(a.Press(Key.D5));
-        Assert.Equal(ToolPrefs.Colors[4], rect.Color);
+        Assert.Equal(ToolPrefs.Colors[4], text.Color);
         Assert.True(a.Press(Key.NumPad2));
-        Assert.Equal(ToolPrefs.Colors[1], rect.Color);
+        Assert.Equal(ToolPrefs.Colors[1], text.Color);
         Assert.False(a.Press(Key.D3, ModifierKeys.Control)); // with Ctrl it is not a color change
         Assert.Equal(ToolPrefs.Colors[0], a.State.Prefs.Color);
 
-        // Undo goes one step at a time: the last action was a color change, so it is reverted first; the next undo removes the arrow drawn last
+        // Undo goes one step at a time: the last action was a color change, so it is reverted first; the next undo removes the text written last
         a.State.Undo();
-        Assert.Equal(ToolPrefs.Colors[4], rect.Color);
+        Assert.Equal(ToolPrefs.Colors[4], text.Color);
         a.State.Undo();
-        Assert.Equal(ToolPrefs.Colors[0], rect.Color);
+        Assert.Equal(ToolPrefs.Colors[0], text.Color);
         Assert.Equal(2, a.State.Marks.Count);
         a.State.Undo();
-        Assert.Same(rect, a.State.Marks.Single());
-        Assert.Same(rect, a.State.Picked);
+        Assert.Same(text, a.State.Marks.Single());
+        Assert.Same(text, a.State.Picked);
 
         // Esc: first deselects without cancelling the capture; pressing it again cancels
         Assert.True(a.Press(Key.Escape));
         Assert.Null(a.State.Picked);
         Assert.Empty(a.Host.Log);
-        // With nothing selected, 1–6 set the color for later drawing
+        // With nothing selected, 1–8 set the color for later drawing
         Assert.True(a.Press(Key.D4));
         Assert.Equal(ToolPrefs.Colors[3], a.State.Prefs.Color);
-        Assert.Equal(ToolPrefs.Colors[0], rect.Color);
+        Assert.Equal(ToolPrefs.Colors[0], text.Color);
         Assert.True(a.Press(Key.Escape));
         Assert.Equal(["RequestCancel"], a.Host.Log);
     }

@@ -1,8 +1,9 @@
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import { CATEGORIES, formatTime, type AnnotationCategory } from "@sniptoss/core";
 import { useIntl } from "react-intl";
+import { cssZoom } from "./cssZoom";
 import { afterToolHold } from "./hold";
-import { CloseIcon, PlusIcon, UndoIcon } from "./icons";
+import { CloseIcon, GripIcon, PlusIcon, UndoIcon } from "./icons";
 import { pressesControl, useKeys } from "./keys";
 
 export interface ComposerValue {
@@ -85,6 +86,8 @@ export function Composer(props: {
   onUndoPlace?: () => void;
   /** Can keep marking on the canvas: the input's placeholder talks about that instead */
   keepDrawing?: boolean;
+  /** Goes up when a click on blank canvas left the composer open: focus returns to the input box, so Enter saves as the hint says */
+  refocus?: number;
 }) {
   const intl = useIntl();
   const [category, setCategory] = useState(props.initial.category);
@@ -122,6 +125,43 @@ export function Composer(props: {
     return () => ro.disconnect();
   }, []);
 
+  // Dragging the title row moves the box (it can cover the next thing to mark). Every frame writes the position to the DOM directly; the
+  // position is kept on release and stays put while more places are marked (a new composer opens next to its mark again)
+  const drag = useRef<{ x: number; y: number; left: number; top: number }>(undefined);
+  const moveTo = (e: React.PointerEvent) => {
+    const d = drag.current;
+    const el = box.current;
+    const parent = el?.parentElement;
+    if (!d || !el || !parent) return;
+    // Pointer coordinates are screen pixels, the box's position is in units before the interface size (cssZoom.ts)
+    const z = cssZoom();
+    const x = Math.max(EDGE, Math.min(d.left + (e.clientX - d.x) / z, parent.clientWidth - el.offsetWidth - EDGE));
+    const y = Math.max(EDGE, Math.min(d.top + (e.clientY - d.y) / z, parent.clientHeight - el.offsetHeight - EDGE));
+    el.style.left = `${Math.round(x)}px`;
+    el.style.top = `${Math.round(y)}px`;
+    return { x: Math.round(x), y: Math.round(y) };
+  };
+  const titleDrag = {
+    onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.button !== 0 || (e.target as Element).closest("button")) return;
+      e.preventDefault(); // no text selection while dragging, and the caret stays in the input box
+      e.currentTarget.setPointerCapture(e.pointerId);
+      drag.current = { x: e.clientX, y: e.clientY, left: pos.x, top: pos.y };
+    },
+    onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
+      if (drag.current && e.currentTarget.hasPointerCapture(e.pointerId)) moveTo(e);
+    },
+    onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => {
+      const at = moveTo(e);
+      drag.current = undefined;
+      if (at) setPos(at);
+      text.current?.focus();
+    },
+    onLostPointerCapture: () => {
+      drag.current = undefined;
+    },
+  };
+
   // Drawn while holding a tool key (hold mode): give focus on release, see hold.ts
   useEffect(() => afterToolHold(() => text.current?.focus()), []);
   // Another place was marked on the canvas: focus returns to the input box to keep writing (clicking the canvas moved focus out of it)
@@ -132,6 +172,11 @@ export function Composer(props: {
     lastPlaces.current = places;
     return more ? afterToolHold(() => text.current?.focus()) : undefined;
   }, [places]);
+  // A click on blank canvas that kept the composer (text written, or an existing note being edited) took focus out of it: give it back
+  const refocus = props.refocus ?? 0;
+  useEffect(() => {
+    if (refocus) text.current?.focus();
+  }, [refocus]);
   const undoPlace = () => {
     if (places > 1) props.onUndoPlace?.();
   };
@@ -223,7 +268,7 @@ export function Composer(props: {
       onPointerDown={(e) => e.stopPropagation()}
       onDoubleClick={(e) => e.stopPropagation()}
     >
-      <div className="composer-title">
+      <div className="composer-title" {...titleDrag}>
         <span>{typeof props.title === "function" ? props.title(!!time) : props.title}</span>
         {places > 1 && (
           <span className="composer-places">
@@ -239,6 +284,9 @@ export function Composer(props: {
             </button>
           </span>
         )}
+        <span className="composer-grip" data-tip={intl.formatMessage({ id: "composer.dragTip" })}>
+          <GripIcon />
+        </span>
       </div>
       <div className="segmented" role="radiogroup" aria-label={intl.formatMessage({ id: "composer.category" })}>
         {CATEGORIES.map((c, i) => (

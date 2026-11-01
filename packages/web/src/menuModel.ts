@@ -159,12 +159,15 @@ export function serializeMenus(menus: TopMenu[], platform: Platform): { model: N
         if (shortcut) native.shortcut = shortcut;
         else if (hint.hintText) native.hintText = hint.hintText;
         if (item.swatches) {
-          native.swatches = item.swatches.map((s, k) => {
-            const swatch: NativeSwatch = { id: `${id}.${k}`, label: s.label, color: s.color, checked: s.checked };
-            if (s.key) swatch.key = s.key;
-            actions.set(swatch.id, s.onClick);
-            return swatch;
-          });
+          // The hue disc (custom color) has no color to show in a native list: native menus offer the presets and recent colors only
+          native.swatches = item.swatches
+            .filter((s) => !s.custom)
+            .map((s, k) => {
+              const swatch: NativeSwatch = { id: `${id}.${k}`, label: s.label, color: s.color, checked: s.checked };
+              if (s.key) swatch.key = s.key;
+              actions.set(swatch.id, s.onClick);
+              return swatch;
+            });
         } else {
           actions.set(id, item.onClick);
         }

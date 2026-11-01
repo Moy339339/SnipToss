@@ -154,7 +154,10 @@ sealed partial class CaptureOverlay
     void TestMove(Point p, bool shift)
     {
         testMouse = p;
-        if (TestTarget(p) == surface) MoveTo(p, shift);
+        var target = TestTarget(p);
+        if (target == surface) MoveTo(p, shift);
+        // Something else holds the mouse (the note box's title row, the color picker's field or hue strip): it follows the move, reading the position from testMouse (MouseAt)
+        else if (Mouse.Captured == target) target.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, Environment.TickCount) { RoutedEvent = Mouse.MouseMoveEvent });
     }
 
     void TestUp(Point p)
@@ -180,6 +183,8 @@ sealed partial class CaptureOverlay
     {
         var key = Enum.Parse<Key>(a.GetProperty("key").GetString()!, ignoreCase: true);
         var mods = (Flag(a, "ctrl") ? ModifierKeys.Control : 0) | (Flag(a, "shift") ? ModifierKeys.Shift : 0) | (Flag(a, "alt") ? ModifierKeys.Alt : 0);
+        // Same order as the window's PreviewKeyDown: an open color picker takes the keys first, and lets the rest through to its digits box
+        if (PickerOpen) return new { handled = PickerKey(key), by = "picker" };
         var handled = state.Press(key, mods);
         if (!handled)
         {
@@ -194,7 +199,7 @@ sealed partial class CaptureOverlay
         return new { handled, by = handled ? "overlay" : "none" };
     }
 
-    TextBox? OpenInput() => state.NoteOpen ? noteInput : state.TextOpen ? textInput : null;
+    TextBox? OpenInput() => PickerOpen ? pickerHex : state.NoteOpen ? noteInput : state.TextOpen ? textInput : null;
 
     static void Insert(TextBox box, string text)
     {
@@ -262,8 +267,18 @@ sealed partial class CaptureOverlay
                 : null,
             toolbar = Shown(toolbar),
             subbar = Shown(subbar),
-            // Visible buttons: id, name (tooltip), and whether it is selected (for those on the toolbar)
-            buttons = NamedElements(root).Where(e => e.IsVisible).Select(e => new { id = AutomationProperties.GetAutomationId(e), name = AutomationProperties.GetName(e), on = toolButtons.FirstOrDefault(t => t.button == e).on?.Invoke() }).ToList(),
+            // The color picker: the color it shows now (#rrggbb) and its digits box
+            picker = PickerOpen ? new { color = Hex(pickColor), digits = pickerHex.Text, box = Shown(picker), field = Shown(pickerField), hue = Shown(pickerStrip) } : null,
+            // The recent custom colors (shared with the main window), newest first
+            recent = session.RecentColors.Select(Hex).ToList(),
+            // Where the note box is and whether it was dragged there by hand
+            noteMoved,
+            // Visible buttons: id, name (tooltip), whether it is selected and whether it can be clicked now (for those on the toolbar)
+            buttons = NamedElements(root).Where(e => e.IsVisible).Select(e =>
+            {
+                var t = toolButtons.FirstOrDefault(t => t.button == e);
+                return new { id = AutomationProperties.GetAutomationId(e), name = AutomationProperties.GetName(e), on = t.on?.Invoke(), enabled = t.button is null ? null : (bool?)(t.enabled?.Invoke() != false) };
+            }).ToList(),
             warn = warn is { Visibility: Visibility.Visible } w ? new { text = (w.Child as TextBlock)?.Text, box = Shown(w) } : null,
         };
     }

@@ -122,8 +122,13 @@ $ContextKey = 'HKCU:\Software\Classes\Directory\shell\SnipToss'
 $RunKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 $Cdp = 'http://127.0.0.1:9333'
 
-# How the version is written at the bottom right of the library panel (versionLabel in brand.ts): 1.0.0-beta.84 → Beta 84, 1.0.0 → v1.0.0
-function Label([string]$v) { if ($v -match '-beta\.(\d+)$') { "Beta $($Matches[1])" } else { "v$v" } }
+# How the version is written at the bottom right of the library panel (versionLabel in brand.ts): 1.1.0-beta.2 → v1.1.0 Beta 2, 1.1.0 → v1.1.0.
+# The 1.0.0 betas (only ever started here as the previous version) wrote just "Beta 84"
+function Label([string]$v) {
+    if ($v -match '^1\.0\.0-beta\.(\d+)$') { "Beta $($Matches[1])" }
+    elseif ($v -match '^(\d+\.\d+\.\d+)-beta\.(\d+)$') { "v$($Matches[1]) Beta $($Matches[2])" }
+    else { "v$v" }
+}
 
 function Invoke-Cdp([string]$expression) {
     $targets = Invoke-RestMethod "$Cdp/json" -TimeoutSec 3 -NoProxy

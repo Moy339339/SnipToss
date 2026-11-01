@@ -93,7 +93,8 @@ static class ToolCursors
         dc.DrawEllipse(Brushes.White, null, new Point(18.5, 18.5), 7, 7);
         // The tool icon (16 units) is scaled to 0.6 to fit in the small circle
         dc.PushTransform(new MatrixTransform(0.6, 0, 0, 0.6, 13.7, 13.7));
-        var ink = new SolidColorBrush(color);
+        // On a light mark color (white) the icon in the white circle would vanish: it is drawn dark instead
+        var ink = new SolidColorBrush(ColorMath.IsLight(color) ? ColorMath.DarkInk : color);
         var pen = new Pen(ink, 2.4) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round, LineJoin = PenLineJoin.Round };
         foreach (var d in glyph)
         {

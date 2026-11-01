@@ -98,15 +98,53 @@ function keepText(text: string, neighbors: Neighbors): ReactNode {
 
 const empty = (n: ReactNode) => n === null || n === undefined || typeof n === "boolean" || n === "";
 
+/** Elements that start a line of their own: next to one, a string ends its line as at the end of a block. Only the element type is known
+ * here, so text laid out as a block by a class (a span with display: block) is written as one of these instead */
+const OWN_LINE = new Set([
+  "br",
+  "address",
+  "article",
+  "aside",
+  "blockquote",
+  "dd",
+  "details",
+  "dialog",
+  "div",
+  "dl",
+  "dt",
+  "fieldset",
+  "figcaption",
+  "figure",
+  "footer",
+  "form",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "header",
+  "hr",
+  "li",
+  "main",
+  "nav",
+  "ol",
+  "p",
+  "pre",
+  "section",
+  "table",
+  "ul",
+]);
+
 function keepAll(node: ReactNode): ReactNode {
   // The children in the order Children.map visits them, to see what sits next to each string: the nearest one that isn't empty, unless it
-  // is a line break (<br>)
+  // is a line break (<br>) or a block (div, p, li …)
   const all: ReactNode[] = [];
   Children.forEach(node, (child) => void all.push(child));
   const against = (i: number, step: 1 | -1) => {
     for (let j = i + step; j >= 0 && j < all.length; j += step) {
       const n = all[j];
-      if (!empty(n)) return !(isValidElement(n) && n.type === "br");
+      if (!empty(n)) return !(isValidElement(n) && typeof n.type === "string" && OWN_LINE.has(n.type));
     }
     return false;
   };

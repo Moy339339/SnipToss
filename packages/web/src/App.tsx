@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IntlProvider, useIntl } from "react-intl";
+import { ColorPickerHost } from "./ColorPicker";
 import { BootError, ErrorBoundary } from "./ErrorBoundary";
 import { call, inHost, logError, onHostEvent, platform, type AppInfo } from "./host";
 import { loadMessages, resolveLocale, SOURCE_LOCALE } from "./i18n";
@@ -7,6 +8,7 @@ import { macifyMessages } from "./macKeys";
 import { AlertIcon, CloseIcon } from "./icons";
 import { useKeys } from "./keys";
 import { mergePrefs, PrefsContext, storedPrefs, type Prefs } from "./prefs";
+import { startRecentColors } from "./recentColors";
 import { SECTIONS, SettingsDialog, type Section } from "./SettingsDialog";
 import { ShortcutHelp } from "./ShortcutHelp";
 import { Tooltips } from "./Tooltip";
@@ -157,6 +159,7 @@ export function App() {
 
   useEffect(() => {
     if (!inHost) return;
+    startRecentColors();
     Promise.all([call("getPrefs"), call("appInfo")])
       .then(([saved, info]) => {
         latest.current = mergePrefs(saved as Partial<Prefs> | null);
@@ -267,6 +270,7 @@ export function App() {
             />
           </ErrorBoundary>
         )}
+        <ColorPickerHost />
         {toast && <Toast key={toast.nonce} toast={toast} onDone={clearToast} />}
         <Tooltips />
       </PrefsContext.Provider>
