@@ -114,6 +114,9 @@ sealed partial class Settings
     /// <summary>When the last automatic update check succeeded (UTC): checked at most once a day (Updates)</summary>
     public DateTime? UpdatesCheckedAt { get; set; }
 
+    /// <summary>The new version the user chose to skip (tray → Skip This Version): the automatic check doesn't announce it again; a newer one is announced as usual</summary>
+    public string? UpdateSkipped { get; set; }
+
     /// <summary>How many one-time migrations this settings file has been through (Migrate). Newly created settings are already at the latest; settings files from before have no such item, which counts as 0</summary>
     public int Migrations { get; set; }
 
@@ -255,6 +258,7 @@ sealed partial class Settings
         Capture = target.Capture;
         RecentColors = target.RecentColors;
         UpdatesCheckedAt = target.UpdatesCheckedAt;
+        UpdateSkipped = target.UpdateSkipped;
         Migrations = target.Migrations;
         return !unsaved;
     }

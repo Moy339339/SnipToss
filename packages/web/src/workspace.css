@@ -1288,13 +1288,36 @@
   font-size: var(--fs-caption);
   line-height: var(--lh-caption);
 }
+/* The right of the dialog: the page title fixed at the top, the page's content scrolling below it */
+.settings-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* The page title, level with the dialog's own title on the left (both 16 from the top) and clear of the × in the top right corner.
+   On the same ground and with the same edge line as the column on the left, so the two frame the content: the content scrolls under it
+   instead of running into the dialog's top edge with nothing above it */
+.settings-head {
+  flex: none;
+  padding: 16px 48px 12px 32px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.settings-head h2 {
+  margin: 0;
+  font-size: var(--fs-heading);
+  line-height: var(--lh-heading);
+  font-weight: 600;
+}
 /* Right 24 + an always-present scrollbar 8 = 32: some pages scroll and some do not, and the right column does not jump by 8 when switching pages */
 .settings-body {
   position: relative;
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   scrollbar-gutter: stable;
-  padding: 24px 24px 32px 32px;
+  padding: 8px 24px 32px 32px;
 }
 /* The × at the top right of the dialog: shared by Settings and the confirm dialog */
 .dialog-close {
@@ -1329,18 +1352,9 @@
   color: #fff;
   color: oklch(from var(--mark) clamp(0.2, (0.9 - l) * 1000, 1) 0 0);
 }
-/* The content area's scrollbar starts below the ×, not pressed under it */
-.settings-body::-webkit-scrollbar-track {
-  margin-top: var(--h-bar);
-}
+/* A page's description, the first thing in its content */
 .set-heading {
   margin-bottom: 8px;
-}
-.set-heading h2 {
-  margin: 0;
-  font-size: var(--fs-heading);
-  line-height: var(--lh-heading);
-  font-weight: 600;
 }
 .set-heading p,
 .shortcut-row {

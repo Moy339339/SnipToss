@@ -102,4 +102,23 @@ public class UpdatesTests
         using var broken = new HttpClient(new Fake(HttpStatusCode.OK, "<html>"));
         Assert.NotNull((await Updates.CheckAsync(broken, Updates.ReleasesApi, "1.0.0", default)).Error);
     }
+
+    [Fact]
+    public void The_automatic_check_is_due_when_never_checked_after_20_hours_or_when_the_clock_went_back()
+    {
+        var now = new DateTime(2026, 11, 2, 12, 0, 0, DateTimeKind.Utc);
+        Assert.True(Updates.Due(null, now));
+        Assert.False(Updates.Due(now.AddHours(-1), now));
+        Assert.False(Updates.Due(now.AddHours(-19.9), now));
+        Assert.True(Updates.Due(now.AddHours(-20), now));
+        Assert.True(Updates.Due(now.AddDays(-9), now));
+        // A last check "in the future" (the clock was set back) must not stop checks for good
+        Assert.True(Updates.Due(now.AddHours(3), now));
+    }
+
+    [Theory]
+    [InlineData("1.1.1", "v1.1.1")]
+    [InlineData("1.1.1-beta.2", "v1.1.1 Beta 2")]
+    [InlineData("2.0.0-rc.1", "v2.0.0-rc.1")]
+    public void A_version_is_written_for_people_as_the_UI_writes_it(string version, string label) => Assert.Equal(label, Updates.Label(version));
 }

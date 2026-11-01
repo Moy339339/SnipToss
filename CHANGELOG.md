@@ -4,6 +4,14 @@ All notable changes to SnipToss for Windows are listed here. The format follows 
 
 The annotation data format has its own version (`"schema": "sniptoss/5"`); its history is in [docs/annotation-format.md](docs/annotation-format.md).
 
+## [1.1.1] — 2026-11-02
+
+### Changed
+
+- The update check also runs while SnipToss is open, not only when it starts: shortly after startup and then every hour, still asking GitHub at most once a day. An app that stays in the tray for days, or was started into the tray at sign-in and never had its window opened, now hears about a new version too.
+- A new version is also shown on the tray icon: a small dot, the version in the hover text, and **Download** and **Skip This Version** at the top of its menu. There is no pop-up. Skipping a version hides it everywhere until a newer one comes out, and turning off **Check for updates automatically** in Settings → General hides it as well.
+- Settings: the page title stays in a bar at the top, on the same ground as the list of pages, while the page scrolls under it. The content used to scroll right up to the dialog's top edge with nothing above it.
+
 ## [1.1.0] — 2026-11-02
 
 ### Added
@@ -57,5 +65,6 @@ First public release.
 - Portable version: with a `data` folder next to the app, all data stays in it and the registry is never touched.
 - Command-line tool `sniptoss` (list, review, resolve, wontfix); its messages follow the system display language.
 
+[1.1.1]: https://github.com/Moy339339/SnipToss/releases/tag/v1.1.1
 [1.1.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.0.0

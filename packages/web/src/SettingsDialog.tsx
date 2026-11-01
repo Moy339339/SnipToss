@@ -107,15 +107,22 @@ export function SettingsDialog(props: {
         <button className="dialog-close settings-close" onClick={props.onClose} aria-label={t("settings.close")}>
           <CloseIcon />
         </button>
-        <div className="settings-body">
-          {section === "general" && <General home={props.home} onNotify={props.onNotify} />}
-          {section === "annotate" && <Annotate />}
-          {section === "capture" && <Capture onNotify={props.onNotify} onRecording={setRecording} />}
-          {section === "ai" && <Ai />}
-          {section === "system" && <System onNotify={props.onNotify} />}
-          {section === "keys" && <Keys />}
-          {section === "advanced" && <Advanced onNotify={props.onNotify} onReset={() => setConfirmReset(true)} />}
-          {section === "about" && <About onNotify={props.onNotify} onNotices={() => setNotices(true)} />}
+        {/* The page title stays put above the scrolling content (the content used to scroll right up to the dialog's top edge, cut off with nothing above it).
+            Each page starts at its top: the content area is rebuilt per page */}
+        <div className="settings-main">
+          <div className="settings-head">
+            <h2>{t(`settings.${section}.title`)}</h2>
+          </div>
+          <div className="settings-body" key={section}>
+            {section === "general" && <General home={props.home} onNotify={props.onNotify} />}
+            {section === "annotate" && <Annotate />}
+            {section === "capture" && <Capture onNotify={props.onNotify} onRecording={setRecording} />}
+            {section === "ai" && <Ai />}
+            {section === "system" && <System onNotify={props.onNotify} />}
+            {section === "keys" && <Keys />}
+            {section === "advanced" && <Advanced onNotify={props.onNotify} onReset={() => setConfirmReset(true)} />}
+            {section === "about" && <About onNotify={props.onNotify} onNotices={() => setNotices(true)} />}
+          </div>
         </div>
         {/* Rendered into body (the settings box has an animated transform, and a fixed overlay inside it would move with it); React events still pass through the settings box, so clicking outside it does not close Settings */}
         {confirmReset &&
@@ -186,15 +193,13 @@ function Choice<T extends string | number>(props: { value: T; options: { value: 
   );
 }
 
-function Heading(props: { children: ReactNode; desc?: ReactNode }) {
+/** What a page is for, as the first thing in its content (the page title itself is in the fixed header above the content) */
+function PageDesc(props: { children: ReactNode }) {
   return (
     <div className="set-heading">
-      <h2>{props.children}</h2>
-      {props.desc && (
-        <p className="muted">
-          <KeepPunctuation>{props.desc}</KeepPunctuation>
-        </p>
-      )}
+      <p className="muted">
+        <KeepPunctuation>{props.children}</KeepPunctuation>
+      </p>
     </div>
   );
 }
@@ -341,7 +346,6 @@ function General(props: { home?: string; onNotify: (t: string) => void }) {
   const dataDir = props.home ? homeJoin(props.home, DATA_DIR) : undefined;
   return (
     <>
-      <Heading>{t("settings.general.title")}</Heading>
       <Row
         label={t("settings.general.language")}
         desc={
@@ -440,7 +444,6 @@ function Annotate() {
   );
   return (
     <>
-      <Heading>{t("settings.annotate.title")}</Heading>
       <Row label={t("settings.annotate.category")} desc={t("settings.annotate.categoryDesc")}>
         <Choice
           value={prefs.defaultCategory}
@@ -510,7 +513,6 @@ function Capture(props: { onNotify: (t: string) => void; onRecording: (on: boole
   if (loadError)
     return (
       <>
-        <Heading>{t("settings.capture.title")}</Heading>
         <LoadError reason={loadError} onRetry={load} />
       </>
     );
@@ -525,7 +527,7 @@ function Capture(props: { onNotify: (t: string) => void; onRecording: (on: boole
   };
   return (
     <>
-      <Heading desc={t("settings.capture.desc")}>{t("settings.capture.title")}</Heading>
+      <PageDesc>{t("settings.capture.desc")}</PageDesc>
       {/* Mac only: macOS must allow the app to record the screen before any capture starts */}
       {c.screenAccess !== undefined && (
         <Row
@@ -673,18 +675,12 @@ function Ai() {
   const { prefs, setPrefs } = usePrefs();
   return (
     <>
-      <Heading
-        desc={
-          <>
-            {t("settings.ai.desc")}
-            <br />
-            {/* There is a single rule for the copy scope, worded the same as in shortcuts.md and design.md */}
-            {t("settings.ai.scope")}
-          </>
-        }
-      >
-        {t("settings.ai.title")}
-      </Heading>
+      <PageDesc>
+        {t("settings.ai.desc")}
+        <br />
+        {/* There is a single rule for the copy scope, worded the same as in shortcuts.md and design.md */}
+        {t("settings.ai.scope")}
+      </PageDesc>
       <Row label={t("settings.ai.extra")} wide desc={t("settings.ai.extraDesc")}>
         <textarea
           name="prompt-extra"
@@ -730,7 +726,7 @@ function System(props: { onNotify: (t: string) => void }) {
   };
   return (
     <>
-      <Heading desc={t("settings.system.desc")}>{t("settings.system.title")}</Heading>
+      <PageDesc>{t("settings.system.desc")}</PageDesc>
       {loadError ? (
         <LoadError reason={loadError} onRetry={load} />
       ) : (
@@ -754,7 +750,7 @@ function Keys() {
   const t = useT();
   return (
     <>
-      <Heading desc={t("settings.keys.desc")}>{t("settings.keys.title")}</Heading>
+      <PageDesc>{t("settings.keys.desc")}</PageDesc>
       <div className="keys-grid">
         {SHORTCUT_GROUPS.map((g) => (
           <section key={g.title}>
@@ -789,7 +785,7 @@ function Advanced(props: { onNotify: (t: string) => void; onReset: () => void })
   };
   return (
     <>
-      <Heading desc={t("settings.advanced.desc")}>{t("settings.advanced.title")}</Heading>
+      <PageDesc>{t("settings.advanced.desc")}</PageDesc>
       {infoError && <LoadError reason={infoError} onRetry={loadInfo} />}
 
       <Group title={t("settings.advanced.notes")} />
@@ -984,7 +980,6 @@ function About(props: { onNotify: (t: string) => void; onNotices: () => void }) 
   const open = (url: string) => call("openExternal", { url }).catch((e: Error) => props.onNotify(e.message));
   return (
     <>
-      <Heading>{t("settings.about.title")}</Heading>
       <div className="about-mark">
         <Wordmark size="about" />
       </div>

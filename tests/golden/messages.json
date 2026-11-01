@@ -2442,6 +2442,28 @@
     },
     {
       "locale": "de",
+      "key": "shell.tray.updateTip",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "Eine neue Version ist verfügbar: <version>"
+    },
+    {
+      "locale": "de",
+      "key": "shell.tray.updateDownload",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "<version> herunterladen…"
+    },
+    {
+      "locale": "de",
+      "key": "shell.tray.updateSkip",
+      "args": {},
+      "text": "Diese Version überspringen"
+    },
+    {
+      "locale": "de",
       "key": "shell.dialog.exportDiagnostics",
       "args": {},
       "text": "Diagnosepaket exportieren"
@@ -4896,6 +4918,28 @@
         "reason": "<reason>"
       },
       "text": "<reason>. Click here to open Settings."
+    },
+    {
+      "locale": "en",
+      "key": "shell.tray.updateTip",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "A new version is available: <version>"
+    },
+    {
+      "locale": "en",
+      "key": "shell.tray.updateDownload",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "Download <version>…"
+    },
+    {
+      "locale": "en",
+      "key": "shell.tray.updateSkip",
+      "args": {},
+      "text": "Skip This Version"
     },
     {
       "locale": "en",
@@ -7356,6 +7400,28 @@
     },
     {
       "locale": "es",
+      "key": "shell.tray.updateTip",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "Hay una nueva versión disponible: <version>"
+    },
+    {
+      "locale": "es",
+      "key": "shell.tray.updateDownload",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "Descargar <version>…"
+    },
+    {
+      "locale": "es",
+      "key": "shell.tray.updateSkip",
+      "args": {},
+      "text": "Omitir esta versión"
+    },
+    {
+      "locale": "es",
       "key": "shell.dialog.exportDiagnostics",
       "args": {},
       "text": "Exportar paquete de diagnóstico"
@@ -9810,6 +9876,28 @@
         "reason": "<reason>"
       },
       "text": "<reason>. Cliquez ici pour ouvrir les paramètres."
+    },
+    {
+      "locale": "fr",
+      "key": "shell.tray.updateTip",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "Une nouvelle version est disponible : <version>"
+    },
+    {
+      "locale": "fr",
+      "key": "shell.tray.updateDownload",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "Télécharger <version>…"
+    },
+    {
+      "locale": "fr",
+      "key": "shell.tray.updateSkip",
+      "args": {},
+      "text": "Ignorer cette version"
     },
     {
       "locale": "fr",
@@ -12270,6 +12358,28 @@
     },
     {
       "locale": "it",
+      "key": "shell.tray.updateTip",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "È disponibile una nuova versione: <version>"
+    },
+    {
+      "locale": "it",
+      "key": "shell.tray.updateDownload",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "Scarica <version>…"
+    },
+    {
+      "locale": "it",
+      "key": "shell.tray.updateSkip",
+      "args": {},
+      "text": "Salta questa versione"
+    },
+    {
+      "locale": "it",
       "key": "shell.dialog.exportDiagnostics",
       "args": {},
       "text": "Esporta pacchetto di diagnostica"
@@ -14673,6 +14783,28 @@
     },
     {
       "locale": "ja",
+      "key": "shell.tray.updateTip",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "新しいバージョンがあります：<version>"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.tray.updateDownload",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "<version> をダウンロード…"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.tray.updateSkip",
+      "args": {},
+      "text": "このバージョンをスキップ"
+    },
+    {
+      "locale": "ja",
       "key": "shell.dialog.exportDiagnostics",
       "args": {},
       "text": "診断パッケージのエクスポート"
@@ -17073,6 +17205,28 @@
         "reason": "<reason>"
       },
       "text": "<reason>. 여기를 클릭하면 설정이 열립니다."
+    },
+    {
+      "locale": "ko",
+      "key": "shell.tray.updateTip",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "새 버전이 있습니다: <version>"
+    },
+    {
+      "locale": "ko",
+      "key": "shell.tray.updateDownload",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "<version> 다운로드..."
+    },
+    {
+      "locale": "ko",
+      "key": "shell.tray.updateSkip",
+      "args": {},
+      "text": "이 버전 건너뛰기"
     },
     {
       "locale": "ko",
@@ -19530,6 +19684,28 @@
         "reason": "<reason>"
       },
       "text": "<reason>. Clique aqui para abrir as configurações."
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.tray.updateTip",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "Há uma nova versão disponível: <version>"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.tray.updateDownload",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "Baixar <version>…"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.tray.updateSkip",
+      "args": {},
+      "text": "Pular esta versão"
     },
     {
       "locale": "pt-BR",
@@ -22044,6 +22220,28 @@
     },
     {
       "locale": "ru",
+      "key": "shell.tray.updateTip",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "Доступна новая версия: <version>"
+    },
+    {
+      "locale": "ru",
+      "key": "shell.tray.updateDownload",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "Скачать <version>…"
+    },
+    {
+      "locale": "ru",
+      "key": "shell.tray.updateSkip",
+      "args": {},
+      "text": "Пропустить эту версию"
+    },
+    {
+      "locale": "ru",
       "key": "shell.dialog.exportDiagnostics",
       "args": {},
       "text": "Экспорт пакета диагностики"
@@ -23937,6 +24135,28 @@
     },
     {
       "locale": "zh-CN",
+      "key": "shell.tray.updateTip",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "有新版本：<version>"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.tray.updateDownload",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "下载新版本 <version>…"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.tray.updateSkip",
+      "args": {},
+      "text": "跳过此版本"
+    },
+    {
+      "locale": "zh-CN",
       "key": "shell.dialog.exportDiagnostics",
       "args": {},
       "text": "导出诊断包"
@@ -25827,6 +26047,28 @@
         "reason": "<reason>"
       },
       "text": "<reason>。按一下這裡開啟設定。"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.tray.updateTip",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "有新版本：<version>"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.tray.updateDownload",
+      "args": {
+        "version": "<version>"
+      },
+      "text": "下載新版本 <version>…"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.tray.updateSkip",
+      "args": {},
+      "text": "略過此版本"
     },
     {
       "locale": "zh-TW",

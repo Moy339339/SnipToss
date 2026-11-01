@@ -12,6 +12,7 @@ sealed partial class MainWindow
     void ReleaseBackground()
     {
         hotkey?.Dispose();
+        updateTimer?.Stop();
         tray?.Dispose();
         materials?.Dispose();
         annotationWatch?.Dispose();
@@ -67,6 +68,7 @@ sealed partial class MainWindow
             WarmUpCapture();
         }, Dispatcher);
         warm.Start();
+        StartUpdateChecks();
         // The capture hotkey failed to register (usually another program holds it): a tray balloon says so, and clicking it opens Settings → Screen Capture to pick another.
         // Before, only a red line in the settings page said so, and with autostart and no window open, pressing the hotkey did nothing with no explanation
         if (hotkeyError is not null)
@@ -75,6 +77,24 @@ sealed partial class MainWindow
             tray?.Say(Locale.T("shell.tray.hotkeyFailed"), Locale.T("shell.tray.hotkeyFailedBody", ("reason", hotkeyError)), () => OpenSettings("capture"));
         }
     }
+
+    /// <summary>
+    /// The automatic update check: 10 seconds after startup (whether or not the window is shown), then once an hour; each round checks only when due (AutoCheckUpdatesAsync).
+    /// Before, the only check ran when the UI first loaded, so an app started into the tray at login, or left running for days, never heard of a new version
+    /// </summary>
+    void StartUpdateChecks()
+    {
+        var first = new DispatcherTimer(TimeSpan.FromSeconds(10), DispatcherPriority.Background, (s, e) =>
+        {
+            ((DispatcherTimer)s!).Stop();
+            _ = AutoCheckUpdatesAsync();
+        }, Dispatcher);
+        first.Start();
+        updateTimer = new DispatcherTimer(TimeSpan.FromHours(1), DispatcherPriority.Background, (_, _) => _ = AutoCheckUpdatesAsync(), Dispatcher);
+        updateTimer.Start();
+    }
+
+    DispatcherTimer? updateTimer;
 
     /// <summary>Warms up the capture overlay once the UI is idle (CaptureSession.WarmUp, done only once): after the UI is ready, or 5 seconds after startup (when in the tray), whichever comes first</summary>
     void WarmUpCapture() =>
@@ -116,7 +136,12 @@ sealed partial class MainWindow
     /// </summary>
     void UpdateTray()
     {
-        if (settings.Capture.KeepInTray || StartedInTray) tray ??= new Tray(this);
+        if (settings.Capture.KeepInTray || StartedInTray)
+        {
+            if (tray is not null) return;
+            tray = new Tray(this);
+            if (newerVersion is { } n) tray.ShowUpdate(n);
+        }
         else
         {
             tray?.Dispose();

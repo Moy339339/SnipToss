@@ -229,19 +229,75 @@ sealed partial class MainWindow
     }
 
     /// <summary>
-    /// Automatic update check after startup (Updates): only if enabled in Settings and at least a day since the last check; a new version is sent to the UI (updateAvailable), which shows a hint on the title bar without a popup interruption.
-    /// Not checked in test instances (tests don't go online); if it can't be checked (offline, repository not public) it only logs, and tries again at the next start
+    /// Automatic update check (Updates): only if enabled in Settings and due (at most about once a day, Updates.Due). Run shortly after startup and then every hour while the app runs,
+    /// so an app that stays in the tray for days, or was started into the tray at login and never had its window opened, still hears about a new version.
+    /// Not checked in test instances (tests don't go online); if it can't be checked (offline, repository not public) it only logs, and the next hourly round tries again
     /// </summary>
     async Task AutoCheckUpdatesAsync()
     {
-        if (AppPaths.IsTestInstance || !settings.UpdateCheck) return;
-        if (settings.UpdatesCheckedAt is { } last && DateTime.UtcNow - last < TimeSpan.FromHours(20)) return;
-        await Task.Delay(TimeSpan.FromSeconds(5)); // don't compete with startup
-        var r = await Updates.CheckAsync();
-        Bridge.UpdateReply(r);
-        if (r.Error is not null) return;
-        settings.Update(s => s.UpdatesCheckedAt = DateTime.UtcNow);
-        if (r.Newer is { } n) Post(new { @event = "updateAvailable", version = n.Version, url = n.Url, prerelease = n.Prerelease });
+        if (AppPaths.IsTestInstance || !settings.UpdateCheck || checkingUpdates || !Updates.Due(settings.UpdatesCheckedAt, DateTime.UtcNow)) return;
+        checkingUpdates = true;
+        try
+        {
+            var r = await Updates.CheckAsync();
+            Bridge.UpdateReply(r);
+            if (r.Error is not null) return;
+            settings.Update(s => s.UpdatesCheckedAt = DateTime.UtcNow);
+            if (r.Newer is { } n) UpdateFound(n);
+        }
+        finally
+        {
+            checkingUpdates = false;
+        }
+    }
+
+    bool checkingUpdates;
+
+    /// <summary>The newer version found this run and not skipped (null = none): the UI shows it on the title bar, the tray with a dot on its icon</summary>
+    Updates.Release? newerVersion;
+
+    /// <summary>
+    /// A check found a newer version (also Help → Check for Updates). A version the user skipped from the tray isn't announced again; a newer one is.
+    /// No balloon or sound: a dot on the tray icon and a line on the title bar, both gone once updated, skipped, or the automatic check is turned off
+    /// </summary>
+    internal void UpdateFound(Updates.Release newer)
+    {
+        if (newer.Version == settings.UpdateSkipped) return;
+        newerVersion = newer;
+        tray?.ShowUpdate(newer);
+        PostUpdate();
+    }
+
+    void PostUpdate()
+    {
+        if (newerVersion is { } n) Post(new { @event = "updateAvailable", version = n.Version, url = n.Url, prerelease = n.Prerelease });
+    }
+
+    /// <summary>Tray → Skip This Version: remembered in settings, and the dot and the title-bar line go away until a newer version comes out</summary>
+    internal void SkipUpdate()
+    {
+        if (newerVersion is not { } n) return;
+        settings.Update(s => s.UpdateSkipped = n.Version);
+        ClearUpdate();
+    }
+
+    /// <summary>The automatic check was turned off in Settings: an announcement already shown goes away too</summary>
+    internal void UpdateCheckChanged()
+    {
+        if (!settings.UpdateCheck && newerVersion is not null) ClearUpdate();
+    }
+
+    void ClearUpdate()
+    {
+        newerVersion = null;
+        tray?.ShowUpdate(null);
+        Post(new { @event = "updateDismissed" });
+    }
+
+    /// <summary>Tray → Download: the release page in the browser</summary>
+    internal void OpenUpdate()
+    {
+        if (newerVersion is { } n) Shell.OpenUrl(n.Url);
     }
     /// <summary>This address is our own UI (the packaged ui, or the dev server SNIPTOSS_DEV_URL points at in development)</summary>
     internal static bool IsOwnUi(string uri)
@@ -263,10 +319,11 @@ sealed partial class MainWindow
             pendingSettings = null;
             Post(new { @event = "openSettings", section });
         }
+        // A new version found before the UI was loaded (started into the tray), or before the page reloaded: the title bar shows it too
+        PostUpdate();
         // Performance budget: record how many milliseconds "startup → UI ready" took (when SNIPTOSS_PERF_LOG points at a file)
         if (readyLogged) return;
         readyLogged = true;
-        _ = AutoCheckUpdatesAsync();
         WarmUpCapture();
         var total = (DateTime.Now - Process.GetCurrentProcess().StartTime).TotalMilliseconds;
         Perf.Record(string.Create(CultureInfo.InvariantCulture, $"Process start → UI ready {total:F0} ms ({sinceStart.ElapsedMilliseconds} ms after the window was constructed)"));

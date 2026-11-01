@@ -125,9 +125,13 @@ export class MockHost {
   copiedImages: { home: string; snapshot: string | null; title: string; number: number; category: string; where: string; body: string; color: string; name: string }[][] = [];
   /** What checkUpdates returns: by default no newer version; change it to test "new version" and "can't check" */
   updateResult: { newer: { version: string; url: string; prerelease: boolean } | null; error: string | null } = { newer: null, error: null };
-  /** The shell found a new version by itself after startup (same as the updateAvailable event sent by MainWindow.AutoCheckUpdatesAsync) */
+  /** The shell found a new version by itself (same as the updateAvailable event sent by MainWindow.UpdateFound) */
   announceUpdate(newer: { version: string; url: string; prerelease: boolean }) {
     this.emit({ event: "updateAvailable", ...newer });
+  }
+  /** The version was skipped from the tray, or the automatic check turned off (same as the updateDismissed event sent by MainWindow.ClearUpdate) */
+  dismissUpdate() {
+    this.emit({ event: "updateDismissed" });
   }
   /** Test only: fields laid over the appInfo reply (e.g. a bad value to make the Settings page fail to render) */
   appInfoPatch: Record<string, unknown> = {};

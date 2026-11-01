@@ -397,8 +397,13 @@ type HostEvents = {
   recentColors: { colors: string[] };
   /** Mac: an item of the native menu bar was chosen; `version` is the version of the setMenus it was in (menuModel.ts) */
   menuCommand: NativeCommand;
-  /** After startup the shell found a new version automatically (checked at most once a day, can be turned off in Settings): shown in the title bar */
+  /**
+   * The shell found a new version by itself (shortly after startup, then hourly while running, each time at most once a day; can be turned off in Settings),
+   * or the UI just loaded and one is already known: shown in the title bar
+   */
   updateAvailable: NewerVersion;
+  /** The new version is no longer announced (skipped from the tray, or the automatic check was turned off): the title bar drops it */
+  updateDismissed: Record<string, never>;
 };
 const listeners = new Map<string, Set<(payload: never) => void>>();
 

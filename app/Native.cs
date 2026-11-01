@@ -111,6 +111,9 @@ static class Native
     // ---------- Displays, cursor, screen capture (user32, shcore, gdi32) ----------
 
     [DllImport("user32.dll")]
+    public static extern bool DestroyIcon(IntPtr icon);
+
+    [DllImport("user32.dll")]
     public static extern bool GetCursorPos(out POINT p);
 
     [DllImport("user32.dll")]

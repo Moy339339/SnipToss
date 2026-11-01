@@ -77,6 +77,14 @@ static class TestHooks
         return null;
     }
 
+    /// <summary>As if an update check had found this version (test instances never go online): the same path as a real find (MainWindow.UpdateFound)</summary>
+    public static object? UpdateFound(MainWindow window, JsonElement a)
+    {
+        Check();
+        window.UpdateFound(new Updates.Release(a.GetProperty("version").GetString()!, a.GetProperty("url").GetString()!, false));
+        return null;
+    }
+
     // ---------- Screen Capture: fake monitors, injected mouse and keyboard, reading state, reading results ----------
 
     /// <summary>

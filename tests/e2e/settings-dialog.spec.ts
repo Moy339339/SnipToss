@@ -409,7 +409,7 @@ test("eight tabs: clicking a tab shows its page and lights the current tab; swit
   for (const tab of tabs) {
     await app.page.locator(".settings-tab", { hasText: new RegExp(`^${tab}$`) }).click();
     await expect(onTab(app)).toHaveText(tab);
-    await expect(app.page.locator(".settings-body h2")).toHaveText(tab);
+    await expect(app.page.locator(".settings-head h2")).toHaveText(tab);
   }
   await expect(app.page.locator(".settings-nav-foot")).toHaveText("更改即时生效");
   await expect(settings(app).getByRole("button", { name: /^(确定|保存|取消)$/ })).toHaveCount(0);
@@ -633,7 +633,7 @@ test("recording the capture shortcut: the old one is paused while recording and 
   expect(app.host.hotkeyPaused).toBe(false);
   // Clicking elsewhere cancels in the same way
   await input.click();
-  await app.page.locator(".settings-body h2").click();
+  await app.page.locator(".settings-head h2").click();
   await expect(input.locator("kbd")).toHaveText(["Ctrl", "Alt", "K"]);
   await app.page.keyboard.press("Escape");
   await expect(settings(app)).toHaveCount(0);
@@ -895,4 +895,27 @@ test("third-party notices follow the UI language: the intro and header use the c
   await sheet.getByRole("button", { name: /^react 19\.\S+ MIT$/ }).click();
   await expect(sheet.locator(".notice-source")).toContainText("Quelle");
   await expect(sheet.locator(".notices-text")).toContainText("Permission is hereby granted");
+});
+
+test("The page title stays above the content while it scrolls (the content never runs into the dialog's top edge), on the same ground as the left column; each page starts at its top", async ({
+  app,
+}) => {
+  await app.open();
+  await openSettings(app);
+  const head = app.page.locator(".settings-head");
+  const body = app.page.locator(".settings-body");
+  await expect(head.locator("h2")).toHaveText("常规");
+  // The dialog's opening animation scales it: measure once it has finished
+  await settings(app).evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
+  const before = (await head.boundingBox())!;
+  await body.evaluate((el) => (el.scrollTop = el.scrollHeight));
+  await expect.poll(() => body.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+  expect(await head.boundingBox()).toEqual(before);
+  // The scrolling area begins under the title bar, so scrolled content is cut there rather than at the dialog's edge
+  expect((await body.boundingBox())!.y).toBeGreaterThanOrEqual(before.y + before.height - 1);
+  const ground = (sel: string) => app.page.locator(sel).evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(await ground(".settings-head")).toBe(await ground(".settings-nav"));
+  await app.page.locator(".settings-tab", { hasText: /^高级$/ }).click();
+  await expect(head.locator("h2")).toHaveText("高级");
+  expect(await body.evaluate((el) => el.scrollTop)).toBe(0);
 });

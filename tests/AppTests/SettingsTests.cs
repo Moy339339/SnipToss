@@ -60,6 +60,18 @@ public class SettingsTests
         Settings.LoadFrom(path).Update(s => s.UpdatesCheckedAt = at);
         Assert.Equal(at, Settings.LoadFrom(path).UpdatesCheckedAt?.ToUniversalTime());
     }
+
+    [Fact]
+    public void A_skipped_version_is_persisted_and_kept_in_memory_after_saving()
+    {
+        using var dir = new TempDir();
+        var path = dir.File("settings.json");
+        var settings = Settings.LoadFrom(path);
+        settings.Update(s => s.UpdateSkipped = "1.1.1");
+        // Update copies each field back from what it wrote: a field it forgets is lost in memory although it is on disk
+        Assert.Equal("1.1.1", settings.UpdateSkipped);
+        Assert.Equal("1.1.1", Settings.LoadFrom(path).UpdateSkipped);
+    }
     // Since "follow system" can resolve to English: earlier versions were Chinese whatever the system language, and existing users should not
     // suddenly get English after upgrading
     [Fact]

@@ -7,7 +7,14 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, waitFor, type Shell } from "./harness";
 
-type TrayState = { present: boolean; text?: string; items?: { text: string; shortcut: string }[]; said?: { title: string; text: string } | null };
+type TrayState = {
+  present: boolean;
+  text?: string;
+  items?: { text: string; shortcut: string }[];
+  said?: { title: string; text: string } | null;
+  update?: string | null;
+  dot?: boolean;
+};
 const tray = (shell: Shell) => shell.ask<TrayState>("debugTray");
 const act = (shell: Shell, action: string) => shell.callHost("debugTrayAct", { action });
 const settings = (shell: Shell) => JSON.parse(readFileSync(join(shell.temp, "settings.json"), "utf8"));
@@ -165,4 +172,38 @@ test("Capture hotkey fails to register (here a malformed hotkey): the tray pops 
   expect(t.said!.text).toContain("无法识别的快捷键");
   await act(shell, "balloon");
   await expect(shell.page.locator(".settings-tab.is-on")).toHaveText("截图批注");
+});
+
+test("A new version: a dot on the tray icon, the version in the hover text, Download and Skip This Version at the top of the menu, and the title bar pill; skipping clears them all and is remembered, a newer version is announced again", async ({
+  shell,
+}) => {
+  await shell.launch();
+  const url = "https://github.com/Moy339339/SnipToss/releases/tag/v1.1.1";
+  await shell.ask("debugUpdateFound", { version: "1.1.1", url });
+  const t = await tray(shell);
+  expect(t).toMatchObject({
+    update: "1.1.1",
+    dot: true,
+    text: "超级批注\n有新版本：v1.1.1",
+    items: [{ text: "下载新版本 v1.1.1…" }, { text: "跳过此版本" }, { text: "-" }, { text: "截图批注" }, { text: "打开超级批注" }, { text: "-" }, { text: "退出" }],
+  });
+  await expect(shell.page.locator(".titlebar-update")).toHaveText("有新版本");
+
+  await act(shell, "跳过此版本");
+  expect(await tray(shell)).toMatchObject({ update: null, dot: false, text: "超级批注", items: [{ text: "截图批注" }, { text: "打开超级批注" }, { text: "-" }, { text: "退出" }] });
+  await expect(shell.page.locator(".titlebar-update")).toHaveCount(0);
+  expect(settings(shell).UpdateSkipped).toBe("1.1.1");
+
+  // The skipped version isn't announced again; a newer one is
+  await shell.ask("debugUpdateFound", { version: "1.1.1", url });
+  expect(await tray(shell)).toMatchObject({ update: null, dot: false });
+  await shell.ask("debugUpdateFound", { version: "1.1.2", url: url.replace("1.1.1", "1.1.2") });
+  expect(await tray(shell)).toMatchObject({ update: "1.1.2", dot: true });
+  expect((await tray(shell)).items![0].text).toBe("下载新版本 v1.1.2…");
+  await expect(shell.page.locator(".titlebar-update")).toHaveText("有新版本");
+
+  // Turning the automatic check off takes the announcement away too
+  await shell.ask("setPrefs", { prefs: { ...settings(shell).Prefs, updateCheck: false } });
+  expect(await tray(shell)).toMatchObject({ update: null, dot: false });
+  await expect(shell.page.locator(".titlebar-update")).toHaveCount(0);
 });

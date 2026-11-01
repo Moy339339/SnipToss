@@ -5,14 +5,16 @@ import { call, onHostEvent, type NewerVersion } from "./host";
 import type { Notify } from "./report";
 
 /**
- * Checking for updates (shell app/Updates.cs): after startup the shell checks automatically (at most once a day, can be turned off in Settings → General) and sends updateAvailable when it finds one,
+ * Checking for updates (shell app/Updates.cs): the shell checks by itself (shortly after startup and hourly while running, at most once a day, can be turned off in Settings → General) and sends updateAvailable when it finds one,
  * and the title bar shows an "update available" button that opens that version's download page in the browser; Help → Check for Updates… is the manual check, and the result is reported in a toast.
+ * updateDismissed takes the button away again (the version was skipped from the tray, or the automatic check was turned off).
  * It does not interrupt with a dialog and does not download by itself: whether and when to update is up to the user
  */
 export function useUpdates(notify: Notify) {
   const intl = useIntl();
   const [newer, setNewer] = useState<NewerVersion | null>(null);
   useEffect(() => onHostEvent("updateAvailable", (n) => setNewer(n)), []);
+  useEffect(() => onHostEvent("updateDismissed", () => setNewer(null)), []);
 
   const open = useCallback((n: NewerVersion) => void call("openExternal", { url: n.url }).catch((e: Error) => notify(e.message)), [notify]);
 

@@ -50,6 +50,17 @@ test("a new version found automatically after startup: the title bar pill shows 
   await expect.poll(() => app.host.opened.at(-1)).toBe("https://github.com/Moy339339/SnipToss/releases/tag/v1.1.0");
 });
 
+test("a version skipped from the tray (or the automatic check turned off): the title bar pill goes away and the Help menu offers Check for Updates again", async ({ app }) => {
+  await app.open();
+  app.host.announceUpdate({ version: "1.1.1", url: "https://github.com/Moy339339/SnipToss/releases/tag/v1.1.1", prerelease: false });
+  await expect(app.page.locator(".titlebar-update")).toHaveText("有新版本");
+  app.host.dismissUpdate();
+  await expect(app.page.locator(".titlebar-update")).toHaveCount(0);
+  await help(app);
+  await expect(menuItem(app, "检查更新…")).toBeVisible();
+  await expect(menuItem(app, /下载新版本/)).toHaveCount(0);
+});
+
 test("Settings → General → Check for updates automatically: on by default, and turning it off is saved to settings; About → Privacy states that the app only goes online when checking for updates", async ({ app }) => {
   await app.open();
   await app.page.keyboard.press("Control+,");

@@ -99,7 +99,7 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
                 "reveal" => await RevealAsync(Allowed(Special(Str(args, "path")), RevealRoots())),
                 "openExternal" => Run(() => Shell.OpenUrl(Str(args, "url"))),
                 "exportDiagnostics" => ExportDiagnostics(Str(args, "text")),
-                "checkUpdates" => UpdateReply(await Updates.CheckAsync()),
+                "checkUpdates" => UpdateReply(await CheckUpdatesNow()),
                 "log" => Run(() => WebLog(args)),
                 "window" => window.Command(Str(args, "action")),
                 "windowResize" => Run(() => window.StartResize(Str(args, "edge"))),
@@ -119,6 +119,7 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
                 "debugThrow" => TestHooks.Throw(window, Str(args, "where")),
                 "debugTray" => TestHooks.TrayState(window),
                 "debugTrayAct" => TestHooks.TrayAct(window, Str(args, "action")),
+                "debugUpdateFound" => TestHooks.UpdateFound(window, args),
                 "debugCaptureFake" => TestHooks.CaptureFake(args),
                 "debugCaptureDo" => await TestHooks.CaptureDo(args),
                 "debugCaptureState" => TestHooks.CaptureState(),
@@ -263,6 +264,14 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
     }
 
     readonly WebLogLimiter webLogLimit = new();
+
+    /// <summary>Help → Check for Updates: a newer version found here is announced on the tray and title bar as an automatic one would be</summary>
+    async Task<Updates.Result> CheckUpdatesNow()
+    {
+        var r = await Updates.CheckAsync();
+        if (r.Newer is { } n) window.UpdateFound(n);
+        return r;
+    }
 
     /// <summary>Hands the update-check result to the UI (Help → Check for Updates and the automatic check after startup look the same): newer is null when there is none; when the check can't run, error is the reason (English original, for the log only)</summary>
     internal static object UpdateReply(Updates.Result r)
@@ -420,6 +429,7 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
             throw new IOException($"Settings not written: {settings.StorePath}");
         // The UI changed language: the shell's own text (tray, capture overlay, error windows) follows without a restart (ADR-0001 item 6)
         Locale.Use(settings.Language);
+        window.UpdateCheckChanged();
         // More formats switched: the context menu (when it's on) gains or drops those extensions right away
         if (settings.MoreFormats != more)
         {

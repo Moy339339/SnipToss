@@ -32,6 +32,19 @@ static class Updates
 
     public static Task<Result> CheckAsync(CancellationToken ct = default) => CheckAsync(Http.Value, ReleasesApi, AppVersion.Text, ct);
 
+    /// <summary>How long after a successful automatic check the next one is due (at most about once a day)</summary>
+    public static readonly TimeSpan Interval = TimeSpan.FromHours(20);
+
+    /// <summary>Whether the automatic check is due: never checked, or the last successful check was at least <see cref="Interval"/> ago (a clock set back counts as due)</summary>
+    internal static bool Due(DateTime? lastUtc, DateTime nowUtc) => lastUtc is not { } last || nowUtc - last >= Interval || nowUtc < last;
+
+    /// <summary>How a version is written for people, as versionLabel in packages/web/src/brand.ts: 1.1.1 → v1.1.1, 1.1.1-beta.2 → v1.1.1 Beta 2</summary>
+    internal static string Label(string version)
+    {
+        var dash = version.IndexOf("-beta.", StringComparison.Ordinal);
+        return dash < 0 ? $"v{version}" : $"v{version[..dash]} Beta {version[(dash + 6)..]}";
+    }
+
     internal static async Task<Result> CheckAsync(HttpClient http, string url, string current, CancellationToken ct)
     {
         try
