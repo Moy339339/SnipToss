@@ -6,13 +6,13 @@ Please **don't** open a public issue for a security problem. Email **jujuw3939@o
 
 - what the problem is and what an attacker could do with it,
 - the steps or a file that reproduces it,
-- the version (**Help → About**) and your Windows version.
+- which app it is (SnipToss for Windows, or a SnipToss for Mac preview), its version (**Help → About**) and your system version.
 
 You'll get a reply within 7 days. Once the problem is confirmed, a fix is prepared and released, and you're credited in the release notes unless you'd rather not be. Please give us a reasonable time to ship the fix before you disclose it publicly.
 
 ## Supported versions
 
-Security fixes go into the latest release. Until 1.0 that's the latest beta.
+Security fixes go into the latest release of SnipToss for Windows. SnipToss for Mac is a preview for now and is covered once it is released.
 
 ## What's in scope
 

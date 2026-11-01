@@ -6,13 +6,13 @@
 
 Annotate the images and videos your coding agent made — then hand the notes straight back to it.
 
-**[Download for Windows 11](https://github.com/Moy339339/SnipToss/releases/latest)** · [Install notes](#install)
+**[Download SnipToss for Windows](https://github.com/Moy339339/SnipToss/releases/latest)** · 64-bit Windows 11 · [Install notes](#install)
 
-> **New in 1.1:** black and white marks and a color picker for any other color, deleting a single mark, and a note box you can drag out of the way, in the app and in screen capture. [Release notes](https://github.com/Moy339339/SnipToss/releases/tag/v1.1.0) · [Changelog](CHANGELOG.md)
+> **New in SnipToss for Windows 1.1:** black and white marks and a color picker for any other color, deleting a single mark, and a note box you can drag out of the way, in the app and in screen capture. [Release notes](https://github.com/Moy339339/SnipToss/releases/tag/v1.1.0) · [Changelog](CHANGELOG.md)
 
 SnipToss is a Windows desktop app for reviewing AI-generated assets. Mark what needs to change with a pin, rectangle, pen or arrow, write the change you want, and SnipToss saves the note — its text, position, time and a cropped snapshot — as plain files in the project's `.sniptoss/` folder. Claude Code, Codex and other agents that can read local files pick the notes up from there and fix the assets.
 
-Web pages, PDF and slides are planned. A Mac version is in progress.
+Web pages, PDF and slides are planned. SnipToss for Mac is in progress.
 
 ![The SnipToss window with an AI-generated event flyer open: three numbered marks on the flyer and the matching notes in the panel on the right.](docs/images/hero.png)
 

@@ -65,7 +65,8 @@ jobs:
         run: |
           # The installer: publish.ps1 builds it when Inno Setup 6 is installed on the runner
           $files = @(Get-ChildItem dist/release -File -Filter "SnipToss-$env:VERSION-*" | ForEach-Object FullName) + 'dist/release/SHA256SUMS.txt'
-          $flags = @('--draft', '--generate-notes', '--title', "SnipToss $env:VERSION")
+          # The product line goes in the title (SnipToss for Windows / for Mac / for Chrome have their own version numbers)
+          $flags = @('--draft', '--generate-notes', '--title', "SnipToss for Windows $env:VERSION")
           if ($env:VERSION -match '-') { $flags += '--prerelease' }
           gh release create $env:GITHUB_REF_NAME @files @flags
 

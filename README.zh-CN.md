@@ -6,14 +6,14 @@
 
 给 AI 生成的图片和视频做批注，再把批注原样交回给 AI 修改。
 
-**[下载 Windows 11 版](https://github.com/Moy339339/SnipToss/releases/latest)** · [安装说明](#安装)
+**[下载超级批注 Windows 版](https://github.com/Moy339339/SnipToss/releases/latest)** · 64 位 Windows 11 · [安装说明](#安装)
 
-> **1.1 新功能：** 新增黑、白两种标记颜色和取色面板（可选任意颜色），可以单独删除一处标记，批注框可以拖到一边，主程序和截图批注都适用。[更新说明](https://github.com/Moy339339/SnipToss/releases/tag/v1.1.0) · [更新日志](CHANGELOG.md)
+> **超级批注 Windows 版 1.1 新功能：** 新增黑、白两种标记颜色和取色面板（可选任意颜色），可以单独删除一处标记，批注框可以拖到一边，主程序和截图批注都适用。[更新说明](https://github.com/Moy339339/SnipToss/releases/tag/v1.1.0) · [更新日志](CHANGELOG.md)
 
 超级批注是 Windows 桌面程序，用来审阅 Claude Code、Codex 等生成的素材：用图钉、矩形、画笔或箭头标出要改的位置，写下修改要求，
 批注的**内容、位置、时间点**和**标出位置的截图**都以普通文件保存在素材所在项目的 `.sniptoss/` 文件夹中。能读本机文件的 AI agent 直接从那里读取，按意见修改素材。
 
-网页、PDF、PPT 将陆续支持；Mac 版正在开发。
+网页、PDF、PPT 将陆续支持；超级批注 Mac 版正在开发。
 
 ![超级批注窗口：打开着一张 AI 生成的活动传单，画面上有三个带编号的标记，右侧批注栏列着对应的三条批注。](docs/images/hero.zh-CN.png)
 

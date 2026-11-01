@@ -6,6 +6,16 @@ body:
     attributes:
       value: |
         Thanks for reporting! Please search existing issues first. For security problems, don't file an issue — see SECURITY.md.
+  - type: dropdown
+    id: app
+    attributes:
+      label: App
+      description: Which SnipToss app is this about? Each has its own version number.
+      options:
+        - SnipToss for Windows
+        - SnipToss for Mac (preview)
+    validations:
+      required: true
   - type: textarea
     id: what
     attributes:
