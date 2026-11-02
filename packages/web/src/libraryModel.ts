@@ -87,6 +87,15 @@ export function useRowModel(opts: {
       : intl.formatMessage({ id: "library.noMaterials" });
   };
 
+  /**
+   * The folder this row stands for, when the system won't let the app read it (the scan's denied): a project whose folder is itself the
+   * entry, or a folder entry listed on its own. Its row says so, and clicking it shows on the canvas where access is granted
+   */
+  const deniedPathOf = (row: Row): string | undefined => {
+    const entry = row.type === "project" ? row.project.root : row.type === "entry" && row.entry.kind === "folder" ? row.entry : undefined;
+    return entry && library.scans.get(keyOf(entry.path))?.denied ? entry.path : undefined;
+  };
+
   const isOpen = (path: string) => library.expanded.has(keyOf(path));
   const projectOpen = (p: Project) => !library.collapsed.has(p.key);
   const canExpand = (row: Row) => row.type === "project" || !!folderPathOf(row);
@@ -186,6 +195,7 @@ export function useRowModel(opts: {
     sameNamePlaces,
     countOf,
     emptyNote,
+    deniedPathOf,
     isOpen,
     projectOpen,
     canExpand,

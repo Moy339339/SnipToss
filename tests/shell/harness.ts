@@ -152,6 +152,11 @@ export interface WindowInfo {
   /** The monitor the window is on and its work area (taskbar excluded) */
   monitor: Rect;
   work: Rect;
+  /**
+   * Class name of the window with the keyboard focus in the window's input queue (a Chrome_* window = the page); null if none.
+   * The real focus: under Playwright the page always reports document.hasFocus()
+   */
+  focus: string | null;
 }
 
 /**

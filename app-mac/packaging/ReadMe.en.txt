@@ -18,6 +18,9 @@ Screen Capture needs permission to record the screen:
 3. Click Quit & Reopen when asked.
 A new version keeps the permission. From macOS 15 on, macOS asks again from time to time whether SnipToss may keep recording; click Allow.
 
+Desktop, Documents and Downloads
+If macOS asks whether “SnipToss” may access files in your Desktop, Documents or Downloads folder, click Allow. If you clicked Don't Allow, turn SnipToss back on in System Settings → Privacy & Security → Files & Folders.
+
 Requirements
 macOS 14 or later, on a Mac with Apple silicon or an Intel processor. The Intel version has not been tested on a real Intel Mac yet: if something goes wrong, please report it in Issues on the project page below.
 

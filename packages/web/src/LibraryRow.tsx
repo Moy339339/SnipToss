@@ -38,7 +38,7 @@ export function LibraryRow(props: {
   onRemove: () => void;
 }) {
   const { row, library, count, selected } = props;
-  const { nameOf, sameNamePlaces, emptyNote, canExpand, expandedRow, scopeOf } = props.model;
+  const { nameOf, sameNamePlaces, emptyNote, deniedPathOf, canExpand, expandedRow, scopeOf } = props.model;
   const intl = useIntl();
   const stop = (run: () => void) => (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -73,6 +73,10 @@ export function LibraryRow(props: {
       sub = intl.formatMessage({ id: "library.truncated" }, { limit: p.truncatedAt });
       tail = false;
     }
+    if (deniedPathOf(row)) {
+      sub = intl.formatMessage({ id: "library.denied" });
+      tail = false;
+    }
   } else if (row.type === "folder") {
     name = row.folder.name;
     icon = <FolderIcon />;
@@ -97,6 +101,8 @@ export function LibraryRow(props: {
         sub = emptyNote(library.scans.get(keyOf(row.entry.path)));
       const cut = library.scans.get(keyOf(row.entry.path))?.truncatedAt;
       if (cut) sub = intl.formatMessage({ id: "library.truncated" }, { limit: cut });
+      // A folder the system won't let the app read lists nothing: not "contains no items" but the reason (clicking it says where to grant access)
+      if (deniedPathOf(row)) sub = intl.formatMessage({ id: "library.denied" });
     } else if (row.material) {
       icon = <KindIcon kind={row.material.kind} />;
       kindClass = row.material.kind;

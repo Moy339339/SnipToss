@@ -5,7 +5,8 @@
 #   pwsh -File windows.ps1 -ProcessId 1234 -Restore   # restores (ShowWindow SW_RESTORE, like clicking it in the taskbar;
 #                                                      # one that was maximized before minimizing returns to maximized)
 #   pwsh -File windows.ps1 -ProcessId 1234 -Info      # one JSON per line: title, maximized / minimized, topmost, window rect, top-left of the
-#                                                      # client area on screen, the monitor and its work area (all in physical pixels)
+#                                                      # client area on screen, the monitor and its work area (all in physical pixels),
+#                                                      # and which window has the keyboard focus
 #   pwsh -File windows.ps1 -ProcessId 1234 -Uia       # one JSON per line: title, the text and buttons in the window (and where each button is on
 #                                                      # screen, physical pixels) (UI Automation; for native windows such as the error window,
 #                                                      # the notice page and system message boxes)
@@ -46,6 +47,9 @@ public delegate bool EnumProc(System.IntPtr hwnd, System.IntPtr lParam);
 public struct RECT { public int Left, Top, Right, Bottom; }
 public struct POINT { public int X, Y; }
 public struct MONITORINFO { public int Size; public RECT Monitor, Work; public uint Flags; }
+public struct GUITHREADINFO { public int Size; public uint Flags; public System.IntPtr Active, Focus, Capture, MenuOwner, MoveSize, Caret; public RECT CaretRect; }
+[System.Runtime.InteropServices.DllImport("user32.dll")] public static extern bool GetGUIThreadInfo(uint thread, ref GUITHREADINFO info);
+[System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)] public static extern int GetClassName(System.IntPtr hwnd, System.Text.StringBuilder s, int n);
 '@
 # Read coordinates in physical pixels: otherwise a scaled monitor gives converted values that don't match the window's own
 [void][ShellTest.Win]::SetProcessDpiAwarenessContext([IntPtr]-4)
@@ -168,6 +172,15 @@ foreach ($h in $found) {
         $rect = { param($x) [ordered]@{ left = $x.Left; top = $x.Top; right = $x.Right; bottom = $x.Bottom } }
         $cloak = 0
         [void][ShellTest.Win]::DwmGetWindowAttribute($h, 14, [ref]$cloak, 4) # DWMWA_CLOAKED
+        # Which window has the keyboard focus in the window's input queue (the real one: a page under Playwright always reports document.hasFocus())
+        $gui = New-Object ShellTest.Win+GUITHREADINFO
+        $gui.Size = [System.Runtime.InteropServices.Marshal]::SizeOf($gui)
+        $focus = $null
+        if ([ShellTest.Win]::GetGUIThreadInfo([ShellTest.Win]::GetWindowThreadProcessId($h, [ref]0), [ref]$gui) -and $gui.Focus -ne [IntPtr]::Zero) {
+            $cls = [System.Text.StringBuilder]::new(256)
+            [void][ShellTest.Win]::GetClassName($gui.Focus, $cls, 256)
+            $focus = $cls.ToString()
+        }
         [ordered]@{
             handle  = $h.ToInt64()
             title   = $t.ToString()
@@ -181,6 +194,8 @@ foreach ($h in $found) {
             client  = @{ x = $c.X; y = $c.Y }
             monitor = & $rect $m.Monitor
             work    = & $rect $m.Work
+            # class name of the window with the keyboard focus (a Chrome_* window = the page), null if none
+            focus   = $focus
         } | ConvertTo-Json -Compress -EscapeHandling EscapeNonAscii # non-ASCII titles become \uXXXX: redirected output is encoded in the system code page, and a reader decoding it as UTF-8 would get mojibake
         continue
     }

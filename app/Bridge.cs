@@ -87,6 +87,7 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
                 "deleteFile" => DeleteInDataDir(Home(args), Str(args, "path")),
                 "pruneSnapshots" => PruneSnapshots(Home(args), StrList(args, "keep"), TimeSpan.FromMinutes(10)),
                 "sha256" => await HashCache.Sha256Async(Allowed(Str(args, "path"), LibraryRoots())),
+                "readable" => await ReadableAsync(Allowed(Str(args, "path"), LibraryRoots())),
                 "fileUrl" => window.UrlOf(InDataDir(Home(args), Str(args, "path"))),
                 "decodeImage" => DecodedReply(await DecodedImages.GetAsync(Allowed(Str(args, "path"), LibraryRoots()))),
                 "missing" => await MissingAsync(StrList(args, "paths")),
@@ -199,6 +200,24 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
         // Don't query drives that aren't connected one by one (each query on a disconnected network drive waits for a timeout, see Volumes)
         await Volumes.WaitAsync(asked, Volumes.Patience);
         return await Task.Run(() => asked.Where(p => Volumes.Known(p) != true || (!File.Exists(p) && !Directory.Exists(p))).ToList());
+    }
+
+    /// <summary>
+    /// Whether an item can be opened for reading: the canvas asks when an item fails to open, since a file it may not read looks the same to the
+    /// page as a damaged one. Throws like any disk error, so the reply carries the code (denied = no permission). Opens and closes at once,
+    /// reading nothing; on a background thread, after asking Volumes (a disconnected network drive would wait for the system timeout)
+    /// </summary>
+    internal static async Task<bool> ReadableAsync(string path)
+    {
+        await Volumes.WaitAsync([path], Volumes.Patience);
+        if (Volumes.Known(path) != true) throw new DriveNotFoundException($"The drive is not connected: {path}");
+        await Task.Run(() =>
+        {
+            // Opening a folder as a file is refused as "access denied" too, which would read as a missing permission
+            if (Directory.Exists(path)) throw new ArgumentException($"Not a file: {path}");
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        });
+        return true;
     }
 
     /// <summary>Paths that may be shown in File Explorer: library entries, notes folders, the Screen Capture folder, the app's own settings / logs / program folder</summary>
@@ -533,6 +552,8 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
                 others = r.stats is { Others: > 0 } o ? new { count = o.Others, exts = o.OtherExts.ToList() } : null,
                 moreOff = r.stats is { MoreOff: > 0 } m ? new { count = m.MoreOff, exts = m.MoreOffExts.ToList() } : null,
                 skippedDirs = r.stats is { SkippedDirs.Count: > 0 } sk ? sk.SkippedDirs.ToList() : null,
+                // The folder itself may not be read: the UI says so on its row, and shows where to grant access when it is clicked
+                denied = r.stats is { Denied: true } ? true : (bool?)null,
                 materials = r.found.Select((f, i) => new
                 {
                     path = f.FullPath,
@@ -866,6 +887,8 @@ static class MaterialScanner
         public SortedSet<string> SkippedDirs { get; } = new(StringComparer.OrdinalIgnoreCase);
         /// <summary>There are items beyond the limit that weren't listed (exactly at the limit doesn't count)</summary>
         public bool Truncated { get; set; }
+        /// <summary>The folder itself may not be read (no permission): it lists nothing, and the UI says why instead of showing an empty folder</summary>
+        public bool Denied { get; set; }
     }
 
     /// <summary>At most this many items are listed per folder entry (the UI couldn't list more anyway). The scan stops there and the UI marks it on the project row</summary>
@@ -898,9 +921,13 @@ static class MaterialScanner
         var stack = new Stack<string>();
         stack.Push(root);
         var more = false;
+        var first = true;
         while (stack.Count > 0 && !more)
         {
             var dir = new DirectoryInfo(stack.Pop());
+            // Folders inside that may not be read are skipped as before; only the entry's own folder (the first one popped) being refused is reported
+            var isRoot = first;
+            first = false;
             IEnumerable<FileSystemInfo> entries;
             try
             {
@@ -908,6 +935,7 @@ static class MaterialScanner
             }
             catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
             {
+                if (isRoot && ex is UnauthorizedAccessException && stats is not null) stats.Denied = true;
                 continue;
             }
             // An error halfway through reading (network drive dropped mid-scan, folder being deleted): the rest of this folder isn't listed, others are unaffected. Before, the scan threw and no entry in the library could be scanned
@@ -950,7 +978,9 @@ static class MaterialScanner
             }
             catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
             {
-                Log.Warn($"Scanning {dir.FullName} failed partway; the rest of this folder is not listed", ex);
+                // The enumeration is lazy: a folder that may not be read is refused here, on the first step, before anything is listed
+                if (isRoot && ex is UnauthorizedAccessException && found.Count == 0 && stats is not null) stats.Denied = true;
+                else Log.Warn($"Scanning {dir.FullName} failed partway; the rest of this folder is not listed", ex);
             }
         }
         if (stats is not null) stats.Truncated = more;

@@ -187,7 +187,34 @@ final class MaterialScannerTests: SnipTestCase {
         XCTAssertEqual(chmod(locked, 0o000), 0)
         defer { _ = chmod(locked, 0o755) }
         XCTAssertThrowsError(try FileManager.default.contentsOfDirectory(atPath: locked), "it really cannot be read")
-        XCTAssertEqual(listed(dir), ["a.png"])
+        let stats = MaterialScanner.Stats()
+        XCTAssertEqual(listed(dir, stats: stats), ["a.png"])
+        XCTAssertFalse(stats.denied, "only the entry's own folder being refused is reported")
+    }
+
+    func testAnEntryFolderThatMayNotBeReadListsNothingAndReportsIt() throws {
+        try XCTSkipIf(geteuid() == 0, "root can read any folder")
+        let dir = makeTempDir()
+        touch(dir, "a.png")
+        XCTAssertEqual(chmod(dir, 0o000), 0)
+        let stats = MaterialScanner.Stats()
+        XCTAssertEqual(listed(dir, stats: stats), [])
+        XCTAssertEqual(chmod(dir, 0o755), 0)
+        XCTAssertTrue(stats.denied)
+        let after = MaterialScanner.Stats()
+        XCTAssertEqual(listed(dir, stats: after), ["a.png"])
+        XCTAssertFalse(after.denied)
+    }
+
+    func testTheRefusalsThatCountAsNoPermission() {
+        let posix = { (code: Int32) in NSError(domain: NSPOSIXErrorDomain, code: Int(code)) }
+        XCTAssertTrue(MaterialScanner.isRefusal(posix(EPERM)), "macOS keeping the app out of Desktop / Documents / Downloads")
+        XCTAssertTrue(MaterialScanner.isRefusal(posix(EACCES)))
+        XCTAssertTrue(MaterialScanner.isRefusal(NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoPermissionError)))
+        let wrapped = NSError(domain: NSCocoaErrorDomain, code: NSFileReadUnknownError, userInfo: [NSUnderlyingErrorKey: posix(EPERM)])
+        XCTAssertTrue(MaterialScanner.isRefusal(wrapped))
+        XCTAssertFalse(MaterialScanner.isRefusal(posix(ENOENT)))
+        XCTAssertFalse(MaterialScanner.isRefusal(NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoSuchFileError)))
     }
 
     func testAPipeOrOtherSpecialFileWithAnItemNameIsNotAnItem() {

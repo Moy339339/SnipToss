@@ -20,6 +20,10 @@ func installScanMethods(into bridge: BridgeHost, settings: Settings, homes: Note
         try hashOfLibraryItem(requiredString(params, "path"), library: settings.library.map { $0.path }, cache: hashes)
     }
 
+    bridge.register("readable") { params in
+        try readableLibraryItem(requiredString(params, "path"), library: settings.library.map { $0.path })
+    }
+
     bridge.register("fileUrl") { params in
         try notesFileUrl(home: requiredString(params, "home"), rel: requiredString(params, "path"), homes: homes)
     }
@@ -116,6 +120,8 @@ private func scanReply(_ scanned: ScannedEntry, limit: Int) -> [String: Any] {
         "others": countsReply(stats?.others ?? 0, stats?.sortedOtherExts ?? []),
         "moreOff": countsReply(stats?.moreOff ?? 0, stats?.sortedMoreOffExts ?? []),
         "skippedDirs": jsonOrNull(stats.flatMap { $0.skippedDirs.isEmpty ? nil : $0.skippedDirs }),
+        // The folder itself may not be read: the page says so on its row, and shows where access is granted when it is clicked
+        "denied": jsonOrNull(isFolder && stats?.denied == true ? true : nil),
         "materials": materials,
     ]
 }
@@ -155,6 +161,24 @@ func hashOfLibraryItem(_ path: String, library: [String], cache: HashCache) thro
     } catch let error as FileOperationError {
         throw bridgeError(error)
     }
+}
+
+/// Whether an item can be opened for reading: the page asks when an item fails to open, since a file the app may not read looks the same
+/// to it as a damaged one. Only paths in the library are accepted (hard rule 2). Opens and closes at once, reading nothing; a refusal
+/// carries the class of its POSIX error (`denied`: EACCES, or EPERM when macOS keeps the app out of a protected folder). Runs on the
+/// bridge's own queue: the first look into such a folder waits until the user has answered the system's question
+func readableLibraryItem(_ path: String, library: [String]) throws -> Bool {
+    guard PathPolicy.isUnder(path, roots: library), let full = try? Library.norm(path) else {
+        throw BridgeError("Path is not in the material list or a notes folder: \(path)", code: "denied")
+    }
+    Volumes.wait([full])
+    guard Volumes.known(full) == true else { throw BridgeError("Not found: \(full)", code: "notFound") }
+    // A folder is not an item; opening one for reading would succeed and say nothing about its contents
+    if Library.isDirectory(full) { throw BridgeError("Not a file: \(full)") }
+    let fd = Darwin.open(full, O_RDONLY)
+    guard fd >= 0 else { throw bridgeError(FileOperationError(operation: "open", path: full, code: errno)) }
+    Darwin.close(fd)
+    return true
 }
 
 /// The address of a file inside `.sniptoss/` of a notes folder a scan handed out: the same rule as for writing there

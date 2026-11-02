@@ -117,7 +117,9 @@ public class ChangeWatchTests
         {
             var calls = new List<IReadOnlyList<string>>();
             using var watcher = new MaterialWatcher(Dispatcher.CurrentDispatcher, settings, calls.Add);
-            Assert.False(Pump(() => calls.Count > 0, Quiet)); // the first pass only records the starting point
+            // Wait until the starting point is really recorded: a fixed wait failed on slow machines, where the change then became the starting point
+            Assert.True(Pump(() => watcher.HasBaseline(hero), Soon));
+            Assert.Empty(calls); // the first pass only records the starting point
             File.WriteAllBytes(hero, new byte[200]);
             Assert.True(Pump(() => calls.Count > 0, Soon));
             Assert.Equal([folder], calls[0]);

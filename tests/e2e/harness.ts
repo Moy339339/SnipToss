@@ -137,6 +137,8 @@ export const test = base.extend<{ app: App }>({
       const url = new URL(route.request().url());
       const file = url.hostname === "app.sniptoss.example" ? join(DIST, ...url.pathname.split("/").filter(Boolean).map(decodeURIComponent)) : pathOfUrl(url.href);
       if (!file || !existsSync(file) || !statSync(file).isFile()) return route.fulfill({ status: 404, body: "not found" });
+      // A file the system won't let the app read (MockHost.unreadable): the real shell's request fails the same way
+      if (host.isUnreadable(file)) return route.fulfill({ status: 403, body: "access denied" });
       const body = readFileSync(file);
       const type = MIME[extname(file).toLowerCase()] ?? "application/octet-stream";
       // Dragging the video scrubber needs Range requests (in the real app WebView2's virtual host mapping handles them)

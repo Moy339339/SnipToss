@@ -113,6 +113,23 @@ func openExternalReply(_ params: Any?, open: (URL) -> Bool) throws -> Any? {
     return nil
 }
 
+// MARK: - openFilesAccessSettings
+
+/// Where System Settings lets the user allow the app into folders (Privacy & Security → Files & Folders): the new spelling first, the
+/// old one for systems that do not know it (the same pair as the screen recording page in ScreenSource.swift)
+let filesAccessSettingsAddresses = [
+    "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_FilesAndFolders",
+    "x-apple.systempreferences:com.apple.preference.security?Privacy_FilesAndFolders",
+]
+
+/// `openFilesAccessSettings`: the main button of the canvas's "no permission" page (NoAccess.tsx)
+func openFilesAccessSettingsReply(open: (URL) -> Bool) throws -> Any? {
+    for address in filesAccessSettingsAddresses {
+        if let url = URL(string: address), open(url) { return nil }
+    }
+    throw BridgeError("System Settings could not be opened")
+}
+
 // MARK: - exportDiagnostics
 
 /// `exportDiagnostics { text }`: asks where to save (`choose` gets the default name and returns the path, nil when the user cancelled),
@@ -163,7 +180,7 @@ struct SystemServices {
         })
 }
 
-/// `reveal`, `openExternal` and `exportDiagnostics`. The methods run on the bridge's background queue; the system's calls hop to the main
+/// `reveal`, `openExternal`, `openFilesAccessSettings` and `exportDiagnostics`. The methods run on the bridge's background queue; the system's calls hop to the main
 /// thread (the save dialog waits for the user, which the page allows: host.ts gives `exportDiagnostics` no time limit)
 func installSystemMethods(into bridge: BridgeHost, settings: Settings, homes: NotesHomes, services: SystemServices = .system) {
     let targets = RevealTargets.current(settings: settings, homes: homes)
@@ -175,6 +192,10 @@ func installSystemMethods(into bridge: BridgeHost, settings: Settings, homes: No
 
     bridge.register("openExternal") { params in
         try openExternalReply(params, open: { url in onMain { services.openURL(url) } })
+    }
+
+    bridge.register("openFilesAccessSettings") { _ in
+        try openFilesAccessSettingsReply(open: { url in onMain { services.openURL(url) } })
     }
 
     bridge.register("exportDiagnostics") { params in

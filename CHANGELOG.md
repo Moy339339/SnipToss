@@ -4,6 +4,14 @@ All notable changes to SnipToss Desktop are listed here: SnipToss for Windows an
 
 The annotation data format has its own version (`"schema": "sniptoss/5"`); its history is in [docs/annotation-format.md](docs/annotation-format.md).
 
+## [1.2.1] — 2026-11-03
+
+### Fixed
+
+- An image or video the system won't let SnipToss read no longer shows as "the file may be damaged", and a library folder it may not read no longer looks empty. The canvas says there is no permission to read it and where access is granted: on Windows in the item's Properties → Security; on the Mac, **Open System Settings** goes straight to Privacy & Security → Files & Folders. The folder's row in the library says "No permission to read". Once access is granted, the item shows when you come back to SnipToss, without restarting it.
+- Windows: keyboard shortcuts work as soon as SnipToss starts. Until the first click in the window, the page had no keyboard focus, so the arrow keys, Ctrl+V and the other shortcuts did nothing.
+- Mac: the Read Me in the disk image says what to click when macOS asks for access to the Desktop, Documents or Downloads folder.
+
 ## [1.2.0] — 2026-11-03
 
 ### Added
@@ -91,6 +99,7 @@ First public release.
 - Portable version: with a `data` folder next to the app, all data stays in it and the registry is never touched.
 - Command-line tool `sniptoss` (list, review, resolve, wontfix); its messages follow the system display language.
 
+[1.2.1]: https://github.com/Moy339339/SnipToss/releases/tag/v1.2.1
 [1.2.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.2.0
 [1.1.2]: https://github.com/Moy339339/SnipToss/releases/tag/v1.1.2
 [1.1.1]: https://github.com/Moy339339/SnipToss/releases/tag/v1.1.1

@@ -138,6 +138,17 @@ export class MockHost {
   /** Test only: decodeImage reports this problem, simulating a computer without the HEIF / HEVC extension */
   decodeProblem: "heif" | "hevc" | null = null;
   /**
+   * Test only: files and folders the system won't let the app read (no permission on Windows; on the Mac, a folder the user hasn't let the
+   * app into). readable refuses them with code denied, and the item files are not served (the harness answers 403). A folder covers
+   * everything inside it
+   */
+  unreadable: string[] = [];
+  isUnreadable(p: string) {
+    return this.unreadable.some((u) => same(p, u) || inside(p, u));
+  }
+  /** How many times the page asked to open System Settings → Files & Folders (Mac) */
+  filesAccessOpened = 0;
+  /**
    * Full paths of the files dropped into the window next time: the browser can't get the path of a dropped File (the real shell gets it from WebView2's CoreWebView2File), so the test supplies it first;
    * a path is only added if the file name the UI sent along matches (which shows the UI really handed over the dropped files)
    */
@@ -446,6 +457,13 @@ export class MockHost {
       }
       case "sha256":
         return createHash("sha256").update(readFileSync(this.allowed(str("path")))).digest("hex");
+      case "readable": {
+        // Same as Bridge.ReadableAsync: opens the item for reading and closes it; a refusal carries code denied
+        const file = this.allowed(str("path"));
+        if (!existsSync(file)) throw Object.assign(new Error(`File not found: ${file}`), { code: "notFound" });
+        if (this.isUnreadable(file)) throw Object.assign(new Error(`Access to the path '${file}' is denied.`), { code: "denied" });
+        return true;
+      }
       case "fileUrl":
         return urlOf(this.inDataDir(this.home(a), str("path")));
       case "decodeImage": {
@@ -527,6 +545,9 @@ export class MockHost {
         return null;
       case "openScreenAccessSettings":
         this.screenAccessOpened++;
+        return null;
+      case "openFilesAccessSettings":
+        this.filesAccessOpened++;
         return null;
       case "openDevTools":
       case "windowResize":
@@ -728,6 +749,8 @@ export class MockHost {
     }
     if (existsSync(entry) && statSync(entry).isDirectory()) {
       const folderEntry = outer ?? entry;
+      // Same as MaterialScanner.Scan: a folder the system won't let the app read lists nothing, and says so
+      if (this.isUnreadable(entry)) return { entry, kind: "folder", project: this.existingHome(entry) ?? folderEntry, materials: [], denied: true };
       const stats = { others: 0, exts: new Set<string>(), moreOff: 0, moreExts: new Set<string>(), skipped: new Set<string>(), truncated: false };
       const materials = this.walk(entry, stats).map((f) => {
         const home = this.findHome(f, folderEntry);

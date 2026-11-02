@@ -3,10 +3,11 @@ import { useIntl } from "react-intl";
 import type { Annotation, MaterialKind } from "@sniptoss/core";
 import { Ambient } from "./Ambient";
 import { KeepPunctuation } from "./KeepPunctuation";
-import { call, logError, materialUrl, platform, type MaterialEntry } from "./host";
+import { call, HostError, logError, materialUrl, platform, type MaterialEntry } from "./host";
 import { FolderIcon } from "./icons";
 import { isSvg, needsDecode } from "./library";
 import { hasAlpha, rememberSize, svgNaturalSize, vectorWork, type Size } from "./mediaSize";
+import { NoAccess } from "./NoAccess";
 import { VideoPlayer, type SeekRequest } from "./VideoPlayer";
 import { ZoomView } from "./ZoomView";
 
@@ -39,22 +40,60 @@ export function Viewer(props: {
   layer: (size: { w: number; h: number }, t?: number, playing?: boolean, fps?: number) => React.ReactNode;
   /** The canvas cannot open (reports this URL): the drawing tools must be grayed out */
   onFail: (url: string) => void;
+  /** Access to an item that could not be read was granted, and it is being loaded again: the drawing tools come back */
+  onRetry: () => void;
   onReveal: () => void;
 }) {
   const intl = useIntl();
-  const url = materialUrl(props.material);
-  // The URL that failed to open (broken file, unsupported codec, missing system extension). The URL carries the modified time, so once the file is fixed the URL changes and it retries naturally
-  const [failed, setFailed] = useState<{ url: string; code?: number; problem?: DecodeProblem }>();
+  const base = materialUrl(props.material);
+  // Each retry after access was granted loads from a new address: the failed request is not answered again from the one before
+  const [attempt, setAttempt] = useState(0);
+  const url = attempt ? `${base}&retry=${attempt}` : base;
+  // The URL that failed to open (broken file, unsupported codec, missing system extension, no permission). The URL carries the modified
+  // time, so once the file is fixed the URL changes and it retries naturally. checking: still asking the shell whether it was refused
+  const [failed, setFailed] = useState<{ url: string; code?: number; problem?: DecodeProblem; checking?: boolean; denied?: boolean }>();
+  const path = props.material.path;
   const fail = (code?: number, problem?: DecodeProblem) => {
-    setFailed({ url, code, problem });
-    props.onFail(url);
-    logError(
-      "Item failed to open",
-      `${props.material.path}${code ? ` (MediaError ${code})` : ""}${problem ? ` (${problem})` : ""}`,
-      "warn",
-    );
+    const what = `${path}${code ? ` (MediaError ${code})` : ""}${problem ? ` (${problem})` : ""}`;
+    props.onFail(base);
+    // A missing Windows extension or an over-long path already has its own explanation; anything else may be the system refusing access,
+    // which to the page looks just like a damaged file
+    if (problem === "heif" || problem === "hevc" || props.material.longPath) {
+      setFailed({ url, code, problem });
+      logError("Item failed to open", what, "warn");
+      return;
+    }
+    setFailed({ url, code, problem, checking: true });
+    void call("readable", { path })
+      .then(
+        () => false,
+        (e: unknown) => e instanceof HostError && e.code === "denied",
+      )
+      .then((denied) => {
+        setFailed((f) => (f?.url === url ? { ...f, checking: false, denied } : f));
+        logError("Item failed to open", `${what}${denied ? " (no permission)" : ""}`, "warn");
+      });
   };
-  if (failed?.url === url)
+  const denied = failed?.url === url && failed.denied === true;
+  const retried = useEffectEvent(() => {
+    setAttempt((a) => a + 1);
+    props.onRetry();
+  });
+  // Access is granted elsewhere (System Settings, the file's Properties): when the window gets focus back, ask again and load if it can be read
+  useEffect(() => {
+    if (!denied) return;
+    const recheck = () =>
+      void call("readable", { path }).then(
+        () => retried(),
+        () => {},
+      );
+    window.addEventListener("focus", recheck);
+    return () => window.removeEventListener("focus", recheck);
+  }, [denied, path]);
+  if (failed?.url === url) {
+    // Asking takes a moment: a blank canvas meanwhile, not first "the file may be damaged" and then a different reason
+    if (failed.checking) return <div className="stage-empty" />;
+    if (failed.denied) return <NoAccess folder={false} onReveal={props.onReveal} />;
     return (
       <MediaFailed
         kind={props.material.kind}
@@ -64,6 +103,7 @@ export function Viewer(props: {
         onReveal={props.onReveal}
       />
     );
+  }
   switch (props.material.kind) {
     case "image":
       return (

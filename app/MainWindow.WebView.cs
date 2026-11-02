@@ -118,7 +118,11 @@ sealed partial class MainWindow
         // Items changed externally (an agent edited an image according to the notes): the UI rescans itself; when the window returns to the foreground, look right away
         materials = new MaterialWatcher(Dispatcher, settings, entries => Post(new { @event = "materialsChanged", entries }));
         if (!IsVisible) materials.Pause(true);
-        Activated += (_, _) => materials.WindowActivated();
+        Activated += (_, _) =>
+        {
+            materials.WindowActivated();
+            FocusPage();
+        };
         core.Navigate(Environment.GetEnvironmentVariable("SNIPTOSS_DEV_URL") ?? $"https://{AppHost}/index.html");
     }
 
@@ -310,10 +314,21 @@ sealed partial class MainWindow
 
     void Post(object payload) => web.CoreWebView2?.PostWebMessageAsJson(System.Text.Json.JsonSerializer.Serialize(payload));
 
+    /// <summary>
+    /// Keyboard focus into the page when the window is active: WPF only gives focus back to an element that had it, so after startup (and
+    /// on coming back before the first click) the page had none, and shortcuts did nothing until a click in the window. The page keeps its
+    /// own focused element (a programmatic move restores it)
+    /// </summary>
+    void FocusPage()
+    {
+        if (IsActive && web.CoreWebView2 is not null && !web.IsKeyboardFocusWithin) web.Focus();
+    }
+
 
     void OnReady()
     {
         readyWatch?.Stop();
+        FocusPage();
         if (pendingSettings is { } section)
         {
             pendingSettings = null;

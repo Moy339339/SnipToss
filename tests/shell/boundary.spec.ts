@@ -173,6 +173,59 @@ test("Folder that can't be written to (no write permission): the file shows as u
   }
 });
 
+/** This Windows account, as icacls takes it */
+const account = () => `${process.env.USERDOMAIN ?? ""}\\${userInfo().username}`.replace(/^\\/, "");
+/** The window gets focus back (the user returns from the file's Properties): the canvas asks the shell again */
+const comeBack = (shell: Shell) => shell.page.evaluate(() => window.dispatchEvent(new Event("focus")));
+const shown = (shell: Shell) => shell.page.evaluate(() => [...document.images].some((i) => i.closest(".stage") && i.complete && i.naturalWidth > 0));
+
+test("A file that may not be read (no read permission): the canvas says so and where access is granted, not that the file may be damaged; once access is back and the window gets focus, the image shows", async ({
+  shell,
+}) => {
+  const root = join(shell.temp, "noread");
+  const file = placeImage(shell, root, "secret.png");
+  const user = account();
+  const deny = spawnSync("icacls", [file, "/deny", `${user}:(RD)`], { encoding: "utf8" });
+  expect(deny.status, deny.stdout + deny.stderr).toBe(0);
+  try {
+    shell.setLibrary([root]);
+    await shell.launch({ args: [file] });
+    const alert = shell.page.getByRole("alert");
+    await expect(alert).toContainText("没有权限读取这个文件", { timeout: 15_000 });
+    await expect(alert).toContainText("「属性 → 安全」");
+    await expect(alert).not.toContainText("损坏");
+  } finally {
+    spawnSync("icacls", [file, "/remove:d", user]);
+  }
+  await comeBack(shell);
+  await expect.poll(() => shown(shell), { timeout: 15_000 }).toBe(true);
+  await expect(shell.page.getByRole("alert")).toHaveCount(0);
+});
+
+test("A folder in the library that may not be read: its row says so instead of showing an empty folder, clicking it says where access is granted, and its items appear once access is back and the window gets focus", async ({
+  shell,
+}) => {
+  const root = join(shell.temp, "nolist");
+  placeImage(shell, root, "inside.png");
+  const user = account();
+  // RD on a folder = list its contents
+  const deny = spawnSync("icacls", [root, "/deny", `${user}:(RD)`], { encoding: "utf8" });
+  expect(deny.status, deny.stdout + deny.stderr).toBe(0);
+  try {
+    shell.setLibrary([root]);
+    await shell.launch();
+    const row = shell.page.locator(".lib-row.is-project", { hasText: "nolist" });
+    await expect(row.locator(".lib-sub")).toHaveText("没有权限读取", { timeout: 15_000 });
+    await row.click();
+    await expect(shell.page.getByRole("alert")).toContainText("没有权限读取这个文件夹");
+  } finally {
+    spawnSync("icacls", [root, "/remove:d", user]);
+  }
+  await comeBack(shell);
+  await expect(shell.page.locator(".lib-row", { hasText: "inside.png" })).toBeVisible({ timeout: 15_000 });
+  await expect.poll(() => shown(shell), { timeout: 15_000 }).toBe(true);
+});
+
 test("Additional formats (SVG, TIFF, HEIC, ICO, JFIF, APNG, MKV): all show in the real shell, notes record the original image size and the snapshot is written", async ({
   shell,
 }) => {

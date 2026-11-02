@@ -15,6 +15,8 @@ export function useListKeys(opts: {
   setQuery: (q: string) => void;
   selectedKey: string | undefined;
   onSelect: (m: MaterialEntry) => void;
+  /** A folder the system won't let the app read was clicked: the canvas says where access is granted (there is no item in it to open) */
+  onDenied: (path: string) => void;
   openCount: (materialKey: string) => number;
   selection: ReturnType<typeof useLibrarySelection>;
   model: ReturnType<typeof useRowModel>;
@@ -23,7 +25,7 @@ export function useListKeys(opts: {
   const { rows, list, query, selectedKey, onSelect, openCount, revealRow } = opts;
   const { cursor, setCursor, picked, pickOnly, holdCursor, pickedRows, multi, rowOfKey, pickCurrent } = opts.selection;
   const { togglePick, pickRange, pickAll, copyPicked, removePicked } = opts.selection;
-  const { canExpand, expandedRow, toggleRow, setRowOpen, scopeOf, copyRow, removeRow } = opts.model;
+  const { canExpand, expandedRow, toggleRow, setRowOpen, scopeOf, copyRow, removeRow, deniedPathOf } = opts.model;
 
   /** Which row's expansion the last single click toggled (the second click of a double-click uses it to decide whether to toggle again) */
   const toggledBy = useRef<string>(undefined);
@@ -40,6 +42,8 @@ export function useListKeys(opts: {
     if (toggledBy.current) toggleRow(row);
     const m = materialOf(row);
     if (m) return onSelect(m);
+    const denied = deniedPathOf(row);
+    if (denied) return opts.onDenied(denied);
     // Project or folder: if the item open on the canvas is not inside it, open the first item inside that has open notes (or the first item),
     // otherwise the right side lists this project's notes while the canvas shows an item of another project
     const { materials } = scopeOf(row);

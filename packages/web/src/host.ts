@@ -106,6 +106,11 @@ export interface ScanResult {
   moreOff?: { count: number; exts: string[] } | null;
   /** Folders skipped during the scan (Settings → Advanced → Skipped folders); null if none */
   skippedDirs?: string[] | null;
+  /**
+   * The folder entry itself may not be read (no permission; on the Mac, a folder the user hasn't let the app into): it lists nothing, and
+   * the library says why instead of showing an empty folder. Folders inside it that may not be read are skipped as before; null if not refused
+   */
+  denied?: boolean | null;
 }
 
 export interface AddResult {
@@ -189,6 +194,12 @@ interface Methods {
    */
   sha256: [{ path: string }, string];
   /**
+   * Whether an item in the library can be opened for reading: true, or the call fails with the error code (denied = no permission, as
+   * when macOS has not allowed the app into the Desktop / Documents / Downloads folder). Asked when an item fails to open, since to the
+   * page a file it may not read looks the same as a damaged one
+   */
+  readable: [{ path: string }, true];
+  /**
    * URL of a file in the notes folder (path is relative to the notes folder, and only files in .sniptoss/ are accepted): when a note on
    * an earlier version is selected, the canvas shows its snapshot from back then (ADR-0008)
    */
@@ -256,6 +267,8 @@ interface Methods {
   captureHotkeyPause: [{ pause: boolean }, void];
   /** Mac: opens System Settings where the user allows the app to record the screen (Privacy & Security → Screen Recording) */
   openScreenAccessSettings: [void, void];
+  /** Mac: opens System Settings where the user lets the app into folders and volumes (Privacy & Security → Files & Folders) */
+  openFilesAccessSettings: [void, void];
   shellIntegration: [void, boolean];
   setShellIntegration: [{ enable: boolean }, void];
   openDevTools: [void, void];

@@ -103,6 +103,20 @@ final class SystemMethodsTests: SnipTestCase {
         XCTAssertThrowsError(try openExternalReply(["url": "https://example.com"]) { _ in false })
     }
 
+    // MARK: openFilesAccessSettings
+
+    func testFilesAndFoldersOpensWithTheNewAddressAndFallsBackToTheOldOne() throws {
+        var tried: [String] = []
+        _ = try openFilesAccessSettingsReply { tried.append($0.absoluteString); return true }
+        XCTAssertEqual(tried, [filesAccessSettingsAddresses[0]])
+        XCTAssertTrue(tried[0].hasSuffix("?Privacy_FilesAndFolders"))
+
+        tried = []
+        _ = try openFilesAccessSettingsReply { tried.append($0.absoluteString); return tried.count == 2 }
+        XCTAssertEqual(tried, filesAccessSettingsAddresses)
+        XCTAssertThrowsError(try openFilesAccessSettingsReply { _ in false })
+    }
+
     // MARK: exportDiagnostics
 
     func testCancellingTheSaveDialogWritesNothing() throws {

@@ -50,6 +50,25 @@ test("Maximize button: the window really maximizes with the UI starting at the t
   await expect(shell.page.locator(".win-resize")).toHaveCount(3);
 });
 
+test("Keyboard focus is in the page once the UI is up, so shortcuts work without a click in the window first; after minimizing and restoring it is back, and a focused text field keeps its focus", async ({
+  shell,
+}) => {
+  await shell.launch();
+  // The window's real keyboard focus (the page can't tell: under Playwright it always reports document.hasFocus()). WPF only gives focus
+  // back to an element that had it, so the page used to have none until the first click
+  const inPage = () => info(shell)?.focus?.startsWith("Chrome_") ?? false;
+  await waitFor("keyboard focus in the page after startup", inPage);
+  const filter = shell.page.locator('input[name="item-filter"]');
+  await filter.focus();
+  // element.click(): a pointer click would move the focus onto the Minimize button first
+  await winBtn(shell, 0).evaluate((b: HTMLElement) => b.click());
+  await waitFor("the window to minimize", () => info(shell)?.iconic);
+  shell.restoreWindow();
+  await waitFor("the window to restore", () => info(shell) && !info(shell)!.iconic);
+  await waitFor("keyboard focus in the page after restoring", inPage);
+  await expect(filter).toBeFocused();
+});
+
 test("Resizing from the top edge: an edge name the shell does not know is rejected with the reason; while maximized each of the three real edges returns at once and the window stays maximized", async ({
   shell,
 }) => {

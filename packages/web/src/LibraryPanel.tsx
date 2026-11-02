@@ -44,6 +44,8 @@ export function LibraryPanel(props: {
   /** Number of open notes of an item */
   openCount: (materialKey: string) => number;
   onSelect: (m: MaterialEntry) => void;
+  /** A folder the system won't let the app read was clicked (its path): the canvas says where access is granted */
+  onDenied: (path: string) => void;
   onAddFiles: () => void;
   onAddFolder: () => void;
   /** Ctrl+V: adds an image from the clipboard or copied files to the library */
@@ -164,6 +166,7 @@ export function LibraryPanel(props: {
     setQuery,
     selectedKey: props.selectedKey,
     onSelect: props.onSelect,
+    onDenied: props.onDenied,
     openCount,
     selection,
     model,

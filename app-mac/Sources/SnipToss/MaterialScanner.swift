@@ -38,6 +38,9 @@ enum MaterialScanner {
         var skippedByName: [String: String] = [:]
         /// There are items beyond the limit that were not listed (exactly at the limit does not count)
         var truncated = false
+        /// The folder itself may not be read (no permission, or a protected folder macOS has not let the app into): it lists nothing, and
+        /// the page says why instead of showing an empty folder
+        var denied = false
 
         var sortedOtherExts: [String] { otherExts.sorted() }
         var sortedMoreOffExts: [String] { moreOffExts.sorted() }
@@ -69,8 +72,18 @@ enum MaterialScanner {
         var found: [Found] = []
         var stack = [root]
         var more = false
+        var first = true
         while let dir = stack.popLast(), !more {
-            guard let names = try? FileManager.default.contentsOfDirectory(atPath: dir) else { continue }
+            let isRoot = first
+            first = false
+            let names: [String]
+            do {
+                names = try FileManager.default.contentsOfDirectory(atPath: dir)
+            } catch {
+                // Folders inside that may not be read are left out as before; only the entry's own folder being refused is reported
+                if isRoot, isRefusal(error) { stats?.denied = true }
+                continue
+            }
             // The disk's order is arbitrary; a fixed order keeps what is cut off at the limit the same from one scan to the next
             for name in names.sorted() {
                 if name.unicodeScalars.first == "." { continue }
@@ -99,6 +112,16 @@ enum MaterialScanner {
         }
         stats?.truncated = more
         return found
+    }
+
+    /// No permission to read: the file system's own refusal (EACCES), or macOS keeping the app out of a protected folder such as Desktop,
+    /// Documents or Downloads (EPERM)
+    static func isRefusal(_ error: Error) -> Bool {
+        let ns = error as NSError
+        if ns.domain == NSCocoaErrorDomain, ns.code == NSFileReadNoPermissionError { return true }
+        let posix = ns.domain == NSPOSIXErrorDomain ? ns : ns.userInfo[NSUnderlyingErrorKey] as? NSError
+        guard let posix, posix.domain == NSPOSIXErrorDomain else { return false }
+        return posix.code == Int(EPERM) || posix.code == Int(EACCES)
     }
 
     /// A file that is not listed: counted when it is a format that is not supported yet, or a More format left out by the setting

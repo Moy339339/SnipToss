@@ -1,4 +1,6 @@
 using System.IO;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using SnipToss.App;
 
 namespace AppTests;
@@ -95,6 +97,33 @@ public class BridgePolicyTests
 #pragma warning restore CA2201
         Assert.Null(Bridge.ErrorCode(new IOException("别的")));
         Assert.Null(Bridge.ErrorCode(new InvalidOperationException()));
+    }
+
+    [Fact]
+    public async Task Readable_tells_an_item_it_may_not_read_from_one_it_can_and_the_refusal_is_classified_as_denied()
+    {
+        using var dir = new TempDir();
+        var file = Path.Combine(dir.Path, "a.png");
+        File.WriteAllBytes(file, [1, 2, 3]);
+        Assert.True(await Bridge.ReadableAsync(file));
+        var info = new FileInfo(file);
+        var rule = new FileSystemAccessRule(WindowsIdentity.GetCurrent().User!, FileSystemRights.ReadData, AccessControlType.Deny);
+        var acl = info.GetAccessControl();
+        acl.AddAccessRule(rule);
+        info.SetAccessControl(acl);
+        try
+        {
+            var refused = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => Bridge.ReadableAsync(file));
+            Assert.Equal("denied", Bridge.ErrorCode(refused));
+        }
+        finally
+        {
+            acl.RemoveAccessRule(rule);
+            info.SetAccessControl(acl);
+        }
+        Assert.Equal("notFound", Bridge.ErrorCode(await Assert.ThrowsAnyAsync<IOException>(() => Bridge.ReadableAsync(Path.Combine(dir.Path, "gone.png")))));
+        // A folder is not an item: opened as a file it is refused as "access denied" too, which must not read as a missing permission
+        Assert.Null(Bridge.ErrorCode(await Assert.ThrowsAsync<ArgumentException>(() => Bridge.ReadableAsync(dir.Path))));
     }
 
     [Theory]

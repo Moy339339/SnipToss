@@ -3,6 +3,7 @@ import { useIntl } from "react-intl";
 import { DATA_DIR, shapesOf, type Annotation, type AnnotationStatus, type MaterialKind } from "@sniptoss/core";
 import { AnnotationLayer, markAt, type MarkHit, type ShownAnnotation } from "./AnnotationLayer";
 import { KeepPunctuation } from "./KeepPunctuation";
+import { NoAccess } from "./NoAccess";
 import { type Tool } from "./annotate";
 import { Composer } from "./Composer";
 import { AskDialog, type Ask } from "./AskDialog";
@@ -110,6 +111,8 @@ export function WorkspaceView(props: {
   const canAnnotate = !!current && ANNOTATABLE.includes(current.kind) && !currentBlocked;
   /** The URL of the canvas that failed to open (reported by Viewer). The URL carries the modified time, so once the file is fixed the URL changes and it no longer counts as broken */
   const [brokenUrl, setBrokenUrl] = useState<string>();
+  /** A folder in the library the system won't let the app read, clicked in the library: the canvas shows where access is granted (cleared when an item is shown) */
+  const [deniedShown, setDeniedShown] = useState<string>();
   const mediaBroken = !!current && brokenUrl === materialUrl(current);
   /** Marks can be drawn on the canvas: when the canvas cannot open there is no note layer and the drawing tools are grayed out, but overall comments can still be written */
   const canDraw = canAnnotate && !mediaBroken;
@@ -225,6 +228,15 @@ export function WorkspaceView(props: {
   };
 
   // ---------- Selecting and navigating: which item is open on the canvas lives in navigation.ts ----------
+  /** What is cleared from the canvas when it switches to another item (or to the page of a folder it may not read) */
+  const clearCanvas = () => {
+    setSeek(undefined);
+    // A folder comment being written does not follow the item, so switching items does not lose it
+    setDraft((d) => (d?.folder ? d : undefined));
+    setSelectedId(undefined);
+    setDims(undefined);
+    setDeniedShown(undefined);
+  };
   const { selectMaterial, showMaterial, reveal, stepMaterial, canStepMaterial } = useNavigation({
     library,
     prefs,
@@ -234,19 +246,44 @@ export function WorkspaceView(props: {
     folderDraft: !!draft?.folder,
     unlessDirty,
     requestClearPick,
-    onShow: () => {
-      setSeek(undefined);
-      // A folder comment being written does not follow the item, so switching items does not lose it
-      setDraft((d) => (d?.folder ? d : undefined));
-      setSelectedId(undefined);
-      setDims(undefined);
-    },
+    onShow: clearCanvas,
     // Items brought in from the command line or context menu: ones recognized as moved and ones not added (not found, unsupported, ...) were queued by the shell and are only reported now
     onLoaded: (state) => {
       if (!notifyRelocated(state.relocated)) notifySkipped(state.skipped);
     },
     onNotify,
   });
+
+  // ---------- A folder in the library the system won't let the app read: its page on the canvas ----------
+  /** Clicked in the library: no item is open, and the canvas says where access is granted (asking first about an unsaved note, as when switching items) */
+  const showDenied = (path: string) => {
+    const go = () => {
+      setSelectedKey(undefined);
+      clearCanvas();
+      setDeniedShown(path);
+    };
+    if (draft?.folder) go();
+    else unlessDirty(go, requestClearPick);
+  };
+  const deniedFolder = deniedShown && library.scans.get(keyOf(deniedShown))?.denied ? deniedShown : undefined;
+  // Access was granted and the rescan lists the folder: open it as a click on it would; it left the library: the page goes with it
+  useEffect(() => {
+    if (!deniedShown) return;
+    const s = library.scans.get(keyOf(deniedShown));
+    if (s?.denied) return;
+    setDeniedShown(undefined);
+    if (s) reveal(deniedShown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deniedShown, library.scans]);
+  // Access is granted elsewhere (System Settings, the folder's Properties): when the window gets focus back, scan the refused folders again
+  const deniedEntries = useMemo(() => [...library.scans.values()].filter((s) => s.denied).map((s) => s.entry), [library.scans]);
+  const rescanEntries = library.changed;
+  useEffect(() => {
+    if (!deniedEntries.length) return;
+    const again = () => void rescanEntries(deniedEntries).catch((e: unknown) => logError("Scanning folders again", e, "warn"));
+    window.addEventListener("focus", again);
+    return () => window.removeEventListener("focus", again);
+  }, [deniedEntries, rescanEntries]);
 
   // ---------- Adding to the library, removing, clearing: libraryActions.ts ----------
   const { notifySkipped, notifyRelocated, relocateEntry, addFiles, addFolder, paste, dragging, removeEntries, clearList, pinProject } =
@@ -1071,6 +1108,7 @@ export function WorkspaceView(props: {
             selectedKey={current ? selectedKey : undefined}
             openCount={openCount}
             onSelect={selectMaterial}
+            onDenied={showDenied}
             onAddFiles={addFiles}
             onAddFolder={addFolder}
             onPaste={() => void paste()}
@@ -1144,10 +1182,13 @@ export function WorkspaceView(props: {
                     }}
                     layer={layer}
                     onFail={setBrokenUrl}
+                    onRetry={() => setBrokenUrl(undefined)}
                     onReveal={() => revealInExplorer(current.path)}
                   />
                 </ZoomExtras.Provider>
               </ErrorBoundary>
+            ) : deniedFolder ? (
+              <NoAccess folder onReveal={() => revealInExplorer(deniedFolder)} />
             ) : (
               <div className={library.loaded && library.entries.length === 0 ? "stage-empty is-welcome" : "stage-empty"}>
                 {library.loaded && library.entries.length === 0 ? (

@@ -151,13 +151,41 @@ public class ScannerTests
         try
         {
             Assert.Throws<UnauthorizedAccessException>(() => locked.EnumerateFileSystemInfos().ToList()); // it really cannot be read
-            Assert.Equal(["a.png"], Names(dir.Path));
+            var stats = new MaterialScanner.Stats();
+            Assert.Equal(["a.png"], Names(dir.Path, stats: stats));
+            Assert.False(stats.Denied); // only the entry's own folder being refused is reported
         }
         finally
         {
             acl.RemoveAccessRule(rule);
             locked.SetAccessControl(acl);
         }
+    }
+
+    [Fact]
+    public void An_entry_folder_that_may_not_be_read_lists_nothing_and_reports_it()
+    {
+        using var dir = new TempDir();
+        Touch(dir.Path, "a.png");
+        var root = new DirectoryInfo(dir.Path);
+        var rule = new FileSystemAccessRule(WindowsIdentity.GetCurrent().User!, FileSystemRights.ListDirectory, AccessControlType.Deny);
+        var acl = root.GetAccessControl();
+        acl.AddAccessRule(rule);
+        root.SetAccessControl(acl);
+        try
+        {
+            var stats = new MaterialScanner.Stats();
+            Assert.Empty(Names(dir.Path, stats: stats));
+            Assert.True(stats.Denied);
+        }
+        finally
+        {
+            acl.RemoveAccessRule(rule);
+            root.SetAccessControl(acl);
+        }
+        var after = new MaterialScanner.Stats();
+        Assert.Equal(["a.png"], Names(dir.Path, stats: after));
+        Assert.False(after.Denied);
     }
 
     [Fact]

@@ -262,6 +262,12 @@ sealed class MaterialWatcher : IDisposable
     string? EntryOf(string path) =>
         settings.Library.Select(e => e.Path).FirstOrDefault(e => Library.Same(e, path) || Library.Inside(path, e));
 
+    /// <summary>
+    /// Whether the starting point of this file and of its library entry has been recorded, so that a change from now on is announced.
+    /// The first pass waits for the drive and a pool thread, which a slow machine can delay by seconds: tests wait for this instead of a fixed time
+    /// </summary>
+    internal bool HasBaseline(string path) => files.ContainsKey(path) && EntryOf(path) is { } entry && signatures.ContainsKey(entry);
+
     /// <summary>Size and modification time (ms, same as what the scan gives the UI); missing if gone</summary>
     internal static string FileSignature(string path)
     {

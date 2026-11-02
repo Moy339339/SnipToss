@@ -226,6 +226,34 @@ final class ScanMethodsTests: SnipTestCase {
         }
     }
 
+    // MARK: readable
+
+    func testReadableTellsAnItemTheAppMayNotReadFromOneItCan() throws {
+        try XCTSkipIf(geteuid() == 0, "root can read any file")
+        let dir = makeTempDir()
+        let item = touch(dir + "/库/a.png", "hello")
+        let library = [dir + "/库"]
+        XCTAssertEqual(try readableLibraryItem(item, library: library), true)
+
+        XCTAssertEqual(chmod(item, 0o000), 0)
+        defer { _ = chmod(item, 0o644) }
+        XCTAssertThrowsError(try readableLibraryItem(item, library: library)) { error in
+            XCTAssertEqual((error as? BridgeError)?.code, "denied")
+        }
+        XCTAssertThrowsError(try readableLibraryItem(dir + "/库/none.png", library: library)) { error in
+            XCTAssertEqual((error as? BridgeError)?.code, "notFound")
+        }
+        // A folder is not an item: refused, but not as a missing permission
+        XCTAssertThrowsError(try readableLibraryItem(dir + "/库", library: library)) { error in
+            XCTAssertNil((error as? BridgeError)?.code)
+        }
+        // Only paths in the library (hard rule 2)
+        let outside = touch(dir + "/别处/b.png", "secret")
+        XCTAssertThrowsError(try readableLibraryItem(outside, library: library)) { error in
+            XCTAssertEqual((error as? BridgeError)?.code, "denied")
+        }
+    }
+
     // MARK: fileUrl
 
     func testTheAddressOfANotesFileIsGivenOnlyInsideSniptossOfAHandedOutFolder() throws {
