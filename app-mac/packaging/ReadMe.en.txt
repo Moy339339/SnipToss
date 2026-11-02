@@ -7,14 +7,14 @@ Install
 Opening it for the first time
 SnipToss is not notarized by Apple, so macOS blocks it the first time:
 1. Double-click SnipToss. When macOS says it can't verify it, click Done.
-2. Open System Settings → Privacy & Security. Near the bottom, next to "SnipToss was blocked", click Open Anyway and enter your login password.
-3. Open SnipToss again and click Open Anyway.
+2. Open System Settings → Privacy & Security. Near the bottom, next to "“SnipToss” was blocked to protect your Mac.", click Open Anyway and enter your login password; SnipToss then opens.
+3. If macOS asks once more, click Open Anyway.
 After that it opens normally. Each new version needs this once, the first time it opens.
 
 Allowing screen capture
 Screen Capture needs permission to record the screen:
 1. Press ⌃⌥⌘A (Control + Option + Command + A), or click Capture in the title bar of the SnipToss window. With many menu bar icons, the SnipToss icon can end up hidden behind the notch; the shortcut and the button in the window always work.
-2. When macOS asks, click Open System Settings, and turn on SnipToss under Privacy & Security → Screen & System Audio Recording (Screen Recording on macOS 14).
+2. When macOS asks, click Open System Settings, and turn on SnipToss under Privacy & Security → Screen & System Audio Recording (Screen Recording on macOS 14); macOS asks for your login password.
 3. Click Quit & Reopen when asked.
 A new version keeps the permission. From macOS 15 on, macOS asks again from time to time whether SnipToss may keep recording; click Allow.
 
