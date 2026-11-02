@@ -50,6 +50,42 @@ public class DiagnosticsPackageTests
     }
 
     [Fact]
+    public void New_marks_in_the_library_keep_only_their_counts()
+    {
+        using var dir = new TempDir();
+        var settings = dir.File("settings.json");
+        // Keys as the UI writes them (keyOf: lower case, backslashes), on a drive outside the user folder so Scrub cannot catch them
+        File.WriteAllText(settings, """
+            {
+              "Prefs": {
+                "fresh": {
+                  "since": { "e:\\客户a\\机密项目": 1761984000000, "e:\\客户a\\另一个": 1761984000001 },
+                  "seen": [ "e:\\客户a\\机密项目\\hero-v2.png" ]
+                },
+                "language": "en"
+              }
+            }
+            """);
+        var s = DiagnosticsPackage.SettingsWithoutPaths(settings)!;
+        Assert.DoesNotContain("客户a", s, StringComparison.Ordinal);
+        Assert.DoesNotContain("hero-v2", s, StringComparison.Ordinal);
+        Assert.Contains("\"since\": \"(2 entries)\"", s, StringComparison.Ordinal);
+        Assert.Contains("\"seen\": \"(1 entries)\"", s, StringComparison.Ordinal);
+        Assert.Contains("\"language\": \"en\"", s, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void New_marks_of_an_unexpected_shape_are_left_out_too()
+    {
+        using var dir = new TempDir();
+        var settings = dir.File("settings.json");
+        File.WriteAllText(settings, """{ "Prefs": { "fresh": "e:\\客户a\\机密项目" } }""");
+        var s = DiagnosticsPackage.SettingsWithoutPaths(settings)!;
+        Assert.DoesNotContain("客户a", s, StringComparison.Ordinal);
+        Assert.Contains("\"fresh\": \"(set)\"", s, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unreadable_settings_file_still_exports_just_without_settings()
     {
         using var dir = new TempDir();

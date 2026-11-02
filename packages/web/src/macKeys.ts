@@ -81,3 +81,18 @@ export function macifyMessages(messages: Record<string, string>): Record<string,
     Object.entries(messages).map(([id, text]) => [id, id.startsWith("keycap.") ? text : macifyShortcuts(text, words)]),
   );
 }
+
+/**
+ * The suffix of a message written for the Mac: `id.mac` takes the place of `id` there (Finder instead of File Explorer, the menu bar
+ * instead of the tray), so a component asks for the same id on both platforms. Every language that has `id.mac` in English has it too
+ * (i18n.test.ts): the messages are merged over English, and an English `id.mac` would otherwise replace a translated `id`
+ */
+export const MAC_SUFFIX = ".mac";
+
+/** A language's messages as the Mac shows them: each `id.mac` replaces `id` (and is not kept under its own id), then macifyMessages */
+export function macMessages(messages: Record<string, string>): Record<string, string> {
+  const own = Object.entries(messages)
+    .filter(([id]) => !id.endsWith(MAC_SUFFIX))
+    .map(([id, text]) => [id, messages[id + MAC_SUFFIX] ?? text]);
+  return macifyMessages(Object.fromEntries(own));
+}

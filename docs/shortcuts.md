@@ -17,7 +17,7 @@ The tables in this file are written for Windows. On the Mac the same shortcuts a
 - In a text box the Mac's own editing keys belong to the box and are not shortcuts: ⌘Z, ⇧⌘Z, ⌘A, ⌘C, ⌘X, ⌘V, ⌥← ⌥→ (by word), ⌥⌫ ⌥⌦ (delete a word), ⌘↑ ⌘↓ (start or end of the text).
 - Enter is ↩, Delete is ⌦, Backspace is ⌫, Esc is ⎋; Space, Home and End stay words.
 - **The Screen Capture shortcut** is the one place the real Control key is a modifier, written `Control` (the Command key stays `Ctrl`): the default is `Control+Ctrl+Alt+A`, shown as ⌃⌥⌘A. Unlike the shortcuts above it needs Command or Control (Option and Shift alone type characters, so recording them is refused), and there is no Win key.
-- The shortcuts that are Windows conventions have no Mac counterpart yet: `Alt F4` and the menu bar's `Alt` / `F10`.
+- **The window keys are the Mac's**: ⌘W closes the window (File → Close Window, the same as the red button: with “Keep running in the menu bar when the window is closed” on, the app stays and the capture shortcut keeps working) and ⌘M minimizes it (Window → Minimize). ⌘Q quits. They take the place of `Alt F4`; the menu bar's `Alt` / `F10` have no Mac counterpart, as the menu bar is the system's.
 Status: ✅ implemented　⏳ to be done together with the corresponding feature
 
 ## General

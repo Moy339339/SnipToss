@@ -6,22 +6,22 @@ Please **don't** open a public issue for a security problem. Email **jujuw3939@o
 
 - what the problem is and what an attacker could do with it,
 - the steps or a file that reproduces it,
-- which app it is (SnipToss for Windows, or a SnipToss for Mac preview), its version (**Help → About**) and your system version.
+- which app it is (SnipToss for Windows, SnipToss for Mac, or the browser extension SnipToss for Chrome), its version (**Settings → About**; for the extension, its card in `chrome://extensions`) and your system version.
 
 You'll get a reply within 7 days. Once the problem is confirmed, a fix is prepared and released, and you're credited in the release notes unless you'd rather not be. Please give us a reasonable time to ship the fix before you disclose it publicly.
 
 ## Supported versions
 
-Security fixes go into the latest release of SnipToss for Windows. SnipToss for Mac is a preview for now and is covered once it is released.
+Security fixes go into the latest release of SnipToss for Windows and SnipToss for Mac (they share the version number). For SnipToss for Chrome, fixes go into the latest version in the Chrome Web Store; its source code isn't in this repository, so the scope below is about the desktop app.
 
 ## What's in scope
 
 SnipToss opens files that often come from somewhere else — assets an AI generated, project folders you cloned or downloaded. Things we especially want to hear about:
 
 - a file or folder (image, video, annotation JSON in `.sniptoss/`, file name, path) that makes the app run code, write outside the project's `.sniptoss/` folder, modify or delete the user's assets, or read files the user didn't open;
-- ways for content shown in the UI to escape the WebView2 sandbox, get around the content security policy, or call the bridge (`app/Bridge.cs`) beyond what the UI itself does;
+- ways for content shown in the UI to escape the WebView2 or WKWebView sandbox, get around the content security policy, or call the bridge (`app/Bridge.cs`, `app-mac/Sources/SnipToss/Bridge.swift`) beyond what the UI itself does;
 - ways for another local user or process to send commands to a running instance (the single-instance pipe only accepts the current user);
-- the app opening anything other than `http`/`https` links in the browser, or the update check (`app/Updates.cs`) sending anything beyond a plain request to the GitHub Releases API;
+- the app opening anything other than `http`/`https` links in the browser, or the update check (`app/Updates.cs`, `app-mac/Sources/SnipToss/Updates.swift`) sending anything beyond a plain request to the GitHub Releases API;
 - the diagnostics package or logs leaking item paths, user names or other personal data beyond what's described in the app.
 
-Out of scope: attacks that need administrator rights or physical access to an unlocked machine, and problems in Windows, WebView2 or .NET themselves (please report those to Microsoft).
+Out of scope: attacks that need administrator rights or physical access to an unlocked machine, and problems in Windows, WebView2 or .NET themselves (please report those to Microsoft) or in macOS and WebKit (please report those to Apple).

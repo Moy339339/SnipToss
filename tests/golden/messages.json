@@ -2482,6 +2482,23 @@
     },
     {
       "locale": "de",
+      "key": "shell.autostart.needsApproval",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Um <app> beim Anmelden zu öffnen, aktivieren Sie es unter Systemeinstellungen → Allgemein → Anmeldeobjekte."
+    },
+    {
+      "locale": "de",
+      "key": "shell.autostart.failed",
+      "args": {
+        "app": "<app>",
+        "reason": "<reason>"
+      },
+      "text": "Ob <app> beim Anmelden geöffnet wird, konnte nicht geändert werden: <reason>"
+    },
+    {
+      "locale": "de",
       "key": "shell.dialog.zip",
       "args": {},
       "text": "ZIP-Archiv"
@@ -4970,6 +4987,23 @@
       "key": "shell.dialog.exportDiagnostics",
       "args": {},
       "text": "Export Diagnostics Package"
+    },
+    {
+      "locale": "en",
+      "key": "shell.autostart.needsApproval",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "To open <app> at login, turn it on in System Settings → General → Login Items."
+    },
+    {
+      "locale": "en",
+      "key": "shell.autostart.failed",
+      "args": {
+        "app": "<app>",
+        "reason": "<reason>"
+      },
+      "text": "Couldn't change whether <app> opens at login: <reason>"
     },
     {
       "locale": "en",
@@ -7464,6 +7498,23 @@
     },
     {
       "locale": "es",
+      "key": "shell.autostart.needsApproval",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Para abrir <app> al iniciar sesión, actívalo en Ajustes del Sistema → General → Ítems de inicio."
+    },
+    {
+      "locale": "es",
+      "key": "shell.autostart.failed",
+      "args": {
+        "app": "<app>",
+        "reason": "<reason>"
+      },
+      "text": "No se pudo cambiar si <app> se abre al iniciar sesión: <reason>"
+    },
+    {
+      "locale": "es",
       "key": "shell.dialog.zip",
       "args": {},
       "text": "Archivo ZIP"
@@ -9952,6 +10003,23 @@
       "key": "shell.dialog.exportDiagnostics",
       "args": {},
       "text": "Exporter l’archive de diagnostic"
+    },
+    {
+      "locale": "fr",
+      "key": "shell.autostart.needsApproval",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Pour ouvrir <app> à l’ouverture de session, activez-le dans Réglages Système → Général → Ouverture."
+    },
+    {
+      "locale": "fr",
+      "key": "shell.autostart.failed",
+      "args": {
+        "app": "<app>",
+        "reason": "<reason>"
+      },
+      "text": "Impossible de modifier l’ouverture de <app> à l’ouverture de session : <reason>"
     },
     {
       "locale": "fr",
@@ -12446,6 +12514,23 @@
     },
     {
       "locale": "it",
+      "key": "shell.autostart.needsApproval",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Per aprire <app> al login, attivalo in Impostazioni di Sistema → Generali → Elementi login."
+    },
+    {
+      "locale": "it",
+      "key": "shell.autostart.failed",
+      "args": {
+        "app": "<app>",
+        "reason": "<reason>"
+      },
+      "text": "Impossibile modificare l'apertura di <app> al login: <reason>"
+    },
+    {
+      "locale": "it",
       "key": "shell.dialog.zip",
       "args": {},
       "text": "Archivio ZIP"
@@ -14883,6 +14968,23 @@
     },
     {
       "locale": "ja",
+      "key": "shell.autostart.needsApproval",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "ログイン時に <app> を開くには、「システム設定 → 一般 → ログイン項目」でオンにしてください。"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.autostart.failed",
+      "args": {
+        "app": "<app>",
+        "reason": "<reason>"
+      },
+      "text": "ログイン時に <app> を開く設定を変更できませんでした：<reason>"
+    },
+    {
+      "locale": "ja",
       "key": "shell.dialog.zip",
       "args": {},
       "text": "ZIP ファイル"
@@ -17317,6 +17419,23 @@
       "key": "shell.dialog.exportDiagnostics",
       "args": {},
       "text": "진단 패키지 내보내기"
+    },
+    {
+      "locale": "ko",
+      "key": "shell.autostart.needsApproval",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "로그인 시 <app> 앱을 열려면 시스템 설정 > 일반 > 로그인 항목에서 켜세요."
+    },
+    {
+      "locale": "ko",
+      "key": "shell.autostart.failed",
+      "args": {
+        "app": "<app>",
+        "reason": "<reason>"
+      },
+      "text": "로그인 시 <app> 앱을 여는 설정을 변경할 수 없습니다: <reason>"
     },
     {
       "locale": "ko",
@@ -19808,6 +19927,23 @@
       "key": "shell.dialog.exportDiagnostics",
       "args": {},
       "text": "Exportar pacote de diagnóstico"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.autostart.needsApproval",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Para abrir o <app> ao iniciar sessão, ative-o em Ajustes do Sistema → Geral → Itens de Início."
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.autostart.failed",
+      "args": {
+        "app": "<app>",
+        "reason": "<reason>"
+      },
+      "text": "Não foi possível alterar a abertura do <app> ao iniciar sessão: <reason>"
     },
     {
       "locale": "pt-BR",
@@ -22356,6 +22492,23 @@
     },
     {
       "locale": "ru",
+      "key": "shell.autostart.needsApproval",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Чтобы <app> открывался при входе, включите его в разделе Системные настройки → Основные → Объекты входа."
+    },
+    {
+      "locale": "ru",
+      "key": "shell.autostart.failed",
+      "args": {
+        "app": "<app>",
+        "reason": "<reason>"
+      },
+      "text": "Не удалось изменить открытие <app> при входе: <reason>"
+    },
+    {
+      "locale": "ru",
       "key": "shell.dialog.zip",
       "args": {},
       "text": "ZIP-архив"
@@ -24283,6 +24436,23 @@
     },
     {
       "locale": "zh-CN",
+      "key": "shell.autostart.needsApproval",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "要在登录时打开<app>，请在「系统设置」→「通用」→「登录项」中开启。"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.autostart.failed",
+      "args": {
+        "app": "<app>",
+        "reason": "<reason>"
+      },
+      "text": "未能更改<app>的登录时打开设置：<reason>"
+    },
+    {
+      "locale": "zh-CN",
       "key": "shell.dialog.zip",
       "args": {},
       "text": "ZIP 压缩文件"
@@ -26207,6 +26377,23 @@
       "key": "shell.dialog.exportDiagnostics",
       "args": {},
       "text": "匯出診斷套件"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.autostart.needsApproval",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "若要在登入時打開<app>，請在「系統設定 → 一般 → 登入項目」中開啟。"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.autostart.failed",
+      "args": {
+        "app": "<app>",
+        "reason": "<reason>"
+      },
+      "text": "無法變更<app>的登入時打開設定：<reason>"
     },
     {
       "locale": "zh-TW",

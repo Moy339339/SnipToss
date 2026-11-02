@@ -1,0 +1,124 @@
+import AppKit
+import XCTest
+
+@testable import SnipToss
+
+/// The shell's own words in the language of the UI: `ShellText` reads the catalog of the current language (resources built by
+/// `node app-mac/scripts/build-resources.mjs`, SNIPTOSS_RESOURCES_DIR), and says its built-in English when there are none
+final class ShellTextTests: SnipTestCase {
+    override func setUp() {
+        super.setUp()
+        ShellLocale.reset()
+    }
+
+    override func tearDown() {
+        ShellLocale.reset()
+        super.tearDown()
+    }
+
+    private func hasResources() -> Bool {
+        guard let dir = AppResources.directory() else { return false }
+        return FileManager.default.fileExists(atPath: dir.appendingPathComponent("shell-messages.js").path)
+    }
+
+    private func catalog(_ language: String) throws -> [String: String] {
+        var root = URL(fileURLWithPath: #filePath)
+        for _ in 0..<4 { root.deleteLastPathComponent() }
+        let data = try Data(contentsOf: root.appendingPathComponent("i18n/locales/\(language).json"))
+        return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: String])
+    }
+
+    private func catalogText(_ language: String, _ key: String) throws -> String {
+        try XCTUnwrap(try catalog(language)[key])
+    }
+
+    /// The built-in English says what the English catalog says: a message changed in one place and not in the other is caught here.
+    /// Messages with a select or a plural are written as code in ShellText and are checked by their own tests
+    func testTheBuiltInEnglishIsTheEnglishCatalog() throws {
+        let saved = getenv("SNIPTOSS_RESOURCES_DIR").map { String(cString: $0) }
+        setenv("SNIPTOSS_RESOURCES_DIR", "/nonexistent-folder-for-test", 1)
+        ShellLocale.reset()
+        defer {
+            if let saved { setenv("SNIPTOSS_RESOURCES_DIR", saved, 1) } else { unsetenv("SNIPTOSS_RESOURCES_DIR") }
+            ShellLocale.reset()
+        }
+        let args = ["app": "App", "keys": "Keys", "path": "/p", "dir": "/d", "ext": ".x", "name": "n", "reason": "Reason", "version": "v9"]
+        var compared = 0
+        for (key, message) in try catalog("en") where key == "brand.name" || key.hasPrefix("shell.") || key == "app.toast.close" {
+            let builtIn = ShellText.t(key, args)
+            // Not one the shell says without the resources
+            if builtIn == key || message.contains(", select,") || message.contains(", plural,") { continue }
+            var want = message
+            for (name, value) in args { want = want.replacingOccurrences(of: "{\(name)}", with: value) }
+            XCTAssertEqual(builtIn, want, key)
+            compared += 1
+        }
+        // Enough to show the comparison ran over the shell's messages, not over nothing
+        XCTAssertGreaterThanOrEqual(compared, 20)
+    }
+
+    func testTheTextIsTheCatalogsInTheLanguageInUse() throws {
+        try XCTSkipUnless(hasResources(), "the shell's resources are not built")
+        ShellLocale.use(pref: "en", system: "en-US")
+        XCTAssertEqual(ShellText.t("shell.tray.capture"), try catalogText("en", "shell.tray.capture"))
+        ShellLocale.use(pref: "zh-CN", system: "en-US")
+        XCTAssertEqual(ShellText.t("shell.tray.capture"), try catalogText("zh-CN", "shell.tray.capture"))
+        XCTAssertNotEqual(ShellText.t("shell.tray.capture"), "Capture Screen")
+        // A message with a placeholder
+        XCTAssertEqual(ShellText.t("shell.tray.open", ["app": "X"]).contains("X"), true)
+    }
+
+    func testAMessageWithASelectIsFilledIn() throws {
+        try XCTSkipUnless(hasResources(), "the shell's resources are not built")
+        let busy = ShellText.t("shell.settings.fromBackup", ["reason": "busy"])
+        let damaged = ShellText.t("shell.settings.fromBackup", ["reason": "damaged"])
+        XCTAssertTrue(busy.contains("couldn't be read"), busy)
+        XCTAssertTrue(damaged.contains("damaged"), damaged)
+    }
+
+    func testWithoutTheResourcesTheBuiltInEnglishIsUsed() {
+        let saved = getenv("SNIPTOSS_RESOURCES_DIR").map { String(cString: $0) }
+        setenv("SNIPTOSS_RESOURCES_DIR", "/nonexistent-folder-for-test", 1)
+        ShellLocale.reset()
+        XCTAssertEqual(ShellText.t("shell.tray.capture"), "Capture Screen")
+        XCTAssertEqual(ShellText.t("shell.menu.quit", ["app": "SnipToss"]), "Quit SnipToss")
+        XCTAssertEqual(ShellText.t("brand.name"), "SnipToss")
+        // A key nobody knows is returned as it is
+        XCTAssertEqual(ShellText.t("no.such.message"), "no.such.message")
+        if let saved { setenv("SNIPTOSS_RESOURCES_DIR", saved, 1) } else { unsetenv("SNIPTOSS_RESOURCES_DIR") }
+        ShellLocale.reset()
+    }
+
+    /// The announcement is posted on the main queue a moment after the change, so earlier tests' announcements may still be on their way:
+    /// let them arrive first, then count the ones this change makes
+    func testAChangeOfLanguageIsAnnouncedOnce() {
+        RunLoop.main.run(until: Date().addingTimeInterval(0.2))
+        var announced = 0
+        let observer = NotificationCenter.default.addObserver(forName: .shellLanguageChanged, object: nil, queue: .main) { _ in
+            announced += 1
+        }
+        defer { NotificationCenter.default.removeObserver(observer) }
+        XCTAssertTrue(ShellLocale.use(pref: "de", system: "en-US"))
+        XCTAssertFalse(ShellLocale.use(pref: "de", system: "fr-FR"))
+        RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+        XCTAssertEqual(announced, 1)
+    }
+
+    func testTheAppMenuSaysItsWordsAgainWhenAskedTo() {
+        let bar = NSMenu()
+        bar.addItem(NSMenuItem())
+        MainMenu.refreshAppMenu(in: bar, openSettings: Selector(("openSettings:")), openAbout: Selector(("openAbout:")))
+        let items = bar.items[0].submenu?.items ?? []
+        XCTAssertEqual(items.count, 9)
+        XCTAssertEqual(items.filter { !$0.isSeparatorItem }.count, 6)
+        XCTAssertEqual(items[0].title, ShellText.t("shell.menu.about", ["app": ShellText.t("brand.name")]))
+        XCTAssertEqual(items[2].keyEquivalent, ",")
+        XCTAssertEqual(items[4].keyEquivalent, "h")
+        XCTAssertEqual(items[8].keyEquivalent, "q")
+        // The standard Edit items are made from the same words
+        let edit = MainMenu.standardEditItems()
+        XCTAssertEqual(
+            edit.map { $0.title },
+            ["", ShellText.t("shell.menu.cut"), ShellText.t("shell.menu.copy"), ShellText.t("shell.menu.paste"), ShellText.t("shell.menu.selectAll")])
+    }
+}

@@ -560,6 +560,9 @@ export function WorkspaceView(props: {
     // Recolor the selected marks (the checked ones if any): 1–6 follow the order of the swatch row in Settings (like Lightroom's number keys for color labels)
     ...Object.fromEntries(MARK_COLORS.map((_, i) => [String(i + 1), () => colorKey(i)])),
     F11: () => windowCmd("fullscreen"),
+    // The Mac's window keys, ⌘W and ⌘M (Ctrl is ⌘ there): the native menu shows them, but a key reaches its items only after the page let
+    // it go, and then they do not run (the Mac shell's MenuPolicy), so the page handles them, as it does every shortcut
+    ...(platform === "mac" ? { "Ctrl+W": () => windowCmd("close"), "Ctrl+M": () => windowCmd("minimize") } : {}),
     "Ctrl+L": toggleLoop,
     Escape: () => {
       if (draft) setDraft(undefined);

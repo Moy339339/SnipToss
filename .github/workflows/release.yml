@@ -1,4 +1,7 @@
 # Release pipeline (ADR-0002): push a v* tag -> run the full checks on Windows (same as ci.yml) -> scripts/publish.ps1 -> draft Release (with the installer, the portable zip and SHA256SUMS.txt).
+# The Mac packages (the disk image and the zipped app) are built and checked by mac.yml in the same run, alongside the Windows job, and attached
+# to the same Release: both apps share the version number, and each one's update check takes only the releases that carry its own package.
+# Run by hand (workflow_dispatch) it only builds and checks the Mac packages, without a Release, to try the Mac half before tagging.
 # A person reviews the draft before publishing it. Versions with a "-" (1.1.0-beta.1) are marked pre-release (the updater's beta channel). Signing is still to come.
 # The tag must match the version in the root package.json: v1.0.0
 name: Release
@@ -6,6 +9,7 @@ name: Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -15,7 +19,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  mac:
+    uses: ./.github/workflows/mac.yml
+    with:
+      release: true
+    secrets: inherit
+
+  windows:
+    if: github.event_name == 'push'
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
@@ -58,17 +69,15 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           if (-not (Test-Path "dist/release/SnipToss-$env:VERSION-win-x64-setup.exe")) { throw 'The installer was not built' }
 
-      - name: Draft Release
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # The installer: publish.ps1 builds it when Inno Setup 6 is installed on the runner
-          $files = @(Get-ChildItem dist/release -File -Filter "SnipToss-$env:VERSION-*" | ForEach-Object FullName) + 'dist/release/SHA256SUMS.txt'
-          # The product line goes in the title (SnipToss for Windows / for Mac / for Chrome have their own version numbers)
-          $flags = @('--draft', '--generate-notes', '--title', "SnipToss for Windows $env:VERSION")
-          if ($env:VERSION -match '-') { $flags += '--prerelease' }
-          gh release create $env:GITHUB_REF_NAME @files @flags
+      # The installer: publish.ps1 builds it when Inno Setup 6 is installed on the runner
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows-packages
+          path: |
+            dist/release/SnipToss-${{ env.VERSION }}-*
+            dist/release/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 7
 
       - uses: actions/upload-artifact@v7
         if: failure()
@@ -78,3 +87,38 @@ jobs:
           retention-days: 7
           # .results starts with a dot: without this the upload skips it as hidden and finds nothing
           include-hidden-files: true
+
+  # Both halves passed: one draft Release with the Windows and the Mac packages and the hashes of all of them
+  release:
+    needs: [windows, mac]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: windows-packages
+          path: release
+
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: SnipToss-mac-*
+          path: release
+          merge-multiple: true
+
+      - name: Draft Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          $mac = @(Get-ChildItem release -File -Filter "SnipToss-$version-mac-*")
+          if (-not ($mac | Where-Object Extension -eq '.dmg')) { throw "No Mac disk image for $version" }
+          $sums = $mac | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)" }
+          [IO.File]::AppendAllText('release/SHA256SUMS.txt', ($sums -join "`n") + "`n", [Text.UTF8Encoding]::new($false))
+          $files = @(Get-ChildItem release -File -Filter "SnipToss-$version-*" | ForEach-Object FullName) + 'release/SHA256SUMS.txt'
+          $files | ForEach-Object { Split-Path $_ -Leaf }
+          # The product line goes in the title: SnipToss Desktop is the Windows and the Mac app, which share the version number (SnipToss for Chrome has its own)
+          $flags = @('--draft', '--generate-notes', '--title', "SnipToss Desktop $version")
+          if ($version -match '-') { $flags += '--prerelease' }
+          gh release create $env:GITHUB_REF_NAME @files @flags

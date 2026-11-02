@@ -39,13 +39,15 @@ public class UpdatesTests
 
     static JsonElement Releases(string json) => JsonDocument.Parse(json).RootElement;
 
-    const string List = """
+    const string Windows = """ "assets": [ { "name": "SnipToss-x-win-x64-setup.exe" }, { "name": "SHA256SUMS.txt" } ] """;
+
+    const string List = $$"""
         [
-          { "tag_name": "v1.0.2", "html_url": "https://x/v1.0.2", "draft": true, "prerelease": false },
-          { "tag_name": "v1.1.0-beta.3", "html_url": "https://x/v1.1.0-beta.3", "draft": false, "prerelease": true },
-          { "tag_name": "v1.0.1", "html_url": "https://x/v1.0.1", "draft": false, "prerelease": false },
-          { "tag_name": "v1.0.0", "html_url": "https://x/v1.0.0", "draft": false, "prerelease": false },
-          { "tag_name": "nightly", "html_url": "https://x/nightly", "draft": false, "prerelease": true }
+          { "tag_name": "v1.0.2", "html_url": "https://x/v1.0.2", "draft": true, "prerelease": false, {{Windows}} },
+          { "tag_name": "v1.1.0-beta.3", "html_url": "https://x/v1.1.0-beta.3", "draft": false, "prerelease": true, {{Windows}} },
+          { "tag_name": "v1.0.1", "html_url": "https://x/v1.0.1", "draft": false, "prerelease": false, {{Windows}} },
+          { "tag_name": "v1.0.0", "html_url": "https://x/v1.0.0", "draft": false, "prerelease": false, {{Windows}} },
+          { "tag_name": "nightly", "html_url": "https://x/nightly", "draft": false, "prerelease": true, {{Windows}} }
         ]
         """;
 
@@ -61,6 +63,25 @@ public class UpdatesTests
     {
         Assert.Equal(new Updates.Release("1.1.0-beta.3", "https://x/v1.1.0-beta.3", true), Updates.Newest(Releases(List), "1.0.0-beta.66"));
         Assert.Null(Updates.Newest(Releases(List), "1.1.0-beta.3"));
+    }
+
+    [Fact]
+    public void A_release_without_a_Windows_package_such_as_a_fix_for_the_Mac_app_alone_is_not_an_update()
+    {
+        const string list = """
+            [
+              { "tag_name": "v1.2.1", "html_url": "https://x/v1.2.1", "draft": false, "prerelease": false,
+                "assets": [ { "name": "SnipToss-1.2.1-mac-universal.dmg" }, { "name": "SHA256SUMS.txt" } ] },
+              { "tag_name": "v1.2.2", "html_url": "https://x/v1.2.2", "draft": false, "prerelease": false, "assets": [] },
+              { "tag_name": "v1.2.3", "html_url": "https://x/v1.2.3", "draft": false, "prerelease": false },
+              { "tag_name": "v1.2.4", "html_url": "https://x/v1.2.4", "draft": false, "prerelease": false,
+                "assets": [ { "name": "SnipToss-1.2.4-win-x64-notes.txt" } ] },
+              { "tag_name": "v1.2.0", "html_url": "https://x/v1.2.0", "draft": false, "prerelease": false,
+                "assets": [ { "name": "SnipToss-1.2.0-mac-universal.dmg" }, { "name": "SnipToss-1.2.0-WIN-x64-portable.zip" } ] }
+            ]
+            """;
+        Assert.Equal(new Updates.Release("1.2.0", "https://x/v1.2.0", false), Updates.Newest(Releases(list), "1.1.2"));
+        Assert.Null(Updates.Newest(Releases(list), "1.2.0"));
     }
 
     [Fact]

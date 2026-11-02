@@ -9,6 +9,7 @@ namespace SnipToss.App;
 /// Update check (ADR-0002 item 4): queries GitHub Releases, tells the UI when something newer than the current version exists, and goes to the download page only when the user clicks.
 /// The app goes online only here (the privacy notice says so, and the automatic check can be turned off in Settings); it sends one request that carries no user information.
 /// Channel: a stable release looks only at stable releases; a beta (1.0.0-beta.N) also looks at betas (marked pre-release on GitHub). Drafts don't count.
+/// Platform: the Mac app is released under the same version numbers, so only a release that carries a Windows package counts (see <see cref="PackageMark"/>).
 /// Downloading, verifying SHA256 and installing silently after exit will come once the installer signature and Sandbox have been tested; for now it only links to the download page
 /// </summary>
 static class Updates
@@ -60,7 +61,23 @@ static class Updates
         }
     }
 
-    /// <summary>The newest release in the list that is newer than current and in this channel; null if none</summary>
+    /// <summary>
+    /// How a Windows package is named among a release's files: SnipToss-1.2.0-win-x64-setup.exe, SnipToss-1.2.0-win-x64-portable.zip (the Mac
+    /// packages are SnipToss-1.2.0-mac-universal.dmg / .zip). A release without one (a fix for the Mac app alone) is not an update for Windows:
+    /// there would be nothing to download
+    /// </summary>
+    internal const string PackageMark = "-win-";
+
+    static bool IsPackage(string name) =>
+        name.Contains(PackageMark, StringComparison.OrdinalIgnoreCase)
+        && (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) || name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
+
+    static bool HasPackage(JsonElement release) =>
+        release.TryGetProperty("assets", out var assets)
+        && assets.ValueKind == JsonValueKind.Array
+        && assets.EnumerateArray().Any(a => Text(a, "name") is { } name && IsPackage(name));
+
+    /// <summary>The newest release in the list that is newer than current, in this channel and with a Windows package; null if none</summary>
     internal static Release? Newest(JsonElement releases, string current)
     {
         if (releases.ValueKind != JsonValueKind.Array) return null;
@@ -68,7 +85,7 @@ static class Updates
         Release? best = null;
         foreach (var r in releases.EnumerateArray())
         {
-            if (Bool(r, "draft")) continue;
+            if (Bool(r, "draft") || !HasPackage(r)) continue;
             var prerelease = Bool(r, "prerelease");
             if (prerelease && !beta) continue;
             if (Text(r, "tag_name") is not { } tag || Text(r, "html_url") is not { } page) continue;

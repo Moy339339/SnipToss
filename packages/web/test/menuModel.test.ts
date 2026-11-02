@@ -176,6 +176,18 @@ describe("NativeMenuSync: what is sent to the shell and what a command from it d
     expect(sent[0].menus).toHaveLength(2);
   });
 
+  it("unchanged menus are not sent again, but a command runs the action of the latest render (it reads the page's state as it is now)", () => {
+    const { sync, sent, calls } = make();
+    const withState = (state: string): TopMenu[] => [top("File", [{ label: "Show Current Item", onClick: () => calls.push(state) }])];
+    sync.update(withState("nothing selected yet"), false);
+    sync.update(withState("hero.png"), false);
+    expect(sent).toHaveLength(1);
+    const item = sent[0].menus[0].items[0];
+    if (item === "-") throw new Error("not a separator");
+    expect(sync.run({ id: item.id, version: 1 }, false)).toBe(true);
+    expect(calls).toEqual(["hero.png"]);
+  });
+
   it("a change sends a new model with the next version", () => {
     const { sync, sent, menus } = make();
     sync.update(menus(0), false);

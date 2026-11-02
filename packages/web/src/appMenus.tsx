@@ -2,7 +2,7 @@ import type { Annotation, AnnotationStatus } from "@sniptoss/core";
 import type { IntlShape } from "react-intl";
 import type { Tool } from "./annotate";
 import { versionLabel } from "./brand";
-import type { MaterialEntry, NewerVersion, WindowAction, WindowState } from "./host";
+import { platform, type MaterialEntry, type NewerVersion, type WindowAction, type WindowState } from "./host";
 import { prettyKeys } from "./hotkey";
 import { pressKey } from "./keys";
 import { markColorRow } from "./markColors";
@@ -202,6 +202,9 @@ export function buildMenus(c: MenuContext): TopMenu[] {
         "-",
         // Closing the window (Alt F4, the × in the title bar) only hides it when "keep in tray" is on; this really quits
         { label: t("menu.file.exit"), only: "windows", onClick: () => c.windowCmd("quit") },
+        // The Mac's ⌘W, at the end of the File menu as in every Mac app: the same as the window's red button (with "keep running in the menu
+        // bar" on the app stays; ⌘Q in the app menu quits). Ctrl+W is not a window key on Windows
+        ...(platform === "mac" ? [{ label: t("menu.file.closeWindow"), hint: "Ctrl W", onClick: () => c.windowCmd("close") }] : []),
       ],
     },
     {
@@ -387,7 +390,8 @@ export function buildMenus(c: MenuContext): TopMenu[] {
     {
       ...mnemonic(t("menu.top.window")),
       items: () => [
-        { label: t("menu.window.minimize"), onClick: () => c.windowCmd("minimize") },
+        // ⌘M minimizes on the Mac, as in every Mac app; on Windows the title bar's button does it, and Ctrl+M is not a window key there
+        { label: t("menu.window.minimize"), hint: platform === "mac" ? "Ctrl M" : undefined, onClick: () => c.windowCmd("minimize") },
         {
           label: t(c.win.maximized ? "menu.window.restore" : "menu.window.maximize"),
           onClick: () => c.windowCmd("maximize"),
@@ -416,7 +420,8 @@ export function buildMenus(c: MenuContext): TopMenu[] {
         { label: t("menu.help.exportDiagnostics"), title: t("menu.help.exportDiagnosticsTitle"), onClick: c.exportDiagnostics },
         { label: t("menu.help.report"), title: t("menu.help.reportTitle"), onClick: c.reportIssue },
         "-",
-        { label: t("menu.help.devTools"), title: t("menu.help.devToolsTitle"), onClick: c.openDevTools },
+        // The Mac app has no developer tools of its own (WebKit's inspector needs Safari's Develop menu); its logs and diagnostics package are enough
+        { label: t("menu.help.devTools"), title: t("menu.help.devToolsTitle"), only: "windows", onClick: c.openDevTools },
         "-",
         c.newerVersion
           ? {

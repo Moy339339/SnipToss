@@ -5,6 +5,7 @@ import { parse, TYPE, type MessageFormatElement } from "@formatjs/icu-messagefor
 import { IntlMessageFormat } from "intl-messageformat";
 import { describe, expect, it } from "vitest";
 import { LOCALES, matchLocale, resolveLocale, SOURCE_LOCALE, SYSTEM_LOCALES } from "../src/i18n";
+import { MAC_SUFFIX } from "../src/macKeys";
 // The message check is the same one the CLI uses (scripts/check-catalog.mjs, plain JS)
 import { checkCatalog } from "../../../scripts/check-catalog.mjs";
 
@@ -56,25 +57,40 @@ describe("messages (i18n/locales)", () => {
     expect(Object.keys(catalogs.en).sort()).toEqual(Object.keys(catalogs[SOURCE_LOCALE]).sort());
   });
 
-  it("every message is valid ICU and its placeholders match the source language", () => {
-    // Placeholders are taken with the ICU parser: a regex would also take the words in a branch (English other {Undone}) for placeholders
-    const placeholders = (msg: string) => {
-      const names: string[] = [];
-      const walk = (els: MessageFormatElement[]) => {
-        for (const el of els) {
-          if ("value" in el && el.type !== TYPE.literal && typeof el.value === "string") names.push(el.value);
-          if ("options" in el) for (const o of Object.values(el.options)) walk(o.value);
-          if ("children" in el) walk(el.children);
-        }
-      };
-      walk(parse(msg));
-      return names.sort();
+  // Placeholders are taken with the ICU parser: a regex would also take the words in a branch (English other {Undone}) for placeholders
+  const placeholders = (msg: string) => {
+    const names: string[] = [];
+    const walk = (els: MessageFormatElement[]) => {
+      for (const el of els) {
+        if ("value" in el && el.type !== TYPE.literal && typeof el.value === "string") names.push(el.value);
+        if ("options" in el) for (const o of Object.values(el.options)) walk(o.value);
+        if ("children" in el) walk(el.children);
+      }
     };
+    walk(parse(msg));
+    return names.sort();
+  };
+
+  it("every message is valid ICU and its placeholders match the source language", () => {
     for (const [locale, messages] of Object.entries(catalogs)) {
       for (const [id, msg] of Object.entries(messages)) {
         expect(() => new IntlMessageFormat(msg, locale), `${locale} ${id}`).not.toThrow();
         const source = catalogs[SOURCE_LOCALE][id];
         if (source !== undefined) expect(new Set(placeholders(msg)), `${locale} ${id} placeholders`).toEqual(new Set(placeholders(source)));
+      }
+    }
+  });
+
+  it("a Mac message (id.mac, macKeys.ts) replaces a message of the same language: same placeholders, and present wherever that message is translated", () => {
+    const macIds = Object.keys(catalogs.en).filter((id) => id.endsWith(MAC_SUFFIX));
+    expect(macIds.length).toBeGreaterThan(0);
+    for (const macId of macIds) {
+      const id = macId.slice(0, -MAC_SUFFIX.length);
+      expect(catalogs.en[id], `${macId} replaces nothing`).toBeDefined();
+      expect(new Set(placeholders(catalogs.en[macId])), `${macId} placeholders`).toEqual(new Set(placeholders(catalogs.en[id])));
+      // Messages are merged over English: without its own id.mac a language would show the English Mac text instead of its translated id
+      for (const [locale, messages] of Object.entries(catalogs)) {
+        if (messages[id] !== undefined) expect(messages[macId], `${locale} ${macId}`).toBeDefined();
       }
     }
   });

@@ -1,8 +1,22 @@
 # Changelog
 
-All notable changes to SnipToss for Windows are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
+All notable changes to SnipToss Desktop are listed here: SnipToss for Windows and, from 1.2.0 on, SnipToss for Mac, which share version numbers and releases. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
 The annotation data format has its own version (`"schema": "sniptoss/5"`); its history is in [docs/annotation-format.md](docs/annotation-format.md).
+
+## [1.2.0] — 2026-11-03
+
+### Added
+
+- SnipToss for Mac, for macOS 14 or later on Apple silicon and Intel: the same app as on Windows, with screen capture (`⌃⌥⌘A`), Open With in Finder and dropping onto the Dock icon. Notes are the same files, so a project can be reviewed on either system. It comes as a disk image in the same release as the Windows app; see [Install](README.md#mac).
+
+### Changed
+
+- The update check only offers a release that includes a Windows package. SnipToss for Mac shares the version numbers, and a release made for the Mac app alone is no longer announced as an update on Windows.
+
+### Fixed
+
+- The diagnostics package (Help → Export Diagnostics Package…) no longer includes the paths of library items in its copy of the settings: what the library remembers for its "New" marks is now reduced to counts, like the item list.
 
 ## [1.1.2] — 2026-11-02
 
@@ -77,6 +91,7 @@ First public release.
 - Portable version: with a `data` folder next to the app, all data stays in it and the registry is never touched.
 - Command-line tool `sniptoss` (list, review, resolve, wontfix); its messages follow the system display language.
 
+[1.2.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.2.0
 [1.1.2]: https://github.com/Moy339339/SnipToss/releases/tag/v1.1.2
 [1.1.1]: https://github.com/Moy339339/SnipToss/releases/tag/v1.1.1
 [1.1.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.1.0

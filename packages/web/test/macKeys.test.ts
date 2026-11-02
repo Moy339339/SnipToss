@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { IntlMessageFormat } from "intl-messageformat";
 import { describe, expect, it } from "vitest";
-import { keyWordsOf, macifyMessages, macifyShortcuts, type KeyWords } from "../src/macKeys";
+import { keyWordsOf, macifyMessages, macifyShortcuts, macMessages, type KeyWords } from "../src/macKeys";
 
 const EN: KeyWords = { ctrl: "Ctrl", shift: "Shift", enter: "Enter", esc: "Esc", delete: "Delete", backspace: "Backspace" };
 const DE: KeyWords = { ctrl: "Strg", shift: "Umschalt", enter: "Eingabe", esc: "Esc", delete: "Entf", backspace: "Rücktaste" };
@@ -95,6 +95,15 @@ describe("macifyMessages on the real catalogs", () => {
       const add = mac["library.add.files"];
       if (add !== undefined) expect(add).toContain("⌘O");
     }
+  });
+
+  it("macMessages: a Mac message takes the place of the Windows one and is not kept under its own id; shortcuts are still rewritten", () => {
+    const mac = macMessages({
+      "settings.reveal": "Show in File Explorer",
+      "settings.reveal.mac": "Show in Finder",
+      "x.undo": "Undo (Ctrl Z)",
+    });
+    expect(mac).toEqual({ "settings.reveal": "Show in Finder", "x.undo": "Undo (⌘Z)" });
   });
 
   it("keyWordsOf falls back to the English names", () => {

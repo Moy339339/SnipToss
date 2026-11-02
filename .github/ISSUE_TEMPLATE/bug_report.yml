@@ -13,7 +13,7 @@ body:
       description: Which SnipToss app is this about? Each has its own version number.
       options:
         - SnipToss for Windows
-        - SnipToss for Mac (preview)
+        - SnipToss for Mac
     validations:
       required: true
   - type: textarea

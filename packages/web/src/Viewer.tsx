@@ -3,7 +3,7 @@ import { useIntl } from "react-intl";
 import type { Annotation, MaterialKind } from "@sniptoss/core";
 import { Ambient } from "./Ambient";
 import { KeepPunctuation } from "./KeepPunctuation";
-import { call, logError, materialUrl, type MaterialEntry } from "./host";
+import { call, logError, materialUrl, platform, type MaterialEntry } from "./host";
 import { FolderIcon } from "./icons";
 import { isSvg, needsDecode } from "./library";
 import { hasAlpha, rememberSize, svgNaturalSize, vectorWork, type Size } from "./mediaSize";
@@ -129,7 +129,8 @@ function ImageMedia(props: {
   const { material, url } = props;
   /** The drawn size; set together with the loaded image (the ambient background takes its color from it), whether it is vector, and whether it is transparent, so refs are not read while rendering */
   const [shown, setShown] = useState<{ size: Size; img: HTMLImageElement; unit: number; vector: boolean; transparent: boolean }>();
-  const decode = needsDecode(material.path);
+  // WebKit on the Mac shows TIFF and HEIC itself; only WebView2 needs the shell to convert them
+  const decode = platform !== "mac" && needsDecode(material.path);
   const [decoded, setDecoded] = useState<{ for: string; src: string; natural: Size }>();
   /** Incremented on each new load after the item changes: a load that was superseded while the SVG head was being read does not count */
   const loads = useRef(0);

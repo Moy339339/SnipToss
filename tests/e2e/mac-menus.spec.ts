@@ -85,6 +85,43 @@ test("a command from the shell runs the item's action; one from an older menu is
   expect(marks().checked).toBe(now);
 });
 
+test("the Mac's window keys: File ends with Close Window ⌘W, which closes the window as its red button does, Window → Minimize is ⌘M, and the page handles both keys", async ({
+  app,
+}) => {
+  await asMacWithMenus(app);
+  await app.open();
+  await expect.poll(() => app.host.menusSent.length).toBeGreaterThan(0);
+  const file = items(app, 0);
+  const close = file[file.length - 1];
+  expect(close.label).toBe("关闭窗口");
+  expect(close.shortcut).toMatchObject({ key: "w", cmd: true, shift: false });
+  expect(find(app, (i) => i.label === "最小化").shortcut).toMatchObject({ key: "m", cmd: true, shift: false });
+  const windowCalls = () => app.host.calls.filter((c) => c.method === "window").map((c) => (c.params as { action?: string } | undefined)?.action);
+  app.host.chooseMenuItem(close.id, lastVersion(app));
+  await expect.poll(windowCalls).toEqual(["close"]);
+  // The keys themselves are the page's: the shell does not run a menu item chosen with a key the page let go (MenuPolicy)
+  await app.page.keyboard.press("Meta+M");
+  await app.page.keyboard.press("Meta+W");
+  await expect.poll(windowCalls).toEqual(["close", "minimize", "close"]);
+});
+
+test("on Windows the menu bar has no Close Window, Minimize shows no key, and Ctrl+W / Ctrl+M do nothing (the title bar's buttons and Alt+F4 are the window keys)", async ({
+  app,
+}) => {
+  await app.open();
+  await app.page.locator(".menubar-item", { hasText: /^文件/ }).click();
+  await expect(app.page.getByRole("menuitem", { name: /退出/ })).toBeVisible();
+  await expect(app.page.getByRole("menuitem", { name: /关闭窗口/ })).toHaveCount(0);
+  await app.page.keyboard.press("Escape");
+  await app.page.locator(".menubar-item", { hasText: /^窗口/ }).click();
+  await expect(app.page.getByRole("menuitem", { name: /^最小化$/ })).toBeVisible();
+  await app.page.keyboard.press("Escape");
+  await app.page.keyboard.press("Control+W");
+  await app.page.keyboard.press("Control+M");
+  await app.page.waitForTimeout(300);
+  expect(app.host.calls.filter((c) => c.method === "window")).toEqual([]);
+});
+
 test("a dialog open: the menus are sent as modal, and again when it is closed", async ({ app }) => {
   await asMacWithMenus(app);
   await app.open();

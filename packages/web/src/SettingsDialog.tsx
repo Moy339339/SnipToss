@@ -17,7 +17,7 @@ import {
 import { KeepPunctuation } from "./KeepPunctuation";
 import { call, homeJoin, platform, type AppInfo, type CaptureSettings, type HostError } from "./host";
 import { ConfirmDialog } from "./Confirm";
-import { copyDiagnostics, reportIssue } from "./diagnostics";
+import { copyDiagnostics, reportIssue, runtimeParts } from "./diagnostics";
 import { AVAILABLE_LOCALES, LOCALE_NAMES, NEEDS_REVIEW, resolveLocale } from "./i18n";
 import { ChevronIcon, CloseIcon } from "./icons";
 import { useKeys } from "./keys";
@@ -697,6 +697,26 @@ function Ai() {
 }
 
 function System(props: { onNotify: (t: string) => void }) {
+  return platform === "mac" ? <MacSystem /> : <WindowsSystem onNotify={props.onNotify} />;
+}
+
+/** The Mac has nothing to switch here: Open With in Finder and dropping onto the Dock icon come from the app's declared file types */
+function MacSystem() {
+  const t = useT();
+  return (
+    <>
+      <PageDesc>{t("settings.system.desc")}</PageDesc>
+      <Row label={t("settings.system.openWith")} desc={t("settings.system.openWithDesc", { app: t("brand.name") })}>
+        <span className="muted">{t("settings.system.dropOn")}</span>
+      </Row>
+      <Row label={t("settings.system.drop")} desc={t("settings.system.dropDesc")}>
+        <span className="muted">{t("settings.system.dropOn")}</span>
+      </Row>
+    </>
+  );
+}
+
+function WindowsSystem(props: { onNotify: (t: string) => void }) {
   const t = useT();
   const [shell, setShell] = useState<boolean>();
   const [loadError, setLoadError] = useState<string>();
@@ -877,9 +897,11 @@ function Advanced(props: { onNotify: (t: string) => void; onReset: () => void })
       <Row label={t("settings.advanced.logs")} desc={info?.logDir}>
         <Button onClick={() => act(call("reveal", { path: "@logs" }))}>{t("settings.open")}</Button>
       </Row>
-      <Row label={t("settings.advanced.devTools")} desc={t("settings.advanced.devToolsDesc")}>
-        <Button onClick={() => act(call("openDevTools"))}>{t("settings.open")}</Button>
-      </Row>
+      {platform !== "mac" && (
+        <Row label={t("settings.advanced.devTools")} desc={t("settings.advanced.devToolsDesc")}>
+          <Button onClick={() => act(call("openDevTools"))}>{t("settings.open")}</Button>
+        </Row>
+      )}
       {/* Confirm first and say exactly what gets restored (a description saying "all" would be wrong: Screen Capture and system integration are left alone) */}
       <Row label={t("settings.reset.label")} desc={t("settings.reset.desc")}>
         <Button danger onClick={props.onReset}>
@@ -1018,7 +1040,16 @@ function About(props: { onNotify: (t: string) => void; onNotices: () => void }) 
       <Row label={t("settings.about.homepage")} desc={HOMEPAGE.replace(/^https:\/\//, "")}>
         <Button onClick={() => void open(HOMEPAGE)}>{t("settings.open")}</Button>
       </Row>
-      <Row label={t("settings.about.runtime")} desc={info ? `.NET ${info.dotnet} · WebView2 ${info.webview2}` : "…"}>
+      <Row
+        label={t("settings.about.runtime")}
+        desc={
+          info
+            ? runtimeParts(info)
+                .map(([name, version]) => `${name} ${version}`)
+                .join(" · ")
+            : "…"
+        }
+      >
         <span />
       </Row>
       <Row label={t("settings.about.feedback")} desc={t("settings.about.feedbackDesc")}>

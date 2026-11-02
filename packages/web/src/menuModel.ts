@@ -203,7 +203,13 @@ export class NativeMenuSync {
   update(menus: TopMenu[], modal: boolean): boolean {
     const { model, actions } = serializeMenus(menus, this.options.platform);
     const json = JSON.stringify({ modal, model });
-    if (json === this.last) return false;
+    if (json === this.last) {
+      // Same menus, but the actions are this render's: they read the page's state as it is now (the selected item for "Show Current Item
+      // in Finder"). Keeping the first render's would run them on stale state, since nothing visible in the menu changed to resend it
+      const kept = this.kept.get(this.version);
+      if (kept) kept.actions = actions;
+      return false;
+    }
     this.last = json;
     this.version += 1;
     const roles = new Map<string, "undo" | "redo">();

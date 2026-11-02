@@ -16,7 +16,7 @@ body:
       description: Which SnipToss app is this about?
       options:
         - SnipToss for Windows
-        - SnipToss for Mac (preview)
+        - SnipToss for Mac
   - type: input
     id: version
     attributes:

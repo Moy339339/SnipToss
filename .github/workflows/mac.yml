@@ -1,0 +1,688 @@
+name: mac
+
+# macOS builds and checks for the Mac shell (app-mac/): on pushes to main and on pull requests, and from release.yml (workflow_call) to
+# build the Mac packages of a release: then the version is the one in package.json, not a trial build's.
+# Only in the public repository: macOS runners are free there.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+    inputs:
+      release:
+        description: Package the release (the version in package.json) instead of a trial build
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mac-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app-mac:
+    if: ${{ !github.event.repository.private }}
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      # The shell's message catalogs and formatter (built in "Build the shell's resources"), for the unit tests and the smoke runs
+      SNIPTOSS_RESOURCES_DIR: ${{ github.workspace }}/app-mac/.build/resources
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # A trial package is a beta of the version in package.json, numbered by the run: the UI is built with it (shown as v<x.y.z> Beta <run number>)
+      # and the package carries it (package-app.mjs), so the two match; the About page writes it the Mac way, x.y.z (run number). A release
+      # is the version in package.json as it is. SNIPTOSS_PACKAGE_LABEL is how the disk image and its read-me name it (package-dmg.mjs).
+      # A push whose commit message has [release-trial] builds the release way too, to try it before a tag
+      - name: Version
+        run: |
+          if [ "${{ inputs.release }}" = "true" ] || [ "${{ contains(github.event.head_commit.message, '[release-trial]') }}" = "true" ]; then
+            version="$(node -p "require('./package.json').version")"
+            label="$version"
+          else
+            version="$(node -p "require('./package.json').version.replace(/-.*/, '')")-beta.${{ github.run_number }}"
+            label="Beta ${{ github.run_number }}"
+          fi
+          echo "SNIPTOSS_UI_VERSION=$version" >> "$GITHUB_ENV"
+          echo "SNIPTOSS_PACKAGE_LABEL=$label" >> "$GITHUB_ENV"
+          echo "version $version ($label)"
+
+      # The web UI the shell hosts (packages/web/dist)
+      - run: npm run build
+
+      - name: Toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: Build the shell
+        working-directory: app-mac
+        run: swift build -c release
+
+      # The package is one program for both kinds of Mac, Apple silicon and Intel: the shell built for both, which package-app.mjs takes
+      # (SNIPTOSS_SHELL_BIN). The unit tests and the smoke runs before packaging use the native build above
+      - name: Build the shell for Apple silicon and Intel
+        working-directory: app-mac
+        run: |
+          swift build -c release --arch arm64 --arch x86_64
+          echo "SNIPTOSS_SHELL_BIN=$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/SnipToss" >> "$GITHUB_ENV"
+
+      # The files the shell reads at run time: the message formatter (the UI's intl-messageformat, for JavaScriptCore) and the catalogs
+      - name: Build the shell's resources
+        run: node app-mac/scripts/build-resources.mjs
+
+      - name: Unit tests
+        working-directory: app-mac
+        run: swift test
+
+      # Opens the window with an empty library, waits for the welcome screen, writes ui.png and result.json, and quits
+      - name: Smoke run (empty library)
+        if: ${{ !cancelled() }}
+        run: |
+          export SNIPTOSS_VERSION="$SNIPTOSS_UI_VERSION"
+          export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
+          export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-empty/settings.json"
+          export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/empty"
+          # The performance budget lines (Perf.swift), printed for a look: a CI machine is no measure of a real one
+          export SNIPTOSS_PERF_LOG="$RUNNER_TEMP/smoke/perf.log"
+          app-mac/.build/release/SnipToss
+          cat "$SNIPTOSS_PERF_LOG" || true
+
+      # The menu bar the page asked for (setMenus): the app menu and the page's seven menus, and the four standard items at the end of Edit
+      - name: Check the menu bar
+        if: ${{ !cancelled() }}
+        run: |
+          node -e '
+            const r = require(process.env.RUNNER_TEMP + "/smoke/empty/result.json");
+            const bar = r.menuBar || {};
+            const problems = [];
+            if (!r.bridgeCalls.includes("setMenus")) problems.push("the page never sent setMenus");
+            if (r.bridgeUnhandled.includes("setMenus")) problems.push("setMenus is not implemented");
+            if ((bar.titles || []).length !== 8) problems.push("expected 8 menus, got " + JSON.stringify(bar.titles));
+            if ((bar.standardEditItems || []).length !== 4) problems.push("standard Edit items: " + JSON.stringify(bar.standardEditItems));
+            if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
+            console.log("menu bar ok", JSON.stringify(bar));
+          '
+
+      # The same with a project in the library and one item selected: the scan, the media scheme, and the image decoded on the canvas
+      - name: Smoke run (project with an image)
+        if: ${{ !cancelled() }}
+        run: |
+          export SNIPTOSS_VERSION="$SNIPTOSS_UI_VERSION"
+          export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
+          export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-project/settings.json"
+          export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/project"
+          export SNIPTOSS_SMOKE_READY=image
+          mkdir -p "$RUNNER_TEMP/data-project"
+          PROJECT="$GITHUB_WORKSPACE/tests/e2e/fixtures/project" node -e '
+            const project = process.env.PROJECT;
+            const settings = {
+              Library: [{ Path: project, Pinned: false }],
+              Selected: project + "/assets/hero.png",
+              // The tour and first-use hints count as seen, so the picture shows the screen itself
+              Prefs: { language: "en", onboarding: ["tour", "hint.copy", "hint.video"] },
+            };
+            require("fs").writeFileSync(process.env.SNIPTOSS_SETTINGS, JSON.stringify(settings, null, 2) + "\n");
+          '
+          app-mac/.build/release/SnipToss
+
+      # First run: nothing is marked as seen, so the onboarding tour starts by itself. Two pictures and the card's own text and styles are
+      # recorded to tell a card that is empty because the text is not drawn from one caught while it fades in
+      - name: Smoke run (first run, tour)
+        if: ${{ !cancelled() }}
+        run: |
+          export SNIPTOSS_VERSION="$SNIPTOSS_UI_VERSION"
+          export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
+          export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-tour/settings.json"
+          export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/tour"
+          export SNIPTOSS_SMOKE_READY=tour
+          mkdir -p "$RUNNER_TEMP/data-tour"
+          PROJECT="$GITHUB_WORKSPACE/tests/e2e/fixtures/project" node -e '
+            const project = process.env.PROJECT;
+            const settings = { Library: [{ Path: project, Pinned: false }], Selected: project + "/assets/hero.png" };
+            require("fs").writeFileSync(process.env.SNIPTOSS_SETTINGS, JSON.stringify(settings, null, 2) + "\n");
+          '
+          app-mac/.build/release/SnipToss
+      # Keys with the command key in a text box and in front of a menu item (KeyExperiment.swift): first without a main menu, as the
+      # app was before it had one, then with the standard menus. The answers are in result.json under keyExperiment
+      - name: Smoke run (keys, no main menu)
+        if: ${{ !cancelled() }}
+        run: |
+          export SNIPTOSS_VERSION="$SNIPTOSS_UI_VERSION"
+          export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
+          export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-keys-nomenu/settings.json"
+          export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/keys-nomenu"
+          export SNIPTOSS_SMOKE_READY=keys
+          export SNIPTOSS_SMOKE_NOMENU=1
+          app-mac/.build/release/SnipToss
+
+      - name: Smoke run (keys, standard menus)
+        if: ${{ !cancelled() }}
+        run: |
+          export SNIPTOSS_VERSION="$SNIPTOSS_UI_VERSION"
+          export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
+          export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-keys/settings.json"
+          export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/keys"
+          export SNIPTOSS_SMOKE_READY=keys
+          app-mac/.build/release/SnipToss
+
+      # The capture layers over a made-up pattern (the runner's real screen is never captured): one layer a screen, the kind of window it
+      # is, the picture drawn at the screen's resolution and dimmed by half, Esc sent through the event queue ends the capture, a right
+      # click ends a second one, and a fourth goes through the main line with posted mouse and key events. In Chinese, so the pictures of
+      # the layer show the words most users see
+      - name: Smoke run (capture layers)
+        if: ${{ !cancelled() }}
+        run: |
+          export SNIPTOSS_VERSION="$SNIPTOSS_UI_VERSION"
+          export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
+          export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-capture/settings.json"
+          export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/capture"
+          export SNIPTOSS_SMOKE_READY=capture
+          mkdir -p "$RUNNER_TEMP/data-capture"
+          echo '{ "Prefs": { "language": "zh-CN" } }' > "$SNIPTOSS_SETTINGS"
+          app-mac/.build/release/SnipToss
+
+      # Level 1000 is NSWindow.Level.screenSaver; 262481 is canJoinAllSpaces | stationary | ignoresCycle | fullScreenAuxiliary |
+      # canJoinAllApplications
+      - name: Check the capture layers
+        if: ${{ !cancelled() }}
+        run: |
+          node -e '
+            const r = require(process.env.RUNNER_TEMP + "/smoke/capture/result.json");
+            const c = r.capture || {};
+            const layers = c.layers || [];
+            const problems = [];
+            const hk = r.hotkey || {};
+            if (hk.registered !== hk.asked || hk.error !== "none") problems.push("capture shortcut: " + JSON.stringify(hk));
+            if (!c.opened) problems.push("the capture did not open");
+            const opening = c.opening || {};
+            if (!(opening.pictures >= 0 && opening.shown >= opening.pictures)) problems.push("opening times: " + JSON.stringify(c.opening));
+            if (layers.length < 1 || layers.length !== c.screens) problems.push(layers.length + " layers for " + c.screens + " screens");
+            layers.forEach((l, i) => {
+              const say = (what) => problems.push("layer " + i + ": " + what);
+              if (l.level !== 1000) say("level " + l.level);
+              if (l.behavior !== 262481) say("collection behavior " + l.behavior);
+              if (!l.nonactivating || !l.borderless) say("style: nonactivating " + l.nonactivating + ", borderless " + l.borderless);
+              if (!l.canBecomeKey || !l.visible) say("canBecomeKey " + l.canBecomeKey + ", visible " + l.visible);
+              if (JSON.stringify(l.frame) !== JSON.stringify(l.screenFrame)) say("frame " + JSON.stringify(l.frame) + " on screen " + JSON.stringify(l.screenFrame));
+              const want = [Math.round(l.frame[2] * l.scale), Math.round(l.frame[3] * l.scale)];
+              if (JSON.stringify(l.pixels) !== JSON.stringify(want)) say("pixels " + JSON.stringify(l.pixels) + ", expected " + JSON.stringify(want));
+              // A sample on the outline of the highlight or under the size label is left out
+              const samples = l.samples || [];
+              if (samples.length < 1) say("no samples");
+              // The expected colors are worked out in the color space of the layer (CaptureSmoke.shown), as the drawing is
+              for (const s of samples) {
+                const off = s.expected.length !== 3 || s.actual.some((v, k) => !(Math.abs(v - s.expected[k]) <= 8));
+                if (off) say("pixel " + s.at + " is " + s.actual + ", expected " + s.expected + " (" + l.colorSpace + ")");
+              }
+            });
+            if (!c.closedByEsc) problems.push("Esc did not end the capture (key layer " + c.keyLayer + ", key window is a layer " + c.keyWindowIsLayer + ", app active " + c.appActive + ")");
+            if (!c.closed || c.layersAfter !== 0) problems.push("still open after the end: " + c.layersAfter + " layers");
+            if (c.whenClosedCalls !== 1) problems.push("the end was announced " + c.whenClosedCalls + " times");
+            const rc = c.rightClick || {};
+            if (!rc.closedByRightClick || rc.whenClosedCalls !== 1) problems.push("a right click did not end the second capture: " + JSON.stringify(rc));
+            // Started while another program was in front: the layer still gets the keyboard and Esc ends it
+            const front = c.otherAppInFront || {};
+            if (!front.otherAppWasInFront) console.log("warning: Finder could not be brought to the front, so the third round tested nothing");
+            else if (!["panel", "activated"].includes(front.keyboardRoute) || !front.closedByEsc) problems.push("with another program in front: " + JSON.stringify(front));
+            console.log("with another program in front: " + JSON.stringify(front));
+            if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
+            console.log("capture layers ok", JSON.stringify(c));
+          '
+
+      # The main line of a capture, step by step (CaptureSmoke.mainLineRound): what the layer was after each posted click, drag and key
+      - name: Check the capture main line
+        if: ${{ !cancelled() }}
+        run: |
+          node -e '
+            const r = require(process.env.RUNNER_TEMP + "/smoke/capture/result.json");
+            const m = (r.capture || {}).mainLine || {};
+            const problems = [];
+            const step = {};
+            for (const s of m.steps || []) step[s.step] = s;
+            const expect = (name, what, ok) => { if (!step[name] || !ok(step[name])) problems.push(name + ": " + what + " " + JSON.stringify(step[name] || "missing")); };
+            const mark = (s, i) => (s.marks || [])[i] || {};
+            if (!m.opened) problems.push("the main line did not open: " + JSON.stringify(m));
+            expect("select", "a selection, the toolbar and its buttons", (s) => s.sel && s.toolbar && s.op === "noDrag" && (s.buttons || []).includes("done"));
+            expect("rectTool", "Rectangle chosen by a click on the toolbar", (s) => s.tool === "rect" && (s.buttons || []).includes("color-ff6a3d"));
+            expect("drawRect", "the note box open with the keyboard, the layer below the input method", (s) => s.noteOpen && s.note && s.note.title && s.firstResponder === "note" && s.level === 26 && mark(s, 0).kind === "rect");
+            expect("typeNote", "the typed note, the key x included", (s) => s.note && s.note.text === "Make this bluex" && s.note.saveEnabled);
+            expect("saveNote", "Save clicked: note 1 written, the keyboard back on the layer", (s) => !s.noteOpen && mark(s, 0).note === "Make this bluex" && mark(s, 0).number === 1 && s.firstResponder === "overlay" && s.level === 1000);
+            expect("pinTool", "the Pin chosen with C", (s) => s.tool === "note");
+            expect("placePin", "a Pin placed and its note box open", (s) => s.noteOpen && mark(s, 1).kind === "note" && mark(s, 1).pending === 2);
+            expect("typePin", "note 2 saved with Return", (s) => !s.noteOpen && mark(s, 1).note === "Remove this" && mark(s, 1).number === 2);
+            expect("textTool", "Text chosen with T", (s) => s.tool === "text");
+            expect("placeText", "the text box open with the keyboard", (s) => s.textOpen && s.firstResponder === "text");
+            expect("typeText", "the text ended with Esc", (s) => !s.textOpen && mark(s, 2).kind === "text" && mark(s, 2).text === "Hi");
+            expect("drawUnwritten", "a rectangle with its note box open", (s) => s.noteOpen && (s.marks || []).length === 4);
+            expect("leaveUnwritten", "Esc with nothing written takes the rectangle away", (s) => !s.noteOpen && (s.marks || []).length === 3);
+            expect("white", "8 is white", (s) => s.color === "#ffffff");
+            expect("black", "7 is black", (s) => s.color === "#000000");
+            expect("pickText", "a click on the text picks it, no note box, Delete lit", (s) => s.picked && s.picked.kind === "text" && s.deleteEnabled && !s.noteOpen);
+            expect("deleteKey", "delete deletes the picked text", (s) => (s.marks || []).length === 2 && !(s.marks || []).some((m) => m.kind === "text") && !s.picked && !s.deleteEnabled);
+            expect("undoDelete", "command Z brings it back", (s) => (s.marks || []).length === 3 && (s.marks || []).some((m) => m.kind === "text"));
+            expect("pickerOpen", "the hue disc opens the color picker, the keyboard on its digits, the layer below the input method", (s) => s.picker && s.firstResponder === "picker" && s.level === 26);
+            expect("pickerType", "digits typed with the keyboard go to the picker, none is a color key there", (s) => s.picker && s.picker.digits === "17A998" && s.color === "#000000");
+            expect("pickerApply", "Return uses the color and adds it to the recent colors", (s) => !s.picker && s.color === "#17a998" && (s.buttons || []).includes("color-17a998") && (s.recent || [])[0] === "#17a998");
+            expect("escapeWarns", "Esc after notes only warns", (s) => s.open && s.warn);
+            expect("finish", "Finish on the toolbar ends the capture", (s) => s.open === false);
+            if (!m.closed || m.whenClosedCalls !== 1) problems.push("the end: closed " + m.closed + ", announced " + m.whenClosedCalls + " times");
+            const res = m.result || {};
+            const notes = (res.marks || []).filter((k) => k.number > 0).length;
+            if ((res.marks || []).length !== 3 || notes !== 2) problems.push("collected: " + JSON.stringify(res));
+            if (!m.picture) problems.push("no picture of the layer");
+            // What finishing handed over: the composited picture as wide as the selection (or the notes area), saved, on the clipboard as
+            // PNG and TIFF without words (the notes are in the picture), and the copied notice
+            const out = m.output || {};
+            const sel = (step.select || {}).sel || [0, 0, 0, 0];
+            if (!out.size || out.size[0] < Math.round(sel[2]) || out.size[1] <= Math.round(sel[3])) problems.push("composited picture " + JSON.stringify(out.size) + " for the selection " + JSON.stringify(sel));
+            if (!out.fileSaved) problems.push("the picture was not saved: " + JSON.stringify(out.file));
+            if (out.clipboardPuts !== 1 || !out.clipboardPngBytes || !out.clipboardHasTiff || out.clipboardText !== null) problems.push("clipboard: " + JSON.stringify(out));
+            if ((out.notices || []).length !== 1 || out.notices[0].kind !== "toast") problems.push("notices: " + JSON.stringify(out.notices));
+            if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
+            console.log("capture main line ok", JSON.stringify(res), JSON.stringify(out));
+          '
+
+      # The annotate run (CaptureSmoke.annotate), the one meant for trying a build on a Mac nobody may touch: one capture through the whole
+      # of annotating, with the pattern only, the clipboard recorded and the picture saved next to the settings file
+      - name: Smoke run (annotate)
+        if: ${{ !cancelled() }}
+        run: |
+          export SNIPTOSS_VERSION="$SNIPTOSS_UI_VERSION"
+          export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
+          export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-annotate/settings.json"
+          export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/annotate"
+          export SNIPTOSS_SMOKE_READY=annotate
+          export SNIPTOSS_PERF_LOG="$RUNNER_TEMP/smoke/perf.log"
+          app-mac/.build/release/SnipToss
+          cat "$SNIPTOSS_PERF_LOG" || true
+
+      - name: Check the annotate run
+        if: ${{ !cancelled() }}
+        run: |
+          node -e '
+            const r = require(process.env.RUNNER_TEMP + "/smoke/annotate/result.json");
+            const a = (r.annotate || {}).annotate || {};
+            const problems = [];
+            const step = {};
+            for (const s of a.steps || []) step[s.step] = s;
+            const expect = (name, what, ok) => { if (!step[name] || !ok(step[name])) problems.push(name + ": " + what + " " + JSON.stringify(step[name] || "missing")); };
+            const mark = (s, i) => (s.marks || [])[i] || {};
+            const box = (s) => s.sel || [0, 0, 0, 0];
+            if (!a.opened) problems.push("the capture did not open: " + JSON.stringify(a));
+            expect("select", "a selection", (s) => s.sel && s.toolbar && s.handles);
+            expect("move", "the selection moved, same size", (s) => box(s)[0] > box(step.select)[0] && box(s)[1] > box(step.select)[1] && box(s)[2] === box(step.select)[2] && box(s)[3] === box(step.select)[3]);
+            expect("resize", "the selection grew by its corner", (s) => box(s)[0] === box(step.move)[0] && box(s)[2] > box(step.move)[2] && box(s)[3] > box(step.move)[3]);
+            expect("rectTool", "Rectangle chosen on the toolbar", (s) => s.tool === "rect");
+            expect("drawRect", "a rectangle and its note box", (s) => s.noteOpen && mark(s, 0).kind === "rect");
+            expect("typeNote", "the typed note", (s) => s.note && s.note.text === "Make the title largerx");
+            expect("saveWithReturn", "note 1 saved with Return", (s) => !s.noteOpen && mark(s, 0).note === "Make the title largerx" && mark(s, 0).number === 1);
+            expect("arrowTool", "Arrow chosen with A", (s) => s.tool === "arrow");
+            expect("drawArrow", "an arrow and its note box", (s) => s.noteOpen && mark(s, 1).kind === "arrow");
+            expect("saveWithButton", "note 2 saved with the button", (s) => !s.noteOpen && mark(s, 1).note === "Point this at the menu" && mark(s, 1).number === 2);
+            expect("finish", "Finish ends the capture", (s) => s.open === false);
+            const out = a.output || {};
+            if (!out.fileSaved || out.clipboardPuts !== 1 || !out.clipboardPngBytes || (out.notices || []).length !== 1) problems.push("output: " + JSON.stringify(out));
+            if (((a.result || {}).marks || []).length !== 2) problems.push("collected: " + JSON.stringify(a.result));
+            if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
+            console.log("annotate run ok", JSON.stringify(a.result), JSON.stringify(out), "keyboard " + a.keyboardRoute);
+          '
+
+      # The notice at startup that the capture shortcut couldn't be enabled (HotKeyNotice.swift): nothing holds the shortcut here, so this
+      # run makes up the reason. The card is drawn into hotkey-notice.png; then a click on it must open Settings at Screen Capture
+      - name: Smoke run (shortcut notice)
+        if: ${{ !cancelled() }}
+        run: |
+          export SNIPTOSS_VERSION="$SNIPTOSS_UI_VERSION"
+          export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
+          export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-notice/settings.json"
+          export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/notice"
+          export SNIPTOSS_SMOKE_READY=hotkeyNotice
+          mkdir -p "$RUNNER_TEMP/data-notice"
+          echo '{ "Prefs": { "language": "zh-CN" } }' > "$SNIPTOSS_SETTINGS"
+          app-mac/.build/release/SnipToss
+
+      - name: Check the shortcut notice
+        if: ${{ !cancelled() }}
+        run: |
+          node -e '
+            const r = require(process.env.RUNNER_TEMP + "/smoke/notice/result.json");
+            const n = r.hotkeyNotice || {};
+            const problems = [];
+            if (!n.shown) problems.push("the notice did not show");
+            if (!n.picture) problems.push("no picture of the card");
+            if (n.level !== 25) problems.push("panel level " + n.level + ", expected 25 (status bar: above windows, below menus)");
+            if (n.takesKeyboard) problems.push("the notice took the keyboard");
+            const [right, top] = n.fromTopRight || [];
+            if (right !== 16 || top !== 12) problems.push("not at the top right: " + JSON.stringify(n.fromTopRight));
+            if ((n.text || []).length !== 2 || !String(n.text[1]).includes("⌃⌥⌘A")) problems.push("card text: " + JSON.stringify(n.text));
+            if (!n.closeName || n.closeName === "app.toast.close") problems.push("the close button has no name: " + n.closeName);
+            const capture = n.menuCapture || {};
+            if (capture.subtitle === undefined) console.log("menu item subtitles need macOS 14.4: not checked");
+            else if (!capture.subtitle) problems.push("no note under Capture Screen: " + JSON.stringify(capture));
+            if (!n.closedOnClick) problems.push("a click did not close the notice");
+            if (!n.settingsOpened) problems.push("Settings did not open at Screen Capture: " + JSON.stringify(n.settings));
+            else if (!(n.settings || {}).heading) problems.push("the Settings page has no heading in its header: " + JSON.stringify(n.settings));
+            if ((r.pageErrors || []).length) problems.push("page errors: " + JSON.stringify(r.pageErrors));
+            if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
+            console.log("shortcut notice ok", JSON.stringify(n));
+          '
+
+      # Every page of Settings in the smallest window, opened from the shell (Smoke.swift, settingsRun): pictures settings-<page>.png
+      - name: Smoke run (settings)
+        if: ${{ !cancelled() }}
+        run: |
+          export SNIPTOSS_VERSION="$SNIPTOSS_UI_VERSION"
+          export SNIPTOSS_UI_DIR="$GITHUB_WORKSPACE/packages/web/dist"
+          export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-settings/settings.json"
+          export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/settings"
+          export SNIPTOSS_SMOKE_READY=settings
+          app-mac/.build/release/SnipToss
+
+      # Each page has its title in the fixed header with the line under it, in the same place on every page and while the content scrolls
+      # under it; a page opens at its top; the close button can be pressed; the window buttons at the top left stay off the dialog
+      - name: Check Settings
+        if: ${{ !cancelled() }}
+        run: |
+          node -e '
+            const r = require(process.env.RUNNER_TEMP + "/smoke/settings/result.json");
+            const s = r.settings || {};
+            const pages = s.pages || [];
+            const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+            const problems = [];
+            if (pages.length !== 8) problems.push("pages measured: " + pages.length);
+            for (const p of pages) {
+              if (!p.heading || p.heading !== p.tab) problems.push(p.section + ": heading " + JSON.stringify(p.heading) + ", tab " + JSON.stringify(p.tab));
+              if (p.headLine !== "1px") problems.push(p.section + ": no line under the header (" + p.headLine + ")");
+              if (!same(p.head, pages[0].head)) problems.push(p.section + ": the header moved: " + JSON.stringify(p.head));
+              if (p.scrollTop !== 0) problems.push(p.section + ": opened scrolled down by " + p.scrollTop);
+              if (!p.closeHit) problems.push(p.section + ": a press on the close button does not reach it");
+              if (p.onWindowButtons) problems.push(p.section + ": the window buttons sit on the dialog: " + JSON.stringify([s.windowButtons, p.dialog]));
+            }
+            const k = s.keysScrolled || {};
+            if (!(k.scrollTop > 0)) problems.push("the Shortcuts page did not scroll: " + JSON.stringify(k));
+            else if (!same(k.head, (pages[0] || {}).head)) problems.push("the header moved while the page scrolled: " + JSON.stringify(k.head));
+            if ((s.afterScrolled || {}).scrollTop !== 0) problems.push("the next page did not open at its top: " + JSON.stringify(s.afterScrolled));
+            if ((r.pageErrors || []).length) problems.push("page errors: " + JSON.stringify(r.pageErrors));
+            if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
+            console.log("settings ok", JSON.stringify({ windowButtons: s.windowButtons, dialog: pages[0].dialog, head: pages[0].head }));
+          '
+
+      # The project's self-signed code signing certificate (CN=MoyGoldenAge), from the repository's secrets into a keychain of this run
+      # only. With it every build has the same signing identity, and macOS keeps the Screen Recording permission across builds. Without
+      # the secrets (a fork) the package is signed ad hoc
+      - name: Signing identity
+        if: ${{ !cancelled() }}
+        env:
+          P12: ${{ secrets.MAC_SIGNING_P12 }}
+          P12_PASSWORD: ${{ secrets.MAC_SIGNING_PASSWORD }}
+        run: |
+          if [ -z "$P12" ] || [ -z "$P12_PASSWORD" ]; then echo "no signing certificate: the package is signed ad hoc"; exit 0; fi
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          keychain_password="$(uuidgen)"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          printf '%s' "$P12" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          security import "$RUNNER_TEMP/signing.p12" -k "$keychain" -P "$P12_PASSWORD" -T /usr/bin/codesign > /dev/null
+          rm -f "$RUNNER_TEMP/signing.p12"
+          # The identity (certificate with its private key) as the keychain sees it; self-signed, so it is listed as not trusted, which
+          # does not stop codesign
+          fingerprint="$(security find-identity -p codesigning "$keychain" | awk '/^ *1\)/ { print $2; exit }')"
+          if [ -z "$fingerprint" ]; then echo "no signing identity in the keychain after the import"; exit 1; fi
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain" > /dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          echo "signing with the certificate $fingerprint"
+          echo "SNIPTOSS_SIGN_IDENTITY=$fingerprint" >> "$GITHUB_ENV"
+          echo "SNIPTOSS_SIGN_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
+
+      # A package for trying the app on a Mac, not a release: SnipToss.app with the UI and the catalogs inside, zipped
+      - name: Package the app (trial)
+        if: ${{ !cancelled() }}
+        run: node app-mac/scripts/package-app.mjs "$RUNNER_TEMP/package" "${{ github.run_number }}"
+
+      # The packaged app on its own, as a user opens it: no UI folder or resources from the environment, so it must find both in the
+      # bundle; the language is set to Chinese, so the app menu shows a catalog message only when the bundle's catalogs were read
+      - name: Smoke run (packaged app)
+        if: ${{ !cancelled() }}
+        run: |
+          unset SNIPTOSS_RESOURCES_DIR
+          export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-package/settings.json"
+          export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/package"
+          mkdir -p "$RUNNER_TEMP/data-package"
+          echo '{ "Prefs": { "language": "zh-CN" } }' > "$SNIPTOSS_SETTINGS"
+          "$RUNNER_TEMP/package/SnipToss.app/Contents/MacOS/SnipToss"
+
+      # The Intel half of the same package, run through Rosetta where the machine has it: it must come up the same way
+      - name: Smoke run (packaged app, Intel)
+        if: ${{ !cancelled() }}
+        run: |
+          if ! arch -x86_64 /usr/bin/true 2> /dev/null; then echo "no Rosetta on this machine: the Intel half is not run"; exit 0; fi
+          unset SNIPTOSS_RESOURCES_DIR
+          export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-package-intel/settings.json"
+          export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/package-intel"
+          mkdir -p "$RUNNER_TEMP/data-package-intel"
+          echo '{ "Prefs": { "language": "zh-CN" } }' > "$SNIPTOSS_SETTINGS"
+          arch -x86_64 "$RUNNER_TEMP/package/SnipToss.app/Contents/MacOS/SnipToss"
+
+      - name: Check the packaged app
+        if: ${{ !cancelled() }}
+        run: |
+          node -e '
+            const r = require(process.env.RUNNER_TEMP + "/smoke/package/result.json");
+            const b = r.bundle || {};
+            const page = r.page || {};
+            const version = process.env.SNIPTOSS_UI_VERSION;
+            const run = process.env.GITHUB_RUN_NUMBER;
+            const problems = [];
+            if (!r.ready) problems.push("the UI did not come up from the bundle");
+            if (b.id !== "io.github.moy339339.sniptoss") problems.push("bundle id " + b.id);
+            // x.y.z for macOS, the run as the build number, and the whole version the UI was built with
+            if (b.version !== version.replace(/-.*$/, "")) problems.push("bundle version " + b.version + ", built as " + version);
+            if (b.build !== run) problems.push("bundle build " + b.build + ", run " + run);
+            if (b.fullVersion !== version) problems.push("SnipTossVersion " + b.fullVersion + ", built as " + version);
+            const shown = version.includes("-") ? "v" + version.replace(/-.*$/, "") + " Beta " + run : "v" + version;
+            if (page.version !== shown || page.versionMismatch) problems.push("version shown " + JSON.stringify(page.version) + (page.versionMismatch ? " (marked as not matching)" : ""));
+            if (b.about !== "关于超级批注") problems.push("the catalogs in the bundle were not read: " + b.about);
+            // The name Finder, the Dock and System Settings show on a Chinese system
+            const strings = (language) => { try { return require("fs").readFileSync(process.env.RUNNER_TEMP + "/package/SnipToss.app/Contents/Resources/" + language + ".lproj/InfoPlist.strings", "utf8"); } catch { return ""; } };
+            if (!strings("zh-Hans").includes("超级批注") || !strings("zh-Hant").includes("超級批註")) problems.push("localized app names: " + JSON.stringify([strings("zh-Hans"), strings("zh-Hant")]));
+            if ((r.menuBar?.titles || []).length !== 8) problems.push("menus: " + JSON.stringify(r.menuBar?.titles));
+            if (r.pageErrors.length) problems.push("page errors: " + JSON.stringify(r.pageErrors));
+            // Run from a folder of its own (not translocated, not on a disk image): no prompt to move it
+            if (r.appLocation !== "none") problems.push("the location was taken for a problem: " + r.appLocation);
+            // The third-party notices of what the package holds: none of what only the Windows app ships
+            const noticesFile = process.env.RUNNER_TEMP + "/package/SnipToss.app/Contents/Resources/THIRD-PARTY-NOTICES.txt";
+            const notices = require("fs").existsSync(noticesFile) ? require("fs").readFileSync(noticesFile, "utf8") : "";
+            if (notices.includes("Only in:") || notices.includes(".NET Runtime") || notices.includes("WebView2")) problems.push("the notices list Windows components");
+            if (!notices.includes("intl-messageformat") || !notices.includes("Noto Sans SC")) problems.push("the notices miss components the package holds");
+            // One program for both kinds of Mac
+            const binary = process.env.RUNNER_TEMP + "/package/SnipToss.app/Contents/MacOS/SnipToss";
+            const archs = require("child_process").execFileSync("lipo", ["-archs", binary], { encoding: "utf8" }).trim().split(" ").sort();
+            if (JSON.stringify(archs) !== JSON.stringify(["arm64", "x86_64"])) problems.push("architectures: " + archs.join(" "));
+            // The Intel half under Rosetta, when the machine had it
+            const fs = require("fs");
+            const intelFile = process.env.RUNNER_TEMP + "/smoke/package-intel/result.json";
+            if (fs.existsSync(intelFile)) {
+              const intel = JSON.parse(fs.readFileSync(intelFile, "utf8"));
+              if (!intel.ready || intel.pageErrors.length) problems.push("the Intel half: ready " + intel.ready + ", page errors " + JSON.stringify(intel.pageErrors));
+              else console.log("the Intel half came up under Rosetta in " + intel.afterMs + " ms");
+            }
+            if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
+            console.log("packaged app ok", archs.join(" "), JSON.stringify(b));
+          '
+
+      # The disk image people download (package-dmg.mjs), made with dmgbuild, which writes the Finder window's layout without scripting
+      # Finder; it is installed from PyPI into this run's folder. 1.6.7 or later: earlier versions also write a bookmark to the background
+      # (pBBk), which Finder on macOS 26.2 and later fails to resolve and then shows no background at all. It needs Python 3.10 or later
+      - name: Make the disk image
+        if: ${{ !cancelled() }}
+        run: |
+          python3 -c 'import sys; print("Python", sys.version.split()[0]); sys.exit(sys.version_info < (3, 10))'
+          python3 -m venv "$RUNNER_TEMP/dmgbuild"
+          "$RUNNER_TEMP/dmgbuild/bin/pip" install --quiet --disable-pip-version-check dmgbuild==1.6.7
+          SNIPTOSS_DMGBUILD="$RUNNER_TEMP/dmgbuild/bin/dmgbuild" node app-mac/scripts/package-dmg.mjs "$RUNNER_TEMP/package" "${{ github.run_number }}"
+
+      # What is on the volume: the signed app for both kinds of Mac, the link to Applications, the read-me files with the version in them,
+      # and the window layout, background and volume icon
+      - name: Check the disk image
+        if: ${{ !cancelled() }}
+        run: |
+          dmg=$(ls "$RUNNER_TEMP"/package/SnipToss-*-mac-*.dmg)
+          mount=$(hdiutil attach -nobrowse -readonly -noautoopen "$dmg" | tail -1 | cut -f3-)
+          trap 'hdiutil detach "$mount" -quiet' EXIT
+          echo "volume: $mount"
+          problems=0
+          for f in SnipToss.app "先读我.txt" "Read Me.txt" .DS_Store .background.tiff .VolumeIcon.icns; do
+            [ -e "$mount/$f" ] || { echo "missing on the volume: $f"; problems=1; }
+          done
+          [ "$(readlink "$mount/Applications")" = "/Applications" ] || { echo "Applications is not a link to /Applications"; problems=1; }
+          codesign --verify --deep --strict "$mount/SnipToss.app" || problems=1
+          [ "$(lipo -archs "$mount/SnipToss.app/Contents/MacOS/SnipToss" | tr ' ' '\n' | sort | tr '\n' ' ')" = "arm64 x86_64 " ] || { echo "not for both kinds of Mac"; problems=1; }
+          grep -qF "$SNIPTOSS_PACKAGE_LABEL" "$mount/Read Me.txt" || { echo "the read-me has no version"; problems=1; }
+          if grep -q "{version}" "$mount/先读我.txt" "$mount/Read Me.txt"; then echo "a read-me still says {version}"; problems=1; fi
+          case "$mount" in *" $SNIPTOSS_PACKAGE_LABEL") ;; *) echo "volume name: $mount"; problems=1 ;; esac
+          # The window's layout as Finder reads it: a picture background through the alias to the file on the volume, and no bookmark to it
+          # (with one, Finder on macOS 26.2 and later shows no background); the window's size and the icon positions as dmg-settings.py has them
+          "$RUNNER_TEMP/dmgbuild/bin/python" - "$mount" <<'EOF' || problems=1
+          import plistlib, sys
+          from ds_store import DSStore
+          from mac_alias import Alias
+          volume = sys.argv[1]
+          def text(code):
+              return code.decode() if isinstance(code, bytes) else code
+          def decoded(value):
+              return plistlib.loads(value) if isinstance(value, bytes) else value
+          with DSStore.open(volume + "/.DS_Store", "r") as store:
+              records = {(entry.filename, text(entry.code)): entry.value for entry in store}
+          problems = []
+          if any(code in ("pBBk", "pBB0") for _, code in records):
+              problems.append("a background bookmark is written: " + str(sorted(code for _, code in records)))
+          view = decoded(records.get((".", "icvp")))
+          if not view or view.get("backgroundType") != 2:
+              problems.append("the background is not a picture: " + str(view and view.get("backgroundType")))
+          elif Alias.from_bytes(view["backgroundImageAlias"]).target.filename != ".background.tiff":
+              problems.append("the background alias points elsewhere: " + Alias.from_bytes(view["backgroundImageAlias"]).target.filename)
+          window = decoded(records.get((".", "bwsp"))) or {}
+          if "640, 432" not in window.get("WindowBounds", ""):
+              problems.append("window bounds: " + str(window.get("WindowBounds")))
+          places = {"SnipToss.app": (170, 150), "Applications": (470, 150), "先读我.txt": (270, 300), "Read Me.txt": (370, 300)}
+          for name, place in places.items():
+              if tuple(records.get((name, "Iloc"), ())) != place:
+                  problems.append(name + " at " + str(records.get((name, "Iloc"))) + ", expected " + str(place))
+          print("\n".join(problems) if problems else "layout ok: picture background through its alias, no bookmark, window " + window["WindowBounds"])
+          sys.exit(1 if problems else 0)
+          EOF
+          [ "$problems" = 0 ] && echo "disk image ok: $(du -h "$dmg" | cut -f1)"
+          exit "$problems"
+
+      # The app run straight from the disk image, as when someone opens it there instead of dragging it to Applications: it must see that it
+      # is on a read-only volume and have the prompt to move it ready (MovePrompt.swift). The smoke run writes the prompt down instead of
+      # waiting on it, and draws it into move-notice.png
+      - name: Smoke run (from the disk image)
+        if: ${{ !cancelled() }}
+        run: |
+          unset SNIPTOSS_RESOURCES_DIR
+          export SNIPTOSS_SETTINGS="$RUNNER_TEMP/data-dmg/settings.json"
+          export SNIPTOSS_SMOKE_OUT="$RUNNER_TEMP/smoke/dmg"
+          export SNIPTOSS_SMOKE_READY=moveNotice
+          mkdir -p "$RUNNER_TEMP/data-dmg"
+          echo '{ "Prefs": { "language": "zh-CN" } }' > "$SNIPTOSS_SETTINGS"
+          dmg=$(ls "$RUNNER_TEMP"/package/SnipToss-*-mac-*.dmg)
+          mount=$(hdiutil attach -nobrowse -readonly -noautoopen "$dmg" | tail -1 | cut -f3-)
+          trap 'hdiutil detach "$mount" -quiet' EXIT
+          "$mount/SnipToss.app/Contents/MacOS/SnipToss"
+
+      # The prompt in the language set (Chinese), word for word as the catalog has it, with the paragraph for running straight from a disk
+      # image; Return quits and shows Applications with the app on the volume selected, Esc goes on
+      - name: Check the prompt to move the app
+        if: ${{ !cancelled() }}
+        run: |
+          node -e '
+            const r = require(process.env.RUNNER_TEMP + "/smoke/dmg/result.json");
+            const m = r.moveNotice || {};
+            const zh = JSON.parse(require("fs").readFileSync("i18n/locales/zh-CN.json", "utf8"));
+            const fill = (s) => String(s).split("{app}").join(zh["brand.name"]);
+            const fromDiskImage = (/diskImage \{(.*)\} other \{/.exec(zh["shell.move.why"]) || [])[1];
+            const problems = [];
+            if (!r.ready) problems.push("the UI did not come up from the disk image");
+            if (r.appLocation !== "diskImage" || m.found !== "diskImage") problems.push("run from the volume, found: " + r.appLocation + " / " + m.found);
+            if (!String(m.bundlePath).startsWith("/Volumes/")) problems.push("bundle path " + m.bundlePath);
+            if (!fromDiskImage) problems.push("no diskImage branch in shell.move.why");
+            if (m.title !== fill(zh["shell.move.title"])) problems.push("title: " + m.title);
+            if (m.body !== fill(fromDiskImage) + String.fromCharCode(10, 10) + fill(zh["shell.move.steps"])) problems.push("body: " + JSON.stringify(m.body));
+            if (JSON.stringify(m.buttons) !== JSON.stringify([zh["shell.move.quit"], zh["shell.move.notNow"]])) problems.push("buttons: " + JSON.stringify(m.buttons));
+            if (JSON.stringify(m.returnKey) !== "[true,false]" || JSON.stringify(m.escKey) !== "[false,true]") problems.push("keys: Return " + JSON.stringify(m.returnKey) + ", Esc " + JSON.stringify(m.escKey));
+            if (m.applications !== "/Applications" || m.select !== m.bundlePath) problems.push("Finder would show " + m.applications + " and " + m.select);
+            if (!m.picture) problems.push("no picture of the prompt");
+            if ((r.pageErrors || []).length) problems.push("page errors: " + JSON.stringify(r.pageErrors));
+            if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
+            console.log("prompt to move the app ok", m.picture, JSON.stringify(m.title));
+          '
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: SnipToss-mac-trial
+          path: ${{ runner.temp }}/package/SnipToss-*-mac-*.zip
+          if-no-files-found: warn
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: SnipToss-mac-dmg
+          path: ${{ runner.temp }}/package/SnipToss-*-mac-*.dmg
+          if-no-files-found: warn
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: app-mac-smoke
+          path: |
+            ${{ runner.temp }}/smoke
+            ${{ runner.temp }}/data-*/logs
+          if-no-files-found: warn
+
+  # The UI e2e checks that depend on the browser engine, in Playwright's WebKit (playwright.webkit.config.ts)
+  webkit-e2e:
+    if: ${{ !github.event.repository.private }}
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Install WebKit
+        run: npx playwright install webkit
+
+      - name: UI e2e in WebKit
+        run: npx playwright test -c playwright.webkit.config.ts
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ failure() }}
+        with:
+          name: webkit-e2e-results
+          path: tests/e2e/.results-webkit
+          # The folder starts with a dot, and hidden files are left out unless asked for
+          include-hidden-files: true
+          if-no-files-found: warn

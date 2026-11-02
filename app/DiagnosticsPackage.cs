@@ -8,7 +8,7 @@ namespace SnipToss.App;
 /// <summary>
 /// Diagnostics package (Help → Export Diagnostics Package…): a zip to attach when reporting a problem; the user chooses where to save it and decides whether to send it; the app uploads nothing.
 /// Contents: diagnostics.txt (the diagnostic info from the UI, same as "Copy diagnostic info"), logs/ (the last 7 days of logs, with the user directory and user name already removed when written),
-/// settings.json (the app's settings without the paths: the item list, expanded folders and last selection are reduced to counts; the author name and the "always attach" text are removed too)
+/// settings.json (the app's settings without the paths: the item list, expanded folders, last selection and the library's "New" marks are reduced to counts; the author name and the "always attach" text are removed too)
 /// </summary>
 static class DiagnosticsPackage
 {
@@ -35,7 +35,7 @@ static class DiagnosticsPackage
         w.Write(text);
     }
 
-    /// <summary>The settings file without the entries that carry paths (item list, expanded / collapsed folders, last selected, screenshot save location), replaced by counts; null if unreadable (then it isn't included)</summary>
+    /// <summary>The settings file without the entries that carry paths (item list, expanded / collapsed folders, last selected, "New" marks, screenshot save location), replaced by counts; null if unreadable (then it isn't included)</summary>
     internal static string? SettingsWithoutPaths(string settingsFile)
     {
         try
@@ -46,8 +46,21 @@ static class DiagnosticsPackage
             if (s["Selected"] is not null) s["Selected"] = "(set)";
             // Text the user wrote in the settings (author name, "always attach" text) is left out too
             if (s["Prefs"] is JsonObject prefs)
+            {
                 foreach (var key in new[] { "author", "promptExtra" })
                     if (prefs[key] is JsonValue v && v.TryGetValue<string>(out var text) && text.Length > 0) prefs[key] = "(set)";
+                // "New" in the library is keyed by item and folder paths (since: folder → moment, seen: items already opened): only the counts are kept
+                if (prefs["fresh"] is JsonObject fresh)
+                    foreach (var key in fresh.Select(p => p.Key).ToList())
+                        fresh[key] = fresh[key] switch
+                        {
+                            JsonArray list => $"({list.Count} entries)",
+                            JsonObject map => $"({map.Count} entries)",
+                            _ => "(set)",
+                        };
+                else if (prefs["fresh"] is not null)
+                    prefs["fresh"] = "(set)";
+            }
             if (s["Capture"] is JsonObject capture && capture["Folder"] is JsonValue folder && folder.TryGetValue<string>(out var f) && f.Length > 0)
                 capture["Folder"] = "(custom)";
             // For people to read: non-ASCII text and the + sign are written as they are, not escaped as \uXXXX

@@ -2,37 +2,22 @@
 
 [English](README.md) · **简体中文**
 
-[![最新版本](https://img.shields.io/github/v/release/Moy339339/SnipToss)](https://github.com/Moy339339/SnipToss/releases/latest) [![CI](https://github.com/Moy339339/SnipToss/actions/workflows/ci.yml/badge.svg)](https://github.com/Moy339339/SnipToss/actions/workflows/ci.yml) [![许可证：MIT](https://img.shields.io/github/license/Moy339339/SnipToss)](LICENSE) ![Windows 11](https://img.shields.io/badge/Windows-11-0078D4)
+[![最新版本](https://img.shields.io/github/v/release/Moy339339/SnipToss)](https://github.com/Moy339339/SnipToss/releases/latest) [![CI](https://github.com/Moy339339/SnipToss/actions/workflows/ci.yml/badge.svg)](https://github.com/Moy339339/SnipToss/actions/workflows/ci.yml) [![许可证：MIT](https://img.shields.io/github/license/Moy339339/SnipToss)](LICENSE) ![Windows 11](https://img.shields.io/badge/Windows-11-0078D4) ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000)
 
 给 AI 生成的图片和视频做批注，再把批注原样交回给 AI 修改。
 
-**[下载超级批注 Windows 版](https://github.com/Moy339339/SnipToss/releases/latest)** · 64 位 Windows 11 · [安装说明](#安装)
+![动图：在超级批注里给一个示例落地页标了三处批注，复制成文字交给 Claude Code，它改好页面后，超级批注显示出新版本。](docs/images/demo.webp)
 
-> **超级批注 Windows 版 1.1 新功能：** 新增黑、白两种标记颜色和取色面板（可选任意颜色），可以单独删除一处标记，批注框可以拖到一边，主程序和截图批注都适用。[更新说明](https://github.com/Moy339339/SnipToss/releases/tag/v1.1.0) · [更新日志](CHANGELOG.md)
+**[下载超级批注 Windows 版](https://github.com/Moy339339/SnipToss/releases/latest)** · 64 位 Windows 11 · **[下载超级批注 Mac 版](https://github.com/Moy339339/SnipToss/releases/latest)** · macOS 14 及以上 · [安装说明](#安装)
 
-超级批注是 Windows 桌面程序，用来审阅 Claude Code、Codex 等生成的素材：用图钉、矩形、画笔或箭头标出要改的位置，写下修改要求，
+> **1.2 新功能：超级批注 Mac 版。** 和 Windows 版是同一个程序，支持 macOS 14 及以上（Apple 芯片和 Intel），截图批注也有。批注在两种系统上是同样的文件，同一个项目在哪边都能批注。[更新说明](https://github.com/Moy339339/SnipToss/releases/tag/v1.2.0) · [更新日志](CHANGELOG.md)
+
+超级批注是 Windows 和 Mac 上的桌面程序，用来审阅 Claude Code、Codex 等生成的素材：用图钉、矩形、画笔或箭头标出要改的位置，写下修改要求，
 批注的**内容、位置、时间点**和**标出位置的截图**都以普通文件保存在素材所在项目的 `.sniptoss/` 文件夹中。能读本机文件的 AI agent 直接从那里读取，按意见修改素材。
 
-网页、PDF、PPT 将陆续支持；超级批注 Mac 版正在开发。
+网页、PDF、PPT 将陆续支持。
 
 ![超级批注窗口：打开着一张 AI 生成的活动传单，画面上有三个带编号的标记，右侧批注栏列着对应的三条批注。](docs/images/hero.zh-CN.png)
-
-## 1.1 新功能
-
-![超级批注 Windows 版 1.1：黑白两色与取色面板、单独删除一处标记、批注框可以拖开、截图批注同样支持。](docs/images/whatsnew-1.1.zh-CN.png)
-
-<details>
-<summary>逐个看动图</summary>
-
-![动图：在示例咖啡首页上，一处标记变成黑色，一处变成白色（编号改用深色字），箭头用取色面板换成自定义颜色，这个颜色随后出现在「最近使用」里。](docs/images/whatsnew-1.1-colors.zh-CN.webp)
-
-![动图：在示例爵士海报上，一条批注标了两处；从颜色条上删掉其中一处，批注还在；按 Ctrl+Z 找回。](docs/images/whatsnew-1.1-delete.zh-CN.webp)
-
-![动图：批注框挡住了刚标的按钮旁边的链接；按住标题行把它拖开，再把链接标成同一条批注的第二处。](docs/images/whatsnew-1.1-movebox.zh-CN.webp)
-
-![动图：截图批注盖在一个网页上：用取色面板给箭头选了自定义颜色，把批注框拖开，选中一处标记用工具条的「删除」删掉，再找回。](docs/images/whatsnew-1.1-capture-toolbar.zh-CN.webp)
-
-</details>
 
 ## 功能
 
@@ -61,7 +46,26 @@
 - **11 种界面语言**：简体中文、繁體中文、English、日本語、한국어、Français、Deutsch、Español、Italiano、Português (Brasil)、Русский，默认跟随 Windows 显示语言。
 - **隐私**：不收集数据、不需要账号。唯一的联网是检查更新（每天最多向 GitHub 查询一次版本号，可在设置 → 常规中关闭）。批注只留在你的电脑上。
 
+## 1.1 新功能
+
+![超级批注 Windows 版 1.1：黑白两色与取色面板、单独删除一处标记、批注框可以拖开、截图批注同样支持。](docs/images/whatsnew-1.1.zh-CN.png)
+
+<details>
+<summary>逐个看动图</summary>
+
+![动图：在示例咖啡首页上，一处标记变成黑色，一处变成白色（编号改用深色字），箭头用取色面板换成自定义颜色，这个颜色随后出现在「最近使用」里。](docs/images/whatsnew-1.1-colors.zh-CN.webp)
+
+![动图：在示例爵士海报上，一条批注标了两处；从颜色条上删掉其中一处，批注还在；按 Ctrl+Z 找回。](docs/images/whatsnew-1.1-delete.zh-CN.webp)
+
+![动图：批注框挡住了刚标的按钮旁边的链接；按住标题行把它拖开，再把链接标成同一条批注的第二处。](docs/images/whatsnew-1.1-movebox.zh-CN.webp)
+
+![动图：截图批注盖在一个网页上：用取色面板给箭头选了自定义颜色，把批注框拖开，选中一处标记用工具条的「删除」删掉，再找回。](docs/images/whatsnew-1.1-capture-toolbar.zh-CN.webp)
+
+</details>
+
 ## 安装
+
+### Windows
 
 系统要求：64 位 Windows 11。发布版自带 .NET 运行时；Microsoft Edge WebView2 运行时 Windows 11 已内置（缺少时程序会给出下载链接）。
 
@@ -80,6 +84,18 @@ scoop install moygoldenage/sniptoss
 程序未进行代码签名。Windows SmartScreen 可能提示「Windows 已保护你的电脑」，点「更多信息 → 仍要运行」即可（每个新版本会再提示一次）。每个版本都附有 `SHA256SUMS.txt`，可以在 PowerShell 里用 `Get-FileHash <文件>` 核对下载的文件。
 
 如果开着**智能应用控制**（「Windows 安全中心 → 应用和浏览器控制 → 智能应用控制设置」），Windows 会拦下所有未签名的程序，包括超级批注，且无法单独放行某一个程序，只能关掉智能应用控制后再使用。2026 年 4 月的更新之后，Windows 11 关掉它以后还能重新打开、无需重装系统，但它开着时超级批注无法启动。
+
+### Mac
+
+系统要求：macOS 14 及以上，Apple 芯片或 Intel 处理器的 Mac 都可以。
+
+从 [Releases](https://github.com/Moy339339/SnipToss/releases) 下载 `SnipToss-<版本>-mac-universal.dmg`，打开后把超级批注拖进「应用程序」。以后都从「应用程序」里打开：直接从安装盘或「下载」里打开时，macOS 每次都把它当成放在新位置，截图时会反复询问（超级批注会提醒你）。
+
+程序用项目自己的证书签名，但没有经过 Apple 公证，所以第一次打开会被 macOS 拦下：打开后点「完成」，到「系统设置 → 隐私与安全性」，在「已阻止“超级批注”以保护 Mac」旁点「仍要打开」，输入登录密码，程序就会打开（系统再问一次时，点「仍要打开」）。每个新版本第一次打开时要这样做一次。
+
+截图批注（`⌃⌥⌘A`，或标题栏的「截图批注」）需要录屏权限：第一次截图时会引导你到「系统设置 → 隐私与安全性 → 录屏与系统录音」（macOS 14 叫「屏幕录制」），打开超级批注（系统会要登录密码），再选「退出并重新打开」。换新版本后权限保留。macOS 15 起系统会不时再问一次是否继续允许录屏，点「允许」即可。
+
+每个版本都在 `SHA256SUMS.txt` 里列出各文件的 SHA256，可在「终端」里用 `shasum -a 256 <文件>` 核对。卸载：把超级批注从「应用程序」拖到废纸篓；设置在 `~/Library/Application Support/SnipToss`，日志在 `~/Library/Logs/SnipToss`。
 
 ## 把批注交给 AI
 
@@ -113,7 +129,7 @@ scoop install moygoldenage/sniptoss
 
 ## 从源码构建
 
-需要 Windows 11、Node.js 24 和 .NET 10 SDK。
+Windows 版需要 Windows 11、Node.js 24 和 .NET 10 SDK。
 
 ```powershell
 npm install
@@ -122,6 +138,16 @@ npm run verify                             # 类型检查、lint、单元测试�
 ```
 
 `pwsh -File scripts/publish.ps1` 生成自带运行时的发布版和绿色版 zip（在 `dist/release`）。
+
+Mac 版（`app-mac/`，Swift + AppKit）需要 macOS 14 及以上、Xcode 16 及以上，界面部分需要 Node.js 24：
+
+```sh
+npm install && npm run build                   # 界面
+node app-mac/scripts/build-resources.mjs       # Mac 外壳读的词条
+cd app-mac && swift build && swift test        # 外壳和它的单元测试
+```
+
+`swift build -c release` 之后，`node app-mac/scripts/package-app.mjs` 和 `package-dmg.mjs` 生成程序包和安装盘；完整的构建步骤见 `.github/workflows/mac.yml`。
 
 开发流程见 [CONTRIBUTING.md](CONTRIBUTING.md)，整体结构见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 

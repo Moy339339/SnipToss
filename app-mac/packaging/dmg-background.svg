@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="440" viewBox="0 0 640 440">
+  <!-- The disk image window's background (dmg-settings.py places the icons). A middle tone on purpose: Finder writes the file names in
+       black in Light appearance and in white in Dark, and both read on it. The arrow runs from the app (170, 150) to Applications (470, 150).
+       The design is the top 640 × 400, the window's content. The picture goes on 40 points further down in the bottom tone: Finder counts
+       the title bar in the window's size, and the title bar's height differs between macOS versions, so the content can come out a few
+       points taller than 400.
+       Rendered to dmg-background.png and dmg-background@2x.png by app-mac/scripts/build-dmg-background.mjs -->
+  <defs>
+    <linearGradient id="tone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7a7f97"/>
+      <stop offset="1" stop-color="#686c82"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.38" r="0.6">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-20%" y="-50%" width="140%" height="200%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <rect width="640" height="440" fill="#686c82"/>
+  <rect width="640" height="400" fill="url(#tone)"/>
+  <rect width="640" height="400" fill="url(#glow)"/>
+  <g filter="url(#soft)" fill="none" stroke="#ffffff" stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 252 150 H 386"/>
+    <path d="M 372 137 L 386 150 L 372 163"/>
+  </g>
+</svg>

@@ -2,36 +2,21 @@
 
 **English** · [简体中文](README.zh-CN.md)
 
-[![Latest release](https://img.shields.io/github/v/release/Moy339339/SnipToss)](https://github.com/Moy339339/SnipToss/releases/latest) [![CI](https://github.com/Moy339339/SnipToss/actions/workflows/ci.yml/badge.svg)](https://github.com/Moy339339/SnipToss/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/github/license/Moy339339/SnipToss)](LICENSE) ![Windows 11](https://img.shields.io/badge/Windows-11-0078D4)
+[![Latest release](https://img.shields.io/github/v/release/Moy339339/SnipToss)](https://github.com/Moy339339/SnipToss/releases/latest) [![CI](https://github.com/Moy339339/SnipToss/actions/workflows/ci.yml/badge.svg)](https://github.com/Moy339339/SnipToss/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/github/license/Moy339339/SnipToss)](LICENSE) ![Windows 11](https://img.shields.io/badge/Windows-11-0078D4) ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000)
 
 Annotate the images and videos your coding agent made — then hand the notes straight back to it.
 
-**[Download SnipToss for Windows](https://github.com/Moy339339/SnipToss/releases/latest)** · 64-bit Windows 11 · [Install notes](#install)
+![Animation: three notes marked on a sample landing page in SnipToss, copied as text into Claude Code, which edits the page; SnipToss then shows the new version.](docs/images/demo.webp)
 
-> **New in SnipToss for Windows 1.1:** black and white marks and a color picker for any other color, deleting a single mark, and a note box you can drag out of the way, in the app and in screen capture. [Release notes](https://github.com/Moy339339/SnipToss/releases/tag/v1.1.0) · [Changelog](CHANGELOG.md)
+**[Download SnipToss for Windows](https://github.com/Moy339339/SnipToss/releases/latest)** · 64-bit Windows 11 · **[Download SnipToss for Mac](https://github.com/Moy339339/SnipToss/releases/latest)** · macOS 14 or later · [Install notes](#install)
 
-SnipToss is a Windows desktop app for reviewing AI-generated assets. Mark what needs to change with a pin, rectangle, pen or arrow, write the change you want, and SnipToss saves the note — its text, position, time and a cropped snapshot — as plain files in the project's `.sniptoss/` folder. Claude Code, Codex and other agents that can read local files pick the notes up from there and fix the assets.
+> **New in 1.2: SnipToss for Mac.** The same app on macOS 14 or later (Apple silicon and Intel), screen capture included. Notes are the same files on both systems, so a project can be reviewed on either one. [Release notes](https://github.com/Moy339339/SnipToss/releases/tag/v1.2.0) · [Changelog](CHANGELOG.md)
 
-Web pages, PDF and slides are planned. SnipToss for Mac is in progress.
+SnipToss is a desktop app for Windows and Mac for reviewing AI-generated assets. Mark what needs to change with a pin, rectangle, pen or arrow, write the change you want, and SnipToss saves the note — its text, position, time and a cropped snapshot — as plain files in the project's `.sniptoss/` folder. Claude Code, Codex and other agents that can read local files pick the notes up from there and fix the assets.
+
+Web pages, PDF and slides are planned.
 
 ![The SnipToss window with an AI-generated event flyer open: three numbered marks on the flyer and the matching notes in the panel on the right.](docs/images/hero.png)
-
-## What's new in 1.1
-
-![SnipToss for Windows 1.1: black, white and a color picker; deleting one place of a note; dragging the note box aside; the same tools in screen capture.](docs/images/whatsnew-1.1.png)
-
-<details>
-<summary>See each one in action</summary>
-
-![Animation: on a sample coffee landing page, one mark turns black, another white with a dark number, and an arrow gets a custom color from the color picker, which then shows up among the recent colors.](docs/images/whatsnew-1.1-colors.webp)
-
-![Animation: on a sample jazz poster, a note marks two places; one of them is deleted from its color bar while the note stays, then Ctrl+Z brings it back.](docs/images/whatsnew-1.1-delete.webp)
-
-![Animation: the note box covers a link next to the button just marked; it is dragged aside by its title row, and the link is marked as a second place of the same note.](docs/images/whatsnew-1.1-movebox.webp)
-
-![Animation: the screen-capture overlay over a web page: a custom color is picked for an arrow, the note box is dragged aside, and a selected mark is deleted with the toolbar's Delete button and brought back.](docs/images/whatsnew-1.1-capture-toolbar.webp)
-
-</details>
 
 ## Features
 
@@ -60,7 +45,26 @@ Web pages, PDF and slides are planned. SnipToss for Mac is in progress.
 - **11 languages**: English, 简体中文, 繁體中文, 日本語, 한국어, Français, Deutsch, Español, Italiano, Português (Brasil), Русский. Follows the Windows display language by default.
 - **Private**: no telemetry, no account. The only network request is the update check (it asks GitHub for the latest version once a day; you can turn it off in Settings → General). Notes stay on your computer.
 
+## What's new in 1.1
+
+![SnipToss for Windows 1.1: black, white and a color picker; deleting one place of a note; dragging the note box aside; the same tools in screen capture.](docs/images/whatsnew-1.1.png)
+
+<details>
+<summary>See each one in action</summary>
+
+![Animation: on a sample coffee landing page, one mark turns black, another white with a dark number, and an arrow gets a custom color from the color picker, which then shows up among the recent colors.](docs/images/whatsnew-1.1-colors.webp)
+
+![Animation: on a sample jazz poster, a note marks two places; one of them is deleted from its color bar while the note stays, then Ctrl+Z brings it back.](docs/images/whatsnew-1.1-delete.webp)
+
+![Animation: the note box covers a link next to the button just marked; it is dragged aside by its title row, and the link is marked as a second place of the same note.](docs/images/whatsnew-1.1-movebox.webp)
+
+![Animation: the screen-capture overlay over a web page: a custom color is picked for an arrow, the note box is dragged aside, and a selected mark is deleted with the toolbar's Delete button and brought back.](docs/images/whatsnew-1.1-capture-toolbar.webp)
+
+</details>
+
 ## Install
+
+### Windows
 
 Requirements: 64-bit Windows 11. The release builds include the .NET runtime; the Microsoft Edge WebView2 Runtime comes with Windows 11 (if it's missing, SnipToss shows a download link).
 
@@ -79,6 +83,18 @@ scoop install moygoldenage/sniptoss
 The builds are not code-signed. Windows SmartScreen may say "Windows protected your PC": choose **More info → Run anyway** (it asks again for each new version). Each release lists the SHA256 of its files in `SHA256SUMS.txt`, so you can check a download with `Get-FileHash <file>` in PowerShell.
 
 If **Smart App Control** is on (Windows Security → App & browser control → Smart App Control settings), Windows blocks unsigned apps, SnipToss included, and there is no way to allow a single app. Using SnipToss then means turning Smart App Control off. Since the April 2026 update, Windows 11 can turn it back on later without reinstalling, but SnipToss won't start while it's on.
+
+### Mac
+
+Requirements: macOS 14 or later, on a Mac with Apple silicon or an Intel processor.
+
+Download `SnipToss-<version>-mac-universal.dmg` from [Releases](https://github.com/Moy339339/SnipToss/releases), open it and drag SnipToss onto Applications. Always open it from Applications: opened from the disk image or from Downloads, macOS treats it as being in a new place each time and keeps asking about screen capture (SnipToss reminds you).
+
+The app is signed with the project's own certificate but not notarized by Apple, so macOS blocks it the first time: open it, click **Done**, then in **System Settings → Privacy & Security** click **Open Anyway** next to "“SnipToss” was blocked to protect your Mac." and enter your login password; SnipToss then opens (if macOS asks once more, click **Open Anyway**). Each new version needs this once.
+
+Screen Capture (`⌃⌥⌘A`, or Capture in the title bar) needs permission to record the screen: the first capture leads you to **System Settings → Privacy & Security → Screen & System Audio Recording** (Screen Recording on macOS 14); turn SnipToss on (macOS asks for your login password) and choose **Quit & Reopen**. A new version keeps the permission. From macOS 15 on, macOS asks from time to time whether SnipToss may keep recording the screen; click **Allow**.
+
+Each release lists the SHA256 of its files in `SHA256SUMS.txt`; check a download with `shasum -a 256 <file>` in Terminal. To uninstall, move SnipToss from Applications to the Trash; its settings are in `~/Library/Application Support/SnipToss` and its logs in `~/Library/Logs/SnipToss`.
 
 ## Hand notes to your agent
 
@@ -112,7 +128,7 @@ Compared as of October 2026; these tools change quickly — corrections are welc
 
 ## Build from source
 
-You need Windows 11, Node.js 24 and the .NET 10 SDK.
+The Windows app needs Windows 11, Node.js 24 and the .NET 10 SDK.
 
 ```powershell
 npm install
@@ -121,6 +137,16 @@ npm run verify                             # type check, lint, unit tests (TypeS
 ```
 
 `pwsh -File scripts/publish.ps1` makes the self-contained release build and the portable zip in `dist/release`.
+
+The Mac app (`app-mac/`, Swift and AppKit) needs macOS 14 or later with Xcode 16 or later, and Node.js 24 for the web UI:
+
+```sh
+npm install && npm run build                   # web UI
+node app-mac/scripts/build-resources.mjs       # the messages the Mac shell reads
+cd app-mac && swift build && swift test        # shell and its unit tests
+```
+
+`node app-mac/scripts/package-app.mjs` and `package-dmg.mjs` make the app bundle and the disk image after `swift build -c release`; `.github/workflows/mac.yml` shows the whole build.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and [ARCHITECTURE.md](ARCHITECTURE.md) for how the pieces fit together.
 

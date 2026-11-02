@@ -1,0 +1,57 @@
+name: SnipToss for Chrome
+description: A problem, an idea or a question about the browser extension
+title: "[Chrome] "
+labels: [chrome]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This form is for **SnipToss for Chrome**, the browser extension. For the Windows or Mac app, go back and choose Bug report, Feature request or Question.
+
+        The extension's source code isn't in this repository: fixes reach you as extension updates from the Chrome Web Store. Issues are public, so blur anything private in screenshots and don't paste the addresses of internal or signed-in pages. For security problems, don't file an issue — see SECURITY.md.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is this about?
+      options:
+        - Something doesn't work
+        - An idea or request
+        - A question
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: Details
+      description: "A problem: what you did, what you expected and what happened instead. An idea: what you're trying to do. A question: what you'd like to know."
+      placeholder: |
+        1. Open a page with …
+        2. …
+        Expected: …
+        Actual: …
+    validations:
+      required: true
+  - type: input
+    id: ext_version
+    attributes:
+      label: SnipToss for Chrome version
+      description: Filled in when you open this form from the extension's Feedback button. Otherwise it's on the extension's card in chrome://extensions.
+      placeholder: e.g. 1.1.12
+    validations:
+      required: true
+  - type: input
+    id: chrome_version
+    attributes:
+      label: Chrome version
+      description: In chrome://version, or ⋮ → Help → About Google Chrome.
+      placeholder: e.g. 156.0.8078.79
+  - type: input
+    id: os
+    attributes:
+      label: System
+      placeholder: e.g. Windows, macOS, Linux, ChromeOS
+  - type: textarea
+    id: attachments
+    attributes:
+      label: Screenshots or a screen recording
+      description: Optional. Drag files in here; blur anything private first.

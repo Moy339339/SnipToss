@@ -1,6 +1,15 @@
 import type { IntlShape } from "react-intl";
 import { APP_NAME_EN, APP_VERSION, ISSUES_URL, UI_BUILT } from "./brand";
-import { call, type AppInfo } from "./host";
+import { call, platform, type AppInfo } from "./host";
+
+/** What runs the app and shows the UI, as [name, version] pairs: .NET and WebView2 on Windows, the system's WebKit on the Mac */
+export function runtimeParts(info: AppInfo | undefined): [string, string][] {
+  if (platform === "mac") return [["WebKit", info?.webkit || "unknown"]];
+  return [
+    [".NET", info?.dotnet ?? "unknown"],
+    ["WebView2", info?.webview2 ?? "unknown"],
+  ];
+}
 
 /**
  * Diagnostic info (Help → Copy Diagnostic Info, Report an Issue; Settings → About): version, OS, runtime, language and display scaling.
@@ -14,7 +23,9 @@ export function diagnosticsText(info: AppInfo | undefined, uiLocale: string): st
     `UI: ${APP_VERSION}, built ${UI_BUILT || "unknown"}`,
     `Shell: ${shell}${info && info.version !== APP_VERSION ? " (MISMATCH)" : ""}`,
     `OS: ${info?.os ?? "unknown"}`,
-    `.NET: ${info?.dotnet ?? "unknown"} · WebView2: ${info?.webview2 ?? "unknown"}`,
+    runtimeParts(info)
+      .map(([name, version]) => `${name}: ${version}`)
+      .join(" · "),
     `Language: UI ${uiLocale}, system ${info?.systemLanguage ?? "unknown"}`,
     `Display: devicePixelRatio ${window.devicePixelRatio}, window ${window.innerWidth}×${window.innerHeight}`,
   ].join("\n");
