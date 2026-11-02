@@ -65,6 +65,8 @@
 
 ## 安装
 
+只想在浏览器里截个图？可以用浏览器扩展 [超级批注 Chrome 版](https://chromewebstore.google.com/detail/lbkkhgiifipdikligofiiofdccgcgdgd)：截取网页或整个屏幕的一部分，标出要改的地方，复制成一张图粘贴给 AI。
+
 ### Windows
 
 系统要求：64 位 Windows 11。发布版自带 .NET 运行时；Microsoft Edge WebView2 运行时 Windows 11 已内置（缺少时程序会给出下载链接）。

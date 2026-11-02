@@ -64,6 +64,8 @@ Web pages, PDF and slides are planned.
 
 ## Install
 
+Only need a quick screenshot in the browser? [SnipToss for Chrome](https://chromewebstore.google.com/detail/lbkkhgiifipdikligofiiofdccgcgdgd), the browser extension, captures part of a web page or your screen, lets you mark it up and copies it as one image to paste into an AI chat.
+
 ### Windows
 
 Requirements: 64-bit Windows 11. The release builds include the .NET runtime; the Microsoft Edge WebView2 Runtime comes with Windows 11 (if it's missing, SnipToss shows a download link).
