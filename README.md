@@ -96,6 +96,8 @@ The app is signed with the project's own certificate but not notarized by Apple,
 
 Screen Capture (`⌃⌥⌘A`, or Capture in the title bar) needs permission to record the screen: the first capture leads you to **System Settings → Privacy & Security → Screen & System Audio Recording** (Screen Recording on macOS 14); turn SnipToss on (macOS asks for your login password) and choose **Quit & Reopen**. A new version keeps the permission. From macOS 15 on, macOS asks from time to time whether SnipToss may keep recording the screen; click **Allow**.
 
+If macOS asks whether “SnipToss” may access files in your Desktop, Documents or Downloads folder, click **Allow**. If you clicked **Don't Allow**, turn SnipToss back on in **System Settings → Privacy & Security → Files & Folders**.
+
 Each release lists the SHA256 of its files in `SHA256SUMS.txt`; check a download with `shasum -a 256 <file>` in Terminal. To uninstall, move SnipToss from Applications to the Trash; its settings are in `~/Library/Application Support/SnipToss` and its logs in `~/Library/Logs/SnipToss`.
 
 ## Hand notes to your agent
