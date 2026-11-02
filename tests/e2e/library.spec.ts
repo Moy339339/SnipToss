@@ -70,11 +70,16 @@ test("Pressing ↑ ↓ repeatedly in the list records the last viewed item in a 
   await new Promise((r) => setTimeout(r, 400)); // the write from startup has finished
   const count = () => app.host.calls.filter((c) => c.method === "librarySelect").length;
   const before = count();
+  const started = await app.page.evaluate(() => performance.now());
   for (let i = 0; i < 4; i++) for (const key of ["ArrowDown", "ArrowUp"]) await app.page.keyboard.press(key); // 8 switches
   await app.page.keyboard.press("ArrowDown");
+  const took = (await app.page.evaluate(() => performance.now())) - started;
   await expect(app.page).toHaveTitle("poster.jpg");
   await expect.poll(() => app.host.selected).toBe(join(app.project, "assets", "poster.jpg"));
-  expect(count() - before).toBeLessThanOrEqual(3);
+  // The first switch is written at once, then at most one write per 300 ms, and the latest once more after the last press. The bound comes
+  // from how long the presses took in the page: on a slow machine they take longer and are rightly written more often (3 when they take
+  // under 600 ms, as on a fast one)
+  expect(count() - before).toBeLessThanOrEqual(Math.floor(took / 300) + 2);
 });
 
 test("Double-clicking a collapsed folder expands it (the first click must not expand it and the second collapse it again)", async ({ app }) => {
