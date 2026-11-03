@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { useIntl, type IntlShape } from "react-intl";
 import { pathSep } from "@sniptoss/core";
-import { APP_VERSION, IS_BETA, shortTime, UI_BUILT, versionLabel } from "./brand";
+import { APP_VERSION, IS_BETA, RELEASED, releaseDate, versionLabel } from "./brand";
 import type { AppInfo } from "./host";
 import type { FolderNote } from "./library";
 
@@ -127,18 +127,16 @@ export function NoteLine({ note, depth }: { note: FolderNote; depth: number }) {
 /**
  * The version at the bottom left: users check it to confirm they are on the latest build.
  * If the UI and the app itself are not from the same build (only the UI was swapped, or only the shell was compiled) it turns red,
- * and the tooltip says when each side was built
+ * and the tooltip asks to reinstall
  */
 export function VersionTag({ info }: { info?: AppInfo }) {
   const intl = useIntl();
   const mismatch = !!info && info.version !== APP_VERSION;
   const name = `${intl.formatMessage({ id: "brand.name" })} ${versionLabel(APP_VERSION)}${IS_BETA ? intl.formatMessage({ id: "settings.about.beta" }) : ""}`;
+  const released = releaseDate(RELEASED);
   const title = [
-    // A Mac package's build number is in the label already ("Beta 45") and again in the app's line below: its "Version 1.0.0 (45)" is on
-    // the About page only, where Finder's Get Info has it too
-    info?.build ? name : `${name} · ${intl.formatMessage({ id: "settings.about.version" }, { version: APP_VERSION })}`,
-    intl.formatMessage({ id: "settings.about.uiBuilt" }, { time: shortTime(UI_BUILT) }),
-    info ? intl.formatMessage({ id: "library.version.shell" }, { version: versionLabel(info.version), time: shortTime(info.built) }) : "",
+    name,
+    released ? intl.formatMessage({ id: "settings.about.released" }, { date: released }) : "",
     mismatch ? intl.formatMessage({ id: "app.version.mismatchHint" }) : "",
   ]
     .filter(Boolean)

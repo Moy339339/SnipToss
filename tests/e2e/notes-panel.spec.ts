@@ -621,7 +621,7 @@ test("copying from the Library context menu: a folder row copies the items insid
   const text = (await app.clipboard())!;
   expect(text).toContain(CLIP);
   expect(text).not.toContain(HERO);
-  expect(text).toContain("请按以下批注修改素材。");
+  expect(text).toContain("请按以下批注处理素材。");
 });
 
 test("[ ] step through the notes visible in the notes panel: the canvas follows across items and it wraps around at the ends; the menu entries are disabled when there are no notes", async ({ app }) => {

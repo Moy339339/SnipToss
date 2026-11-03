@@ -5,7 +5,7 @@
 import { copyFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, type App } from "./harness";
-import { IS_BETA, VERSION, VERSION_LABEL } from "./mock-host";
+import { VERSION, VERSION_LABEL } from "./mock-host";
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const row = (app: App, name: string) =>
@@ -760,7 +760,7 @@ test("portable build: the two switches that write to the registry (start at logi
 test("Shortcuts page: shows the same groups as the ones you get by pressing ?", async ({ app }) => {
   await app.open();
   await openSettings(app, "快捷键");
-  await expect(app.page.locator(".settings-body .set-heading")).toContainText("也可随时按 ? 查看");
+  await expect(app.page.locator(".settings-body .set-heading")).toContainText("也可按 ? 查看此列表。截图批注的快捷键可在「截图批注」中更改");
   const inSettings = await app.page.locator(".keys-grid .section-label").allInnerTexts();
   expect(inSettings.length).toBeGreaterThanOrEqual(6);
   await app.page.keyboard.press("Escape");
@@ -797,9 +797,9 @@ test("About page: version, author, license, homepage, runtime and issue reportin
   await app.open();
   await openSettings(app, "关于");
   const body = app.page.locator(".settings-body");
-  await expect(body.locator(".set-label").first()).toHaveText(`超级批注 ${VERSION_LABEL}${IS_BETA ? "（测试版）" : ""}`);
-  await expect(body).toContainText(`版本 ${VERSION}`);
-  await expect(body).toContainText("程序构建于");
+  // The version and the release date, one line each (the product name is the wordmark above them); a date, no time of day
+  await expect(body.locator(".set-label").first()).toHaveText(`版本 ${VERSION_LABEL.slice(1)}`);
+  await expect(body.locator(".set-desc").first()).toHaveText(/^发布于 [A-Z][a-z]{2} \d{1,2}, \d{4}$/);
   await expect(body.locator(".text-danger")).toHaveCount(0);
   await expect(setRow(app, "作者")).toContainText("MoyGoldenAge");
   await expect(setRow(app, "许可证")).toContainText("MIT 许可证，开源");
@@ -822,6 +822,16 @@ test("About page: version, author, license, homepage, runtime and issue reportin
   await expect(row(app, "project")).toBeVisible();
   await openSettings(app, "关于");
   await expect(body.locator(".text-danger")).toHaveText("程序版本为 v1.0.0 Beta 1，与界面不一致，请重新安装");
+});
+
+test("Diagnostic info gives the UI's release date and no build times of day (it goes into public issue reports)", async ({ app }) => {
+  await app.open();
+  await openSettings(app, "关于");
+  await setRow(app, "反馈问题").getByRole("button", { name: "复制诊断信息" }).click();
+  await expect.poll(() => app.clipboard()).toMatch(new RegExp(`\\nUI: ${VERSION.replace(/\./g, "\\.")}, released \\d{4}-\\d{2}-\\d{2}\\n`));
+  const text = await app.clipboard();
+  expect(text).toMatch(new RegExp(`\\nShell: ${VERSION.replace(/\./g, "\\.")}\\n`));
+  expect(text).not.toMatch(/T\d\d:\d\d/);
 });
 
 test("About page: third-party notices can be read inside the app and are only loaded when opened; they are listed by component, a click on a row shows the license text; Esc closes only the notices and Settings stays open", async ({ app }) => {

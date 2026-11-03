@@ -81,7 +81,7 @@ function useT() {
       : fallback.replace(/\{(\w+)\}/g, (_, k: string) => values?.[k] ?? "");
 }
 
-/** Error box: which part failed, that all notes are saved, and the "Reload" and "Retry" buttons; extra comes after them (Close, Open Log Folder) */
+/** Error box: which part failed, that saved notes are not affected, and the "Reload" and "Retry" buttons; extra comes after them (Close, Open Log Folder) */
 function ErrorBox(props: {
   area: Area;
   onRetry: () => void;
@@ -107,7 +107,12 @@ function ErrorBox(props: {
       <div className="error-boundary-title" id={titleId}>
         {t("app.errorBoundary.title", "An error occurred in the {area}", { area: t(`app.area.${area}`, area) })}
       </div>
-      <p id={bodyId}>{t("app.errorBoundary.body", "The error has been logged. All notes are saved, so reloading won't lose anything.")}</p>
+      <p id={bodyId}>
+        {t(
+          "app.errorBoundary.body",
+          "The error has been logged. Saved notes are not affected; after reloading, check anything you were in the middle of writing.",
+        )}
+      </p>
       <div className="error-boundary-actions">
         <button className="btn btn-primary" onClick={() => location.reload()}>
           {t("app.errorBoundary.reload", "Reload")}

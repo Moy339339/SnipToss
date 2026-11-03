@@ -2,7 +2,7 @@ SnipToss for Mac {version}
 
 Install
 1. Drag SnipToss onto the Applications folder on the right.
-2. Always open it from Applications. Opened from this window or from Downloads, macOS treats it as being in a new location every time, so the system's screen capture confirmation keeps coming up. SnipToss reminds you about this when it is opened from such a place.
+2. Always open it from Applications. Opened from this window or from Downloads, macOS treats it as being in a new location every time, so the system's screen capture confirmation keeps coming up. When it is opened from such a place, SnipToss asks you to move it to Applications.
 
 Opening it for the first time
 SnipToss is not notarized by Apple, so macOS blocks it the first time:
@@ -19,7 +19,7 @@ Screen Capture needs permission to record the screen:
 A new version keeps the permission. From macOS 15 on, macOS asks again from time to time whether SnipToss may keep recording; click Allow.
 
 Desktop, Documents and Downloads
-If macOS asks whether “SnipToss” may access files in your Desktop, Documents or Downloads folder, click Allow. If you clicked Don't Allow, turn SnipToss back on in System Settings → Privacy & Security → Files & Folders.
+If macOS asks whether “SnipToss” may access files in your Desktop, Documents or Downloads folder, click Allow. If you clicked Don't Allow, go to System Settings → Privacy & Security → Files & Folders and turn on the switch for that folder under SnipToss.
 
 Requirements
 macOS 14 or later, on a Mac with Apple silicon or an Intel processor. The Intel version has not been tested on a real Intel Mac yet: if something goes wrong, please report it in Issues on the project page below.

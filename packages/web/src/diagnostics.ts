@@ -1,5 +1,5 @@
 import type { IntlShape } from "react-intl";
-import { APP_NAME_EN, APP_VERSION, ISSUES_URL, UI_BUILT } from "./brand";
+import { APP_NAME_EN, APP_VERSION, ISSUES_URL, RELEASED } from "./brand";
 import { call, platform, type AppInfo } from "./host";
 
 /** What runs the app and shows the UI, as [name, version] pairs: .NET and WebView2 on Windows, the system's WebKit on the Mac */
@@ -17,10 +17,11 @@ export function runtimeParts(info: AppInfo | undefined): [string, string][] {
  * it contains no paths (the locations of the log, the app and the settings include the Windows user name, and reports are pasted on public GitHub)
  */
 export function diagnosticsText(info: AppInfo | undefined, uiLocale: string): string {
-  const shell = info ? `${info.version}, built ${info.built}${info.portable ? ", portable" : ""}` : "unknown";
+  // Dates only, no time of day (the report is public): the UI's release date stands for the whole install, a mismatching shell is flagged below
+  const shell = info ? `${info.version}${info.portable ? ", portable" : ""}` : "unknown";
   return [
     `${APP_NAME_EN} ${APP_VERSION}`,
-    `UI: ${APP_VERSION}, built ${UI_BUILT || "unknown"}`,
+    `UI: ${APP_VERSION}, released ${RELEASED || "unknown"}`,
     `Shell: ${shell}${info && info.version !== APP_VERSION ? " (MISMATCH)" : ""}`,
     `OS: ${info?.os ?? "unknown"}`,
     runtimeParts(info)

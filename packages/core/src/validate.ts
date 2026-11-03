@@ -80,6 +80,8 @@ export function checkMaterialFile(data: unknown): string[] {
     // Only used to recognize "written on an earlier version": a malformed value counts as not recorded (handled like an old note, see
     // versions.ts), and likewise does not make the whole file unreadable
     if (a.material_sha256 !== undefined && typeof a.material_sha256 !== "string") delete a.material_sha256;
+    if (a.material_size !== undefined && !(Number.isSafeInteger(a.material_size) && (a.material_size as number) >= 0))
+      delete a.material_size;
     // Only decides the color the marks are drawn in: a malformed value counts as not changed (the Settings color is used). It is put into
     // SVG, so only #rrggbb is accepted
     if (a.color !== undefined && !isMarkColor(a.color)) delete a.color;

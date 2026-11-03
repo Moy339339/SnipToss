@@ -14,12 +14,12 @@ export const LICENSE_URL = `${HOMEPAGE}/blob/main/LICENSE`;
 export const ISSUES_URL = `${HOMEPAGE}/issues/new`;
 
 declare const __APP_VERSION__: string;
-declare const __UI_BUILT__: string;
+declare const __RELEASED__: string;
 
 /** Version of the UI (written in from the root package.json at build time). The shell's version is in appInfo.version, and the two should match */
 export const APP_VERSION = typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : "dev";
-/** When the UI was built (ISO) */
-export const UI_BUILT = typeof __UI_BUILT__ === "string" ? __UI_BUILT__ : "";
+/** The release date of this build, "2026-11-03" (vite.config.ts: the day in US Pacific time, no time of day) */
+export const RELEASED = typeof __RELEASED__ === "string" ? __RELEASED__ : "";
 
 /**
  * How a version is written for people (semantic versioning): every release x.y.z is preceded by its own beta series x.y.z-beta.N, N counting
@@ -32,18 +32,12 @@ export function versionLabel(v: string): string {
 /** Whether this is a beta */
 export const IS_BETA = /-beta\.\d+$/.test(APP_VERSION);
 
-/**
- * The version as the "Version …" line of Settings → About writes it. A Mac package also has a build number (appInfo.build), and the
- * version is then written the Mac way, as Finder's Get Info does: x.y.z (build), e.g. "1.0.0 (44)"; otherwise the whole version
- */
-export function versionWithBuild(v: string, build?: string): string {
-  return build ? `${v.replace(/-.*$/, "")} (${build})` : v;
-}
+/** The version as the "Version …" line of Settings → About writes it: versionLabel without the "v" ("1.1.0 Beta 2", "1.1.0") */
+export const versionText = (v: string) => versionLabel(v).slice(1);
 
-/** Stored as UTC (2026-10-16T00:42:00Z) and shown as local time (e.g. 10-16 01:42 at UTC+1) */
-export function shortTime(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+/** A release date ("2026-11-03") as people read it, "Nov 3, 2026", the same in every language; "" when there is none */
+export function releaseDate(date: string): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(d);
 }

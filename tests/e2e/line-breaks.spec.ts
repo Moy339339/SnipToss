@@ -4,8 +4,11 @@
 // Every screen of screens.ts is walked; each S9 box is measured at its own width and narrowed to 80% and 60%, so the text breaks at many
 // more places than the window alone would give. Runs in Edge with the other e2e tests, and in WebKit on the Mac CI
 // (playwright.webkit.config.ts): under keep-all WebKit breaks on both sides of these marks, and finds no place to break at the edges of
-// the spans that keep a mark with its character, which is what the spans and the <wbr> of KeepPunctuation are for
+// the spans that keep a mark with its character, which is what the spans and the <wbr> of KeepPunctuation are for.
+// The separator between the steps of a path (“File → Get Info”, Korean “파일 > 정보 가져오기”, an arrow between corner brackets in Chinese and
+// Japanese) never starts or ends a line: it stays with the characters beside it
 
+import { join } from "node:path";
 import { expect, test, type App } from "./harness";
 import { prepare, walkScreens, welcome } from "./screens";
 
@@ -100,11 +103,14 @@ function badBreaks(app: App, screen: string) {
       };
 
       const found: string[] = [];
+      const ARROW_KEYS = "←↑→↓";
+      const blank = (c: Char | Gap) => typeof c === "string" || /\s/.test(text(c));
       interface Box {
         el: HTMLElement;
         width: number;
         chars: (Char | Gap)[];
         pairs: [Char, Char][];
+        steps: [Char, Char][];
         words: Char[][];
         names: Char[][];
         saved: string;
@@ -134,6 +140,29 @@ function badBreaks(app: App, screen: string) {
           if (before) pairs.push([before, c]);
           if (after) pairs.push([c, after]);
         });
+        // A path separator (an arrow that is not one of the arrow keys ←→, or ">" between spaces) and the nearest character on each side
+        // of it, past spaces, no-break spaces and <br>
+        const nearest = (i: number, step: 1 | -1) => {
+          for (let j = i + step; j >= 0 && j < chars.length; j += step) {
+            const c = chars[j];
+            if (!blank(c)) return c as Char;
+          }
+          return undefined;
+        };
+        const steps: [Char, Char][] = [];
+        chars.forEach((c, i) => {
+          if (typeof c === "string") return;
+          const near = [chars[i - 1], chars[i + 1]];
+          const step =
+            text(c) === "→"
+              ? !near.some((n) => n !== undefined && typeof n !== "string" && ARROW_KEYS.includes(text(n)))
+              : text(c) === ">" && near.every((n) => n !== undefined && blank(n));
+          if (!step) return;
+          const before = nearest(i, -1);
+          const after = nearest(i, 1);
+          if (before) steps.push([before, c]);
+          if (after) steps.push([c, after]);
+        });
         // Words: runs without a space, a <br> or a change of block, cut after a closing mark and before an opening one
         const words: Char[][] = [];
         let word: Char[] = [];
@@ -159,16 +188,17 @@ function badBreaks(app: App, screen: string) {
           if (name.length > 1) names.push(name);
         });
 
-        boxed.push({ el, width, chars, pairs, words, names, saved: el.style.width });
+        boxed.push({ el, width, chars, pairs, steps, words, names, saved: el.style.width });
       }
 
       // All boxes are narrowed together, so the page is laid out once a width rather than once a box (a screen like the shortcut list has
       // a hundred boxes, which took minutes in WebKit on a CI machine)
       for (const share of [1, 0.8, 0.6]) {
         if (share < 1) for (const b of boxed) b.el.style.width = `${Math.floor(b.width * share)}px`;
-        for (const { el, chars, pairs, words, names } of boxed) {
+        for (const { el, chars, pairs, steps, words, names } of boxed) {
           const problems: string[] = [];
           if (pairs.some(([a, b]) => apart(a, b))) problems.push("a mark on the wrong side of a break");
+          if (steps.some(([a, b]) => apart(a, b))) problems.push("a path separator apart from the step beside it");
           for (const w of words) {
             if (w.length < 2 || !apart(w[0], w[w.length - 1])) continue;
             // Wider than a line: it has to be broken somewhere
@@ -222,6 +252,11 @@ function unkept(app: App, screen: string) {
             const other = CLOSE.includes(c) ? chars[i - 1] : OPEN.includes(c) ? chars[i + 1] : undefined;
             if (other !== undefined && !/\s/.test(other))
               found.push(`${where}: .${el.className.split(" ").join(".")}: “${c}” not kept with “${other}” in “${node.data}”`);
+            // A path separator is always in a kept run with the characters beside it
+            const near = [chars[i - 1], chars[i + 1]];
+            const step =
+              c === "→" ? !near.some((n) => n !== undefined && "←↑→↓".includes(n)) : c === ">" && near.every((n) => n !== undefined && /\s/.test(n));
+            if (step) found.push(`${where}: .${el.className.split(" ").join(".")}: path separator “${c}” not kept with its steps in “${node.data}”`);
           });
         }
       }
@@ -255,6 +290,11 @@ test("the detection itself works: a closing mark that starts a line and a word b
     add(8, "见 「 x 」 中");
     // Kept marks straight in a column flex container: every piece is a flex item of its own
     add(9, '选<span class="keep-punctuation">择：</span>单击', "display:flex;flex-direction:column");
+    // A path separator left at the end of a line, one kept with its steps as KeepPunctuation keeps it (in a box narrower than the
+    // text: it breaks elsewhere), and arrow keys, which are not a path
+    add(10, "Change this in Settings →<br>Advanced");
+    add(11, 'Change this in Setting<span class="keep-punctuation">s&nbsp;→&nbsp;A</span>dvanced', "width:60px");
+    add(12, "按 ←→ 切换");
   });
   const found = await badBreaks(app, "self-check");
   const of = (box: number) => found.filter((f) => f.includes(`.box-${box} `));
@@ -265,6 +305,10 @@ test("the detection itself works: a closing mark that starts a line and a word b
   for (const f of of(3)) expect(f).toMatch(/“从列表中移除。” broken after “从/);
   expect([...of(2), ...of(4)]).toEqual([]);
   expect(of(5).join("\n")).toContain("the name “.sniptoss” broken");
+  expect(of(10)).toHaveLength(3);
+  // (The report leaves the spaces out)
+  for (const f of of(10)) expect(f).toContain("a path separator apart from the step beside it: ChangethisinSettings→ / Advanced");
+  expect([...of(11), ...of(12)]).toEqual([]);
   const loose = await unkept(app, "self-check");
   const looseOf = (box: number) => loose.filter((f) => f.includes(`.box-${box}:`));
   expect(looseOf(6)).toEqual([
@@ -273,7 +317,62 @@ test("the detection itself works: a closing mark that starts a line and a word b
   ]);
   expect([...looseOf(7), ...looseOf(8)]).toEqual([]);
   expect(looseOf(9)).toEqual(["self-check: .set-desc.box-9: “择：” laid out as a box of its own (block)"]);
+  expect(looseOf(10)).toEqual(["self-check: .set-desc.box-10: path separator “→” not kept with its steps in “Change this in Settings →”"]);
+  expect([...looseOf(11), ...looseOf(12)]).toEqual([]);
 });
+
+/** Widths of the box (every pixel from 120 to its own width) at which a path separator in it is on another line than a step beside it */
+function separatorBreaks(app: App, box: string) {
+  return app.page.evaluate((selector) => {
+    const el = document.querySelector<HTMLElement>(selector)!;
+    const chars: { node: Text; at: number; c: string }[] = [];
+    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) for (let at = 0; at < (n as Text).length; at++) chars.push({ node: n as Text, at, c: (n as Text).data[at] });
+    const top = (k: number) => {
+      const r = document.createRange();
+      r.setStart(chars[k].node, chars[k].at);
+      r.setEnd(chars[k].node, chars[k].at + 1);
+      return r.getClientRects()[0]?.top ?? 0;
+    };
+    const blank = (k: number) => /\s/.test(chars[k].c);
+    const steps = chars.map((x, k) => (x.c === "→" || x.c === ">") && k > 0 && k < chars.length - 1 && blank(k - 1) && blank(k + 1));
+    const width = el.getBoundingClientRect().width;
+    const saved = el.style.width;
+    const found: string[] = [];
+    for (let w = 120; w <= width; w++) {
+      el.style.width = `${w}px`;
+      steps.forEach((step, k) => {
+        if (!step) return;
+        let before = k - 1;
+        while (before > 0 && blank(before)) before--;
+        let after = k + 1;
+        while (after < chars.length - 1 && blank(after)) after++;
+        if (Math.abs(top(before) - top(k)) > 4 || Math.abs(top(after) - top(k)) > 4) found.push(`${w}px`);
+      });
+    }
+    el.style.width = saved;
+    return { separators: steps.filter(Boolean).length, found };
+  }, box);
+}
+
+for (const locale of ["en", "de", "ru", "ko", "zh-CN"]) {
+  test(`${locale}: on the Mac page for a file the account may not read, the menu path keeps its separator with the steps beside it at every width`, async ({
+    app,
+  }) => {
+    await app.page.addInitScript(() => {
+      (window as unknown as { __e2ePlatform: string }).__e2ePlatform = "mac";
+    });
+    app.host.deniedReason = "permissions";
+    app.host.unreadable = [join(app.project, "assets", "hero.png")];
+    app.host.prefs = { language: locale };
+    await app.open();
+    await app.page.locator(".lib-row", { hasText: "hero.png" }).first().click();
+    await expect(app.page.getByRole("alert")).toBeVisible();
+    const { separators, found } = await separatorBreaks(app, '.stage-empty[role="alert"] .muted');
+    expect(separators).toBe(1);
+    expect(found).toEqual([]);
+  });
+}
 
 for (const locale of ["zh-CN", "zh-TW", "ja"]) {
   test(`${locale}: on every UI screen (screens.ts), including a tooltip, explanatory text breaks only where it may, at the box's width and narrowed to 80% and 60%`, async ({ app }) => {

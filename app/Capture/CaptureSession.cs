@@ -244,7 +244,8 @@ sealed class CaptureSession
         var folder = settings.Capture.FolderOrDefault;
         // The finish notice just says "copied to clipboard"; only when the notes are not drawn into the image (turned off in Settings) a line is added: pasting into an agent app would lose the notes
         var warning = hasNotes && !settings.Capture.NotesInImage ? how : "";
-        if (saveError is null) ShowToast(result.Monitor, Locale.T("capture.copied", what), warning);
+        // Its title calls it "the image with notes" only when the notes are in the picture; otherwise it is just the screenshot, and the line above says where the notes went
+        if (saveError is null) ShowToast(result.Monitor, Locale.T("capture.copied", settings.Capture.NotesInImage ? what : [("what", "image")]), warning);
         else ShowError(result.Monitor, Locale.T("capture.copiedNotSaved", what), Locale.T("capture.saveFailedHint", ("how", how)), Directory.Exists(folder) ? folder : null, saveError);
     }
 

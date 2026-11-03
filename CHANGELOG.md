@@ -4,6 +4,23 @@ All notable changes to SnipToss Desktop are listed here: SnipToss for Windows an
 
 The annotation data format has its own version (`"schema": "sniptoss/5"`); its history is in [docs/annotation-format.md](docs/annotation-format.md).
 
+## [1.2.3] — 2026-11-03
+
+### Changed
+
+- Settings → About shows two lines under the logo: the version and the release date (“Released Nov 3, 2026”). The build times of the interface and the app are no longer shown there, in the version tooltip or in the diagnostic info, which gives the release date instead.
+- The text copied for AI tools (Copy as Text, REVIEW.md, Screen Capture) asks the agent to act on each note according to its category, and to look at the snapshot first where a note has one; a Question only needs an answer. It used to ask for every note to be changed and for a snapshot to be checked even where there was none.
+- Interface text in all eleven languages was reviewed: wording that was unclear, said more than the app does, or was translated wrongly has been corrected, for example the privacy note on the About page, the Keyboard Shortcuts page (the Screen Capture shortcut can be changed) and the tray notice.
+- A menu or settings path such as “File → Get Info” is no longer broken across lines at the arrow.
+
+### Fixed
+
+- Notes on an item that was replaced by another file with an older modification time (extracted from an archive, or copied with its timestamps kept) are now recognized as written on an earlier version, instead of being drawn on the new picture. New notes record the item's size for this (`material_size`, an optional field in the notes format).
+- Dragging a selection box to the top or bottom edge of the library scrolls at the same speed on every computer. It went by the number of frames drawn, so on a computer without a graphics card or over a remote desktop it was several times slower.
+- With “Include notes in the image” turned off, the notice after a screen capture says the screenshot was copied, no longer “image with notes”.
+- Mac: Keyboard Shortcuts shows the Screen Capture default as `⌃⌥⌘A` (the Control key was missing) and leaves out the menu-bar keys and Shift+F10, which only Windows has.
+- Mac: an item SnipToss may not read says which kind of refusal it is. When macOS privacy protection keeps the app out, the page points to Files & Folders in System Settings; when the file's own permissions don't allow reading, it explains Get Info → Sharing & Permissions in Finder instead of offering a System Settings button that couldn't help.
+
 ## [1.2.2] — 2026-11-03
 
 ### Changed
@@ -105,6 +122,7 @@ First public release.
 - Portable version: with a `data` folder next to the app, all data stays in it and the registry is never touched.
 - Command-line tool `sniptoss` (list, review, resolve, wontfix); its messages follow the system display language.
 
+[1.2.3]: https://github.com/Moy339339/SnipToss/releases/tag/v1.2.3
 [1.2.2]: https://github.com/Moy339339/SnipToss/releases/tag/v1.2.2
 [1.2.1]: https://github.com/Moy339339/SnipToss/releases/tag/v1.2.1
 [1.2.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.2.0

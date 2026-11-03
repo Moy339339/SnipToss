@@ -168,6 +168,15 @@ describe("validation", () => {
     expect(parseMaterialFile(minimal({ ...ok, material_sha256: sha })).annotations[0].material_sha256).toBe(sha);
   });
 
+  it("a malformed item size (not a whole number of zero or more): counts as not recorded and the file is read as usual (the fingerprint is then taken from the note without the size check)", () => {
+    for (const bad of [-1, 1.5, "482113", null, Number.MAX_SAFE_INTEGER + 2]) {
+      const a = parseMaterialFile(minimal({ ...ok, material_size: bad })).annotations[0];
+      expect("material_size" in a).toBe(false);
+    }
+    expect(parseMaterialFile(minimal({ ...ok, material_size: 0 })).annotations[0].material_size).toBe(0);
+    expect(parseMaterialFile(minimal({ ...ok, material_size: 482113 })).annotations[0].material_size).toBe(482113);
+  });
+
   it("a malformed mark color (not #rrggbb): counts as not changed, the Settings color is used and the file is read as usual; either case is accepted (it is put into SVG)", () => {
     for (const bad of [123, null, "red", "#fff", "#12345g", '#123456" onload="x', "rgb(1,2,3)"]) {
       const a = parseMaterialFile(minimal({ ...ok, color: bad })).annotations[0];

@@ -122,6 +122,7 @@ private func scanReply(_ scanned: ScannedEntry, limit: Int) -> [String: Any] {
         "skippedDirs": jsonOrNull(stats.flatMap { $0.skippedDirs.isEmpty ? nil : $0.skippedDirs }),
         // The folder itself may not be read: the page says so on its row, and shows where access is granted when it is clicked
         "denied": jsonOrNull(isFolder && stats?.denied == true ? true : nil),
+        "deniedReason": jsonOrNull(isFolder && stats?.denied == true ? stats?.deniedReason : nil),
         "materials": materials,
     ]
 }
@@ -165,8 +166,9 @@ func hashOfLibraryItem(_ path: String, library: [String], cache: HashCache) thro
 
 /// Whether an item can be opened for reading: the page asks when an item fails to open, since a file the app may not read looks the same
 /// to it as a damaged one. Only paths in the library are accepted (hard rule 2). Opens and closes at once, reading nothing; a refusal
-/// carries the class of its POSIX error (`denied`: EACCES, or EPERM when macOS keeps the app out of a protected folder). Runs on the
-/// bridge's own queue: the first look into such a folder waits until the user has answered the system's question
+/// carries the class of its POSIX error (`denied`: EACCES, or EPERM when macOS keeps the app out of a protected folder) and, for those
+/// two, which one it was (`reason`, see `deniedReason`): the page advises System Settings for one and the file's permissions for the
+/// other. Runs on the bridge's own queue: the first look into such a folder waits until the user has answered the system's question
 func readableLibraryItem(_ path: String, library: [String]) throws -> Bool {
     guard PathPolicy.isUnder(path, roots: library), let full = try? Library.norm(path) else {
         throw BridgeError("Path is not in the material list or a notes folder: \(path)", code: "denied")
@@ -176,7 +178,11 @@ func readableLibraryItem(_ path: String, library: [String]) throws -> Bool {
     // A folder is not an item; opening one for reading would succeed and say nothing about its contents
     if Library.isDirectory(full) { throw BridgeError("Not a file: \(full)") }
     let fd = Darwin.open(full, O_RDONLY)
-    guard fd >= 0 else { throw bridgeError(FileOperationError(operation: "open", path: full, code: errno)) }
+    guard fd >= 0 else {
+        let code = errno
+        let error = bridgeError(FileOperationError(operation: "open", path: full, code: code))
+        throw BridgeError(error.message, code: error.code, reason: deniedReason(code))
+    }
     Darwin.close(fd)
     return true
 }

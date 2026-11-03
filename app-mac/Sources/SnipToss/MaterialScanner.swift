@@ -41,6 +41,8 @@ enum MaterialScanner {
         /// The folder itself may not be read (no permission, or a protected folder macOS has not let the app into): it lists nothing, and
         /// the page says why instead of showing an empty folder
         var denied = false
+        /// Which refusal that was, `privacy` or `permissions` (`deniedReason`): the page's advice depends on it
+        var deniedReason: String?
 
         var sortedOtherExts: [String] { otherExts.sorted() }
         var sortedMoreOffExts: [String] { moreOffExts.sorted() }
@@ -81,7 +83,10 @@ enum MaterialScanner {
                 names = try FileManager.default.contentsOfDirectory(atPath: dir)
             } catch {
                 // Folders inside that may not be read are left out as before; only the entry's own folder being refused is reported
-                if isRoot, isRefusal(error) { stats?.denied = true }
+                if isRoot, let reason = refusal(error) {
+                    stats?.denied = true
+                    stats?.deniedReason = reason
+                }
                 continue
             }
             // The disk's order is arbitrary; a fixed order keeps what is cut off at the limit the same from one scan to the next
@@ -114,14 +119,15 @@ enum MaterialScanner {
         return found
     }
 
-    /// No permission to read: the file system's own refusal (EACCES), or macOS keeping the app out of a protected folder such as Desktop,
-    /// Documents or Downloads (EPERM)
-    static func isRefusal(_ error: Error) -> Bool {
+    /// No permission to read, and which kind (`deniedReason`): the file system's own refusal (EACCES, `permissions`), or macOS keeping the
+    /// app out of a protected folder such as Desktop, Documents or Downloads (EPERM, `privacy`). Foundation reports both as
+    /// NSFileReadNoPermissionError with the POSIX error underneath; without one it is taken for `privacy`, the advice that was always given.
+    /// Nil when reading was not refused
+    static func refusal(_ error: Error) -> String? {
         let ns = error as NSError
-        if ns.domain == NSCocoaErrorDomain, ns.code == NSFileReadNoPermissionError { return true }
         let posix = ns.domain == NSPOSIXErrorDomain ? ns : ns.userInfo[NSUnderlyingErrorKey] as? NSError
-        guard let posix, posix.domain == NSPOSIXErrorDomain else { return false }
-        return posix.code == Int(EPERM) || posix.code == Int(EACCES)
+        if let posix, posix.domain == NSPOSIXErrorDomain, let reason = deniedReason(Int32(posix.code)) { return reason }
+        return ns.domain == NSCocoaErrorDomain && ns.code == NSFileReadNoPermissionError ? "privacy" : nil
     }
 
     /// A file that is not listed: counted when it is a format that is not supported yet, or a More format left out by the setting

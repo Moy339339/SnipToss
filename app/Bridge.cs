@@ -426,7 +426,7 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
         portable = AppPaths.IsPortable,
         // Windows display language: used when the UI setting is "follow system" (docs/adr/0001-i18n.md)
         systemLanguage = System.Globalization.CultureInfo.CurrentUICulture.Name,
-        // Build time of the app itself: shown in the UI next to the UI's own build time, to tell whether they come from the same install
+        // Build time of the app itself (part of the bridge contract; the UI shows only its own release date, and a version mismatch)
         built = File.GetLastWriteTimeUtc(typeof(Bridge).Assembly.Location).ToString("o"),
         dotnet = Environment.Version.ToString(),
         webview2 = core.Environment.BrowserVersionString,

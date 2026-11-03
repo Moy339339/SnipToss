@@ -80,14 +80,23 @@ export function useMarquee(opts: {
         setPicked(hit);
       }
     };
-    const tick = () => {
-      // Dragging within 24 of the top or bottom edge of the list scrolls automatically, faster the closer to the edge
+    let last = 0;
+    let carry = 0;
+    const tick = (now: number) => {
+      // Dragging within 24 of the top or bottom edge of the list scrolls automatically, faster the closer to the edge (up to 16 per 60 Hz frame).
+      // The speed is per second, not per frame: a machine that paints only a few frames a second (no GPU, a remote desktop) scrolls as fast,
+      // and a 144 Hz screen no faster. A long stall counts as at most 100 ms, so the list doesn't jump; the fraction of a pixel carries over
+      const dt = last ? Math.min(100, now - last) : 1000 / 60;
+      last = now;
       const y = local(pointer).y;
       const h = el.clientHeight;
       const edge = 24;
       const dy = y < edge ? y - edge : y > h - edge ? y - (h - edge) : 0;
-      if (dy) {
-        el.scrollTop += Math.max(-16, Math.min(16, dy / 2));
+      carry = dy ? carry + (Math.max(-16, Math.min(16, dy / 2)) * dt * 60) / 1000 : 0;
+      const step = Math.trunc(carry);
+      if (step) {
+        carry -= step;
+        el.scrollTop += step;
         update();
       }
       raf = requestAnimationFrame(tick);
@@ -98,6 +107,7 @@ export function useMarquee(opts: {
         if (Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) < 4) return;
         dragging = true;
         anchor.current = startRow;
+        last = 0;
         raf = requestAnimationFrame(tick);
       }
       update();

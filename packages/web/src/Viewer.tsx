@@ -3,7 +3,7 @@ import { useIntl } from "react-intl";
 import type { Annotation, MaterialKind } from "@sniptoss/core";
 import { Ambient } from "./Ambient";
 import { KeepPunctuation } from "./KeepPunctuation";
-import { call, HostError, logError, materialUrl, platform, type MaterialEntry } from "./host";
+import { call, HostError, logError, materialUrl, platform, type DeniedReason, type MaterialEntry } from "./host";
 import { FolderIcon } from "./icons";
 import { isSvg, needsDecode } from "./library";
 import { hasAlpha, rememberSize, svgNaturalSize, vectorWork, type Size } from "./mediaSize";
@@ -51,7 +51,14 @@ export function Viewer(props: {
   const url = attempt ? `${base}&retry=${attempt}` : base;
   // The URL that failed to open (broken file, unsupported codec, missing system extension, no permission). The URL carries the modified
   // time, so once the file is fixed the URL changes and it retries naturally. checking: still asking the shell whether it was refused
-  const [failed, setFailed] = useState<{ url: string; code?: number; problem?: DecodeProblem; checking?: boolean; denied?: boolean }>();
+  const [failed, setFailed] = useState<{
+    url: string;
+    code?: number;
+    problem?: DecodeProblem;
+    checking?: boolean;
+    denied?: boolean;
+    deniedReason?: DeniedReason;
+  }>();
   const path = props.material.path;
   const fail = (code?: number, problem?: DecodeProblem) => {
     const what = `${path}${code ? ` (MediaError ${code})` : ""}${problem ? ` (${problem})` : ""}`;
@@ -66,11 +73,14 @@ export function Viewer(props: {
     setFailed({ url, code, problem, checking: true });
     void call("readable", { path })
       .then(
-        () => false,
-        (e: unknown) => e instanceof HostError && e.code === "denied",
+        () => ({ denied: false }),
+        (e: unknown) =>
+          e instanceof HostError && e.code === "denied"
+            ? { denied: true, deniedReason: e.reason === "permissions" ? ("permissions" as const) : ("privacy" as const) }
+            : { denied: false },
       )
-      .then((denied) => {
-        setFailed((f) => (f?.url === url ? { ...f, checking: false, denied } : f));
+      .then(({ denied, deniedReason }: { denied: boolean; deniedReason?: DeniedReason }) => {
+        setFailed((f) => (f?.url === url ? { ...f, checking: false, denied, deniedReason } : f));
         logError("Item failed to open", `${what}${denied ? " (no permission)" : ""}`, "warn");
       });
   };
@@ -93,7 +103,7 @@ export function Viewer(props: {
   if (failed?.url === url) {
     // Asking takes a moment: a blank canvas meanwhile, not first "the file may be damaged" and then a different reason
     if (failed.checking) return <div className="stage-empty" />;
-    if (failed.denied) return <NoAccess folder={false} onReveal={props.onReveal} />;
+    if (failed.denied) return <NoAccess folder={false} reason={failed.deniedReason} onReveal={props.onReveal} />;
     return (
       <MediaFailed
         kind={props.material.kind}

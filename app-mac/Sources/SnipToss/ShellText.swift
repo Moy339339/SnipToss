@@ -10,8 +10,8 @@ enum ShellText {
         case "brand.name": return "SnipToss"
         case "shell.capture.noAccessTitle": return "\(arg("app")) needs permission to record the screen"
         case "shell.capture.noAccessBody":
-            return "To capture the screen, allow \(arg("app")) in System Settings → Privacy & Security, then quit \(arg("app")) and open it again."
-                + " If \(arg("app")) isn't in the list, click + to add it."
+            return "To capture the screen, turn on \(arg("app")) in System Settings → Privacy & Security → Screen & System Audio Recording"
+                + " (Screen Recording on macOS 14), then quit \(arg("app")) and open it again. If \(arg("app")) isn't in the list, click + to add it."
         case "shell.capture.openSettings": return "Open System Settings"
         case "shell.capture.notNow": return "Not Now"
         case "shell.move.title": return "Move \(arg("app")) to the Applications folder"

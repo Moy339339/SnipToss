@@ -38,6 +38,43 @@ function dotNames(chars: string[]) {
   return name;
 }
 
+const NBSP = String.fromCharCode(0xa0);
+/** The separator between the steps of a menu or settings path: an arrow, or ">" (Korean writes paths as Apple's Korean documents do) */
+const PATH_STEP = /[→>]/;
+const SPACED_STEP = new RegExp(`[ ${NBSP}]([→>])[ ${NBSP}]`, "g");
+/** Arrows that name arrow keys (“←→ switch”), not steps of a path */
+const ARROW_KEYS = "←↑→↓";
+
+/**
+ * The separator between the steps of a path (“File → Get Info”, “System Settings → Privacy & Security”, Korean “파일 > 정보 가져오기”) stays
+ * on one line with the steps on its sides: the spaces around it become no-break spaces (some translations already have one before the
+ * arrow and a plain space after it), and pathSteps keeps the characters next to it in one unbreakable run, so no line starts or ends with
+ * the separator. The no-break spaces alone are not enough: some WebKit versions still break between a closing quote and a no-break space
+ * („Ablage“ → …)
+ */
+export const gluePaths = (text: string) => text.replace(SPACED_STEP, `${NBSP}$1${NBSP}`);
+
+/** A character a path step may end or start with right against an arrow: not white space, not another arrow (←→ are keys) */
+const solid = (c: string | undefined) => c !== undefined && !/\s/.test(c) && !ARROW_KEYS.includes(c);
+
+/**
+ * step[i] = no break between chars[i] and chars[i + 1]: from the character before a path separator to the one after it. The separator is
+ * one between no-break spaces (gluePaths has run), or an arrow right between two characters (Chinese and Japanese put it between a
+ * closing and an opening corner bracket, where the marks would otherwise give a place to break on both sides of the arrow)
+ */
+function pathSteps(chars: string[]) {
+  const step = chars.map(() => false);
+  const keep = (from: number, to: number) => {
+    for (let j = Math.max(0, from); j < Math.min(chars.length - 1, to); j++) step[j] = true;
+  };
+  chars.forEach((c, i) => {
+    if (!"→>".includes(c)) return;
+    if (chars[i - 1] === NBSP && chars[i + 1] === NBSP) keep(i - 2, i + 2);
+    else if (c === "→" && solid(chars[i - 1]) && solid(chars[i + 1])) keep(i - 1, i + 1);
+  });
+  return step;
+}
+
 /** What sits right against the text in its line: other inline content before it, after it */
 export interface Neighbors {
   before?: boolean;
@@ -51,11 +88,13 @@ export interface Neighbors {
  * like any other. Nothing is added at the start or end of a block, where an extra place to break could still change how
  * text-wrap: pretty balances the lines
  */
-export function punctuationRuns(text: string, { before = false, after = false }: Neighbors = {}): PunctuationRun[] {
-  if (!MARK.test(text) && !DOT_NAME.test(text)) return [{ kind: "text", text }];
+export function punctuationRuns(raw: string, { before = false, after = false }: Neighbors = {}): PunctuationRun[] {
+  const text = gluePaths(raw);
+  if (!MARK.test(text) && !DOT_NAME.test(text) && !PATH_STEP.test(text)) return [{ kind: "text", text }];
   const chars = Array.from(text);
   const name = dotNames(chars);
-  const stays = (i: number) => name[i] || sticks(chars[i], chars[i + 1]);
+  const step = pathSteps(chars);
+  const stays = (i: number) => name[i] || step[i] || sticks(chars[i], chars[i + 1]);
   const breaksBefore = (i: number) => (i === 0 ? !before : /\s/.test(chars[i - 1]));
   const breaksAfter = (i: number) => (i === chars.length - 1 ? !after : /\s/.test(chars[i + 1]));
   const runs: PunctuationRun[] = [];
@@ -82,7 +121,7 @@ export function punctuationRuns(text: string, { before = false, after = false }:
 
 function keepText(text: string, neighbors: Neighbors): ReactNode {
   const runs = punctuationRuns(text, neighbors);
-  if (runs.length === 1 && runs[0].kind === "text") return text;
+  if (runs.length === 1 && runs[0].kind === "text") return runs[0].text;
   return runs.map((r, i) =>
     r.kind === "keep" ? (
       <span key={i} className="keep-punctuation">
@@ -160,7 +199,7 @@ function keepAll(node: ReactNode): ReactNode {
 }
 
 /** The text inside, including the text of plain elements and fragments inside, with full-width marks kept on the right side of line
- * breaks and names that start with a dot kept whole. Adds no element around it. Used where S9 applies (setting descriptions, empty states, confirm dialogs, tour, hints …) */
+ * breaks, names that start with a dot kept whole and the steps of a path kept with their arrow. Adds no element around it. Used where S9 applies (setting descriptions, empty states, confirm dialogs, tour, hints …) */
 export function KeepPunctuation({ children }: { children?: ReactNode }) {
   return <>{keepAll(children)}</>;
 }

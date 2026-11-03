@@ -201,20 +201,29 @@ final class MaterialScannerTests: SnipTestCase {
         XCTAssertEqual(listed(dir, stats: stats), [])
         XCTAssertEqual(chmod(dir, 0o755), 0)
         XCTAssertTrue(stats.denied)
+        // The folder's own permissions, not the privacy settings: Foundation keeps the POSIX error underneath its own
+        XCTAssertEqual(stats.deniedReason, "permissions")
         let after = MaterialScanner.Stats()
         XCTAssertEqual(listed(dir, stats: after), ["a.png"])
         XCTAssertFalse(after.denied)
+        XCTAssertNil(after.deniedReason)
     }
 
-    func testTheRefusalsThatCountAsNoPermission() {
+    func testTheRefusalsThatCountAsNoPermissionAndWhichKindEachIs() {
         let posix = { (code: Int32) in NSError(domain: NSPOSIXErrorDomain, code: Int(code)) }
-        XCTAssertTrue(MaterialScanner.isRefusal(posix(EPERM)), "macOS keeping the app out of Desktop / Documents / Downloads")
-        XCTAssertTrue(MaterialScanner.isRefusal(posix(EACCES)))
-        XCTAssertTrue(MaterialScanner.isRefusal(NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoPermissionError)))
+        let noPermission = { (under: NSError?) in
+            NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoPermissionError, userInfo: under.map { [NSUnderlyingErrorKey: $0] } ?? [:])
+        }
+        XCTAssertEqual(MaterialScanner.refusal(posix(EPERM)), "privacy", "macOS keeping the app out of Desktop / Documents / Downloads")
+        XCTAssertEqual(MaterialScanner.refusal(posix(EACCES)), "permissions")
+        XCTAssertEqual(MaterialScanner.refusal(noPermission(posix(EPERM))), "privacy")
+        XCTAssertEqual(MaterialScanner.refusal(noPermission(posix(EACCES))), "permissions")
+        // Without the POSIX error underneath: the advice that was always given
+        XCTAssertEqual(MaterialScanner.refusal(noPermission(nil)), "privacy")
         let wrapped = NSError(domain: NSCocoaErrorDomain, code: NSFileReadUnknownError, userInfo: [NSUnderlyingErrorKey: posix(EPERM)])
-        XCTAssertTrue(MaterialScanner.isRefusal(wrapped))
-        XCTAssertFalse(MaterialScanner.isRefusal(posix(ENOENT)))
-        XCTAssertFalse(MaterialScanner.isRefusal(NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoSuchFileError)))
+        XCTAssertEqual(MaterialScanner.refusal(wrapped), "privacy")
+        XCTAssertNil(MaterialScanner.refusal(posix(ENOENT)))
+        XCTAssertNil(MaterialScanner.refusal(NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoSuchFileError)))
     }
 
     func testAPipeOrOtherSpecialFileWithAnItemNameIsNotAnItem() {

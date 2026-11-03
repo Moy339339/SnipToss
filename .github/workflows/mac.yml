@@ -40,7 +40,7 @@ jobs:
       - run: npm ci
 
       # A trial package is a beta of the version in package.json, numbered by the run: the UI is built with it (shown as v<x.y.z> Beta <run number>)
-      # and the package carries it (package-app.mjs), so the two match; the About page writes it the Mac way, x.y.z (run number). A release
+      # and the package carries it (package-app.mjs), so the two match; Finder's Get Info writes it the Mac way, x.y.z (run number). A release
       # is the version in package.json as it is. SNIPTOSS_PACKAGE_LABEL is how the disk image and its read-me name it (package-dmg.mjs).
       # A push whose commit message has [release-trial] builds the release way too, to try it before a tag
       - name: Version
@@ -494,6 +494,16 @@ jobs:
             const shown = version.includes("-") ? "v" + version.replace(/-.*$/, "") + " Beta " + run : "v" + version;
             if (page.version !== shown || page.versionMismatch) problems.push("version shown " + JSON.stringify(page.version) + (page.versionMismatch ? " (marked as not matching)" : ""));
             if (b.about !== "关于超级批注") problems.push("the catalogs in the bundle were not read: " + b.about);
+            // When the program was built (appInfo.built, the date of the executable; kept in the contract, though the UI no longer shows it): the
+            // release day at 12:00 UTC, the date every file and folder of the app carries (pin-times.mjs), not the moment of the build
+            const built = Date.parse(b.built);
+            if (Number.isNaN(built) || built % 86400000 !== 43200000 || Math.abs(Date.now() - built) > 36 * 3600 * 1000) problems.push("the build time of the program: " + JSON.stringify(b.built));
+            const items = (path) => {
+              const stat = require("fs").lstatSync(path);
+              return [{ path, stat }, ...(stat.isDirectory() ? require("fs").readdirSync(path).flatMap((name) => items(path + "/" + name)) : [])];
+            };
+            const undated = items(process.env.RUNNER_TEMP + "/package/SnipToss.app").filter(({ stat }) => stat.mtimeMs !== built || stat.birthtimeMs !== built);
+            if (undated.length) problems.push("dated otherwise than " + b.built + ": " + undated.slice(0, 5).map(({ path, stat }) => path + " " + stat.mtime.toISOString() + " " + stat.birthtime.toISOString()).join(", "));
             // The name Finder, the Dock and System Settings show on a Chinese system
             const strings = (language) => { try { return require("fs").readFileSync(process.env.RUNNER_TEMP + "/package/SnipToss.app/Contents/Resources/" + language + ".lproj/InfoPlist.strings", "utf8"); } catch { return ""; } };
             if (!strings("zh-Hans").includes("超级批注") || !strings("zh-Hant").includes("超級批註")) problems.push("localized app names: " + JSON.stringify([strings("zh-Hans"), strings("zh-Hant")]));
@@ -552,6 +562,10 @@ jobs:
           grep -qF "$SNIPTOSS_PACKAGE_LABEL" "$mount/Read Me.txt" || { echo "the read-me has no version"; problems=1; }
           if grep -q "{version}" "$mount/先读我.txt" "$mount/Read Me.txt"; then echo "a read-me still says {version}"; problems=1; fi
           case "$mount" in *" $SNIPTOSS_PACKAGE_LABEL") ;; *) echo "volume name: $mount"; problems=1 ;; esac
+          # Everything on the volume, its own folder and the hidden files too, dated the release day at 12:00 UTC (package-dmg.mjs), created
+          # and modified alike
+          dates=$(find "$mount" -exec stat -f "%m %B" {} + | tr ' ' '\n' | sort -u)
+          if [ "$(echo "$dates" | wc -l | tr -d ' ')" != 1 ] || [ $((dates % 86400)) != 43200 ]; then echo "dates on the volume: $dates"; problems=1; fi
           # The window's layout as Finder reads it: a picture background through the alias to the file on the volume, and no bookmark to it
           # (with one, Finder on macOS 26.2 and later shows no background); the window's size and the icon positions as dmg-settings.py has them
           "$RUNNER_TEMP/dmgbuild/bin/python" - "$mount" <<'EOF' || problems=1

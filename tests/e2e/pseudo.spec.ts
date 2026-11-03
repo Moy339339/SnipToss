@@ -1,7 +1,7 @@
 // Pseudo-localization (docs/adr/0001-i18n.md item 12): every letter of the English messages is replaced with an accented one (a → á, Settings → Šéţţíñĝš, usePseudo in screens.ts),
 // and every screen of the UI (screens.ts) plus the welcome page is opened with it. Any plain English word still on screen is text that bypassed the messages and is hard-coded
 // (hard-coded Chinese is blocked by scripts/check-i18n.mjs; hard-coded English can only be caught here).
-// Things that are never translated, such as file names, key names and the version number, are listed in ALLOWED
+// Things that are never translated, such as file names, key names, the version number and the release date, are listed in ALLOWED
 
 import { expect, test, type App } from "./harness";
 import { prepare, usePseudo, walkScreens, welcome } from "./screens";
@@ -13,6 +13,8 @@ const ALLOWED = new Set([
   "svg", "tiff", "heic", "ico", "mkv", "apng", "jfif", "SVG", "TIFF", "HEIC", "ICO", "MKV", "HEIF", "HEVC",
   "Ctrl", "Shift", "Alt", "Esc", "Enter", "Tab", "Delete", "Backspace", "Win", "Home", "End", "PageUp", "PageDown", "Insert",
   "Beta", "PNG", "JPG", "MP4", "PDF", "PPT", "px", "WebView2", "WebView", "NET", "Edge", "Claude", "Code", "Codex", "MIT", "GitHub", "MoyGoldenAge",
+  // The release date on the About page and in the version tooltip is written "Nov 3, 2026" in every language
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ]);
 
 /** Visible words on screen that are still plain English (three letters or more) */

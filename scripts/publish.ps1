@@ -45,6 +45,13 @@ $dll = Join-Path $app 'SnipToss.dll'
 if ([Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($dll)).Contains('TestHooks')) {
     throw "$dll contains the test hooks (TestHooks) and must not be released. Delete app\obj and publish again"
 }
+# The bundled runtime must be the one pinned in the csproj (SnipTossRuntimeVersion), which the third-party notices list, not whatever the SDK carries
+$pinned = if ([IO.File]::ReadAllText($project) -match '<SnipTossRuntimeVersion>([^<]+)</SnipTossRuntimeVersion>') { $Matches[1] } else { throw 'The csproj has no SnipTossRuntimeVersion' }
+$frameworks = (Get-Content (Join-Path $app 'SnipToss.runtimeconfig.json') -Raw | ConvertFrom-Json).runtimeOptions.includedFrameworks
+if (-not $frameworks) { throw 'SnipToss.runtimeconfig.json lists no bundled frameworks: the package is not self-contained' }
+foreach ($f in $frameworks) {
+    if ($f.version -ne $pinned) { throw "The package bundles $($f.name) $($f.version), but the csproj pins $pinned" }
+}
 # The third-party notices must match the dependencies bundled this time (stop if a dependency was upgraded without regenerating them)
 node (Join-Path $PSScriptRoot 'build-notices.mjs') --check
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -52,16 +59,31 @@ foreach ($must in 'SnipToss.exe', 'ui\index.html', 'coreclr.dll', 'PresentationF
     if (-not (Test-Path (Join-Path $app $must))) { throw "The published app is missing $must" }
 }
 
+# The package carries the release day, not the time it was built: every file and folder in it is dated that day at 12:00 (the day in US
+# Pacific time, as the About page writes it; 12:00 local is what the zip stores and what the installer restores, in any time zone)
+try { $pacific = [TimeZoneInfo]::FindSystemTimeZoneById('America/Los_Angeles') } catch { $pacific = [TimeZoneInfo]::FindSystemTimeZoneById('Pacific Standard Time') }
+$releaseNoon = [DateTime]::SpecifyKind([TimeZoneInfo]::ConvertTimeFromUtc([DateTime]::UtcNow, $pacific).Date.AddHours(12), [DateTimeKind]::Local)
+function Set-ReleaseTime([string[]] $paths) {
+    foreach ($item in @($paths | ForEach-Object { Get-Item -LiteralPath $_ -Force; if (Test-Path -LiteralPath $_ -PathType Container) { Get-ChildItem -LiteralPath $_ -Recurse -Force } })) {
+        $item.CreationTime = $item.LastWriteTime = $item.LastAccessTime = $releaseNoon
+    }
+}
+Set-ReleaseTime $app
+
 # Portable build: the SnipToss folder = the app + an empty data folder (ZipFile includes empty folders, Compress-Archive doesn't)
 $stage = Join-Path $release "$Runtime\portable"
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 $portableDir = Join-Path $stage 'SnipToss'
 Copy-Item $app $portableDir -Recurse
 New-Item -ItemType Directory (Join-Path $portableDir 'data') | Out-Null
+Set-ReleaseTime $portableDir
 $zip = Join-Path $release "SnipToss-$version-$Runtime-portable.zip"
 if (Test-Path $zip) { Remove-Item $zip -Force }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 [IO.Compression.ZipFile]::CreateFromDirectory($portableDir, $zip, [IO.Compression.CompressionLevel]::Optimal, $true)
+# An empty folder's entry (data/) is written with the current time instead of the folder's: date every entry the release day as well
+$archive = [IO.Compression.ZipFile]::Open($zip, [IO.Compression.ZipArchiveMode]::Update)
+try { foreach ($entry in $archive.Entries) { $entry.LastWriteTime = $releaseNoon } } finally { $archive.Dispose() }
 Remove-Item $stage -Recurse -Force
 
 # Installer (installer/SnipToss.iss): only built when Inno Setup 6 is installed; otherwise only the portable build is produced
@@ -74,10 +96,12 @@ if ($iscc) {
     Write-Host 'Inno Setup 6 not found (ISCC.exe, or set SNIPTOSS_ISCC): producing only the portable build this time'
 }
 
+Set-ReleaseTime @(Get-ChildItem $release -File -Filter "SnipToss-$version-*" | ForEach-Object FullName)
 $sums = Get-ChildItem $release -File -Filter "SnipToss-$version-*" | Sort-Object Name | ForEach-Object {
     "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)"
 }
 [IO.File]::WriteAllText((Join-Path $release 'SHA256SUMS.txt'), ($sums -join "`n") + "`n", [Text.UTF8Encoding]::new($false))
+Set-ReleaseTime (Join-Path $release 'SHA256SUMS.txt')
 # winget and Scoop manifests (only prepared; the maintainer submits them by hand)
 & (Join-Path $PSScriptRoot 'package-manifests.ps1') -Version $version -Release $release
 

@@ -1,13 +1,28 @@
 import Foundation
 import WebKit
 
-/// A failed bridge call. `code` is the class the UI explains in its own language (docs/host-api.md, "The error code"); nil for the rest
+/// A failed bridge call. `code` is the class the UI explains in its own language (docs/host-api.md, "The error code"); nil for the rest.
+/// `reason` says more about a `denied` where the UI's advice depends on it (`readable`: `privacy` or `permissions`, see `deniedReason`)
 struct BridgeError: Error {
     let message: String
     let code: String?
-    init(_ message: String, code: String? = nil) {
+    let reason: String?
+    init(_ message: String, code: String? = nil, reason: String? = nil) {
         self.message = message
         self.code = code
+        self.reason = reason
+    }
+}
+
+/// Why reading was refused, for the page to say where access is granted: `privacy` when macOS keeps the app out of a protected place
+/// (EPERM: Desktop, Documents, Downloads, iCloud Drive, removable and network volumes; System Settings → Files & Folders), `permissions`
+/// when the file system's own permissions do not let this account read it (EACCES: another account's file, one made with sudo, chmod).
+/// Nil for any other error
+func deniedReason(_ code: Int32) -> String? {
+    switch code {
+    case EPERM: return "privacy"
+    case EACCES: return "permissions"
+    default: return nil
     }
 }
 
@@ -81,7 +96,9 @@ final class BridgeHost: NSObject, WKScriptMessageHandler {
                 reply(["id": id, "result": result ?? NSNull()])
             } catch let e as BridgeError {
                 Log.info("bridge: \(method) refused: \(e.message)")
-                reply(["id": id, "error": e.message, "code": e.code ?? NSNull()])
+                var answer: [String: Any] = ["id": id, "error": e.message, "code": e.code ?? NSNull()]
+                if let reason = e.reason { answer["reason"] = reason }
+                reply(answer)
             } catch {
                 Log.error("bridge: \(method) failed: \(error)")
                 reply(["id": id, "error": "\(error)", "code": NSNull()])

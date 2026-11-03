@@ -1188,7 +1188,11 @@ export function WorkspaceView(props: {
                 </ZoomExtras.Provider>
               </ErrorBoundary>
             ) : deniedFolder ? (
-              <NoAccess folder onReveal={() => revealInExplorer(deniedFolder)} />
+              <NoAccess
+                folder
+                reason={library.scans.get(keyOf(deniedFolder))?.deniedReason ?? undefined}
+                onReveal={() => revealInExplorer(deniedFolder)}
+              />
             ) : (
               <div className={library.loaded && library.entries.length === 0 ? "stage-empty is-welcome" : "stage-empty"}>
                 {library.loaded && library.entries.length === 0 ? (

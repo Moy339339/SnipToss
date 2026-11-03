@@ -467,7 +467,7 @@
       "args": {
         "hotkeyHint": "<hotkeyHint>"
       },
-      "text": "<hotkeyHint>Klick auf das Symbol im Infobereich öffnet das Fenster, Rechtsklick beendet die App. Dieses Verhalten ändern Sie unter Einstellungen → Allgemein."
+      "text": "<hotkeyHint>Klick auf das Symbol im Infobereich öffnet das Fenster; zum Beenden Rechtsklick und „Beenden“ wählen. Ändern unter Einstellungen → Allgemein."
     },
     {
       "locale": "de",
@@ -603,7 +603,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "Um den Bildschirm aufzunehmen, erlauben Sie <app> unter Systemeinstellungen → Datenschutz & Sicherheit. Beenden Sie <app> anschließend, und öffnen Sie es erneut. Wenn <app> nicht in der Liste steht, klicken Sie auf +, um es hinzuzufügen."
+      "text": "Um den Bildschirm aufzunehmen, aktivieren Sie <app> unter Systemeinstellungen → Datenschutz & Sicherheit → Aufnahme von Bildschirm & Systemaudio (macOS 14: Bildschirmaufnahme). Beenden Sie <app> anschließend, und öffnen Sie es erneut. Wenn <app> nicht in der Liste steht, klicken Sie auf +, um es hinzuzufügen."
     },
     {
       "locale": "de",
@@ -1418,13 +1418,13 @@
       "locale": "de",
       "key": "ai.capture.introNumbered",
       "args": {},
-      "text": "Bitte nehmen Sie die in den Notizen beschriebenen Änderungen an diesem Screenshot vor. Die Nummern im Bild entsprechen eins zu eins den folgenden Notizen; Koordinaten sind Pixelpositionen im Screenshot ((0, 0) ist oben links):"
+      "text": "Bitte bearbeiten Sie die Notizen auf diesem Screenshot (bei einer „Frage“ genügt eine Antwort). Die Nummern im Bild entsprechen eins zu eins den folgenden Notizen; Koordinaten sind Pixelpositionen im Screenshot ((0, 0) ist oben links):"
     },
     {
       "locale": "de",
       "key": "ai.capture.introOverall",
       "args": {},
-      "text": "Bitte verwenden Sie diesen Screenshot als Referenz, und nehmen Sie die folgenden übergreifenden Änderungen vor:"
+      "text": "Bitte verwenden Sie diesen Screenshot als Referenz, und bearbeiten Sie den folgenden Gesamtkommentar:"
     },
     {
       "locale": "de",
@@ -1578,7 +1578,7 @@
       "locale": "de",
       "key": "ai.anchor.overall",
       "args": {},
-      "text": "Gesamt"
+      "text": "Gesamtkommentar"
     },
     {
       "locale": "de",
@@ -1739,7 +1739,7 @@
       "args": {
         "count": 0
       },
-      "text": "Bitte ändern Sie die Elemente in diesem Ordner wie in den folgenden 0 Notizen beschrieben."
+      "text": "Bitte bearbeiten Sie die folgenden 0 Notizen zu den Elementen in diesem Ordner."
     },
     {
       "locale": "de",
@@ -1747,7 +1747,7 @@
       "args": {
         "count": 1
       },
-      "text": "Bitte ändern Sie die Elemente in diesem Ordner wie in der folgenden Notiz beschrieben."
+      "text": "Bitte bearbeiten Sie die folgende Notiz zu den Elementen in diesem Ordner."
     },
     {
       "locale": "de",
@@ -1755,7 +1755,7 @@
       "args": {
         "count": 2
       },
-      "text": "Bitte ändern Sie die Elemente in diesem Ordner wie in den folgenden 2 Notizen beschrieben."
+      "text": "Bitte bearbeiten Sie die folgenden 2 Notizen zu den Elementen in diesem Ordner."
     },
     {
       "locale": "de",
@@ -1763,7 +1763,7 @@
       "args": {
         "count": 5
       },
-      "text": "Bitte ändern Sie die Elemente in diesem Ordner wie in den folgenden 5 Notizen beschrieben."
+      "text": "Bitte bearbeiten Sie die folgenden 5 Notizen zu den Elementen in diesem Ordner."
     },
     {
       "locale": "de",
@@ -1771,7 +1771,7 @@
       "args": {
         "count": 21
       },
-      "text": "Bitte ändern Sie die Elemente in diesem Ordner wie in den folgenden 21 Notizen beschrieben."
+      "text": "Bitte bearbeiten Sie die folgenden 21 Notizen zu den Elementen in diesem Ordner."
     },
     {
       "locale": "de",
@@ -1779,7 +1779,7 @@
       "args": {
         "count": 22
       },
-      "text": "Bitte ändern Sie die Elemente in diesem Ordner wie in den folgenden 22 Notizen beschrieben."
+      "text": "Bitte bearbeiten Sie die folgenden 22 Notizen zu den Elementen in diesem Ordner."
     },
     {
       "locale": "de",
@@ -1787,76 +1787,76 @@
       "args": {
         "count": 101
       },
-      "text": "Bitte ändern Sie die Elemente in diesem Ordner wie in den folgenden 101 Notizen beschrieben."
+      "text": "Bitte bearbeiten Sie die folgenden 101 Notizen zu den Elementen in diesem Ordner."
     },
     {
       "locale": "de",
       "key": "ai.handoff.one",
       "args": {},
-      "text": "Bitte ändern Sie das Element wie in der folgenden Notiz beschrieben."
+      "text": "Bitte bearbeiten Sie die folgende Notiz."
     },
     {
       "locale": "de",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 0
+        "count": 0,
+        "thisKind": "<thisKind>"
       },
-      "text": "Bitte ändern Sie <thisKind> wie in den folgenden 0 Notizen beschrieben."
+      "text": "Bitte bearbeiten Sie die folgenden 0 Notizen für <thisKind>."
     },
     {
       "locale": "de",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 1
+        "count": 1,
+        "thisKind": "<thisKind>"
       },
-      "text": "Bitte ändern Sie <thisKind> wie in der folgenden Notiz beschrieben."
+      "text": "Bitte bearbeiten Sie die folgende Notiz für <thisKind>."
     },
     {
       "locale": "de",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 2
+        "count": 2,
+        "thisKind": "<thisKind>"
       },
-      "text": "Bitte ändern Sie <thisKind> wie in den folgenden 2 Notizen beschrieben."
+      "text": "Bitte bearbeiten Sie die folgenden 2 Notizen für <thisKind>."
     },
     {
       "locale": "de",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 5
+        "count": 5,
+        "thisKind": "<thisKind>"
       },
-      "text": "Bitte ändern Sie <thisKind> wie in den folgenden 5 Notizen beschrieben."
+      "text": "Bitte bearbeiten Sie die folgenden 5 Notizen für <thisKind>."
     },
     {
       "locale": "de",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 21
+        "count": 21,
+        "thisKind": "<thisKind>"
       },
-      "text": "Bitte ändern Sie <thisKind> wie in den folgenden 21 Notizen beschrieben."
+      "text": "Bitte bearbeiten Sie die folgenden 21 Notizen für <thisKind>."
     },
     {
       "locale": "de",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 22
+        "count": 22,
+        "thisKind": "<thisKind>"
       },
-      "text": "Bitte ändern Sie <thisKind> wie in den folgenden 22 Notizen beschrieben."
+      "text": "Bitte bearbeiten Sie die folgenden 22 Notizen für <thisKind>."
     },
     {
       "locale": "de",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 101
+        "count": 101,
+        "thisKind": "<thisKind>"
       },
-      "text": "Bitte ändern Sie <thisKind> wie in den folgenden 101 Notizen beschrieben."
+      "text": "Bitte bearbeiten Sie die folgenden 101 Notizen für <thisKind>."
     },
     {
       "locale": "de",
@@ -1977,7 +1977,7 @@
         "parts": "<parts>",
         "count": 0
       },
-      "text": "Bitte ändern Sie die Elemente wie in den folgenden Notizen beschrieben (<parts>; insgesamt 0 Notizen)."
+      "text": "Bitte bearbeiten Sie die folgenden Notizen (<parts>; insgesamt 0 Notizen)."
     },
     {
       "locale": "de",
@@ -1986,7 +1986,7 @@
         "parts": "<parts>",
         "count": 1
       },
-      "text": "Bitte ändern Sie die Elemente wie in den folgenden Notizen beschrieben (<parts>; insgesamt 1 Notiz)."
+      "text": "Bitte bearbeiten Sie die folgenden Notizen (<parts>; insgesamt 1 Notiz)."
     },
     {
       "locale": "de",
@@ -1995,7 +1995,7 @@
         "parts": "<parts>",
         "count": 2
       },
-      "text": "Bitte ändern Sie die Elemente wie in den folgenden Notizen beschrieben (<parts>; insgesamt 2 Notizen)."
+      "text": "Bitte bearbeiten Sie die folgenden Notizen (<parts>; insgesamt 2 Notizen)."
     },
     {
       "locale": "de",
@@ -2004,7 +2004,7 @@
         "parts": "<parts>",
         "count": 5
       },
-      "text": "Bitte ändern Sie die Elemente wie in den folgenden Notizen beschrieben (<parts>; insgesamt 5 Notizen)."
+      "text": "Bitte bearbeiten Sie die folgenden Notizen (<parts>; insgesamt 5 Notizen)."
     },
     {
       "locale": "de",
@@ -2013,7 +2013,7 @@
         "parts": "<parts>",
         "count": 21
       },
-      "text": "Bitte ändern Sie die Elemente wie in den folgenden Notizen beschrieben (<parts>; insgesamt 21 Notizen)."
+      "text": "Bitte bearbeiten Sie die folgenden Notizen (<parts>; insgesamt 21 Notizen)."
     },
     {
       "locale": "de",
@@ -2022,7 +2022,7 @@
         "parts": "<parts>",
         "count": 22
       },
-      "text": "Bitte ändern Sie die Elemente wie in den folgenden Notizen beschrieben (<parts>; insgesamt 22 Notizen)."
+      "text": "Bitte bearbeiten Sie die folgenden Notizen (<parts>; insgesamt 22 Notizen)."
     },
     {
       "locale": "de",
@@ -2031,7 +2031,7 @@
         "parts": "<parts>",
         "count": 101
       },
-      "text": "Bitte ändern Sie die Elemente wie in den folgenden Notizen beschrieben (<parts>; insgesamt 101 Notizen)."
+      "text": "Bitte bearbeiten Sie die folgenden Notizen (<parts>; insgesamt 101 Notizen)."
     },
     {
       "locale": "de",
@@ -2101,7 +2101,7 @@
       "args": {
         "count": 0
       },
-      "text": "Jede Notiz hat eine Momentaufnahme, auf der die Position markiert ist; sehen Sie sich die Momentaufnahme an, bevor Sie die Änderung vornehmen."
+      "text": "Jede Notiz hat eine Momentaufnahme, auf der eine etwaige Position markiert ist; sehen Sie sich die Momentaufnahme an, bevor Sie mit der Bearbeitung beginnen."
     },
     {
       "locale": "de",
@@ -2109,7 +2109,7 @@
       "args": {
         "count": 1
       },
-      "text": "Die Notiz hat eine Momentaufnahme, auf der die Position markiert ist; sehen Sie sich die Momentaufnahme an, bevor Sie die Änderung vornehmen."
+      "text": "Die Notiz hat eine Momentaufnahme, auf der eine etwaige Position markiert ist; sehen Sie sich die Momentaufnahme an, bevor Sie mit der Bearbeitung beginnen."
     },
     {
       "locale": "de",
@@ -2117,7 +2117,7 @@
       "args": {
         "count": 2
       },
-      "text": "Jede Notiz hat eine Momentaufnahme, auf der die Position markiert ist; sehen Sie sich die Momentaufnahme an, bevor Sie die Änderung vornehmen."
+      "text": "Jede Notiz hat eine Momentaufnahme, auf der eine etwaige Position markiert ist; sehen Sie sich die Momentaufnahme an, bevor Sie mit der Bearbeitung beginnen."
     },
     {
       "locale": "de",
@@ -2125,7 +2125,7 @@
       "args": {
         "count": 5
       },
-      "text": "Jede Notiz hat eine Momentaufnahme, auf der die Position markiert ist; sehen Sie sich die Momentaufnahme an, bevor Sie die Änderung vornehmen."
+      "text": "Jede Notiz hat eine Momentaufnahme, auf der eine etwaige Position markiert ist; sehen Sie sich die Momentaufnahme an, bevor Sie mit der Bearbeitung beginnen."
     },
     {
       "locale": "de",
@@ -2133,7 +2133,7 @@
       "args": {
         "count": 21
       },
-      "text": "Jede Notiz hat eine Momentaufnahme, auf der die Position markiert ist; sehen Sie sich die Momentaufnahme an, bevor Sie die Änderung vornehmen."
+      "text": "Jede Notiz hat eine Momentaufnahme, auf der eine etwaige Position markiert ist; sehen Sie sich die Momentaufnahme an, bevor Sie mit der Bearbeitung beginnen."
     },
     {
       "locale": "de",
@@ -2141,7 +2141,7 @@
       "args": {
         "count": 22
       },
-      "text": "Jede Notiz hat eine Momentaufnahme, auf der die Position markiert ist; sehen Sie sich die Momentaufnahme an, bevor Sie die Änderung vornehmen."
+      "text": "Jede Notiz hat eine Momentaufnahme, auf der eine etwaige Position markiert ist; sehen Sie sich die Momentaufnahme an, bevor Sie mit der Bearbeitung beginnen."
     },
     {
       "locale": "de",
@@ -2149,13 +2149,13 @@
       "args": {
         "count": 101
       },
-      "text": "Jede Notiz hat eine Momentaufnahme, auf der die Position markiert ist; sehen Sie sich die Momentaufnahme an, bevor Sie die Änderung vornehmen."
+      "text": "Jede Notiz hat eine Momentaufnahme, auf der eine etwaige Position markiert ist; sehen Sie sich die Momentaufnahme an, bevor Sie mit der Bearbeitung beginnen."
     },
     {
       "locale": "de",
       "key": "ai.handoff.shotsSome",
       "args": {},
-      "text": "Sehen Sie sich bei Notizen mit Momentaufnahme zuerst die Momentaufnahme an (die Position ist darauf markiert)."
+      "text": "Sehen Sie sich bei Notizen mit Momentaufnahme zuerst die Momentaufnahme an (eine etwaige Position ist darauf markiert)."
     },
     {
       "locale": "de",
@@ -2376,7 +2376,7 @@
       "locale": "de",
       "key": "ai.review.intro",
       "args": {},
-      "text": "Dies sind Notizen, die der Benutzer mit SnipToss zu seinen Elementen hinzugefügt hat. Gehen Sie sie einzeln durch: Sehen Sie sich die Momentaufnahme an, um die Position zu bestätigen (die Markierung ist darauf eingezeichnet), und ändern Sie dann das Element wie in der Notiz beschrieben."
+      "text": "Dies sind Notizen, die der Benutzer mit SnipToss zu seinen Elementen hinzugefügt hat. Gehen Sie sie einzeln durch und bearbeiten Sie jede entsprechend ihrer Kategorie; hat eine Notiz eine Momentaufnahme, sehen Sie sich diese zuerst an, um die Position zu bestätigen (eventuelle Markierungen sind darauf eingezeichnet)."
     },
     {
       "locale": "de",
@@ -2975,7 +2975,7 @@
       "args": {
         "hotkeyHint": "<hotkeyHint>"
       },
-      "text": "<hotkeyHint>Click the tray icon to open the window, or right-click it to exit. To exit when the window is closed instead, change this in Settings → General."
+      "text": "<hotkeyHint>Click the tray icon to open the window, or right-click it and choose Exit to quit. To exit when the window is closed instead, change this in Settings → General."
     },
     {
       "locale": "en",
@@ -3111,7 +3111,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "To capture the screen, allow <app> in System Settings → Privacy & Security, then quit <app> and open it again. If <app> isn't in the list, click + to add it."
+      "text": "To capture the screen, turn on <app> in System Settings → Privacy & Security → Screen & System Audio Recording (Screen Recording on macOS 14), then quit <app> and open it again. If <app> isn't in the list, click + to add it."
     },
     {
       "locale": "en",
@@ -3926,13 +3926,13 @@
       "locale": "en",
       "key": "ai.capture.introNumbered",
       "args": {},
-      "text": "Please make the changes described by the notes on this screenshot. The numbers on the image correspond one-to-one to the notes below; coordinates are pixel positions in the screenshot ((0, 0) is the top left):"
+      "text": "Please act on the notes on this screenshot (a Question only needs an answer). The numbers on the image correspond one-to-one to the notes below; coordinates are pixel positions in the screenshot ((0, 0) is the top left):"
     },
     {
       "locale": "en",
       "key": "ai.capture.introOverall",
       "args": {},
-      "text": "Please use this screenshot as a reference and make the following overall changes:"
+      "text": "Please use this screenshot as a reference and act on the overall comment below:"
     },
     {
       "locale": "en",
@@ -4247,7 +4247,7 @@
       "args": {
         "count": 0
       },
-      "text": "Please change the items in this folder as described in the 0 notes below."
+      "text": "Please act on the 0 notes below about the items in this folder."
     },
     {
       "locale": "en",
@@ -4255,7 +4255,7 @@
       "args": {
         "count": 1
       },
-      "text": "Please change the items in this folder as described in the note below."
+      "text": "Please act on the note below about the items in this folder."
     },
     {
       "locale": "en",
@@ -4263,7 +4263,7 @@
       "args": {
         "count": 2
       },
-      "text": "Please change the items in this folder as described in the 2 notes below."
+      "text": "Please act on the 2 notes below about the items in this folder."
     },
     {
       "locale": "en",
@@ -4271,7 +4271,7 @@
       "args": {
         "count": 5
       },
-      "text": "Please change the items in this folder as described in the 5 notes below."
+      "text": "Please act on the 5 notes below about the items in this folder."
     },
     {
       "locale": "en",
@@ -4279,7 +4279,7 @@
       "args": {
         "count": 21
       },
-      "text": "Please change the items in this folder as described in the 21 notes below."
+      "text": "Please act on the 21 notes below about the items in this folder."
     },
     {
       "locale": "en",
@@ -4287,7 +4287,7 @@
       "args": {
         "count": 22
       },
-      "text": "Please change the items in this folder as described in the 22 notes below."
+      "text": "Please act on the 22 notes below about the items in this folder."
     },
     {
       "locale": "en",
@@ -4295,76 +4295,76 @@
       "args": {
         "count": 101
       },
-      "text": "Please change the items in this folder as described in the 101 notes below."
+      "text": "Please act on the 101 notes below about the items in this folder."
     },
     {
       "locale": "en",
       "key": "ai.handoff.one",
       "args": {},
-      "text": "Please change the item as described in the note below."
+      "text": "Please act on the note below."
     },
     {
       "locale": "en",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 0
+        "count": 0,
+        "thisKind": "<thisKind>"
       },
-      "text": "Please change <thisKind> as described in the 0 notes below."
+      "text": "Please act on the 0 notes below about <thisKind>."
     },
     {
       "locale": "en",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 1
+        "count": 1,
+        "thisKind": "<thisKind>"
       },
-      "text": "Please change <thisKind> as described in the 1 note below."
+      "text": "Please act on the 1 note below about <thisKind>."
     },
     {
       "locale": "en",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 2
+        "count": 2,
+        "thisKind": "<thisKind>"
       },
-      "text": "Please change <thisKind> as described in the 2 notes below."
+      "text": "Please act on the 2 notes below about <thisKind>."
     },
     {
       "locale": "en",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 5
+        "count": 5,
+        "thisKind": "<thisKind>"
       },
-      "text": "Please change <thisKind> as described in the 5 notes below."
+      "text": "Please act on the 5 notes below about <thisKind>."
     },
     {
       "locale": "en",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 21
+        "count": 21,
+        "thisKind": "<thisKind>"
       },
-      "text": "Please change <thisKind> as described in the 21 notes below."
+      "text": "Please act on the 21 notes below about <thisKind>."
     },
     {
       "locale": "en",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 22
+        "count": 22,
+        "thisKind": "<thisKind>"
       },
-      "text": "Please change <thisKind> as described in the 22 notes below."
+      "text": "Please act on the 22 notes below about <thisKind>."
     },
     {
       "locale": "en",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 101
+        "count": 101,
+        "thisKind": "<thisKind>"
       },
-      "text": "Please change <thisKind> as described in the 101 notes below."
+      "text": "Please act on the 101 notes below about <thisKind>."
     },
     {
       "locale": "en",
@@ -4485,7 +4485,7 @@
         "parts": "<parts>",
         "count": 0
       },
-      "text": "Please change the items as described in the notes below (<parts>; 0 notes in all)."
+      "text": "Please act on the notes below (<parts>; 0 notes in all)."
     },
     {
       "locale": "en",
@@ -4494,7 +4494,7 @@
         "parts": "<parts>",
         "count": 1
       },
-      "text": "Please change the items as described in the notes below (<parts>; 1 note in all)."
+      "text": "Please act on the notes below (<parts>; 1 note in all)."
     },
     {
       "locale": "en",
@@ -4503,7 +4503,7 @@
         "parts": "<parts>",
         "count": 2
       },
-      "text": "Please change the items as described in the notes below (<parts>; 2 notes in all)."
+      "text": "Please act on the notes below (<parts>; 2 notes in all)."
     },
     {
       "locale": "en",
@@ -4512,7 +4512,7 @@
         "parts": "<parts>",
         "count": 5
       },
-      "text": "Please change the items as described in the notes below (<parts>; 5 notes in all)."
+      "text": "Please act on the notes below (<parts>; 5 notes in all)."
     },
     {
       "locale": "en",
@@ -4521,7 +4521,7 @@
         "parts": "<parts>",
         "count": 21
       },
-      "text": "Please change the items as described in the notes below (<parts>; 21 notes in all)."
+      "text": "Please act on the notes below (<parts>; 21 notes in all)."
     },
     {
       "locale": "en",
@@ -4530,7 +4530,7 @@
         "parts": "<parts>",
         "count": 22
       },
-      "text": "Please change the items as described in the notes below (<parts>; 22 notes in all)."
+      "text": "Please act on the notes below (<parts>; 22 notes in all)."
     },
     {
       "locale": "en",
@@ -4539,7 +4539,7 @@
         "parts": "<parts>",
         "count": 101
       },
-      "text": "Please change the items as described in the notes below (<parts>; 101 notes in all)."
+      "text": "Please act on the notes below (<parts>; 101 notes in all)."
     },
     {
       "locale": "en",
@@ -4609,7 +4609,7 @@
       "args": {
         "count": 0
       },
-      "text": "Every note has a snapshot with the position marked on it; look at the snapshot before making the change."
+      "text": "Every note has a snapshot, with any position marked on it; look at the snapshot before acting."
     },
     {
       "locale": "en",
@@ -4617,7 +4617,7 @@
       "args": {
         "count": 1
       },
-      "text": "The note has a snapshot with the position marked on it; look at the snapshot before making the change."
+      "text": "The note has a snapshot, with any position marked on it; look at the snapshot before acting."
     },
     {
       "locale": "en",
@@ -4625,7 +4625,7 @@
       "args": {
         "count": 2
       },
-      "text": "Every note has a snapshot with the position marked on it; look at the snapshot before making the change."
+      "text": "Every note has a snapshot, with any position marked on it; look at the snapshot before acting."
     },
     {
       "locale": "en",
@@ -4633,7 +4633,7 @@
       "args": {
         "count": 5
       },
-      "text": "Every note has a snapshot with the position marked on it; look at the snapshot before making the change."
+      "text": "Every note has a snapshot, with any position marked on it; look at the snapshot before acting."
     },
     {
       "locale": "en",
@@ -4641,7 +4641,7 @@
       "args": {
         "count": 21
       },
-      "text": "Every note has a snapshot with the position marked on it; look at the snapshot before making the change."
+      "text": "Every note has a snapshot, with any position marked on it; look at the snapshot before acting."
     },
     {
       "locale": "en",
@@ -4649,7 +4649,7 @@
       "args": {
         "count": 22
       },
-      "text": "Every note has a snapshot with the position marked on it; look at the snapshot before making the change."
+      "text": "Every note has a snapshot, with any position marked on it; look at the snapshot before acting."
     },
     {
       "locale": "en",
@@ -4657,13 +4657,13 @@
       "args": {
         "count": 101
       },
-      "text": "Every note has a snapshot with the position marked on it; look at the snapshot before making the change."
+      "text": "Every note has a snapshot, with any position marked on it; look at the snapshot before acting."
     },
     {
       "locale": "en",
       "key": "ai.handoff.shotsSome",
       "args": {},
-      "text": "For notes that have a snapshot, look at the snapshot first (the position is marked on it)."
+      "text": "For notes that have a snapshot, look at the snapshot first (any position is marked on it)."
     },
     {
       "locale": "en",
@@ -4884,7 +4884,7 @@
       "locale": "en",
       "key": "ai.review.intro",
       "args": {},
-      "text": "These are notes the user added to their items with SnipToss. Go through them one by one: look at the snapshot to confirm the position (the mark is drawn on it), then change the item as the note says."
+      "text": "These are notes the user added to their items with SnipToss. Go through them one by one and act on each according to its category; where a note has a snapshot, look at it first to confirm the position (any marks are drawn on it)."
     },
     {
       "locale": "en",
@@ -5483,7 +5483,7 @@
       "args": {
         "hotkeyHint": "<hotkeyHint>"
       },
-      "text": "<hotkeyHint>Haz clic en el icono del área de notificación para abrir la ventana o haz clic derecho para salir. Puedes cambiarlo en Configuración → General."
+      "text": "<hotkeyHint>Haz clic en el icono del área de notificación para abrir la ventana; para salir, haz clic derecho y elige Salir. Puedes cambiarlo en Configuración → General."
     },
     {
       "locale": "es",
@@ -5619,7 +5619,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "Para capturar la pantalla, activa <app> en Ajustes del Sistema → Privacidad y seguridad y, después, sal de <app> y vuelve a abrir la aplicación. Si <app> no aparece en la lista, haz clic en + para añadirla."
+      "text": "Para capturar la pantalla, activa <app> en Ajustes del Sistema → Privacidad y seguridad → Grabación de pantalla y del audio del sistema (Grabación de pantalla en macOS 14) y, después, sal de <app> y vuelve a abrir la aplicación. Si <app> no aparece en la lista, haz clic en + para añadirla."
     },
     {
       "locale": "es",
@@ -6434,13 +6434,13 @@
       "locale": "es",
       "key": "ai.capture.introNumbered",
       "args": {},
-      "text": "Realiza los cambios que describen las notas de esta captura de pantalla. Los números de la imagen se corresponden uno a uno con las notas de abajo; las coordenadas son posiciones en píxeles de la captura de pantalla ((0, 0) es la esquina superior izquierda):"
+      "text": "Atiende las notas de esta captura de pantalla (una “Pregunta” solo requiere una respuesta). Los números de la imagen se corresponden uno a uno con las notas de abajo; las coordenadas son posiciones en píxeles de la captura de pantalla ((0, 0) es la esquina superior izquierda):"
     },
     {
       "locale": "es",
       "key": "ai.capture.introOverall",
       "args": {},
-      "text": "Usa esta captura de pantalla como referencia y realiza los siguientes cambios generales:"
+      "text": "Usa esta captura de pantalla como referencia y atiende el comentario general de abajo:"
     },
     {
       "locale": "es",
@@ -6594,7 +6594,7 @@
       "locale": "es",
       "key": "ai.anchor.overall",
       "args": {},
-      "text": "General"
+      "text": "Comentario general"
     },
     {
       "locale": "es",
@@ -6755,7 +6755,7 @@
       "args": {
         "count": 0
       },
-      "text": "Modifica los elementos de esta carpeta según se describe en las 0 notas de abajo."
+      "text": "Atiende las 0 notas de abajo sobre los elementos de esta carpeta."
     },
     {
       "locale": "es",
@@ -6763,7 +6763,7 @@
       "args": {
         "count": 1
       },
-      "text": "Modifica los elementos de esta carpeta según se describe en la nota de abajo."
+      "text": "Atiende la nota de abajo sobre los elementos de esta carpeta."
     },
     {
       "locale": "es",
@@ -6771,7 +6771,7 @@
       "args": {
         "count": 2
       },
-      "text": "Modifica los elementos de esta carpeta según se describe en las 2 notas de abajo."
+      "text": "Atiende las 2 notas de abajo sobre los elementos de esta carpeta."
     },
     {
       "locale": "es",
@@ -6779,7 +6779,7 @@
       "args": {
         "count": 5
       },
-      "text": "Modifica los elementos de esta carpeta según se describe en las 5 notas de abajo."
+      "text": "Atiende las 5 notas de abajo sobre los elementos de esta carpeta."
     },
     {
       "locale": "es",
@@ -6787,7 +6787,7 @@
       "args": {
         "count": 21
       },
-      "text": "Modifica los elementos de esta carpeta según se describe en las 21 notas de abajo."
+      "text": "Atiende las 21 notas de abajo sobre los elementos de esta carpeta."
     },
     {
       "locale": "es",
@@ -6795,7 +6795,7 @@
       "args": {
         "count": 22
       },
-      "text": "Modifica los elementos de esta carpeta según se describe en las 22 notas de abajo."
+      "text": "Atiende las 22 notas de abajo sobre los elementos de esta carpeta."
     },
     {
       "locale": "es",
@@ -6803,76 +6803,76 @@
       "args": {
         "count": 101
       },
-      "text": "Modifica los elementos de esta carpeta según se describe en las 101 notas de abajo."
+      "text": "Atiende las 101 notas de abajo sobre los elementos de esta carpeta."
     },
     {
       "locale": "es",
       "key": "ai.handoff.one",
       "args": {},
-      "text": "Modifica el elemento según se describe en la nota de abajo."
+      "text": "Atiende la nota de abajo."
     },
     {
       "locale": "es",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 0
+        "count": 0,
+        "thisKind": "<thisKind>"
       },
-      "text": "Modifica <thisKind> según se describe en las 0 notas de abajo."
+      "text": "Atiende las 0 notas de abajo sobre <thisKind>."
     },
     {
       "locale": "es",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 1
+        "count": 1,
+        "thisKind": "<thisKind>"
       },
-      "text": "Modifica <thisKind> según se describe en la nota de abajo."
+      "text": "Atiende la nota de abajo sobre <thisKind>."
     },
     {
       "locale": "es",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 2
+        "count": 2,
+        "thisKind": "<thisKind>"
       },
-      "text": "Modifica <thisKind> según se describe en las 2 notas de abajo."
+      "text": "Atiende las 2 notas de abajo sobre <thisKind>."
     },
     {
       "locale": "es",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 5
+        "count": 5,
+        "thisKind": "<thisKind>"
       },
-      "text": "Modifica <thisKind> según se describe en las 5 notas de abajo."
+      "text": "Atiende las 5 notas de abajo sobre <thisKind>."
     },
     {
       "locale": "es",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 21
+        "count": 21,
+        "thisKind": "<thisKind>"
       },
-      "text": "Modifica <thisKind> según se describe en las 21 notas de abajo."
+      "text": "Atiende las 21 notas de abajo sobre <thisKind>."
     },
     {
       "locale": "es",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 22
+        "count": 22,
+        "thisKind": "<thisKind>"
       },
-      "text": "Modifica <thisKind> según se describe en las 22 notas de abajo."
+      "text": "Atiende las 22 notas de abajo sobre <thisKind>."
     },
     {
       "locale": "es",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 101
+        "count": 101,
+        "thisKind": "<thisKind>"
       },
-      "text": "Modifica <thisKind> según se describe en las 101 notas de abajo."
+      "text": "Atiende las 101 notas de abajo sobre <thisKind>."
     },
     {
       "locale": "es",
@@ -6993,7 +6993,7 @@
         "parts": "<parts>",
         "count": 0
       },
-      "text": "Modifica los elementos según se describe en las notas de abajo (<parts>; 0 notas en total)."
+      "text": "Atiende las notas de abajo (<parts>; 0 notas en total)."
     },
     {
       "locale": "es",
@@ -7002,7 +7002,7 @@
         "parts": "<parts>",
         "count": 1
       },
-      "text": "Modifica los elementos según se describe en las notas de abajo (<parts>; 1 nota en total)."
+      "text": "Atiende las notas de abajo (<parts>; 1 nota en total)."
     },
     {
       "locale": "es",
@@ -7011,7 +7011,7 @@
         "parts": "<parts>",
         "count": 2
       },
-      "text": "Modifica los elementos según se describe en las notas de abajo (<parts>; 2 notas en total)."
+      "text": "Atiende las notas de abajo (<parts>; 2 notas en total)."
     },
     {
       "locale": "es",
@@ -7020,7 +7020,7 @@
         "parts": "<parts>",
         "count": 5
       },
-      "text": "Modifica los elementos según se describe en las notas de abajo (<parts>; 5 notas en total)."
+      "text": "Atiende las notas de abajo (<parts>; 5 notas en total)."
     },
     {
       "locale": "es",
@@ -7029,7 +7029,7 @@
         "parts": "<parts>",
         "count": 21
       },
-      "text": "Modifica los elementos según se describe en las notas de abajo (<parts>; 21 notas en total)."
+      "text": "Atiende las notas de abajo (<parts>; 21 notas en total)."
     },
     {
       "locale": "es",
@@ -7038,7 +7038,7 @@
         "parts": "<parts>",
         "count": 22
       },
-      "text": "Modifica los elementos según se describe en las notas de abajo (<parts>; 22 notas en total)."
+      "text": "Atiende las notas de abajo (<parts>; 22 notas en total)."
     },
     {
       "locale": "es",
@@ -7047,7 +7047,7 @@
         "parts": "<parts>",
         "count": 101
       },
-      "text": "Modifica los elementos según se describe en las notas de abajo (<parts>; 101 notas en total)."
+      "text": "Atiende las notas de abajo (<parts>; 101 notas en total)."
     },
     {
       "locale": "es",
@@ -7117,7 +7117,7 @@
       "args": {
         "count": 0
       },
-      "text": "Cada nota tiene una instantánea con la posición marcada; mira la instantánea antes de hacer el cambio."
+      "text": "Cada nota tiene una instantánea, con la posición marcada si la hay; mira la instantánea antes de actuar."
     },
     {
       "locale": "es",
@@ -7125,7 +7125,7 @@
       "args": {
         "count": 1
       },
-      "text": "La nota tiene una instantánea con la posición marcada; mira la instantánea antes de hacer el cambio."
+      "text": "La nota tiene una instantánea, con la posición marcada si la hay; mira la instantánea antes de actuar."
     },
     {
       "locale": "es",
@@ -7133,7 +7133,7 @@
       "args": {
         "count": 2
       },
-      "text": "Cada nota tiene una instantánea con la posición marcada; mira la instantánea antes de hacer el cambio."
+      "text": "Cada nota tiene una instantánea, con la posición marcada si la hay; mira la instantánea antes de actuar."
     },
     {
       "locale": "es",
@@ -7141,7 +7141,7 @@
       "args": {
         "count": 5
       },
-      "text": "Cada nota tiene una instantánea con la posición marcada; mira la instantánea antes de hacer el cambio."
+      "text": "Cada nota tiene una instantánea, con la posición marcada si la hay; mira la instantánea antes de actuar."
     },
     {
       "locale": "es",
@@ -7149,7 +7149,7 @@
       "args": {
         "count": 21
       },
-      "text": "Cada nota tiene una instantánea con la posición marcada; mira la instantánea antes de hacer el cambio."
+      "text": "Cada nota tiene una instantánea, con la posición marcada si la hay; mira la instantánea antes de actuar."
     },
     {
       "locale": "es",
@@ -7157,7 +7157,7 @@
       "args": {
         "count": 22
       },
-      "text": "Cada nota tiene una instantánea con la posición marcada; mira la instantánea antes de hacer el cambio."
+      "text": "Cada nota tiene una instantánea, con la posición marcada si la hay; mira la instantánea antes de actuar."
     },
     {
       "locale": "es",
@@ -7165,13 +7165,13 @@
       "args": {
         "count": 101
       },
-      "text": "Cada nota tiene una instantánea con la posición marcada; mira la instantánea antes de hacer el cambio."
+      "text": "Cada nota tiene una instantánea, con la posición marcada si la hay; mira la instantánea antes de actuar."
     },
     {
       "locale": "es",
       "key": "ai.handoff.shotsSome",
       "args": {},
-      "text": "En las notas que tienen instantánea, mírala primero (la posición está marcada en ella)."
+      "text": "En las notas que tienen instantánea, mírala primero (la posición, si la hay, está marcada en ella)."
     },
     {
       "locale": "es",
@@ -7392,7 +7392,7 @@
       "locale": "es",
       "key": "ai.review.intro",
       "args": {},
-      "text": "Estas son notas que el usuario agregó a sus elementos con SnipToss. Revísalas una por una: mira la instantánea para confirmar la posición (la marca está dibujada en ella) y luego modifica el elemento según indica la nota."
+      "text": "Estas son notas que el usuario agregó a sus elementos con SnipToss. Revísalas una por una y atiende cada una según su categoría; si una nota tiene instantánea, mírala primero para confirmar la posición (las marcas, si las hay, están dibujadas en ella)."
     },
     {
       "locale": "es",
@@ -7765,37 +7765,37 @@
       "locale": "fr",
       "key": "ai.where.across.top",
       "args": {},
-      "text": "sur toute la largeur, en haut du cadre"
+      "text": "en bande horizontale, en haut du cadre"
     },
     {
       "locale": "fr",
       "key": "ai.where.across.middle",
       "args": {},
-      "text": "sur toute la largeur, au milieu du cadre"
+      "text": "en bande horizontale, au milieu du cadre"
     },
     {
       "locale": "fr",
       "key": "ai.where.across.bottom",
       "args": {},
-      "text": "sur toute la largeur, en bas du cadre"
+      "text": "en bande horizontale, en bas du cadre"
     },
     {
       "locale": "fr",
       "key": "ai.where.down.left",
       "args": {},
-      "text": "sur toute la hauteur, à gauche du cadre"
+      "text": "en bande verticale, à gauche du cadre"
     },
     {
       "locale": "fr",
       "key": "ai.where.down.middle",
       "args": {},
-      "text": "sur toute la hauteur, au milieu du cadre"
+      "text": "en bande verticale, au milieu du cadre"
     },
     {
       "locale": "fr",
       "key": "ai.where.down.right",
       "args": {},
-      "text": "sur toute la hauteur, à droite du cadre"
+      "text": "en bande verticale, à droite du cadre"
     },
     {
       "locale": "fr",
@@ -7991,7 +7991,7 @@
       "args": {
         "hotkeyHint": "<hotkeyHint>"
       },
-      "text": "<hotkeyHint>Cliquez sur l’icône de la zone de notification pour ouvrir la fenêtre, ou faites un clic droit pour quitter. Modifiable dans Paramètres → Général."
+      "text": "<hotkeyHint>Cliquez sur l’icône de la zone de notification pour ouvrir la fenêtre ; pour quitter, faites un clic droit et choisissez Quitter. Modifiable dans Paramètres → Général."
     },
     {
       "locale": "fr",
@@ -8127,7 +8127,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "Pour capturer l’écran, autorisez <app> dans Réglages Système → Confidentialité et sécurité, puis quittez <app> et rouvrez l’application. Si <app> ne figure pas dans la liste, cliquez sur + pour l’ajouter."
+      "text": "Pour capturer l’écran, activez <app> dans Réglages Système → Confidentialité et sécurité → Enregistrement de l’écran et des sons du système (Enregistrement de l’écran sous macOS 14), puis quittez <app> et rouvrez l’application. Si <app> ne figure pas dans la liste, cliquez sur + pour l’ajouter."
     },
     {
       "locale": "fr",
@@ -8942,13 +8942,13 @@
       "locale": "fr",
       "key": "ai.capture.introNumbered",
       "args": {},
-      "text": "Veuillez apporter les modifications décrites par les notes sur cette capture d’écran. Les numéros sur l’image correspondent un à un aux notes ci-dessous. Les coordonnées sont des positions en pixels dans la capture d’écran ((0, 0) est en haut à gauche) :"
+      "text": "Veuillez donner suite aux notes figurant sur cette capture d’écran (une « Question » appelle seulement une réponse). Les numéros sur l’image correspondent un à un aux notes ci-dessous. Les coordonnées sont des positions en pixels dans la capture d’écran ((0, 0) est en haut à gauche) :"
     },
     {
       "locale": "fr",
       "key": "ai.capture.introOverall",
       "args": {},
-      "text": "Veuillez utiliser cette capture d’écran comme référence et apporter les modifications générales suivantes :"
+      "text": "Veuillez utiliser cette capture d’écran comme référence et donner suite au commentaire général ci-dessous :"
     },
     {
       "locale": "fr",
@@ -9102,7 +9102,7 @@
       "locale": "fr",
       "key": "ai.anchor.overall",
       "args": {},
-      "text": "Général"
+      "text": "Commentaire général"
     },
     {
       "locale": "fr",
@@ -9263,7 +9263,7 @@
       "args": {
         "count": 0
       },
-      "text": "Veuillez modifier les éléments de ce dossier comme décrit dans les 0 notes ci-dessous."
+      "text": "Veuillez donner suite aux 0 notes ci-dessous concernant les éléments de ce dossier."
     },
     {
       "locale": "fr",
@@ -9271,7 +9271,7 @@
       "args": {
         "count": 1
       },
-      "text": "Veuillez modifier les éléments de ce dossier comme décrit dans la note ci-dessous."
+      "text": "Veuillez donner suite à la note ci-dessous concernant les éléments de ce dossier."
     },
     {
       "locale": "fr",
@@ -9279,7 +9279,7 @@
       "args": {
         "count": 2
       },
-      "text": "Veuillez modifier les éléments de ce dossier comme décrit dans les 2 notes ci-dessous."
+      "text": "Veuillez donner suite aux 2 notes ci-dessous concernant les éléments de ce dossier."
     },
     {
       "locale": "fr",
@@ -9287,7 +9287,7 @@
       "args": {
         "count": 5
       },
-      "text": "Veuillez modifier les éléments de ce dossier comme décrit dans les 5 notes ci-dessous."
+      "text": "Veuillez donner suite aux 5 notes ci-dessous concernant les éléments de ce dossier."
     },
     {
       "locale": "fr",
@@ -9295,7 +9295,7 @@
       "args": {
         "count": 21
       },
-      "text": "Veuillez modifier les éléments de ce dossier comme décrit dans les 21 notes ci-dessous."
+      "text": "Veuillez donner suite aux 21 notes ci-dessous concernant les éléments de ce dossier."
     },
     {
       "locale": "fr",
@@ -9303,7 +9303,7 @@
       "args": {
         "count": 22
       },
-      "text": "Veuillez modifier les éléments de ce dossier comme décrit dans les 22 notes ci-dessous."
+      "text": "Veuillez donner suite aux 22 notes ci-dessous concernant les éléments de ce dossier."
     },
     {
       "locale": "fr",
@@ -9311,76 +9311,76 @@
       "args": {
         "count": 101
       },
-      "text": "Veuillez modifier les éléments de ce dossier comme décrit dans les 101 notes ci-dessous."
+      "text": "Veuillez donner suite aux 101 notes ci-dessous concernant les éléments de ce dossier."
     },
     {
       "locale": "fr",
       "key": "ai.handoff.one",
       "args": {},
-      "text": "Veuillez modifier l’élément comme décrit dans la note ci-dessous."
+      "text": "Veuillez donner suite à la note ci-dessous."
     },
     {
       "locale": "fr",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 0
+        "count": 0,
+        "thisKind": "<thisKind>"
       },
-      "text": "Veuillez modifier <thisKind> comme décrit dans la note ci-dessous."
+      "text": "Veuillez donner suite à la note ci-dessous concernant <thisKind>."
     },
     {
       "locale": "fr",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 1
+        "count": 1,
+        "thisKind": "<thisKind>"
       },
-      "text": "Veuillez modifier <thisKind> comme décrit dans la note ci-dessous."
+      "text": "Veuillez donner suite à la note ci-dessous concernant <thisKind>."
     },
     {
       "locale": "fr",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 2
+        "count": 2,
+        "thisKind": "<thisKind>"
       },
-      "text": "Veuillez modifier <thisKind> comme décrit dans les 2 notes ci-dessous."
+      "text": "Veuillez donner suite aux 2 notes ci-dessous concernant <thisKind>."
     },
     {
       "locale": "fr",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 5
+        "count": 5,
+        "thisKind": "<thisKind>"
       },
-      "text": "Veuillez modifier <thisKind> comme décrit dans les 5 notes ci-dessous."
+      "text": "Veuillez donner suite aux 5 notes ci-dessous concernant <thisKind>."
     },
     {
       "locale": "fr",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 21
+        "count": 21,
+        "thisKind": "<thisKind>"
       },
-      "text": "Veuillez modifier <thisKind> comme décrit dans les 21 notes ci-dessous."
+      "text": "Veuillez donner suite aux 21 notes ci-dessous concernant <thisKind>."
     },
     {
       "locale": "fr",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 22
+        "count": 22,
+        "thisKind": "<thisKind>"
       },
-      "text": "Veuillez modifier <thisKind> comme décrit dans les 22 notes ci-dessous."
+      "text": "Veuillez donner suite aux 22 notes ci-dessous concernant <thisKind>."
     },
     {
       "locale": "fr",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 101
+        "count": 101,
+        "thisKind": "<thisKind>"
       },
-      "text": "Veuillez modifier <thisKind> comme décrit dans les 101 notes ci-dessous."
+      "text": "Veuillez donner suite aux 101 notes ci-dessous concernant <thisKind>."
     },
     {
       "locale": "fr",
@@ -9501,7 +9501,7 @@
         "parts": "<parts>",
         "count": 0
       },
-      "text": "Veuillez modifier les éléments comme décrit dans les notes ci-dessous (<parts>, soit 0 note au total)."
+      "text": "Veuillez donner suite aux notes ci-dessous (<parts>, soit 0 note au total)."
     },
     {
       "locale": "fr",
@@ -9510,7 +9510,7 @@
         "parts": "<parts>",
         "count": 1
       },
-      "text": "Veuillez modifier les éléments comme décrit dans les notes ci-dessous (<parts>, soit 1 note au total)."
+      "text": "Veuillez donner suite aux notes ci-dessous (<parts>, soit 1 note au total)."
     },
     {
       "locale": "fr",
@@ -9519,7 +9519,7 @@
         "parts": "<parts>",
         "count": 2
       },
-      "text": "Veuillez modifier les éléments comme décrit dans les notes ci-dessous (<parts>, soit 2 notes au total)."
+      "text": "Veuillez donner suite aux notes ci-dessous (<parts>, soit 2 notes au total)."
     },
     {
       "locale": "fr",
@@ -9528,7 +9528,7 @@
         "parts": "<parts>",
         "count": 5
       },
-      "text": "Veuillez modifier les éléments comme décrit dans les notes ci-dessous (<parts>, soit 5 notes au total)."
+      "text": "Veuillez donner suite aux notes ci-dessous (<parts>, soit 5 notes au total)."
     },
     {
       "locale": "fr",
@@ -9537,7 +9537,7 @@
         "parts": "<parts>",
         "count": 21
       },
-      "text": "Veuillez modifier les éléments comme décrit dans les notes ci-dessous (<parts>, soit 21 notes au total)."
+      "text": "Veuillez donner suite aux notes ci-dessous (<parts>, soit 21 notes au total)."
     },
     {
       "locale": "fr",
@@ -9546,7 +9546,7 @@
         "parts": "<parts>",
         "count": 22
       },
-      "text": "Veuillez modifier les éléments comme décrit dans les notes ci-dessous (<parts>, soit 22 notes au total)."
+      "text": "Veuillez donner suite aux notes ci-dessous (<parts>, soit 22 notes au total)."
     },
     {
       "locale": "fr",
@@ -9555,7 +9555,7 @@
         "parts": "<parts>",
         "count": 101
       },
-      "text": "Veuillez modifier les éléments comme décrit dans les notes ci-dessous (<parts>, soit 101 notes au total)."
+      "text": "Veuillez donner suite aux notes ci-dessous (<parts>, soit 101 notes au total)."
     },
     {
       "locale": "fr",
@@ -9625,7 +9625,7 @@
       "args": {
         "count": 0
       },
-      "text": "Chaque note comporte un instantané sur lequel la position est repérée. Consultez l’instantané avant d’effectuer la modification."
+      "text": "Chaque note comporte un instantané, sur lequel la position éventuelle est repérée. Consultez l’instantané avant d’agir."
     },
     {
       "locale": "fr",
@@ -9633,7 +9633,7 @@
       "args": {
         "count": 1
       },
-      "text": "La note comporte un instantané sur lequel la position est repérée. Consultez l’instantané avant d’effectuer la modification."
+      "text": "La note comporte un instantané, sur lequel la position éventuelle est repérée. Consultez l’instantané avant d’agir."
     },
     {
       "locale": "fr",
@@ -9641,7 +9641,7 @@
       "args": {
         "count": 2
       },
-      "text": "Chaque note comporte un instantané sur lequel la position est repérée. Consultez l’instantané avant d’effectuer la modification."
+      "text": "Chaque note comporte un instantané, sur lequel la position éventuelle est repérée. Consultez l’instantané avant d’agir."
     },
     {
       "locale": "fr",
@@ -9649,7 +9649,7 @@
       "args": {
         "count": 5
       },
-      "text": "Chaque note comporte un instantané sur lequel la position est repérée. Consultez l’instantané avant d’effectuer la modification."
+      "text": "Chaque note comporte un instantané, sur lequel la position éventuelle est repérée. Consultez l’instantané avant d’agir."
     },
     {
       "locale": "fr",
@@ -9657,7 +9657,7 @@
       "args": {
         "count": 21
       },
-      "text": "Chaque note comporte un instantané sur lequel la position est repérée. Consultez l’instantané avant d’effectuer la modification."
+      "text": "Chaque note comporte un instantané, sur lequel la position éventuelle est repérée. Consultez l’instantané avant d’agir."
     },
     {
       "locale": "fr",
@@ -9665,7 +9665,7 @@
       "args": {
         "count": 22
       },
-      "text": "Chaque note comporte un instantané sur lequel la position est repérée. Consultez l’instantané avant d’effectuer la modification."
+      "text": "Chaque note comporte un instantané, sur lequel la position éventuelle est repérée. Consultez l’instantané avant d’agir."
     },
     {
       "locale": "fr",
@@ -9673,13 +9673,13 @@
       "args": {
         "count": 101
       },
-      "text": "Chaque note comporte un instantané sur lequel la position est repérée. Consultez l’instantané avant d’effectuer la modification."
+      "text": "Chaque note comporte un instantané, sur lequel la position éventuelle est repérée. Consultez l’instantané avant d’agir."
     },
     {
       "locale": "fr",
       "key": "ai.handoff.shotsSome",
       "args": {},
-      "text": "Pour les notes qui ont un instantané, consultez-le d’abord (la position y est repérée)."
+      "text": "Pour les notes qui ont un instantané, consultez-le d’abord (la position éventuelle y est repérée)."
     },
     {
       "locale": "fr",
@@ -9900,7 +9900,7 @@
       "locale": "fr",
       "key": "ai.review.intro",
       "args": {},
-      "text": "Voici les notes que l’utilisateur a ajoutées à ses éléments avec SnipToss. Parcourez-les une à une : consultez l’instantané pour confirmer la position (le repère y est tracé), puis modifiez l’élément comme l’indique la note."
+      "text": "Voici les notes que l’utilisateur a ajoutées à ses éléments avec SnipToss. Parcourez-les une à une et donnez suite à chacune selon sa catégorie ; si une note a un instantané, consultez-le d’abord pour confirmer la position (les repères éventuels y sont tracés)."
     },
     {
       "locale": "fr",
@@ -10019,7 +10019,7 @@
         "app": "<app>",
         "reason": "<reason>"
       },
-      "text": "Impossible de modifier l’ouverture de <app> à l’ouverture de session : <reason>"
+      "text": "Impossible de modifier l’ouverture de <app> à l’ouverture de session : <reason>"
     },
     {
       "locale": "fr",
@@ -10499,7 +10499,7 @@
       "args": {
         "hotkeyHint": "<hotkeyHint>"
       },
-      "text": "<hotkeyHint>Fai clic sull'icona nell'area di notifica per aprire la finestra o fai clic destro per uscire. Puoi cambiarlo in Impostazioni → Generale."
+      "text": "<hotkeyHint>Fai clic sull'icona nell'area di notifica per aprire la finestra; per uscire, fai clic destro e scegli Esci. Puoi cambiarlo in Impostazioni → Generale."
     },
     {
       "locale": "it",
@@ -10635,7 +10635,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "Per acquisire lo schermo, attiva <app> in Impostazioni di Sistema → Privacy e Sicurezza, poi esci da <app> e riaprila. Se <app> non è nell'elenco, fai clic su + per aggiungerla."
+      "text": "Per acquisire lo schermo, attiva <app> in Impostazioni di Sistema → Privacy e Sicurezza → Registrazione schermo e audio di sistema (Registrazione schermo in macOS 14), poi esci da <app> e riaprila. Se <app> non è nell'elenco, fai clic su + per aggiungerla."
     },
     {
       "locale": "it",
@@ -11450,13 +11450,13 @@
       "locale": "it",
       "key": "ai.capture.introNumbered",
       "args": {},
-      "text": "Apporta le modifiche descritte dalle note in questo screenshot. I numeri sull'immagine corrispondono uno a uno alle note qui sotto; le coordinate sono posizioni in pixel nello screenshot ((0, 0) è in alto a sinistra):"
+      "text": "Occupati delle note in questo screenshot (a una “Domanda” basta rispondere). I numeri sull'immagine corrispondono uno a uno alle note qui sotto; le coordinate sono posizioni in pixel nello screenshot ((0, 0) è in alto a sinistra):"
     },
     {
       "locale": "it",
       "key": "ai.capture.introOverall",
       "args": {},
-      "text": "Usa questo screenshot come riferimento e apporta le seguenti modifiche generali:"
+      "text": "Usa questo screenshot come riferimento e occupati del commento generale qui sotto:"
     },
     {
       "locale": "it",
@@ -11610,7 +11610,7 @@
       "locale": "it",
       "key": "ai.anchor.overall",
       "args": {},
-      "text": "Generale"
+      "text": "Commento generale"
     },
     {
       "locale": "it",
@@ -11771,7 +11771,7 @@
       "args": {
         "count": 0
       },
-      "text": "Modifica gli elementi di questa cartella come descritto nelle 0 note qui sotto."
+      "text": "Occupati delle 0 note qui sotto che riguardano gli elementi di questa cartella."
     },
     {
       "locale": "it",
@@ -11779,7 +11779,7 @@
       "args": {
         "count": 1
       },
-      "text": "Modifica gli elementi di questa cartella come descritto nella nota qui sotto."
+      "text": "Occupati della nota qui sotto che riguarda gli elementi di questa cartella."
     },
     {
       "locale": "it",
@@ -11787,7 +11787,7 @@
       "args": {
         "count": 2
       },
-      "text": "Modifica gli elementi di questa cartella come descritto nelle 2 note qui sotto."
+      "text": "Occupati delle 2 note qui sotto che riguardano gli elementi di questa cartella."
     },
     {
       "locale": "it",
@@ -11795,7 +11795,7 @@
       "args": {
         "count": 5
       },
-      "text": "Modifica gli elementi di questa cartella come descritto nelle 5 note qui sotto."
+      "text": "Occupati delle 5 note qui sotto che riguardano gli elementi di questa cartella."
     },
     {
       "locale": "it",
@@ -11803,7 +11803,7 @@
       "args": {
         "count": 21
       },
-      "text": "Modifica gli elementi di questa cartella come descritto nelle 21 note qui sotto."
+      "text": "Occupati delle 21 note qui sotto che riguardano gli elementi di questa cartella."
     },
     {
       "locale": "it",
@@ -11811,7 +11811,7 @@
       "args": {
         "count": 22
       },
-      "text": "Modifica gli elementi di questa cartella come descritto nelle 22 note qui sotto."
+      "text": "Occupati delle 22 note qui sotto che riguardano gli elementi di questa cartella."
     },
     {
       "locale": "it",
@@ -11819,76 +11819,76 @@
       "args": {
         "count": 101
       },
-      "text": "Modifica gli elementi di questa cartella come descritto nelle 101 note qui sotto."
+      "text": "Occupati delle 101 note qui sotto che riguardano gli elementi di questa cartella."
     },
     {
       "locale": "it",
       "key": "ai.handoff.one",
       "args": {},
-      "text": "Modifica l'elemento come descritto nella nota qui sotto."
+      "text": "Occupati della nota qui sotto."
     },
     {
       "locale": "it",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 0
+        "count": 0,
+        "thisKind": "<thisKind>"
       },
-      "text": "Modifica <thisKind> come descritto nelle 0 note qui sotto."
+      "text": "Occupati delle 0 note qui sotto che riguardano <thisKind>."
     },
     {
       "locale": "it",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 1
+        "count": 1,
+        "thisKind": "<thisKind>"
       },
-      "text": "Modifica <thisKind> come descritto nella nota qui sotto."
+      "text": "Occupati della nota qui sotto che riguarda <thisKind>."
     },
     {
       "locale": "it",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 2
+        "count": 2,
+        "thisKind": "<thisKind>"
       },
-      "text": "Modifica <thisKind> come descritto nelle 2 note qui sotto."
+      "text": "Occupati delle 2 note qui sotto che riguardano <thisKind>."
     },
     {
       "locale": "it",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 5
+        "count": 5,
+        "thisKind": "<thisKind>"
       },
-      "text": "Modifica <thisKind> come descritto nelle 5 note qui sotto."
+      "text": "Occupati delle 5 note qui sotto che riguardano <thisKind>."
     },
     {
       "locale": "it",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 21
+        "count": 21,
+        "thisKind": "<thisKind>"
       },
-      "text": "Modifica <thisKind> come descritto nelle 21 note qui sotto."
+      "text": "Occupati delle 21 note qui sotto che riguardano <thisKind>."
     },
     {
       "locale": "it",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 22
+        "count": 22,
+        "thisKind": "<thisKind>"
       },
-      "text": "Modifica <thisKind> come descritto nelle 22 note qui sotto."
+      "text": "Occupati delle 22 note qui sotto che riguardano <thisKind>."
     },
     {
       "locale": "it",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 101
+        "count": 101,
+        "thisKind": "<thisKind>"
       },
-      "text": "Modifica <thisKind> come descritto nelle 101 note qui sotto."
+      "text": "Occupati delle 101 note qui sotto che riguardano <thisKind>."
     },
     {
       "locale": "it",
@@ -12009,7 +12009,7 @@
         "parts": "<parts>",
         "count": 0
       },
-      "text": "Modifica gli elementi come descritto nelle note qui sotto (<parts>; 0 note in tutto)."
+      "text": "Occupati delle note qui sotto (<parts>; 0 note in tutto)."
     },
     {
       "locale": "it",
@@ -12018,7 +12018,7 @@
         "parts": "<parts>",
         "count": 1
       },
-      "text": "Modifica gli elementi come descritto nelle note qui sotto (<parts>; 1 nota in tutto)."
+      "text": "Occupati delle note qui sotto (<parts>; 1 nota in tutto)."
     },
     {
       "locale": "it",
@@ -12027,7 +12027,7 @@
         "parts": "<parts>",
         "count": 2
       },
-      "text": "Modifica gli elementi come descritto nelle note qui sotto (<parts>; 2 note in tutto)."
+      "text": "Occupati delle note qui sotto (<parts>; 2 note in tutto)."
     },
     {
       "locale": "it",
@@ -12036,7 +12036,7 @@
         "parts": "<parts>",
         "count": 5
       },
-      "text": "Modifica gli elementi come descritto nelle note qui sotto (<parts>; 5 note in tutto)."
+      "text": "Occupati delle note qui sotto (<parts>; 5 note in tutto)."
     },
     {
       "locale": "it",
@@ -12045,7 +12045,7 @@
         "parts": "<parts>",
         "count": 21
       },
-      "text": "Modifica gli elementi come descritto nelle note qui sotto (<parts>; 21 note in tutto)."
+      "text": "Occupati delle note qui sotto (<parts>; 21 note in tutto)."
     },
     {
       "locale": "it",
@@ -12054,7 +12054,7 @@
         "parts": "<parts>",
         "count": 22
       },
-      "text": "Modifica gli elementi come descritto nelle note qui sotto (<parts>; 22 note in tutto)."
+      "text": "Occupati delle note qui sotto (<parts>; 22 note in tutto)."
     },
     {
       "locale": "it",
@@ -12063,7 +12063,7 @@
         "parts": "<parts>",
         "count": 101
       },
-      "text": "Modifica gli elementi come descritto nelle note qui sotto (<parts>; 101 note in tutto)."
+      "text": "Occupati delle note qui sotto (<parts>; 101 note in tutto)."
     },
     {
       "locale": "it",
@@ -12133,7 +12133,7 @@
       "args": {
         "count": 0
       },
-      "text": "Ogni nota ha un'istantanea con la posizione segnata su di essa; guarda l'istantanea prima di apportare la modifica."
+      "text": "Ogni nota ha un'istantanea, con l'eventuale posizione segnata su di essa; guarda l'istantanea prima di intervenire."
     },
     {
       "locale": "it",
@@ -12141,7 +12141,7 @@
       "args": {
         "count": 1
       },
-      "text": "La nota ha un'istantanea con la posizione segnata su di essa; guarda l'istantanea prima di apportare la modifica."
+      "text": "La nota ha un'istantanea, con l'eventuale posizione segnata su di essa; guarda l'istantanea prima di intervenire."
     },
     {
       "locale": "it",
@@ -12149,7 +12149,7 @@
       "args": {
         "count": 2
       },
-      "text": "Ogni nota ha un'istantanea con la posizione segnata su di essa; guarda l'istantanea prima di apportare la modifica."
+      "text": "Ogni nota ha un'istantanea, con l'eventuale posizione segnata su di essa; guarda l'istantanea prima di intervenire."
     },
     {
       "locale": "it",
@@ -12157,7 +12157,7 @@
       "args": {
         "count": 5
       },
-      "text": "Ogni nota ha un'istantanea con la posizione segnata su di essa; guarda l'istantanea prima di apportare la modifica."
+      "text": "Ogni nota ha un'istantanea, con l'eventuale posizione segnata su di essa; guarda l'istantanea prima di intervenire."
     },
     {
       "locale": "it",
@@ -12165,7 +12165,7 @@
       "args": {
         "count": 21
       },
-      "text": "Ogni nota ha un'istantanea con la posizione segnata su di essa; guarda l'istantanea prima di apportare la modifica."
+      "text": "Ogni nota ha un'istantanea, con l'eventuale posizione segnata su di essa; guarda l'istantanea prima di intervenire."
     },
     {
       "locale": "it",
@@ -12173,7 +12173,7 @@
       "args": {
         "count": 22
       },
-      "text": "Ogni nota ha un'istantanea con la posizione segnata su di essa; guarda l'istantanea prima di apportare la modifica."
+      "text": "Ogni nota ha un'istantanea, con l'eventuale posizione segnata su di essa; guarda l'istantanea prima di intervenire."
     },
     {
       "locale": "it",
@@ -12181,13 +12181,13 @@
       "args": {
         "count": 101
       },
-      "text": "Ogni nota ha un'istantanea con la posizione segnata su di essa; guarda l'istantanea prima di apportare la modifica."
+      "text": "Ogni nota ha un'istantanea, con l'eventuale posizione segnata su di essa; guarda l'istantanea prima di intervenire."
     },
     {
       "locale": "it",
       "key": "ai.handoff.shotsSome",
       "args": {},
-      "text": "Per le note che hanno un'istantanea, guarda prima l'istantanea (la posizione è segnata su di essa)."
+      "text": "Per le note che hanno un'istantanea, guarda prima l'istantanea (l'eventuale posizione è segnata su di essa)."
     },
     {
       "locale": "it",
@@ -12408,7 +12408,7 @@
       "locale": "it",
       "key": "ai.review.intro",
       "args": {},
-      "text": "Queste sono le note che l'utente ha aggiunto ai suoi elementi con SnipToss. Esaminale una per una: guarda l'istantanea per confermare la posizione (il segno è disegnato su di essa), poi modifica l'elemento come indicato dalla nota."
+      "text": "Queste sono le note che l'utente ha aggiunto ai suoi elementi con SnipToss. Esaminale una per una e occupati di ciascuna in base alla sua categoria; se una nota ha un'istantanea, guardala prima per confermare la posizione (gli eventuali segni sono disegnati su di essa)."
     },
     {
       "locale": "it",
@@ -13007,7 +13007,7 @@
       "args": {
         "hotkeyHint": "<hotkeyHint>"
       },
-      "text": "<hotkeyHint>通知領域のアイコンをクリックするとウィンドウが開き、右クリックすると終了できます。ウィンドウを閉じたときに終了するように変更するには、「設定 → 全般」を開きます。"
+      "text": "<hotkeyHint>通知領域のアイコンをクリックするとウィンドウが開きます。アイコンを右クリックして「終了」を選ぶと、アプリを終了できます。ウィンドウを閉じたときに終了するように変更するには、「設定 → 全般」を開きます。"
     },
     {
       "locale": "ja",
@@ -13143,7 +13143,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "画面をキャプチャするには、「システム設定 → プライバシーとセキュリティ」で <app> を許可してから、<app> を終了してもう一度開いてください。一覧に <app> がない場合は、「+」をクリックして追加してください。"
+      "text": "画面をキャプチャするには、「システム設定 → プライバシーとセキュリティ → 画面収録とシステムオーディオ録音」（macOS 14 では「画面収録」）で <app> をオンにしてから、<app> を終了してもう一度開いてください。一覧に <app> がない場合は、「+」をクリックして追加してください。"
     },
     {
       "locale": "ja",
@@ -13904,13 +13904,13 @@
       "locale": "ja",
       "key": "ai.capture.introNumbered",
       "args": {},
-      "text": "このスクリーンショット上のメモの内容に従って修正してください。画像上の番号は下のメモと 1 対 1 で対応します。座標はスクリーンショット内のピクセル位置です（左上が (0, 0)）："
+      "text": "このスクリーンショット上のメモに対応してください（「質問」には回答するだけで構いません）。画像上の番号は下のメモと 1 対 1 で対応します。座標はスクリーンショット内のピクセル位置です（左上が (0, 0)）："
     },
     {
       "locale": "ja",
       "key": "ai.capture.introOverall",
       "args": {},
-      "text": "このスクリーンショットを参考に、以下の全体的な修正を行ってください："
+      "text": "このスクリーンショットを参考に、以下の全体コメントに対応してください："
     },
     {
       "locale": "ja",
@@ -14225,7 +14225,7 @@
       "args": {
         "count": 0
       },
-      "text": "以下の 0 件のメモの内容に従って、このフォルダー内の項目を修正してください。"
+      "text": "このフォルダー内の項目に関する以下の 0 件のメモに対応してください。"
     },
     {
       "locale": "ja",
@@ -14233,7 +14233,7 @@
       "args": {
         "count": 1
       },
-      "text": "以下のメモの内容に従って、このフォルダー内の項目を修正してください。"
+      "text": "このフォルダー内の項目に関する以下のメモに対応してください。"
     },
     {
       "locale": "ja",
@@ -14241,7 +14241,7 @@
       "args": {
         "count": 2
       },
-      "text": "以下の 2 件のメモの内容に従って、このフォルダー内の項目を修正してください。"
+      "text": "このフォルダー内の項目に関する以下の 2 件のメモに対応してください。"
     },
     {
       "locale": "ja",
@@ -14249,7 +14249,7 @@
       "args": {
         "count": 5
       },
-      "text": "以下の 5 件のメモの内容に従って、このフォルダー内の項目を修正してください。"
+      "text": "このフォルダー内の項目に関する以下の 5 件のメモに対応してください。"
     },
     {
       "locale": "ja",
@@ -14257,7 +14257,7 @@
       "args": {
         "count": 21
       },
-      "text": "以下の 21 件のメモの内容に従って、このフォルダー内の項目を修正してください。"
+      "text": "このフォルダー内の項目に関する以下の 21 件のメモに対応してください。"
     },
     {
       "locale": "ja",
@@ -14265,7 +14265,7 @@
       "args": {
         "count": 22
       },
-      "text": "以下の 22 件のメモの内容に従って、このフォルダー内の項目を修正してください。"
+      "text": "このフォルダー内の項目に関する以下の 22 件のメモに対応してください。"
     },
     {
       "locale": "ja",
@@ -14273,76 +14273,76 @@
       "args": {
         "count": 101
       },
-      "text": "以下の 101 件のメモの内容に従って、このフォルダー内の項目を修正してください。"
+      "text": "このフォルダー内の項目に関する以下の 101 件のメモに対応してください。"
     },
     {
       "locale": "ja",
       "key": "ai.handoff.one",
       "args": {},
-      "text": "以下のメモの内容に従って、項目を修正してください。"
+      "text": "以下のメモに対応してください。"
     },
     {
       "locale": "ja",
       "key": "ai.handoff.material",
       "args": {
-        "count": 0,
-        "thisKind": "<thisKind>"
+        "thisKind": "<thisKind>",
+        "count": 0
       },
-      "text": "以下のメモ 0 件の内容に従って、<thisKind>を修正してください。"
+      "text": "<thisKind>に関する以下のメモ 0 件に対応してください。"
     },
     {
       "locale": "ja",
       "key": "ai.handoff.material",
       "args": {
-        "count": 1,
-        "thisKind": "<thisKind>"
+        "thisKind": "<thisKind>",
+        "count": 1
       },
-      "text": "以下のメモ 1 件の内容に従って、<thisKind>を修正してください。"
+      "text": "<thisKind>に関する以下のメモ 1 件に対応してください。"
     },
     {
       "locale": "ja",
       "key": "ai.handoff.material",
       "args": {
-        "count": 2,
-        "thisKind": "<thisKind>"
+        "thisKind": "<thisKind>",
+        "count": 2
       },
-      "text": "以下のメモ 2 件の内容に従って、<thisKind>を修正してください。"
+      "text": "<thisKind>に関する以下のメモ 2 件に対応してください。"
     },
     {
       "locale": "ja",
       "key": "ai.handoff.material",
       "args": {
-        "count": 5,
-        "thisKind": "<thisKind>"
+        "thisKind": "<thisKind>",
+        "count": 5
       },
-      "text": "以下のメモ 5 件の内容に従って、<thisKind>を修正してください。"
+      "text": "<thisKind>に関する以下のメモ 5 件に対応してください。"
     },
     {
       "locale": "ja",
       "key": "ai.handoff.material",
       "args": {
-        "count": 21,
-        "thisKind": "<thisKind>"
+        "thisKind": "<thisKind>",
+        "count": 21
       },
-      "text": "以下のメモ 21 件の内容に従って、<thisKind>を修正してください。"
+      "text": "<thisKind>に関する以下のメモ 21 件に対応してください。"
     },
     {
       "locale": "ja",
       "key": "ai.handoff.material",
       "args": {
-        "count": 22,
-        "thisKind": "<thisKind>"
+        "thisKind": "<thisKind>",
+        "count": 22
       },
-      "text": "以下のメモ 22 件の内容に従って、<thisKind>を修正してください。"
+      "text": "<thisKind>に関する以下のメモ 22 件に対応してください。"
     },
     {
       "locale": "ja",
       "key": "ai.handoff.material",
       "args": {
-        "count": 101,
-        "thisKind": "<thisKind>"
+        "thisKind": "<thisKind>",
+        "count": 101
       },
-      "text": "以下のメモ 101 件の内容に従って、<thisKind>を修正してください。"
+      "text": "<thisKind>に関する以下のメモ 101 件に対応してください。"
     },
     {
       "locale": "ja",
@@ -14463,7 +14463,7 @@
         "parts": "<parts>",
         "count": 0
       },
-      "text": "以下のメモの内容に従って、項目を修正してください（<parts>、メモは合計 0 件）。"
+      "text": "以下のメモに対応してください（<parts>、メモは合計 0 件）。"
     },
     {
       "locale": "ja",
@@ -14472,7 +14472,7 @@
         "parts": "<parts>",
         "count": 1
       },
-      "text": "以下のメモの内容に従って、項目を修正してください（<parts>、メモは合計 1 件）。"
+      "text": "以下のメモに対応してください（<parts>、メモは合計 1 件）。"
     },
     {
       "locale": "ja",
@@ -14481,7 +14481,7 @@
         "parts": "<parts>",
         "count": 2
       },
-      "text": "以下のメモの内容に従って、項目を修正してください（<parts>、メモは合計 2 件）。"
+      "text": "以下のメモに対応してください（<parts>、メモは合計 2 件）。"
     },
     {
       "locale": "ja",
@@ -14490,7 +14490,7 @@
         "parts": "<parts>",
         "count": 5
       },
-      "text": "以下のメモの内容に従って、項目を修正してください（<parts>、メモは合計 5 件）。"
+      "text": "以下のメモに対応してください（<parts>、メモは合計 5 件）。"
     },
     {
       "locale": "ja",
@@ -14499,7 +14499,7 @@
         "parts": "<parts>",
         "count": 21
       },
-      "text": "以下のメモの内容に従って、項目を修正してください（<parts>、メモは合計 21 件）。"
+      "text": "以下のメモに対応してください（<parts>、メモは合計 21 件）。"
     },
     {
       "locale": "ja",
@@ -14508,7 +14508,7 @@
         "parts": "<parts>",
         "count": 22
       },
-      "text": "以下のメモの内容に従って、項目を修正してください（<parts>、メモは合計 22 件）。"
+      "text": "以下のメモに対応してください（<parts>、メモは合計 22 件）。"
     },
     {
       "locale": "ja",
@@ -14517,7 +14517,7 @@
         "parts": "<parts>",
         "count": 101
       },
-      "text": "以下のメモの内容に従って、項目を修正してください（<parts>、メモは合計 101 件）。"
+      "text": "以下のメモに対応してください（<parts>、メモは合計 101 件）。"
     },
     {
       "locale": "ja",
@@ -14587,7 +14587,7 @@
       "args": {
         "count": 0
       },
-      "text": "すべてのメモにスナップショットがあり、スナップショット上に位置が示されています。修正する前に、スナップショットを確認してください。"
+      "text": "すべてのメモにスナップショットがあり、位置がある場合はスナップショット上に示されています。対応する前に、スナップショットを確認してください。"
     },
     {
       "locale": "ja",
@@ -14595,7 +14595,7 @@
       "args": {
         "count": 1
       },
-      "text": "メモにはスナップショットがあり、スナップショット上に位置が示されています。修正する前に、スナップショットを確認してください。"
+      "text": "メモにはスナップショットがあり、位置がある場合はスナップショット上に示されています。対応する前に、スナップショットを確認してください。"
     },
     {
       "locale": "ja",
@@ -14603,7 +14603,7 @@
       "args": {
         "count": 2
       },
-      "text": "すべてのメモにスナップショットがあり、スナップショット上に位置が示されています。修正する前に、スナップショットを確認してください。"
+      "text": "すべてのメモにスナップショットがあり、位置がある場合はスナップショット上に示されています。対応する前に、スナップショットを確認してください。"
     },
     {
       "locale": "ja",
@@ -14611,7 +14611,7 @@
       "args": {
         "count": 5
       },
-      "text": "すべてのメモにスナップショットがあり、スナップショット上に位置が示されています。修正する前に、スナップショットを確認してください。"
+      "text": "すべてのメモにスナップショットがあり、位置がある場合はスナップショット上に示されています。対応する前に、スナップショットを確認してください。"
     },
     {
       "locale": "ja",
@@ -14619,7 +14619,7 @@
       "args": {
         "count": 21
       },
-      "text": "すべてのメモにスナップショットがあり、スナップショット上に位置が示されています。修正する前に、スナップショットを確認してください。"
+      "text": "すべてのメモにスナップショットがあり、位置がある場合はスナップショット上に示されています。対応する前に、スナップショットを確認してください。"
     },
     {
       "locale": "ja",
@@ -14627,7 +14627,7 @@
       "args": {
         "count": 22
       },
-      "text": "すべてのメモにスナップショットがあり、スナップショット上に位置が示されています。修正する前に、スナップショットを確認してください。"
+      "text": "すべてのメモにスナップショットがあり、位置がある場合はスナップショット上に示されています。対応する前に、スナップショットを確認してください。"
     },
     {
       "locale": "ja",
@@ -14635,13 +14635,13 @@
       "args": {
         "count": 101
       },
-      "text": "すべてのメモにスナップショットがあり、スナップショット上に位置が示されています。修正する前に、スナップショットを確認してください。"
+      "text": "すべてのメモにスナップショットがあり、位置がある場合はスナップショット上に示されています。対応する前に、スナップショットを確認してください。"
     },
     {
       "locale": "ja",
       "key": "ai.handoff.shotsSome",
       "args": {},
-      "text": "スナップショットがあるメモは、先にスナップショットを確認してください（スナップショット上に位置が示されています）。"
+      "text": "スナップショットがあるメモは、先にスナップショットを確認してください（位置がある場合は、スナップショット上に示されています）。"
     },
     {
       "locale": "ja",
@@ -14862,7 +14862,7 @@
       "locale": "ja",
       "key": "ai.review.intro",
       "args": {},
-      "text": "以下は、ユーザーが SnipToss で項目に追加したメモです。1 件ずつ確認してください。スナップショットで位置を確認し（マークが描かれています）、メモの内容に従って項目を修正します。"
+      "text": "以下は、ユーザーが SnipToss で項目に追加したメモです。1 件ずつ、カテゴリに応じて対応してください。スナップショットがあるメモは、先にスナップショットで位置を確認してください（位置があるメモには、スナップショット上にマークが描かれています）。"
     },
     {
       "locale": "ja",
@@ -15461,7 +15461,7 @@
       "args": {
         "hotkeyHint": "<hotkeyHint>"
       },
-      "text": "<hotkeyHint>알림 영역 아이콘을 클릭하면 창이 열리고, 마우스 오른쪽 단추로 클릭하면 끝낼 수 있습니다. 창을 닫을 때 바로 끝내려면 설정 > 일반에서 변경하세요."
+      "text": "<hotkeyHint>알림 영역 아이콘을 클릭하면 창이 열립니다. 아이콘을 마우스 오른쪽 단추로 클릭하고 \"끝내기\"를 선택하면 끝낼 수 있습니다. 창을 닫을 때 바로 끝내려면 설정 > 일반에서 변경하세요."
     },
     {
       "locale": "ko",
@@ -15597,7 +15597,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "화면을 캡처하려면 시스템 설정 > 개인정보 보호 및 보안에서 <app> 앱을 허용한 다음, <app> 앱을 종료하고 다시 여세요. 목록에 <app> 앱이 없으면 +를 클릭하여 추가하세요."
+      "text": "화면을 캡처하려면 시스템 설정 > 개인정보 보호 및 보안 > 화면 및 시스템 오디오 녹음(macOS 14에서는 화면 기록)에서 <app> 앱을 켠 다음, <app> 앱을 종료하고 다시 여세요. 목록에 <app> 앱이 없으면 +를 클릭하여 추가하세요."
     },
     {
       "locale": "ko",
@@ -16358,13 +16358,13 @@
       "locale": "ko",
       "key": "ai.capture.introNumbered",
       "args": {},
-      "text": "이 스크린샷의 메모에 설명된 대로 수정해 주세요. 이미지의 번호는 아래 메모와 일대일로 대응하며, 좌표는 스크린샷의 픽셀 위치입니다(왼쪽 위가 (0, 0)):"
+      "text": "이 스크린샷의 메모를 처리해 주세요(\"질문\"은 답변만 하면 됩니다). 이미지의 번호는 아래 메모와 일대일로 대응하며, 좌표는 스크린샷의 픽셀 위치입니다(왼쪽 위가 (0, 0)):"
     },
     {
       "locale": "ko",
       "key": "ai.capture.introOverall",
       "args": {},
-      "text": "이 스크린샷을 참고하여 다음 전체 변경 사항을 적용해 주세요:"
+      "text": "이 스크린샷을 참고하여 아래 전체 의견을 처리해 주세요:"
     },
     {
       "locale": "ko",
@@ -16679,7 +16679,7 @@
       "args": {
         "count": 0
       },
-      "text": "아래 메모 0개의 설명에 따라 이 폴더의 항목을 수정해 주세요."
+      "text": "이 폴더의 항목에 관한 아래 메모 0개를 처리해 주세요."
     },
     {
       "locale": "ko",
@@ -16687,7 +16687,7 @@
       "args": {
         "count": 1
       },
-      "text": "아래 메모의 설명에 따라 이 폴더의 항목을 수정해 주세요."
+      "text": "이 폴더의 항목에 관한 아래 메모를 처리해 주세요."
     },
     {
       "locale": "ko",
@@ -16695,7 +16695,7 @@
       "args": {
         "count": 2
       },
-      "text": "아래 메모 2개의 설명에 따라 이 폴더의 항목을 수정해 주세요."
+      "text": "이 폴더의 항목에 관한 아래 메모 2개를 처리해 주세요."
     },
     {
       "locale": "ko",
@@ -16703,7 +16703,7 @@
       "args": {
         "count": 5
       },
-      "text": "아래 메모 5개의 설명에 따라 이 폴더의 항목을 수정해 주세요."
+      "text": "이 폴더의 항목에 관한 아래 메모 5개를 처리해 주세요."
     },
     {
       "locale": "ko",
@@ -16711,7 +16711,7 @@
       "args": {
         "count": 21
       },
-      "text": "아래 메모 21개의 설명에 따라 이 폴더의 항목을 수정해 주세요."
+      "text": "이 폴더의 항목에 관한 아래 메모 21개를 처리해 주세요."
     },
     {
       "locale": "ko",
@@ -16719,7 +16719,7 @@
       "args": {
         "count": 22
       },
-      "text": "아래 메모 22개의 설명에 따라 이 폴더의 항목을 수정해 주세요."
+      "text": "이 폴더의 항목에 관한 아래 메모 22개를 처리해 주세요."
     },
     {
       "locale": "ko",
@@ -16727,13 +16727,13 @@
       "args": {
         "count": 101
       },
-      "text": "아래 메모 101개의 설명에 따라 이 폴더의 항목을 수정해 주세요."
+      "text": "이 폴더의 항목에 관한 아래 메모 101개를 처리해 주세요."
     },
     {
       "locale": "ko",
       "key": "ai.handoff.one",
       "args": {},
-      "text": "아래 메모의 설명에 따라 항목을 수정해 주세요."
+      "text": "아래 메모를 처리해 주세요."
     },
     {
       "locale": "ko",
@@ -16742,7 +16742,7 @@
         "thisKind": "<thisKind>",
         "count": 0
       },
-      "text": "<thisKind>에 대해 아래 메모 0개의 설명에 따라 수정해 주세요."
+      "text": "<thisKind>에 관한 아래 메모 0개를 처리해 주세요."
     },
     {
       "locale": "ko",
@@ -16751,7 +16751,7 @@
         "thisKind": "<thisKind>",
         "count": 1
       },
-      "text": "<thisKind>에 대해 아래 메모 1개의 설명에 따라 수정해 주세요."
+      "text": "<thisKind>에 관한 아래 메모 1개를 처리해 주세요."
     },
     {
       "locale": "ko",
@@ -16760,7 +16760,7 @@
         "thisKind": "<thisKind>",
         "count": 2
       },
-      "text": "<thisKind>에 대해 아래 메모 2개의 설명에 따라 수정해 주세요."
+      "text": "<thisKind>에 관한 아래 메모 2개를 처리해 주세요."
     },
     {
       "locale": "ko",
@@ -16769,7 +16769,7 @@
         "thisKind": "<thisKind>",
         "count": 5
       },
-      "text": "<thisKind>에 대해 아래 메모 5개의 설명에 따라 수정해 주세요."
+      "text": "<thisKind>에 관한 아래 메모 5개를 처리해 주세요."
     },
     {
       "locale": "ko",
@@ -16778,7 +16778,7 @@
         "thisKind": "<thisKind>",
         "count": 21
       },
-      "text": "<thisKind>에 대해 아래 메모 21개의 설명에 따라 수정해 주세요."
+      "text": "<thisKind>에 관한 아래 메모 21개를 처리해 주세요."
     },
     {
       "locale": "ko",
@@ -16787,7 +16787,7 @@
         "thisKind": "<thisKind>",
         "count": 22
       },
-      "text": "<thisKind>에 대해 아래 메모 22개의 설명에 따라 수정해 주세요."
+      "text": "<thisKind>에 관한 아래 메모 22개를 처리해 주세요."
     },
     {
       "locale": "ko",
@@ -16796,7 +16796,7 @@
         "thisKind": "<thisKind>",
         "count": 101
       },
-      "text": "<thisKind>에 대해 아래 메모 101개의 설명에 따라 수정해 주세요."
+      "text": "<thisKind>에 관한 아래 메모 101개를 처리해 주세요."
     },
     {
       "locale": "ko",
@@ -16917,7 +16917,7 @@
         "parts": "<parts>",
         "count": 0
       },
-      "text": "아래 메모의 설명에 따라 항목을 수정해 주세요(<parts>, 메모 총 0개)."
+      "text": "아래 메모를 처리해 주세요(<parts>, 메모 총 0개)."
     },
     {
       "locale": "ko",
@@ -16926,7 +16926,7 @@
         "parts": "<parts>",
         "count": 1
       },
-      "text": "아래 메모의 설명에 따라 항목을 수정해 주세요(<parts>, 메모 총 1개)."
+      "text": "아래 메모를 처리해 주세요(<parts>, 메모 총 1개)."
     },
     {
       "locale": "ko",
@@ -16935,7 +16935,7 @@
         "parts": "<parts>",
         "count": 2
       },
-      "text": "아래 메모의 설명에 따라 항목을 수정해 주세요(<parts>, 메모 총 2개)."
+      "text": "아래 메모를 처리해 주세요(<parts>, 메모 총 2개)."
     },
     {
       "locale": "ko",
@@ -16944,7 +16944,7 @@
         "parts": "<parts>",
         "count": 5
       },
-      "text": "아래 메모의 설명에 따라 항목을 수정해 주세요(<parts>, 메모 총 5개)."
+      "text": "아래 메모를 처리해 주세요(<parts>, 메모 총 5개)."
     },
     {
       "locale": "ko",
@@ -16953,7 +16953,7 @@
         "parts": "<parts>",
         "count": 21
       },
-      "text": "아래 메모의 설명에 따라 항목을 수정해 주세요(<parts>, 메모 총 21개)."
+      "text": "아래 메모를 처리해 주세요(<parts>, 메모 총 21개)."
     },
     {
       "locale": "ko",
@@ -16962,7 +16962,7 @@
         "parts": "<parts>",
         "count": 22
       },
-      "text": "아래 메모의 설명에 따라 항목을 수정해 주세요(<parts>, 메모 총 22개)."
+      "text": "아래 메모를 처리해 주세요(<parts>, 메모 총 22개)."
     },
     {
       "locale": "ko",
@@ -16971,7 +16971,7 @@
         "parts": "<parts>",
         "count": 101
       },
-      "text": "아래 메모의 설명에 따라 항목을 수정해 주세요(<parts>, 메모 총 101개)."
+      "text": "아래 메모를 처리해 주세요(<parts>, 메모 총 101개)."
     },
     {
       "locale": "ko",
@@ -17041,7 +17041,7 @@
       "args": {
         "count": 0
       },
-      "text": "모든 메모에 스냅샷이 있으며 스냅샷에 위치가 표시되어 있으므로 수정하기 전에 스냅샷을 확인하세요."
+      "text": "모든 메모에 스냅샷이 있으며 위치가 있는 경우 스냅샷에 표시되어 있으므로 처리하기 전에 스냅샷을 확인하세요."
     },
     {
       "locale": "ko",
@@ -17049,7 +17049,7 @@
       "args": {
         "count": 1
       },
-      "text": "이 메모에는 스냅샷이 있으며 스냅샷에 위치가 표시되어 있으므로 수정하기 전에 스냅샷을 확인하세요."
+      "text": "이 메모에는 스냅샷이 있으며 위치가 있는 경우 스냅샷에 표시되어 있으므로 처리하기 전에 스냅샷을 확인하세요."
     },
     {
       "locale": "ko",
@@ -17057,7 +17057,7 @@
       "args": {
         "count": 2
       },
-      "text": "모든 메모에 스냅샷이 있으며 스냅샷에 위치가 표시되어 있으므로 수정하기 전에 스냅샷을 확인하세요."
+      "text": "모든 메모에 스냅샷이 있으며 위치가 있는 경우 스냅샷에 표시되어 있으므로 처리하기 전에 스냅샷을 확인하세요."
     },
     {
       "locale": "ko",
@@ -17065,7 +17065,7 @@
       "args": {
         "count": 5
       },
-      "text": "모든 메모에 스냅샷이 있으며 스냅샷에 위치가 표시되어 있으므로 수정하기 전에 스냅샷을 확인하세요."
+      "text": "모든 메모에 스냅샷이 있으며 위치가 있는 경우 스냅샷에 표시되어 있으므로 처리하기 전에 스냅샷을 확인하세요."
     },
     {
       "locale": "ko",
@@ -17073,7 +17073,7 @@
       "args": {
         "count": 21
       },
-      "text": "모든 메모에 스냅샷이 있으며 스냅샷에 위치가 표시되어 있으므로 수정하기 전에 스냅샷을 확인하세요."
+      "text": "모든 메모에 스냅샷이 있으며 위치가 있는 경우 스냅샷에 표시되어 있으므로 처리하기 전에 스냅샷을 확인하세요."
     },
     {
       "locale": "ko",
@@ -17081,7 +17081,7 @@
       "args": {
         "count": 22
       },
-      "text": "모든 메모에 스냅샷이 있으며 스냅샷에 위치가 표시되어 있으므로 수정하기 전에 스냅샷을 확인하세요."
+      "text": "모든 메모에 스냅샷이 있으며 위치가 있는 경우 스냅샷에 표시되어 있으므로 처리하기 전에 스냅샷을 확인하세요."
     },
     {
       "locale": "ko",
@@ -17089,13 +17089,13 @@
       "args": {
         "count": 101
       },
-      "text": "모든 메모에 스냅샷이 있으며 스냅샷에 위치가 표시되어 있으므로 수정하기 전에 스냅샷을 확인하세요."
+      "text": "모든 메모에 스냅샷이 있으며 위치가 있는 경우 스냅샷에 표시되어 있으므로 처리하기 전에 스냅샷을 확인하세요."
     },
     {
       "locale": "ko",
       "key": "ai.handoff.shotsSome",
       "args": {},
-      "text": "스냅샷이 있는 메모는 먼저 스냅샷을 확인하세요(위치가 표시되어 있음)."
+      "text": "스냅샷이 있는 메모는 먼저 스냅샷을 확인하세요(위치가 있는 경우 스냅샷에 표시되어 있음)."
     },
     {
       "locale": "ko",
@@ -17316,7 +17316,7 @@
       "locale": "ko",
       "key": "ai.review.intro",
       "args": {},
-      "text": "다음은 사용자가 SnipToss로 항목에 추가한 메모입니다. 하나씩 처리하세요. 스냅샷에서 위치를 확인한 다음(마커가 그려져 있습니다) 메모의 내용대로 항목을 수정하세요."
+      "text": "다음은 사용자가 SnipToss로 항목에 추가한 메모입니다. 하나씩 분류에 따라 처리하세요. 스냅샷이 있는 메모는 먼저 스냅샷에서 위치를 확인하세요(위치가 있는 메모는 마커가 스냅샷에 그려져 있습니다)."
     },
     {
       "locale": "ko",
@@ -17915,7 +17915,7 @@
       "args": {
         "hotkeyHint": "<hotkeyHint>"
       },
-      "text": "<hotkeyHint>Clique no ícone da área de notificação para abrir a janela ou clique com o botão direito para sair. Para sair ao fechar a janela, altere isso em Configurações → Geral."
+      "text": "<hotkeyHint>Clique no ícone da área de notificação para abrir a janela; para sair, clique com o botão direito e escolha Sair. Altere isso em Configurações → Geral."
     },
     {
       "locale": "pt-BR",
@@ -18051,7 +18051,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "Para capturar a tela, permita o <app> em Ajustes do Sistema → Privacidade e Segurança, depois saia do <app> e abra-o novamente. Se o <app> não estiver na lista, clique em + para adicioná-lo."
+      "text": "Para capturar a tela, ative o <app> em Ajustes do Sistema → Privacidade e Segurança → Gravação do Áudio do Sistema e da Tela (Gravação de Tela no macOS 14), depois saia do <app> e abra-o novamente. Se o <app> não estiver na lista, clique em + para adicioná-lo."
     },
     {
       "locale": "pt-BR",
@@ -18561,7 +18561,7 @@
       "locale": "pt-BR",
       "key": "capture.hint.drag",
       "args": {},
-      "text": "Arraste uma área"
+      "text": "Arraste para selecionar uma área"
     },
     {
       "locale": "pt-BR",
@@ -18866,13 +18866,13 @@
       "locale": "pt-BR",
       "key": "ai.capture.introNumbered",
       "args": {},
-      "text": "Faça as alterações descritas pelas notas nesta captura de tela. Os números na imagem correspondem, um a um, às notas abaixo; as coordenadas são posições em pixels na captura de tela ((0, 0) é o canto superior esquerdo):"
+      "text": "Trate as notas desta captura de tela (uma “Pergunta” só precisa de resposta). Os números na imagem correspondem, um a um, às notas abaixo; as coordenadas são posições em pixels na captura de tela ((0, 0) é o canto superior esquerdo):"
     },
     {
       "locale": "pt-BR",
       "key": "ai.capture.introOverall",
       "args": {},
-      "text": "Use esta captura de tela como referência e faça as seguintes alterações gerais:"
+      "text": "Use esta captura de tela como referência e trate o comentário geral abaixo:"
     },
     {
       "locale": "pt-BR",
@@ -19026,7 +19026,7 @@
       "locale": "pt-BR",
       "key": "ai.anchor.overall",
       "args": {},
-      "text": "Geral"
+      "text": "Comentário geral"
     },
     {
       "locale": "pt-BR",
@@ -19187,7 +19187,7 @@
       "args": {
         "count": 0
       },
-      "text": "Altere os itens desta pasta conforme descrito nas 0 notas abaixo."
+      "text": "Trate as 0 notas abaixo sobre os itens desta pasta."
     },
     {
       "locale": "pt-BR",
@@ -19195,7 +19195,7 @@
       "args": {
         "count": 1
       },
-      "text": "Altere os itens desta pasta conforme descrito na nota abaixo."
+      "text": "Trate a nota abaixo sobre os itens desta pasta."
     },
     {
       "locale": "pt-BR",
@@ -19203,7 +19203,7 @@
       "args": {
         "count": 2
       },
-      "text": "Altere os itens desta pasta conforme descrito nas 2 notas abaixo."
+      "text": "Trate as 2 notas abaixo sobre os itens desta pasta."
     },
     {
       "locale": "pt-BR",
@@ -19211,7 +19211,7 @@
       "args": {
         "count": 5
       },
-      "text": "Altere os itens desta pasta conforme descrito nas 5 notas abaixo."
+      "text": "Trate as 5 notas abaixo sobre os itens desta pasta."
     },
     {
       "locale": "pt-BR",
@@ -19219,7 +19219,7 @@
       "args": {
         "count": 21
       },
-      "text": "Altere os itens desta pasta conforme descrito nas 21 notas abaixo."
+      "text": "Trate as 21 notas abaixo sobre os itens desta pasta."
     },
     {
       "locale": "pt-BR",
@@ -19227,7 +19227,7 @@
       "args": {
         "count": 22
       },
-      "text": "Altere os itens desta pasta conforme descrito nas 22 notas abaixo."
+      "text": "Trate as 22 notas abaixo sobre os itens desta pasta."
     },
     {
       "locale": "pt-BR",
@@ -19235,76 +19235,76 @@
       "args": {
         "count": 101
       },
-      "text": "Altere os itens desta pasta conforme descrito nas 101 notas abaixo."
+      "text": "Trate as 101 notas abaixo sobre os itens desta pasta."
     },
     {
       "locale": "pt-BR",
       "key": "ai.handoff.one",
       "args": {},
-      "text": "Altere o item conforme descrito na nota abaixo."
+      "text": "Trate a nota abaixo."
     },
     {
       "locale": "pt-BR",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 0
+        "count": 0,
+        "thisKind": "<thisKind>"
       },
-      "text": "Altere <thisKind> conforme descrito na nota abaixo."
+      "text": "Trate a nota abaixo sobre <thisKind>."
     },
     {
       "locale": "pt-BR",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 1
+        "count": 1,
+        "thisKind": "<thisKind>"
       },
-      "text": "Altere <thisKind> conforme descrito na nota abaixo."
+      "text": "Trate a nota abaixo sobre <thisKind>."
     },
     {
       "locale": "pt-BR",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 2
+        "count": 2,
+        "thisKind": "<thisKind>"
       },
-      "text": "Altere <thisKind> conforme descrito nas 2 notas abaixo."
+      "text": "Trate as 2 notas abaixo sobre <thisKind>."
     },
     {
       "locale": "pt-BR",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 5
+        "count": 5,
+        "thisKind": "<thisKind>"
       },
-      "text": "Altere <thisKind> conforme descrito nas 5 notas abaixo."
+      "text": "Trate as 5 notas abaixo sobre <thisKind>."
     },
     {
       "locale": "pt-BR",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 21
+        "count": 21,
+        "thisKind": "<thisKind>"
       },
-      "text": "Altere <thisKind> conforme descrito nas 21 notas abaixo."
+      "text": "Trate as 21 notas abaixo sobre <thisKind>."
     },
     {
       "locale": "pt-BR",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 22
+        "count": 22,
+        "thisKind": "<thisKind>"
       },
-      "text": "Altere <thisKind> conforme descrito nas 22 notas abaixo."
+      "text": "Trate as 22 notas abaixo sobre <thisKind>."
     },
     {
       "locale": "pt-BR",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 101
+        "count": 101,
+        "thisKind": "<thisKind>"
       },
-      "text": "Altere <thisKind> conforme descrito nas 101 notas abaixo."
+      "text": "Trate as 101 notas abaixo sobre <thisKind>."
     },
     {
       "locale": "pt-BR",
@@ -19425,7 +19425,7 @@
         "parts": "<parts>",
         "count": 0
       },
-      "text": "Altere os itens conforme descrito nas notas abaixo (<parts>; 0 nota no total)."
+      "text": "Trate as notas abaixo (<parts>; 0 nota no total)."
     },
     {
       "locale": "pt-BR",
@@ -19434,7 +19434,7 @@
         "parts": "<parts>",
         "count": 1
       },
-      "text": "Altere os itens conforme descrito nas notas abaixo (<parts>; 1 nota no total)."
+      "text": "Trate as notas abaixo (<parts>; 1 nota no total)."
     },
     {
       "locale": "pt-BR",
@@ -19443,7 +19443,7 @@
         "parts": "<parts>",
         "count": 2
       },
-      "text": "Altere os itens conforme descrito nas notas abaixo (<parts>; 2 notas no total)."
+      "text": "Trate as notas abaixo (<parts>; 2 notas no total)."
     },
     {
       "locale": "pt-BR",
@@ -19452,7 +19452,7 @@
         "parts": "<parts>",
         "count": 5
       },
-      "text": "Altere os itens conforme descrito nas notas abaixo (<parts>; 5 notas no total)."
+      "text": "Trate as notas abaixo (<parts>; 5 notas no total)."
     },
     {
       "locale": "pt-BR",
@@ -19461,7 +19461,7 @@
         "parts": "<parts>",
         "count": 21
       },
-      "text": "Altere os itens conforme descrito nas notas abaixo (<parts>; 21 notas no total)."
+      "text": "Trate as notas abaixo (<parts>; 21 notas no total)."
     },
     {
       "locale": "pt-BR",
@@ -19470,7 +19470,7 @@
         "parts": "<parts>",
         "count": 22
       },
-      "text": "Altere os itens conforme descrito nas notas abaixo (<parts>; 22 notas no total)."
+      "text": "Trate as notas abaixo (<parts>; 22 notas no total)."
     },
     {
       "locale": "pt-BR",
@@ -19479,7 +19479,7 @@
         "parts": "<parts>",
         "count": 101
       },
-      "text": "Altere os itens conforme descrito nas notas abaixo (<parts>; 101 notas no total)."
+      "text": "Trate as notas abaixo (<parts>; 101 notas no total)."
     },
     {
       "locale": "pt-BR",
@@ -19549,7 +19549,7 @@
       "args": {
         "count": 0
       },
-      "text": "Cada nota tem um instantâneo com a posição marcada; veja o instantâneo antes de fazer a alteração."
+      "text": "Cada nota tem um instantâneo com a posição marcada, se houver; veja o instantâneo antes de agir."
     },
     {
       "locale": "pt-BR",
@@ -19557,7 +19557,7 @@
       "args": {
         "count": 1
       },
-      "text": "A nota tem um instantâneo com a posição marcada; veja o instantâneo antes de fazer a alteração."
+      "text": "A nota tem um instantâneo com a posição marcada, se houver; veja o instantâneo antes de agir."
     },
     {
       "locale": "pt-BR",
@@ -19565,7 +19565,7 @@
       "args": {
         "count": 2
       },
-      "text": "Cada nota tem um instantâneo com a posição marcada; veja o instantâneo antes de fazer a alteração."
+      "text": "Cada nota tem um instantâneo com a posição marcada, se houver; veja o instantâneo antes de agir."
     },
     {
       "locale": "pt-BR",
@@ -19573,7 +19573,7 @@
       "args": {
         "count": 5
       },
-      "text": "Cada nota tem um instantâneo com a posição marcada; veja o instantâneo antes de fazer a alteração."
+      "text": "Cada nota tem um instantâneo com a posição marcada, se houver; veja o instantâneo antes de agir."
     },
     {
       "locale": "pt-BR",
@@ -19581,7 +19581,7 @@
       "args": {
         "count": 21
       },
-      "text": "Cada nota tem um instantâneo com a posição marcada; veja o instantâneo antes de fazer a alteração."
+      "text": "Cada nota tem um instantâneo com a posição marcada, se houver; veja o instantâneo antes de agir."
     },
     {
       "locale": "pt-BR",
@@ -19589,7 +19589,7 @@
       "args": {
         "count": 22
       },
-      "text": "Cada nota tem um instantâneo com a posição marcada; veja o instantâneo antes de fazer a alteração."
+      "text": "Cada nota tem um instantâneo com a posição marcada, se houver; veja o instantâneo antes de agir."
     },
     {
       "locale": "pt-BR",
@@ -19597,13 +19597,13 @@
       "args": {
         "count": 101
       },
-      "text": "Cada nota tem um instantâneo com a posição marcada; veja o instantâneo antes de fazer a alteração."
+      "text": "Cada nota tem um instantâneo com a posição marcada, se houver; veja o instantâneo antes de agir."
     },
     {
       "locale": "pt-BR",
       "key": "ai.handoff.shotsSome",
       "args": {},
-      "text": "Nas notas que têm instantâneo, veja primeiro o instantâneo (a posição está marcada nele)."
+      "text": "Nas notas que têm instantâneo, veja primeiro o instantâneo (a posição, se houver, está marcada nele)."
     },
     {
       "locale": "pt-BR",
@@ -19824,7 +19824,7 @@
       "locale": "pt-BR",
       "key": "ai.review.intro",
       "args": {},
-      "text": "Estas são notas que o usuário adicionou aos seus itens com o SnipToss. Percorra-as uma a uma: veja o instantâneo para confirmar a posição (a marcação está desenhada nele) e depois altere o item conforme a nota."
+      "text": "Estas são notas que o usuário adicionou aos seus itens com o SnipToss. Percorra-as uma a uma e trate cada uma de acordo com a categoria; se uma nota tiver instantâneo, veja-o primeiro para confirmar a posição (as marcações, se houver, estão desenhadas nele)."
     },
     {
       "locale": "pt-BR",
@@ -20477,7 +20477,7 @@
       "args": {
         "hotkeyHint": "<hotkeyHint>"
       },
-      "text": "<hotkeyHint>Щёлкните значок в области уведомлений, чтобы открыть окно, или правой кнопкой мыши, чтобы выйти. Изменить это можно в разделе Параметры → Общие."
+      "text": "<hotkeyHint>Щёлкните значок в области уведомлений, чтобы открыть окно. Чтобы выйти, щёлкните значок правой кнопкой мыши и выберите «Выход». Изменить это можно в разделе Параметры → Общие."
     },
     {
       "locale": "ru",
@@ -20613,7 +20613,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "Чтобы захватывать экран, разрешите <app> запись экрана в разделе Системные настройки → Конфиденциальность и безопасность, затем завершите работу <app> и откройте приложение снова. Если <app> нет в списке, нажмите «+», чтобы добавить его."
+      "text": "Чтобы захватывать экран, включите <app> в разделе Системные настройки → Конфиденциальность и безопасность → Запись экрана и системного звука (в macOS 14 — Запись экрана), затем завершите работу <app> и откройте приложение снова. Если <app> нет в списке, нажмите «+», чтобы добавить его."
     },
     {
       "locale": "ru",
@@ -21416,7 +21416,7 @@
       "locale": "ru",
       "key": "ai.capture.blockNumbered",
       "args": {},
-      "text": "Заметки для ИИ: номера на изображении соответствуют заметкам ниже по порядку; координаты — положение в пикселях на снимке экрана выше, (0, 0) — левый верхний угол"
+      "text": "Заметки для ИИ: каждый номер на изображении соответствует заметке с тем же номером ниже; координаты — положение в пикселях на снимке экрана выше, (0, 0) — левый верхний угол"
     },
     {
       "locale": "ru",
@@ -21428,13 +21428,13 @@
       "locale": "ru",
       "key": "ai.capture.introNumbered",
       "args": {},
-      "text": "Внесите изменения, описанные в заметках к этому снимку экрана. Номера на изображении соответствуют заметкам ниже по порядку; координаты — положение в пикселях на снимке экрана ((0, 0) — левый верхний угол):"
+      "text": "Обработайте заметки на этом снимке экрана (на «Вопрос» достаточно ответить). Каждый номер на изображении соответствует заметке с тем же номером ниже; координаты — положение в пикселях на снимке экрана ((0, 0) — левый верхний угол):"
     },
     {
       "locale": "ru",
       "key": "ai.capture.introOverall",
       "args": {},
-      "text": "Используйте этот снимок экрана как образец и внесите следующие общие изменения:"
+      "text": "Используйте этот снимок экрана как образец и обработайте общий комментарий ниже:"
     },
     {
       "locale": "ru",
@@ -21588,7 +21588,7 @@
       "locale": "ru",
       "key": "ai.anchor.overall",
       "args": {},
-      "text": "Общий"
+      "text": "Общий комментарий"
     },
     {
       "locale": "ru",
@@ -21749,7 +21749,7 @@
       "args": {
         "count": 0
       },
-      "text": "Внесите изменения в элементы этой папки в соответствии с 0 заметками ниже."
+      "text": "Обработайте 0 заметок ниже, относящихся к элементам этой папки."
     },
     {
       "locale": "ru",
@@ -21757,7 +21757,7 @@
       "args": {
         "count": 1
       },
-      "text": "Внесите изменения в элементы этой папки в соответствии с заметкой ниже."
+      "text": "Обработайте заметку ниже, относящуюся к элементам этой папки."
     },
     {
       "locale": "ru",
@@ -21765,7 +21765,7 @@
       "args": {
         "count": 2
       },
-      "text": "Внесите изменения в элементы этой папки в соответствии с 2 заметками ниже."
+      "text": "Обработайте 2 заметки ниже, относящиеся к элементам этой папки."
     },
     {
       "locale": "ru",
@@ -21773,7 +21773,7 @@
       "args": {
         "count": 5
       },
-      "text": "Внесите изменения в элементы этой папки в соответствии с 5 заметками ниже."
+      "text": "Обработайте 5 заметок ниже, относящихся к элементам этой папки."
     },
     {
       "locale": "ru",
@@ -21781,7 +21781,7 @@
       "args": {
         "count": 21
       },
-      "text": "Внесите изменения в элементы этой папки в соответствии с 21 заметкой ниже."
+      "text": "Обработайте 21 заметку ниже, относящуюся к элементам этой папки."
     },
     {
       "locale": "ru",
@@ -21789,7 +21789,7 @@
       "args": {
         "count": 22
       },
-      "text": "Внесите изменения в элементы этой папки в соответствии с 22 заметками ниже."
+      "text": "Обработайте 22 заметки ниже, относящиеся к элементам этой папки."
     },
     {
       "locale": "ru",
@@ -21797,76 +21797,76 @@
       "args": {
         "count": 101
       },
-      "text": "Внесите изменения в элементы этой папки в соответствии с 101 заметкой ниже."
+      "text": "Обработайте 101 заметку ниже, относящуюся к элементам этой папки."
     },
     {
       "locale": "ru",
       "key": "ai.handoff.one",
       "args": {},
-      "text": "Внесите изменения в элемент в соответствии с заметкой ниже."
+      "text": "Обработайте заметку ниже."
     },
     {
       "locale": "ru",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 0
+        "count": 0,
+        "thisKind": "<thisKind>"
       },
-      "text": "Внесите изменения для <thisKind> в соответствии с 0 заметками ниже."
+      "text": "Обработайте 0 заметок ниже для <thisKind>."
     },
     {
       "locale": "ru",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 1
+        "count": 1,
+        "thisKind": "<thisKind>"
       },
-      "text": "Внесите изменения для <thisKind> в соответствии с 1 заметкой ниже."
+      "text": "Обработайте 1 заметку ниже для <thisKind>."
     },
     {
       "locale": "ru",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 2
+        "count": 2,
+        "thisKind": "<thisKind>"
       },
-      "text": "Внесите изменения для <thisKind> в соответствии с 2 заметками ниже."
+      "text": "Обработайте 2 заметки ниже для <thisKind>."
     },
     {
       "locale": "ru",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 5
+        "count": 5,
+        "thisKind": "<thisKind>"
       },
-      "text": "Внесите изменения для <thisKind> в соответствии с 5 заметками ниже."
+      "text": "Обработайте 5 заметок ниже для <thisKind>."
     },
     {
       "locale": "ru",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 21
+        "count": 21,
+        "thisKind": "<thisKind>"
       },
-      "text": "Внесите изменения для <thisKind> в соответствии с 21 заметкой ниже."
+      "text": "Обработайте 21 заметку ниже для <thisKind>."
     },
     {
       "locale": "ru",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 22
+        "count": 22,
+        "thisKind": "<thisKind>"
       },
-      "text": "Внесите изменения для <thisKind> в соответствии с 22 заметками ниже."
+      "text": "Обработайте 22 заметки ниже для <thisKind>."
     },
     {
       "locale": "ru",
       "key": "ai.handoff.material",
       "args": {
-        "thisKind": "<thisKind>",
-        "count": 101
+        "count": 101,
+        "thisKind": "<thisKind>"
       },
-      "text": "Внесите изменения для <thisKind> в соответствии с 101 заметкой ниже."
+      "text": "Обработайте 101 заметку ниже для <thisKind>."
     },
     {
       "locale": "ru",
@@ -21987,7 +21987,7 @@
         "parts": "<parts>",
         "count": 0
       },
-      "text": "Внесите изменения в элементы в соответствии с заметками ниже (<parts>; всего: 0 заметок)."
+      "text": "Обработайте заметки ниже (<parts>; всего: 0 заметок)."
     },
     {
       "locale": "ru",
@@ -21996,7 +21996,7 @@
         "parts": "<parts>",
         "count": 1
       },
-      "text": "Внесите изменения в элементы в соответствии с заметками ниже (<parts>; всего: 1 заметка)."
+      "text": "Обработайте заметки ниже (<parts>; всего: 1 заметка)."
     },
     {
       "locale": "ru",
@@ -22005,7 +22005,7 @@
         "parts": "<parts>",
         "count": 2
       },
-      "text": "Внесите изменения в элементы в соответствии с заметками ниже (<parts>; всего: 2 заметки)."
+      "text": "Обработайте заметки ниже (<parts>; всего: 2 заметки)."
     },
     {
       "locale": "ru",
@@ -22014,7 +22014,7 @@
         "parts": "<parts>",
         "count": 5
       },
-      "text": "Внесите изменения в элементы в соответствии с заметками ниже (<parts>; всего: 5 заметок)."
+      "text": "Обработайте заметки ниже (<parts>; всего: 5 заметок)."
     },
     {
       "locale": "ru",
@@ -22023,7 +22023,7 @@
         "parts": "<parts>",
         "count": 21
       },
-      "text": "Внесите изменения в элементы в соответствии с заметками ниже (<parts>; всего: 21 заметка)."
+      "text": "Обработайте заметки ниже (<parts>; всего: 21 заметка)."
     },
     {
       "locale": "ru",
@@ -22032,7 +22032,7 @@
         "parts": "<parts>",
         "count": 22
       },
-      "text": "Внесите изменения в элементы в соответствии с заметками ниже (<parts>; всего: 22 заметки)."
+      "text": "Обработайте заметки ниже (<parts>; всего: 22 заметки)."
     },
     {
       "locale": "ru",
@@ -22041,7 +22041,7 @@
         "parts": "<parts>",
         "count": 101
       },
-      "text": "Внесите изменения в элементы в соответствии с заметками ниже (<parts>; всего: 101 заметка)."
+      "text": "Обработайте заметки ниже (<parts>; всего: 101 заметка)."
     },
     {
       "locale": "ru",
@@ -22111,7 +22111,7 @@
       "args": {
         "count": 0
       },
-      "text": "У каждой заметки есть снимок с отмеченным положением; прежде чем вносить изменения, посмотрите снимок."
+      "text": "У каждой заметки есть снимок, на котором отмечено положение, если оно есть; прежде чем приступать к обработке, посмотрите снимок."
     },
     {
       "locale": "ru",
@@ -22119,7 +22119,7 @@
       "args": {
         "count": 1
       },
-      "text": "У заметки есть снимок с отмеченным положением; прежде чем вносить изменения, посмотрите снимок."
+      "text": "У заметки есть снимок, на котором отмечено положение, если оно есть; прежде чем приступать к обработке, посмотрите снимок."
     },
     {
       "locale": "ru",
@@ -22127,7 +22127,7 @@
       "args": {
         "count": 2
       },
-      "text": "У каждой заметки есть снимок с отмеченным положением; прежде чем вносить изменения, посмотрите снимок."
+      "text": "У каждой заметки есть снимок, на котором отмечено положение, если оно есть; прежде чем приступать к обработке, посмотрите снимок."
     },
     {
       "locale": "ru",
@@ -22135,7 +22135,7 @@
       "args": {
         "count": 5
       },
-      "text": "У каждой заметки есть снимок с отмеченным положением; прежде чем вносить изменения, посмотрите снимок."
+      "text": "У каждой заметки есть снимок, на котором отмечено положение, если оно есть; прежде чем приступать к обработке, посмотрите снимок."
     },
     {
       "locale": "ru",
@@ -22143,7 +22143,7 @@
       "args": {
         "count": 21
       },
-      "text": "У каждой заметки есть снимок с отмеченным положением; прежде чем вносить изменения, посмотрите снимок."
+      "text": "У каждой заметки есть снимок, на котором отмечено положение, если оно есть; прежде чем приступать к обработке, посмотрите снимок."
     },
     {
       "locale": "ru",
@@ -22151,7 +22151,7 @@
       "args": {
         "count": 22
       },
-      "text": "У каждой заметки есть снимок с отмеченным положением; прежде чем вносить изменения, посмотрите снимок."
+      "text": "У каждой заметки есть снимок, на котором отмечено положение, если оно есть; прежде чем приступать к обработке, посмотрите снимок."
     },
     {
       "locale": "ru",
@@ -22159,13 +22159,13 @@
       "args": {
         "count": 101
       },
-      "text": "У каждой заметки есть снимок с отмеченным положением; прежде чем вносить изменения, посмотрите снимок."
+      "text": "У каждой заметки есть снимок, на котором отмечено положение, если оно есть; прежде чем приступать к обработке, посмотрите снимок."
     },
     {
       "locale": "ru",
       "key": "ai.handoff.shotsSome",
       "args": {},
-      "text": "Для заметок со снимком сначала посмотрите снимок (положение отмечено на нём)."
+      "text": "Для заметок со снимком сначала посмотрите снимок (положение, если оно есть, отмечено на нём)."
     },
     {
       "locale": "ru",
@@ -22386,7 +22386,7 @@
       "locale": "ru",
       "key": "ai.review.intro",
       "args": {},
-      "text": "Это заметки, которые пользователь добавил к своим элементам в SnipToss. Рассмотрите их по очереди: посмотрите снимок, чтобы уточнить положение (на нём нарисована метка), затем измените элемент так, как сказано в заметке."
+      "text": "Это заметки, которые пользователь добавил к своим элементам в SnipToss. Рассмотрите их по очереди и обработайте каждую в соответствии с её категорией; если у заметки есть снимок, сначала посмотрите его, чтобы уточнить положение (метки, если они есть, нарисованы на нём)."
     },
     {
       "locale": "ru",
@@ -22985,7 +22985,7 @@
       "args": {
         "hotkeyHint": "<hotkeyHint>"
       },
-      "text": "<hotkeyHint>单击托盘图标打开窗口，右键单击可退出。如需关闭窗口时直接退出，可在「设置 → 常规」中更改。"
+      "text": "<hotkeyHint>单击托盘图标打开窗口；右键单击图标并选择「退出」可退出程序。如需关闭窗口时直接退出，可在「设置 → 常规」中更改。"
     },
     {
       "locale": "zh-CN",
@@ -23121,7 +23121,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "要截图，请在「系统设置 → 隐私与安全性」中允许<app>，然后退出<app>并重新打开。如果列表中没有<app>，请单击「+」添加。"
+      "text": "要截图，请在「系统设置 → 隐私与安全性 → 录屏与系统录音」（macOS 14 为「屏幕录制」）中打开<app>，然后退出<app>并重新打开。如果列表中没有<app>，请单击「+」添加。"
     },
     {
       "locale": "zh-CN",
@@ -23720,13 +23720,13 @@
       "locale": "zh-CN",
       "key": "ai.capture.introNumbered",
       "args": {},
-      "text": "请按这张截图上的批注修改。图上的序号与下列批注一一对应，坐标为截图中的像素位置（左上角为 0, 0）："
+      "text": "请按这张截图上的批注处理（「疑问」只需回答）。图上的序号与下列批注一一对应，坐标为截图中的像素位置（左上角为 0, 0）："
     },
     {
       "locale": "zh-CN",
       "key": "ai.capture.introOverall",
       "args": {},
-      "text": "请参照这张截图，按以下整体意见修改："
+      "text": "请参照这张截图，按以下整体意见处理："
     },
     {
       "locale": "zh-CN",
@@ -23993,7 +23993,7 @@
       "args": {
         "count": 0
       },
-      "text": "请按以下 0 条批注修改这个文件夹内的素材。"
+      "text": "请按以下 0 条批注处理这个文件夹内的素材。"
     },
     {
       "locale": "zh-CN",
@@ -24001,7 +24001,7 @@
       "args": {
         "count": 1
       },
-      "text": "请按以下批注修改这个文件夹内的素材。"
+      "text": "请按以下批注处理这个文件夹内的素材。"
     },
     {
       "locale": "zh-CN",
@@ -24009,7 +24009,7 @@
       "args": {
         "count": 2
       },
-      "text": "请按以下 2 条批注修改这个文件夹内的素材。"
+      "text": "请按以下 2 条批注处理这个文件夹内的素材。"
     },
     {
       "locale": "zh-CN",
@@ -24017,7 +24017,7 @@
       "args": {
         "count": 5
       },
-      "text": "请按以下 5 条批注修改这个文件夹内的素材。"
+      "text": "请按以下 5 条批注处理这个文件夹内的素材。"
     },
     {
       "locale": "zh-CN",
@@ -24025,7 +24025,7 @@
       "args": {
         "count": 21
       },
-      "text": "请按以下 21 条批注修改这个文件夹内的素材。"
+      "text": "请按以下 21 条批注处理这个文件夹内的素材。"
     },
     {
       "locale": "zh-CN",
@@ -24033,7 +24033,7 @@
       "args": {
         "count": 22
       },
-      "text": "请按以下 22 条批注修改这个文件夹内的素材。"
+      "text": "请按以下 22 条批注处理这个文件夹内的素材。"
     },
     {
       "locale": "zh-CN",
@@ -24041,13 +24041,13 @@
       "args": {
         "count": 101
       },
-      "text": "请按以下 101 条批注修改这个文件夹内的素材。"
+      "text": "请按以下 101 条批注处理这个文件夹内的素材。"
     },
     {
       "locale": "zh-CN",
       "key": "ai.handoff.one",
       "args": {},
-      "text": "请按以下批注修改素材。"
+      "text": "请按以下批注处理素材。"
     },
     {
       "locale": "zh-CN",
@@ -24056,7 +24056,7 @@
         "count": "<count>",
         "thisKind": "<thisKind>"
       },
-      "text": "请按以下 <count> 条批注修改<thisKind>。"
+      "text": "请按以下 <count> 条批注处理<thisKind>。"
     },
     {
       "locale": "zh-CN",
@@ -24081,7 +24081,7 @@
         "parts": "<parts>",
         "count": "<count>"
       },
-      "text": "请按以下批注修改素材（<parts>，共 <count> 条）。"
+      "text": "请按以下批注处理素材（<parts>，共 <count> 条）。"
     },
     {
       "locale": "zh-CN",
@@ -24103,7 +24103,7 @@
       "args": {
         "count": 0
       },
-      "text": "每条批注均附有截图，截图中已用标记标出位置，请先查看截图再处理。"
+      "text": "每条批注均附有截图，有位置的批注已在截图中标出，请先查看截图再处理。"
     },
     {
       "locale": "zh-CN",
@@ -24111,7 +24111,7 @@
       "args": {
         "count": 1
       },
-      "text": "批注附有截图，截图中已用标记标出位置，请先查看截图再处理。"
+      "text": "批注附有截图，有位置的批注已在截图中标出，请先查看截图再处理。"
     },
     {
       "locale": "zh-CN",
@@ -24119,7 +24119,7 @@
       "args": {
         "count": 2
       },
-      "text": "每条批注均附有截图，截图中已用标记标出位置，请先查看截图再处理。"
+      "text": "每条批注均附有截图，有位置的批注已在截图中标出，请先查看截图再处理。"
     },
     {
       "locale": "zh-CN",
@@ -24127,7 +24127,7 @@
       "args": {
         "count": 5
       },
-      "text": "每条批注均附有截图，截图中已用标记标出位置，请先查看截图再处理。"
+      "text": "每条批注均附有截图，有位置的批注已在截图中标出，请先查看截图再处理。"
     },
     {
       "locale": "zh-CN",
@@ -24135,7 +24135,7 @@
       "args": {
         "count": 21
       },
-      "text": "每条批注均附有截图，截图中已用标记标出位置，请先查看截图再处理。"
+      "text": "每条批注均附有截图，有位置的批注已在截图中标出，请先查看截图再处理。"
     },
     {
       "locale": "zh-CN",
@@ -24143,7 +24143,7 @@
       "args": {
         "count": 22
       },
-      "text": "每条批注均附有截图，截图中已用标记标出位置，请先查看截图再处理。"
+      "text": "每条批注均附有截图，有位置的批注已在截图中标出，请先查看截图再处理。"
     },
     {
       "locale": "zh-CN",
@@ -24151,13 +24151,13 @@
       "args": {
         "count": 101
       },
-      "text": "每条批注均附有截图，截图中已用标记标出位置，请先查看截图再处理。"
+      "text": "每条批注均附有截图，有位置的批注已在截图中标出，请先查看截图再处理。"
     },
     {
       "locale": "zh-CN",
       "key": "ai.handoff.shotsSome",
       "args": {},
-      "text": "附有「截图」的批注，请先查看截图（截图中已用标记标出位置）再处理。"
+      "text": "附有「截图」的批注，请先查看截图（有位置的批注已在截图中标出）再处理。"
     },
     {
       "locale": "zh-CN",
@@ -24330,7 +24330,7 @@
       "locale": "zh-CN",
       "key": "ai.review.intro",
       "args": {},
-      "text": "以下是用户使用超级批注（SnipToss）为素材添加的批注。请逐条处理：查看「截图」确认位置（截图中已画出标记），再按批注修改对应素材。"
+      "text": "以下是用户使用超级批注（SnipToss）为素材添加的批注。请逐条按类别处理；附有「截图」的，先查看截图确认位置（有位置的批注已在截图中画出标记）。"
     },
     {
       "locale": "zh-CN",
@@ -24619,7 +24619,7 @@
       "locale": "zh-TW",
       "key": "markColor.deleteNote",
       "args": {},
-      "text": "刪除這條批註"
+      "text": "刪除這則批註"
     },
     {
       "locale": "zh-TW",
@@ -24929,7 +24929,7 @@
       "args": {
         "hotkeyHint": "<hotkeyHint>"
       },
-      "text": "<hotkeyHint>按一下系統匣圖示可開啟視窗，按一下滑鼠右鍵可結束程式。若希望關閉視窗時直接結束，可在「設定 → 一般」中變更。"
+      "text": "<hotkeyHint>按一下系統匣圖示可開啟視窗；按一下滑鼠右鍵並選擇「結束」可結束程式。若希望關閉視窗時直接結束，可在「設定 → 一般」中變更。"
     },
     {
       "locale": "zh-TW",
@@ -25065,7 +25065,7 @@
       "args": {
         "app": "<app>"
       },
-      "text": "若要截圖，請在「系統設定 → 隱私權與安全性」中允許<app>，然後結束<app>並重新開啟。如果清單中沒有<app>，請按一下「+」加入。"
+      "text": "若要截圖，請在「系統設定 → 隱私權與安全性 → 螢幕與系統錄音」（macOS 14 為「螢幕錄影」）中開啟<app>，然後結束<app>並重新開啟。如果清單中沒有<app>，請按一下「+」加入。"
     },
     {
       "locale": "zh-TW",
@@ -25094,7 +25094,7 @@
         "where": "diskImage",
         "app": "<app>"
       },
-      "text": "<app>目前是直接從磁碟映像檔開啟的，推出磁碟映像檔後就無法再開啟了。"
+      "text": "<app>目前是直接從磁碟映像檔開啟的，退出磁碟映像檔後就無法再開啟了。"
     },
     {
       "locale": "zh-TW",
@@ -25664,13 +25664,13 @@
       "locale": "zh-TW",
       "key": "ai.capture.introNumbered",
       "args": {},
-      "text": "請依這張截圖上的批註修改。圖上的序號與下列批註一一對應，座標為截圖中的像素位置（左上角為 0, 0）："
+      "text": "請依這張截圖上的批註處理（「疑問」只需回答）。圖上的序號與下列批註一一對應，座標為截圖中的像素位置（左上角為 0, 0）："
     },
     {
       "locale": "zh-TW",
       "key": "ai.capture.introOverall",
       "args": {},
-      "text": "請參照這張截圖，依以下整體意見修改："
+      "text": "請參照這張截圖，依以下整體意見處理："
     },
     {
       "locale": "zh-TW",
@@ -25881,7 +25881,7 @@
       "args": {
         "count": 0
       },
-      "text": "以下 0 則批註均已處理（標有「已處理」），僅供對照；除非使用者另有說明，無需重新修改。"
+      "text": "以下 0 則批註均已處理（標有「已處理」），僅供對照；除非使用者另有說明，請勿因這些批註修改任何內容。"
     },
     {
       "locale": "zh-TW",
@@ -25889,7 +25889,7 @@
       "args": {
         "count": 1
       },
-      "text": "以下批註已處理（標有「已處理」），僅供對照；除非使用者另有說明，無需重新修改。"
+      "text": "以下批註已處理（標有「已處理」），僅供對照；除非使用者另有說明，請勿因此批註修改任何內容。"
     },
     {
       "locale": "zh-TW",
@@ -25897,7 +25897,7 @@
       "args": {
         "count": 2
       },
-      "text": "以下 2 則批註均已處理（標有「已處理」），僅供對照；除非使用者另有說明，無需重新修改。"
+      "text": "以下 2 則批註均已處理（標有「已處理」），僅供對照；除非使用者另有說明，請勿因這些批註修改任何內容。"
     },
     {
       "locale": "zh-TW",
@@ -25905,7 +25905,7 @@
       "args": {
         "count": 5
       },
-      "text": "以下 5 則批註均已處理（標有「已處理」），僅供對照；除非使用者另有說明，無需重新修改。"
+      "text": "以下 5 則批註均已處理（標有「已處理」），僅供對照；除非使用者另有說明，請勿因這些批註修改任何內容。"
     },
     {
       "locale": "zh-TW",
@@ -25913,7 +25913,7 @@
       "args": {
         "count": 21
       },
-      "text": "以下 21 則批註均已處理（標有「已處理」），僅供對照；除非使用者另有說明，無需重新修改。"
+      "text": "以下 21 則批註均已處理（標有「已處理」），僅供對照；除非使用者另有說明，請勿因這些批註修改任何內容。"
     },
     {
       "locale": "zh-TW",
@@ -25921,7 +25921,7 @@
       "args": {
         "count": 22
       },
-      "text": "以下 22 則批註均已處理（標有「已處理」），僅供對照；除非使用者另有說明，無需重新修改。"
+      "text": "以下 22 則批註均已處理（標有「已處理」），僅供對照；除非使用者另有說明，請勿因這些批註修改任何內容。"
     },
     {
       "locale": "zh-TW",
@@ -25929,7 +25929,7 @@
       "args": {
         "count": 101
       },
-      "text": "以下 101 則批註均已處理（標有「已處理」），僅供對照；除非使用者另有說明，無需重新修改。"
+      "text": "以下 101 則批註均已處理（標有「已處理」），僅供對照；除非使用者另有說明，請勿因這些批註修改任何內容。"
     },
     {
       "locale": "zh-TW",
@@ -25937,7 +25937,7 @@
       "args": {
         "count": 0
       },
-      "text": "請依以下 0 則批註修改這個資料夾內的素材。"
+      "text": "請依以下 0 則批註處理這個資料夾內的素材。"
     },
     {
       "locale": "zh-TW",
@@ -25945,7 +25945,7 @@
       "args": {
         "count": 1
       },
-      "text": "請依以下批註修改這個資料夾內的素材。"
+      "text": "請依以下批註處理這個資料夾內的素材。"
     },
     {
       "locale": "zh-TW",
@@ -25953,7 +25953,7 @@
       "args": {
         "count": 2
       },
-      "text": "請依以下 2 則批註修改這個資料夾內的素材。"
+      "text": "請依以下 2 則批註處理這個資料夾內的素材。"
     },
     {
       "locale": "zh-TW",
@@ -25961,7 +25961,7 @@
       "args": {
         "count": 5
       },
-      "text": "請依以下 5 則批註修改這個資料夾內的素材。"
+      "text": "請依以下 5 則批註處理這個資料夾內的素材。"
     },
     {
       "locale": "zh-TW",
@@ -25969,7 +25969,7 @@
       "args": {
         "count": 21
       },
-      "text": "請依以下 21 則批註修改這個資料夾內的素材。"
+      "text": "請依以下 21 則批註處理這個資料夾內的素材。"
     },
     {
       "locale": "zh-TW",
@@ -25977,7 +25977,7 @@
       "args": {
         "count": 22
       },
-      "text": "請依以下 22 則批註修改這個資料夾內的素材。"
+      "text": "請依以下 22 則批註處理這個資料夾內的素材。"
     },
     {
       "locale": "zh-TW",
@@ -25985,13 +25985,13 @@
       "args": {
         "count": 101
       },
-      "text": "請依以下 101 則批註修改這個資料夾內的素材。"
+      "text": "請依以下 101 則批註處理這個資料夾內的素材。"
     },
     {
       "locale": "zh-TW",
       "key": "ai.handoff.one",
       "args": {},
-      "text": "請依以下批註修改素材。"
+      "text": "請依以下批註處理素材。"
     },
     {
       "locale": "zh-TW",
@@ -26000,7 +26000,7 @@
         "count": "<count>",
         "thisKind": "<thisKind>"
       },
-      "text": "請依以下 <count> 則批註修改<thisKind>。"
+      "text": "請依以下 <count> 則批註處理<thisKind>。"
     },
     {
       "locale": "zh-TW",
@@ -26025,7 +26025,7 @@
         "parts": "<parts>",
         "count": "<count>"
       },
-      "text": "請依以下批註修改素材（<parts>，共 <count> 則）。"
+      "text": "請依以下批註處理素材（<parts>，共 <count> 則）。"
     },
     {
       "locale": "zh-TW",
@@ -26033,7 +26033,7 @@
       "args": {
         "count": "<count>"
       },
-      "text": "其中 <count> 則已處理（標有「已處理」），僅供對照；除非使用者另有說明，無需重新修改。"
+      "text": "其中 <count> 則已處理（標有「已處理」），僅供對照；除非使用者另有說明，請勿因這些批註修改任何內容。"
     },
     {
       "locale": "zh-TW",
@@ -26047,7 +26047,7 @@
       "args": {
         "count": 0
       },
-      "text": "每則批註均附有截圖，截圖中已用標記標出位置，請先查看截圖再處理。"
+      "text": "每則批註均附有截圖，有位置的批註已在截圖中標出，請先查看截圖再處理。"
     },
     {
       "locale": "zh-TW",
@@ -26055,7 +26055,7 @@
       "args": {
         "count": 1
       },
-      "text": "批註附有截圖，截圖中已用標記標出位置，請先查看截圖再處理。"
+      "text": "批註附有截圖，有位置的批註已在截圖中標出，請先查看截圖再處理。"
     },
     {
       "locale": "zh-TW",
@@ -26063,7 +26063,7 @@
       "args": {
         "count": 2
       },
-      "text": "每則批註均附有截圖，截圖中已用標記標出位置，請先查看截圖再處理。"
+      "text": "每則批註均附有截圖，有位置的批註已在截圖中標出，請先查看截圖再處理。"
     },
     {
       "locale": "zh-TW",
@@ -26071,7 +26071,7 @@
       "args": {
         "count": 5
       },
-      "text": "每則批註均附有截圖，截圖中已用標記標出位置，請先查看截圖再處理。"
+      "text": "每則批註均附有截圖，有位置的批註已在截圖中標出，請先查看截圖再處理。"
     },
     {
       "locale": "zh-TW",
@@ -26079,7 +26079,7 @@
       "args": {
         "count": 21
       },
-      "text": "每則批註均附有截圖，截圖中已用標記標出位置，請先查看截圖再處理。"
+      "text": "每則批註均附有截圖，有位置的批註已在截圖中標出，請先查看截圖再處理。"
     },
     {
       "locale": "zh-TW",
@@ -26087,7 +26087,7 @@
       "args": {
         "count": 22
       },
-      "text": "每則批註均附有截圖，截圖中已用標記標出位置，請先查看截圖再處理。"
+      "text": "每則批註均附有截圖，有位置的批註已在截圖中標出，請先查看截圖再處理。"
     },
     {
       "locale": "zh-TW",
@@ -26095,13 +26095,13 @@
       "args": {
         "count": 101
       },
-      "text": "每則批註均附有截圖，截圖中已用標記標出位置，請先查看截圖再處理。"
+      "text": "每則批註均附有截圖，有位置的批註已在截圖中標出，請先查看截圖再處理。"
     },
     {
       "locale": "zh-TW",
       "key": "ai.handoff.shotsSome",
       "args": {},
-      "text": "附有「截圖」的批註，請先查看截圖（截圖中已用標記標出位置）再處理。"
+      "text": "附有「截圖」的批註，請先查看截圖（有位置的批註已在截圖中標出）再處理。"
     },
     {
       "locale": "zh-TW",
@@ -26274,7 +26274,7 @@
       "locale": "zh-TW",
       "key": "ai.review.intro",
       "args": {},
-      "text": "以下是使用者透過超級批註（SnipToss）為素材加上的批註。請逐則處理：查看「截圖」確認位置（截圖中已畫出標記），再依批註修改對應素材。"
+      "text": "以下是使用者透過超級批註（SnipToss）為素材加上的批註。請逐則依類別處理；附有「截圖」的，請先查看截圖確認位置（有位置的批註已在截圖中畫出標記）。"
     },
     {
       "locale": "zh-TW",

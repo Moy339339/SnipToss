@@ -3,7 +3,7 @@
 > Note: 1 notes file can't be read, so its notes aren't listed or counted below. You can open the JSON files directly to see the notes:
 > - .sniptoss/annotations/a__x.png.json: x
 
-These are notes the user added to their items with SnipToss. Go through them one by one: look at the snapshot to confirm the position (the mark is drawn on it), then change the item as the note says.
+These are notes the user added to their items with SnipToss. Go through them one by one and act on each according to its category; where a note has a snapshot, look at it first to confirm the position (any marks are drawn on it).
 Categories: “Change” means modify the marked content as described; “Remove” means remove the marked content.
 File and snapshot paths are relative to the project folder (the folder that contains .sniptoss). Each position starts with a rough location in the frame, followed in parentheses by percentages measured from the top-left corner; px values are pixels of the original item, with the origin at the top left; video times are minutes:seconds.milliseconds (hours:minutes:seconds.milliseconds for one hour or longer).
 

@@ -111,7 +111,16 @@ export interface ScanResult {
    * the library says why instead of showing an empty folder. Folders inside it that may not be read are skipped as before; null if not refused
    */
   denied?: boolean | null;
+  /** Mac: why the folder was refused (see DeniedReason); null or absent on Windows and when not refused */
+  deniedReason?: DeniedReason | null;
 }
+
+/**
+ * Why the Mac refused to read something: privacy = macOS privacy protection has not let the app in (Desktop / Documents / Downloads,
+ * iCloud Drive, external and network volumes; granted under Files & Folders), permissions = the file system's own permissions or ACL.
+ * The Windows shell doesn't tell them apart and sends neither
+ */
+export type DeniedReason = "privacy" | "permissions";
 
 export interface AddResult {
   added: string[];
@@ -195,8 +204,8 @@ interface Methods {
   sha256: [{ path: string }, string];
   /**
    * Whether an item in the library can be opened for reading: true, or the call fails with the error code (denied = no permission, as
-   * when macOS has not allowed the app into the Desktop / Documents / Downloads folder). Asked when an item fails to open, since to the
-   * page a file it may not read looks the same as a damaged one
+   * when macOS has not allowed the app into the Desktop / Documents / Downloads folder; the Mac adds the reason, see DeniedReason).
+   * Asked when an item fails to open, since to the page a file it may not read looks the same as a damaged one
    */
   readable: [{ path: string }, true];
   /**
@@ -373,12 +382,14 @@ export interface HandoffImageItem {
 
 /**
  * An error reported back by the shell. code classifies common disk errors (Bridge.ErrorCode: denied = no write permission, diskFull, busy,
- * network, notFound, tooLong), and the UI explains it by that (hostReason); message is the system's original text, in the Windows language
+ * network, notFound, tooLong), and the UI explains it by that (hostReason); message is the system's original text, in the Windows language.
+ * reason narrows a code down where the shell knows more (the Mac's readable: DeniedReason)
  */
 export class HostError extends Error {
   constructor(
     message: string,
     readonly code?: string,
+    readonly reason?: string,
   ) {
     super(message);
   }
@@ -438,11 +449,11 @@ webview?.addEventListener("message", ({ data }) => {
     listeners.get(ev.event)?.forEach((cb) => cb(data as never));
     return;
   }
-  const msg = data as { id: number; result?: unknown; error?: string; code?: string | null };
+  const msg = data as { id: number; result?: unknown; error?: string; code?: string | null; reason?: string | null };
   const p = pending.get(msg.id);
   if (!p) return;
   pending.delete(msg.id);
-  if (msg.error !== undefined) p.reject(new HostError(msg.error, msg.code ?? undefined));
+  if (msg.error !== undefined) p.reject(new HostError(msg.error, msg.code ?? undefined, msg.reason ?? undefined));
   else p.resolve(msg.result);
 });
 

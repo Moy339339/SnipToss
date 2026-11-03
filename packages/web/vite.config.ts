@@ -45,6 +45,8 @@ export default defineConfig({
   build: { target: "chrome120" },
   define: {
     __APP_VERSION__: JSON.stringify(version),
-    __UI_BUILT__: JSON.stringify(new Date().toISOString()),
+    // The release date: the day only, counted in one fixed time zone (US Pacific, so it is the same date wherever the build runs), and no
+    // time of day, which would only tell when and where the build was made
+    __RELEASED__: JSON.stringify(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date())),
   },
 });

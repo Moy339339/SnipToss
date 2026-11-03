@@ -13,6 +13,7 @@ import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { pinTimes, releaseNoon } from "./pin-times.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..", "..");
@@ -202,6 +203,13 @@ const requirement = execFileSync("codesign", ["-d", "-r-", app], { encoding: "ut
 console.log(`designated requirement: ${requirement.trim()}`);
 if (identity && !/certificate leaf = H"/.test(requirement))
   throw new Error("signed with the certificate, but the requirement does not name it");
+
+// Every file and folder dated the release day at 12:00 UTC (pin-times.mjs), so the zip and the disk image carry no time of the build. The
+// executable's date is also the program's build time the shell reports (appInfo.built)
+const noon = releaseNoon();
+const pinned = pinTimes(app, noon);
+run("codesign", ["--verify", "--deep", "--strict", app]);
+console.log(`dated ${pinned} items ${noon.toISOString()}`);
 
 // ditto keeps what a plain zip would lose (the executable bit, the signature's extended attributes)
 const platform = `mac-${architectures.split(/\s+/).length > 1 ? "universal" : architectures}`;

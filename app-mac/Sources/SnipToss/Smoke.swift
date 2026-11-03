@@ -486,7 +486,7 @@ final class SmokeRun {
         result["bundle"] = [
             "id": Bundle.main.bundleIdentifier ?? "", "version": info?["CFBundleShortVersionString"] as? String ?? "",
             "build": info?["CFBundleVersion"] as? String ?? "", "fullVersion": info?["SnipTossVersion"] as? String ?? "",
-            "about": ShellText.t("shell.menu.about", ["app": ShellText.t("brand.name")]),
+            "about": ShellText.t("shell.menu.about", ["app": ShellText.t("brand.name")]), "built": shellBuildTime(),
         ]
         for (name, value) in SmokeNotes.all { result[name] = value }
         if let firstShot { result["snapshotFirst"] = firstShot }

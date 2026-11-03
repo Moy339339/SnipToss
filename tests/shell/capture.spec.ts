@@ -1008,7 +1008,7 @@ test("One note, several marks: with the note box open, the Pin tool and boxes ke
   const r = await result(shell);
   expect(r.clipboard!.text).toContain("标了几处的批注，意见对每一处都适用。");
   expect(r.clipboard!.text).toMatch(/\n1\. 修改 · 3 处：位置 [^；]+；位置 [^；]+；位置 [^；]+：这三个按钮都改成圆角\r\n/);
-  expect(r.shown[0].title).toBe("批注图片\n已添加到剪贴板");
+  expect(r.shown[0].title).toBe("截图\n已添加到剪贴板"); // the notes are left out of the image, so only the screenshot is named
 });
 
 test("Clicking a mark to change its color: with the note box open it selects that mark and a swatch changes only it; with no box open, clicking the line selects it, 1–6 change it and Esc puts it down first; the text for AI gives each mark's color when they differ", async ({
@@ -1597,7 +1597,7 @@ test("With \"Include notes in the image\" off: no notes area in the image, and t
   expect(r.clipboard!.formats).toEqual(["Bitmap", "PNG", "UnicodeText"]);
   expect(r.clipboard!.text).toBe(
     [
-      "请按这张截图上的批注修改。图上的序号与下列批注一一对应，坐标为截图中的像素位置（左上角为 0, 0）：",
+      "请按这张截图上的批注处理（「疑问」只需回答）。图上的序号与下列批注一一对应，坐标为截图中的像素位置（左上角为 0, 0）：",
       "1. 修改 · 区域 画面左上（横 13%–38%、纵 17%–33%），x=75 y=75 宽=150 高=75 px：改成蓝色",
       "2. 删除 · 箭头 从画面中央（横 50%、纵 67%）指向画面右侧居中（横 75%、纵 50%），从 (300, 300) 到 (450, 225) px：删掉",
       "3. 疑问 · 位置 画面右下（横 88%、纵 83%），x=525 y=375 px：这是什么",
@@ -1609,12 +1609,12 @@ test("With \"Include notes in the image\" off: no notes area in the image, and t
     ].join("\r\n"),
   );
   expect(r.shown[0]).toMatchObject({
-    title: "批注图片\n已添加到剪贴板", // the notes aren't drawn into the image: the second-line warning would be lost
+    title: "截图\n已添加到剪贴板", // the notes aren't drawn into the image: the title says only the screenshot, and the second line where the notes went
     detail: "批注未附在图片中（「在图片中附加批注」已关闭），Codex、Claude Code 粘贴时仅接收图片，批注可能丢失",
   });
 });
 
-test("Only an overall comment: the toast is still \"image with notes copied to the clipboard\", and the text for AI has a different opening", async ({
+test("Only an overall comment with notes left out of the image: the toast says only the screenshot was copied, and the text for AI has a different opening", async ({
   shell,
 }) => {
   await shell.launch();
@@ -1623,8 +1623,8 @@ test("Only an overall comment: the toast is still \"image with notes copied to t
   await select(shell);
   await run(shell, [{ op: "key", key: "N" }, { op: "type", text: "整体偏暗" }, { op: "key", key: "Enter" }, { op: "key", key: "Enter" }]);
   const r = await result(shell);
-  expect(r.shown[0].title).toBe("批注图片\n已添加到剪贴板");
-  expect(r.clipboard!.text!.split("\r\n")).toEqual(["请参照这张截图，按以下整体意见修改：", "整体意见 · 修改：整体偏暗", "", `截图文件：${r.saved}（400×300）`]);
+  expect(r.shown[0].title).toBe("截图\n已添加到剪贴板");
+  expect(r.clipboard!.text!.split("\r\n")).toEqual(["请参照这张截图，按以下整体意见处理：", "整体意见 · 修改：整体偏暗", "", `截图文件：${r.saved}（400×300）`]);
 });
 
 test("UI language is English: the capture overlay's buttons and note box, the text for AI and the finish toast are all English (ADR-0001)", async ({
@@ -1644,13 +1644,13 @@ test("UI language is English: the capture overlay's buttons and note box, the te
   await run(shell, [{ op: "type", text: "make it blue" }, { op: "key", key: "Enter" }, { op: "key", key: "Enter" }]);
   const r = await result(shell);
   expect(r.clipboard!.text!.split("\r\n")).toEqual([
-    "Please make the changes described by the notes on this screenshot. The numbers on the image correspond one-to-one to the notes below; coordinates are pixel positions in the screenshot ((0, 0) is the top left):",
+    "Please act on the notes on this screenshot (a Question only needs an answer). The numbers on the image correspond one-to-one to the notes below; coordinates are pixel positions in the screenshot ((0, 0) is the top left):",
     expect.stringMatching(/^1\. Change · Region: [a-z ]+ of the frame \(x \d+%–\d+%, y \d+%–\d+%\), x=\d+ y=\d+ w=\d+ h=\d+ px: make it blue$/),
     "",
     `Screenshot file: ${r.saved} (400×300)`,
   ]);
   expect(r.shown[0]).toMatchObject({
-    title: "Image with notes copied to clipboard",
+    title: "Screenshot copied to clipboard",
     detail: "The notes aren't included in the image (“Include notes in the image” is off). Codex and Claude Code only take the image when pasting, so the notes may be lost",
   });
 });

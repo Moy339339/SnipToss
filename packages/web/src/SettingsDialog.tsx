@@ -2,18 +2,7 @@ import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useSta
 import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 import { CATEGORIES, DATA_DIR, type MaterialKind } from "@sniptoss/core";
-import {
-  APP_VERSION,
-  AUTHOR,
-  HOMEPAGE,
-  IS_BETA,
-  LICENSE_NAME,
-  LICENSE_URL,
-  shortTime,
-  UI_BUILT,
-  versionLabel,
-  versionWithBuild,
-} from "./brand";
+import { APP_VERSION, AUTHOR, HOMEPAGE, LICENSE_NAME, LICENSE_URL, RELEASED, releaseDate, versionLabel, versionText } from "./brand";
 import { KeepPunctuation } from "./KeepPunctuation";
 import { call, homeJoin, platform, type AppInfo, type CaptureSettings, type HostError } from "./host";
 import { ConfirmDialog } from "./Confirm";
@@ -29,7 +18,7 @@ import { useRecentColors } from "./recentColors";
 import { noticesFor, parseNotices, type Notice } from "./notices";
 import { DEFAULT_PREFS, MARK_COLORS, NOT_SETTINGS, usePrefs, type Prefs } from "./prefs";
 import { Sheet } from "./Sheet";
-import { SHORTCUT_GROUPS, ShortcutRow, shortcutKey } from "./ShortcutHelp";
+import { ShortcutRow, shortcutGroups, shortcutKey } from "./ShortcutHelp";
 import { Wordmark } from "./Wordmark";
 
 // The Settings window: what ordinary users need goes on the first pages, and anything that can be decided automatically is not listed (a snapshot is generated for every note),
@@ -772,7 +761,7 @@ function Keys() {
     <>
       <PageDesc>{t("settings.keys.desc")}</PageDesc>
       <div className="keys-grid">
-        {SHORTCUT_GROUPS.map((g) => (
+        {shortcutGroups().map((g) => (
           <section key={g.title}>
             <div className="section-label">{t(g.title)}</div>
             {g.items.map(([keys, label]) => (
@@ -937,7 +926,7 @@ function NoticesSheet(props: { onClose: () => void; onNotify: (t: string) => voi
     });
   const visit = (url: string) => call("openExternal", { url }).catch((e: Error) => props.onNotify(e.message));
   return (
-    <Sheet title={t("settings.about.notices")} className="sheet-notices" onClose={props.onClose}>
+    <Sheet title={t("settings.notices.title")} className="sheet-notices" onClose={props.onClose}>
       {failed ? (
         <p className="text-danger">{failed}</p>
       ) : (
@@ -1000,24 +989,24 @@ function About(props: { onNotify: (t: string) => void; onNotices: () => void }) 
     );
   const report = () => reportIssue(intl, info).catch((e: Error) => props.onNotify(e.message));
   const open = (url: string) => call("openExternal", { url }).catch((e: Error) => props.onNotify(e.message));
+  const released = releaseDate(RELEASED);
   return (
     <>
       <div className="about-mark">
         <Wordmark size="about" />
       </div>
       {infoError && <LoadError reason={infoError} onRetry={loadInfo} />}
+      {/* The version and the release date, one line each; the product name is the wordmark above */}
       <Row
-        label={`${t("brand.name")} ${versionLabel(APP_VERSION)}${IS_BETA ? t("settings.about.beta") : ""}`}
+        label={t("settings.about.version", { version: versionText(APP_VERSION) })}
         desc={
           <>
-            {t("settings.about.version", { version: versionWithBuild(APP_VERSION, info?.build) })}
-            {" · "}
-            {t("settings.about.uiBuilt", { time: shortTime(UI_BUILT) })}
-            {" · "}
-            {info && info.version !== APP_VERSION ? (
-              <span className="text-danger">{t("settings.about.shellMismatch", { version: versionLabel(info.version) })}</span>
-            ) : (
-              t("settings.about.shellBuilt", { time: info ? shortTime(info.built) : "…" })
+            {released && t("settings.about.released", { date: released })}
+            {info && info.version !== APP_VERSION && (
+              <>
+                {released && " · "}
+                <span className="text-danger">{t("settings.about.shellMismatch", { version: versionLabel(info.version) })}</span>
+              </>
             )}
           </>
         }

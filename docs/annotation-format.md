@@ -20,6 +20,7 @@ Versions:
 | `pizhu/1` | First version. A subset of the newer versions and read as usual; a file the app modifies is written back in the current version |
 
 Additions that only add optional content do not bump the version number; from 1.0.0 on, the document states from which app version they exist. Everything described here is already in 1.0.0, including the optional `project.json` (the language of REVIEW.md), a note's `material_sha256` (which version of the item it was written on), a note's `color` (a color picked for its marks) and a `color` on each entry of `anchor.shapes` (a color picked for one place).
+Added later: a note's `material_size` (the item's size when the note was written; from 1.2.3).
 
 ## Where it lives
 
@@ -129,6 +130,7 @@ Remarks that are not about one particular file but about a whole folder ("this b
   "updated_at": "2026-10-13T10:20:00Z",
   "handed_off_at": "2026-10-13T10:32:00Z",  // optional: the time of the most recent copy-out (Copy as Text, Copy as Images); absent if never copied
   "material_sha256": "9f2c…",           // optional: SHA-256 of the item when this note was written; differs from the item's current hash = the note is on an earlier version, see below
+  "material_size": 482113,              // optional (from 1.2.3): the item's size in bytes when this note was written, recorded with material_sha256, see below
   "color": "#5b8cff",                   // optional: a color picked for this note's marks, #rrggbb; absent = the mark color from Settings, see below
   "replies": [                          // the agent replies when it has made the change, or asks a question
     { "author": "codex", "body": "Switched to Source Han Sans Bold", "at": "2026-10-13T11:02:00Z" }
@@ -174,6 +176,9 @@ its location and time refer to the image at that time; go by its screenshot (the
 - Every note SnipToss writes carries it (unless the hash could not be computed); editing the text or the status does not change it.
 - Notes without it (for example, written by another program): if `created_at` is later than the item file's modification time, the item has not changed since, so the note is on the current version; otherwise use the file's `material.sha256`.
   The rule lives in core's `versions.ts` (`writtenOn`, `earlierVersions`), shared by the app and the CLI.
+- `material_size` (from 1.2.3, optional): the item's size in bytes when the note was written, recorded together with `material_sha256`. To learn the item's current hash without reading the file,
+  a program may take `material_sha256` from the latest note written after the item's last modification, **but only if that note's `material_size` equals the file's current size** (or the note has none).
+  A file replaced by an older copy (extracted from an archive, copied with its timestamps kept) can have a modification time from before the notes; a different size shows it is not the file the notes were written on, so its hash has to be computed (`knownSha` in `versions.ts`).
 - SnipToss does not draw notes on an earlier version on the image and lists them in a section of their own in the notes panel; Copy as Text puts them in their own section and says to go by the screenshots; `REVIEW.md` and `sniptoss list` mark each one.
   The notes themselves are neither changed nor deleted; their status is up to the user (docs/adr/0008-earlier-versions.md).
 
@@ -188,7 +193,7 @@ The sample below is the output with `"language": "en"` in `project.json`; other 
 ```markdown
 # Open notes (3)
 
-These are notes the user added to their items with SnipToss. Go through them one by one: look at the snapshot to confirm the position (the mark is drawn on it), then change the item as the note says.
+These are notes the user added to their items with SnipToss. Go through them one by one and act on each according to its category; where a note has a snapshot, look at it first to confirm the position (any marks are drawn on it).
 Notes marked “Whole folder” apply to every item in that folder (including subfolders; ./ means the folder that contains .sniptoss), not to one particular file.
 Where a note marks several places, the comment applies to every one of them.
 Categories: “Change” means modify the marked content as described; “Remove” means remove the marked content.
@@ -219,7 +224,7 @@ Since 2026-10-17 (docs/adr/0006-format-versioning.md). When SnipToss and the `sn
 - **Unrecognized fields are preserved as they are**: extra fields on the file, on `material`, on an individual note, or on `anchor` are still there when the app writes the file back after a change. Your own tools can add things to them.
 - **The old form is still accepted**: `anchor.shape` (a single shape, `sniptoss/4` and earlier) is read as a `shapes` with one entry, and written back as `shapes`.
   A `sniptoss/5` file with `shape` but no `shapes` (JSON hand-edited from the old documentation) is read the same way; when both are present, `shapes` wins and `shape` is kept as an unrecognized field.
-- **May be omitted and are filled in when reading**: `anchor` (treated as `{}`), an empty `anchor.shapes` array (treated as absent; removed when written back), `replies` (treated as `[]`), `author` / `created_at` / `updated_at` (treated as an empty string), `author` / `at` in a reply (treated as an empty string); a `handed_off_at` that is not a parseable time is treated as absent (removed when written back); a `material_sha256` that is not a string is treated as absent (removed when written back); a `color` (the note's or a place's) that is not `#rrggbb` (either case) is treated as absent (removed when written back).
+- **May be omitted and are filled in when reading**: `anchor` (treated as `{}`), an empty `anchor.shapes` array (treated as absent; removed when written back), `replies` (treated as `[]`), `author` / `created_at` / `updated_at` (treated as an empty string), `author` / `at` in a reply (treated as an empty string); a `handed_off_at` that is not a parseable time is treated as absent (removed when written back); a `material_sha256` that is not a string is treated as absent (removed when written back); a `material_size` that is not a whole number of zero or more is treated as absent (removed when written back); a `color` (the note's or a place's) that is not `#rrggbb` (either case) is treated as absent (removed when written back).
 - **Must be correct** (otherwise the whole file cannot be read, see below): `material.path` and `material.kind` are non-empty strings; `annotations` is an array;
   each note's `id` is non-empty and not repeated within the file, `status` is one of `open | resolved | wontfix`, `category` is one of `change | remove | add | question`, and `body` is a string;
   `anchor.page` is an integer ≥ 1; `anchor.time.start` (and `end`, if present) is a number; a reply's `body` is a string;

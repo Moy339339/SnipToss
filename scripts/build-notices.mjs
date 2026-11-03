@@ -4,7 +4,8 @@
 //   node scripts/build-notices.mjs --check   # fail when it is out of date (scripts/publish.ps1 checks before a release: a dependency changed version or was added without regenerating)
 // What is covered: the npm packages bundled into the UI (runtime dependencies of packages/web and their dependencies, without @types), the brand font
 // (Noto Sans SC subset), NuGet packages (WebView2, MessageFormat) and the bundled .NET runtime (the release build is self-contained).
-// The .NET runtime licenses are read from the runtime packs in the NuGet cache (present once a publish has run: dotnet publish -r win-x64); the newest 10.x in the cache is used.
+// The .NET runtime licenses are read from the runtime packs in the NuGet cache (present once a publish has run: dotnet publish -r win-x64), for the runtime version
+// pinned in the csproj (SnipTossRuntimeVersion), which is the one the release build bundles.
 // Where it is used: Settings → About → "Third-party notices" (the UI loads this file on demand and splits it into entries by title block:
 // packages/web/src/notices.ts - change both together when the format changes); in the release package it sits next to the app (app/SnipToss.App.csproj).
 // Names follow each component's own spelling, with no explanatory English sentences mixed in: this column is not translated in the UI,
@@ -75,13 +76,14 @@ const webview2 = nugetVersion("Microsoft.Web.WebView2");
 const webview2Dir = nugetDir("Microsoft.Web.WebView2", webview2);
 const messageFormat = nugetVersion("MessageFormat");
 
-/** The newest 10.x runtime pack in the NuGet cache */
+/** The runtime the release build bundles: pinned in the csproj (SnipTossRuntimeVersion), whichever SDK builds it */
+const runtimeVersion = /<SnipTossRuntimeVersion>([^<]+)<\/SnipTossRuntimeVersion>/.exec(csproj)?.[1];
+if (!runtimeVersion) throw new Error("The csproj has no SnipTossRuntimeVersion");
 function runtimePack(id) {
-  const base = join(NUGET, id);
-  const versions = existsSync(base) ? readdirSync(base).filter((v) => /^10\.\d+\.\d+$/.test(v)) : [];
-  if (!versions.length) throw new Error(`The NuGet cache has no ${id} 10.x: publish once first (pwsh -File scripts/publish.ps1)`);
-  const latest = versions.sort((a, b) => a.localeCompare(b, "en", { numeric: true })).at(-1);
-  return { version: latest, dir: join(base, latest) };
+  const dir = join(NUGET, id, runtimeVersion);
+  if (!existsSync(dir))
+    throw new Error(`The NuGet cache has no ${id} ${runtimeVersion} (${dir}): publish once first (pwsh -File scripts/publish.ps1)`);
+  return { version: runtimeVersion, dir };
 }
 const netcore = runtimePack("microsoft.netcore.app.runtime.win-x64");
 const desktop = runtimePack("microsoft.windowsdesktop.app.runtime.win-x64");

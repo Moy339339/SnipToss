@@ -101,6 +101,11 @@ export interface Annotation {
    */
   material_sha256?: string;
   /**
+   * The item's size in bytes when this note was written, recorded with material_sha256 (optional, from 1.2.3): material_sha256 is taken
+   * as the item's current one without reading the file only while this matches the file's size (knownSha in versions.ts)
+   */
+  material_size?: number;
+  /**
    * A color #rrggbb for this note's marks alone; without it, the mark color in Settings is used. It only affects drawing, not the comment
    * (optional)
    */

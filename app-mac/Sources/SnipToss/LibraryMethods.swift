@@ -142,7 +142,7 @@ func installLibraryMethods(
         var info: [String: Any] = [
             // The UI marks the version in red when it differs from the one it was built with (root package.json)
             "version": version ?? environment["SNIPTOSS_VERSION"] ?? "0.0.0",
-            "built": environment["SNIPTOSS_BUILT"] ?? "",
+            "built": environment["SNIPTOSS_BUILT"] ?? shellBuildTime(),
             "startupNotice": jsonOrNull(notice),
             "renamedFromPizhu": false,
             "logDir": AppPaths.logDir,
@@ -178,6 +178,18 @@ private final class OnceFlag {
         taken = true
         return true
     }
+}
+
+/// When the program itself was built, as on Windows the time its file was last written: the executable's (signing rewrites it, so for a
+/// package it is when the package was made), ISO 8601 in UTC. Kept in the contract (`appInfo.built`); the UI no longer shows it (the
+/// About page gives one release date, from the UI's build). "" when the file can't be read
+func shellBuildTime() -> String {
+    guard let path = Bundle.main.executablePath,
+        let written = (try? FileManager.default.attributesOfItem(atPath: path))?[.modificationDate] as? Date
+    else { return "" }
+    let format = ISO8601DateFormatter()
+    format.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return format.string(from: written)
 }
 
 /// "macOS 14.5.0 (arm64)": used in diagnostic information

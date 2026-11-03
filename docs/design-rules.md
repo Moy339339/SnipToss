@@ -267,7 +267,8 @@ The error page for the whole window layer and the startup-failure page bring the
 A beginner must be able to understand it, but it isn't chatty: like professional software, written and professional in tone. Reference the Chinese versions of Office, Adobe and macOS.
 All interface text (menus, buttons, settings, messages, dialogs, empty states, Screen Capture, text for AI) follows this section; new text always goes into messages (ADR-0001).
 
-**W1 Register**: written, concise, declarative. No “you”, no colloquial words (the Chinese copy avoids 一下, 啦, 吧, 的话, 免得, 弄, 搞, 挪, 腾出点), no metaphors, no exclamation marks or rhetorical questions.
+**W1 Register**: written, concise, declarative. No colloquial words (the Chinese copy avoids 一下, 啦, 吧, 的话, 免得, 弄, 搞, 挪, 腾出点), no metaphors, no exclamation marks or rhetorical questions.
+The Chinese copy doesn't address the user directly (no second-person pronoun); English and the other languages address the user as their professional software does (“you” in English, as Microsoft and Apple write), since rewriting every instruction in the passive reads worse.
 **W2 How each place is written**
 - Menu items and buttons: a verb–object phrase (“Copy as Text”, “Open Log Folder”); add “…” when a click opens a dialog first.
 - Settings: the label is a noun or a verb–object phrase, and a switch's label states the behavior when on (“Keep running in the tray when the window is closed”); the description is one sentence stating the effect or consequence, without repeating the label.

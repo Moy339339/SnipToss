@@ -198,8 +198,8 @@ test("A large list renders only the visible rows (virtual scrolling, performance
 });
 
 test("Dragging a marquee to the bottom edge of a large list scrolls it down automatically, and rows scrolled out of the viewport (not in the DOM) still count as selected", async ({ app }) => {
-  // The list scrolls a step per frame: on a machine without a GPU (CI runners draw a few frames a second) three screens take well over ten seconds
-  test.setTimeout(90_000);
+  // At this distance from the edge the list scrolls about 600 px a second (less on a machine that draws only a few frames a second): three screens take a few seconds
+  test.setTimeout(60_000);
   const big = join(app.temp, "big");
   manyImages(big, 2000);
   app.host.entries = [{ path: big, pinned: false }];
@@ -212,7 +212,7 @@ test("Dragging a marquee to the bottom edge of a large list scrolls it down auto
   // Hold at the bottom edge until it has scrolled three screens before releasing
   // (a fixed wait is not enough when frames render slowly; same as the marquee test in library-panel.spec.ts)
   const lib = app.page.locator(".lib-list");
-  await expect.poll(() => lib.evaluate((el) => el.scrollTop), { timeout: 45_000 }).toBeGreaterThan(3 * list.height);
+  await expect.poll(() => lib.evaluate((el) => el.scrollTop), { timeout: 20_000 }).toBeGreaterThan(3 * list.height);
   await app.page.mouse.up();
   // The selected count is in the tooltip of the Selected scope at the top of the notes panel
   const picked = app.page.locator(".scope-switch .seg.is-on");
@@ -220,6 +220,31 @@ test("Dragging a marquee to the bottom edge of a large list scrolls it down auto
   const n = Number(/素材栏中选中的 (\d+) 个素材/.exec((await picked.getAttribute("title"))!)![1]);
   const inDom = await app.page.locator(".lib-row.is-selected").count();
   expect(n).toBeGreaterThan(inDom); // more are selected than rendered: rows scrolled out count too
+});
+
+test("The marquee's auto-scroll goes by time, not by frame: at 8 frames a second the list still scrolls about as far per second", async ({ app }) => {
+  const big = join(app.temp, "big");
+  manyImages(big, 2000);
+  app.host.entries = [{ path: big, pinned: false }];
+  await app.open();
+  // A machine without a GPU draws a few frames a second: frames come every 125 ms from here on
+  await app.page.evaluate(() => {
+    window.requestAnimationFrame = (cb) => window.setTimeout(() => cb(performance.now()), 125);
+    window.cancelAnimationFrame = (id) => window.clearTimeout(id);
+  });
+  const list = (await app.page.locator(".lib-list").boundingBox())!;
+  const first = (await fileRows(app, "img-0000.png").boundingBox())!;
+  await app.page.mouse.move(first.x + 40, first.y + first.height / 2);
+  await app.page.mouse.down();
+  // 20 px into the bottom edge zone: 10 px per 60 Hz frame, 600 px a second (at most 100 ms are counted per frame, so 480 here).
+  // Counted per frame as before, 8 frames a second gave 80 px a second
+  await app.page.mouse.move(first.x + 40, list.y + list.height - 4, { steps: 5 });
+  const lib = app.page.locator(".lib-list");
+  const from = await lib.evaluate((el) => el.scrollTop);
+  await app.page.waitForTimeout(2000);
+  const scrolled = (await lib.evaluate((el) => el.scrollTop)) - from;
+  await app.page.mouse.up();
+  expect(scrolled).toBeGreaterThan(500);
 });
 
 test("Dragging a file from File Explorer into the window shows the \"Drop to add to the list\" hint while dragging, and releasing adds it to the list and selects it", async ({ app }) => {

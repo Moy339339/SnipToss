@@ -31,7 +31,7 @@ describe("renderHandoff", () => {
         { annotation: note("ee11ff", "整体节奏偏慢", { anchor: {} }), index: 1 },
       ]),
     ]);
-    expect(text).toContain("请按以下 3 条批注修改这个视频。");
+    expect(text).toContain("请按以下 3 条批注处理这个视频。");
     expect(text).toContain("文件均位于项目文件夹「export」（当前路径：F:\\EP003\\export）。");
     expect(text).toContain("下文的文件和截图路径均相对于项目文件夹，文件路径后的括号内为完整路径；如项目文件夹已移动，按相对路径查找。");
     expect(text).toContain("文件：片头/第1条.mp4（完整路径：F:\\EP003\\export\\片头\\第1条.mp4）");
@@ -57,7 +57,7 @@ describe("renderHandoff", () => {
     const text = renderHandoff([video("E:\\a", "sub/x.mp4", [{ annotation: note("aaaaaa", "改色"), index: 2 }])], {
       extra: "改完重新导出一版",
     });
-    expect(text.startsWith("请按以下批注修改素材。")).toBe(true);
+    expect(text.startsWith("请按以下批注处理素材。")).toBe(true);
     expect(text).toContain("E:\\a\\sub\\x.mp4");
     expect(text).not.toContain("请先查看截图");
     expect(text.endsWith("\n\n改完重新导出一版")).toBe(true);
@@ -94,7 +94,7 @@ describe("renderHandoff", () => {
         { annotation: note("cccccc", "三", { status: "wontfix" }), index: 3 },
       ]),
     ]);
-    expect(mixed).toContain("请按以下 3 条批注修改这个视频。");
+    expect(mixed).toContain("请按以下 3 条批注处理这个视频。");
     expect(mixed).toContain("其中 2 条已处理（标有「已处理」），仅供对照；除非用户另有说明，无需重新修改。");
     expect(mixed).toContain("1. 修改");
     expect(mixed).toContain("2.（已处理：已改） 修改");
@@ -169,9 +169,9 @@ describe("renderHandoff", () => {
   it("snapshots: only says every note has one when every note does; folder comments have no snapshot", () => {
     const shot = (id: string) => ({ annotation: note(id, id, { snapshot: `snapshots/${id}.png` }), index: 1 });
     const all = renderHandoff([video("E:\\a", "1.mp4", [shot("aaaaaa"), shot("bbbbbb")])]);
-    expect(all).toContain("每条批注均附有截图，截图中已用标记标出位置，请先查看截图再处理。");
+    expect(all).toContain("每条批注均附有截图，有位置的批注已在截图中标出，请先查看截图再处理。");
     const one = renderHandoff([video("E:\\a", "1.mp4", [shot("aaaaaa")])]);
-    expect(one).toContain("批注附有截图，截图中已用标记标出位置");
+    expect(one).toContain("批注附有截图，有位置的批注已在截图中标出");
     const some = renderHandoff([
       video("E:\\a", "1.mp4", [shot("aaaaaa")]),
       {
@@ -198,7 +198,7 @@ describe("renderHandoff", () => {
           { annotation: note("bbbbbb", "二"), index: 2 },
         ]),
       ]),
-    ).toContain("请按以下 2 条批注修改这张图片。");
+    ).toContain("请按以下 2 条批注处理这张图片。");
   });
 
   it("folder comments: the opening sentence varies with one folder (and how many notes), several folders, and folders plus items; folders come before items", () => {
@@ -207,19 +207,19 @@ describe("renderHandoff", () => {
       root: "E:\\a",
       items: ids.map((id, i) => ({ annotation: note(id, `${path} 的意见 ${i + 1}`, { anchor: {} }), index: i + 1 })),
     });
-    expect(renderHandoff([folder("assets", "aaaaaa")]).startsWith("请按以下批注修改这个文件夹内的素材。")).toBe(true);
+    expect(renderHandoff([folder("assets", "aaaaaa")]).startsWith("请按以下批注处理这个文件夹内的素材。")).toBe(true);
     const two = renderHandoff([folder("assets", "aaaaaa", "bbbbbb")]);
-    expect(two.startsWith("请按以下 2 条批注修改这个文件夹内的素材。")).toBe(true);
+    expect(two.startsWith("请按以下 2 条批注处理这个文件夹内的素材。")).toBe(true);
     expect(two).toContain("标为「整个文件夹」的批注适用于该文件夹内的全部素材（含子文件夹），而非其中某一个文件。");
     expect(two).toContain("文件夹：assets/（完整路径：E:\\a\\assets）");
     expect(renderHandoff([folder("assets", "aaaaaa"), folder("video", "bbbbbb")])).toContain(
-      "请按以下批注修改素材（2 个文件夹，共 2 条）。",
+      "请按以下批注处理素材（2 个文件夹，共 2 条）。",
     );
     const mixed = renderHandoff([
       video("E:\\a", "video/1.mp4", [{ annotation: note("cccccc", "改色"), index: 1 }]),
       folder("assets", "aaaaaa"),
     ]);
-    expect(mixed).toContain("请按以下批注修改素材（1 个文件夹、1 个素材，共 2 条）。");
+    expect(mixed).toContain("请按以下批注处理素材（1 个文件夹、1 个素材，共 2 条）。");
     expect(mixed.indexOf("## 整个文件夹 assets")).toBeLessThan(mixed.indexOf("## 1.mp4"));
   });
 });

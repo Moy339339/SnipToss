@@ -74,9 +74,9 @@ export async function earlierAll(root: string, files: readonly MaterialFile[]): 
     if (f.material.kind === "folder") continue;
     const full = join(root, f.material.path);
     try {
-      const { mtimeMs } = await stat(full);
-      let v = earlierVersions(f, mtimeMs);
-      if (v.pending) v = earlierVersions(f, mtimeMs, await sha256File(full));
+      const { mtimeMs, size } = await stat(full);
+      let v = earlierVersions(f, mtimeMs, undefined, size);
+      if (v.pending) v = earlierVersions(f, mtimeMs, await sha256File(full), size);
       if (v.earlier.size) out[f.material.path] = [...v.earlier];
     } catch {
       // The item is gone or unreadable: treat it as unchanged

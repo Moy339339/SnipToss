@@ -97,3 +97,24 @@ test("on Windows the capture shortcut still records Ctrl+Alt+K (Control is Ctrl,
   await expect.poll(() => app.host.capture.hotkey).toBe("Ctrl+Alt+K");
   await expect(input.locator("kbd")).toHaveText(["Ctrl", "Alt", "K"]);
 });
+
+test("the shortcut list follows the platform: the Mac shows the capture default ⌃⌥⌘A and leaves out the menu bar keys and Shift+F10, which only Windows has", async ({
+  app,
+}) => {
+  const rows = app.page.locator(".shortcut-row");
+  const row = (text: string) => rows.filter({ hasText: text });
+  await app.open();
+  await app.page.keyboard.press("Control+,");
+  await app.page.locator(".settings-tab", { hasText: /^快捷键$/ }).click();
+  await expect(row("开始截图批注").locator("kbd")).toHaveText(["Ctrl", "Alt", "A"]);
+  await expect(row("打开菜单")).toHaveCount(1);
+  await expect(row("打开当前行的菜单")).toHaveCount(1);
+
+  await asMac(app);
+  await app.page.reload();
+  await app.page.keyboard.press("Meta+,");
+  await app.page.locator(".settings-tab", { hasText: /^快捷键$/ }).click();
+  await expect(row("开始截图批注").locator("kbd")).toHaveText(["⌃", "⌥", "⌘", "A"]);
+  await expect(row("打开菜单")).toHaveCount(0);
+  await expect(row("打开当前行的菜单")).toHaveCount(0);
+});

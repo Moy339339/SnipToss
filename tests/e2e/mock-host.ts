@@ -143,6 +143,11 @@ export class MockHost {
    * everything inside it
    */
   unreadable: string[] = [];
+  /**
+   * Test only: the reason the Mac shell gives with a refusal (readable's reason, a scan's deniedReason): privacy = macOS privacy protection,
+   * permissions = the file system's own permissions. null = none, as the Windows shell
+   */
+  deniedReason: "privacy" | "permissions" | null = null;
   isUnreadable(p: string) {
     return this.unreadable.some((u) => same(p, u) || inside(p, u));
   }
@@ -289,7 +294,7 @@ export class MockHost {
       return { id, result: await this.dispatch(method, a) ?? null };
     } catch (e) {
       // code: classified as in Bridge.ErrorCode (notFound, denied, ...), which the UI turns into plain language
-      return { id, error: (e as Error).message, code: (e as { code?: string }).code ?? null };
+      return { id, error: (e as Error).message, code: (e as { code?: string }).code ?? null, reason: (e as { reason?: string }).reason ?? null };
     }
   }
 
@@ -461,7 +466,8 @@ export class MockHost {
         // Same as Bridge.ReadableAsync: opens the item for reading and closes it; a refusal carries code denied
         const file = this.allowed(str("path"));
         if (!existsSync(file)) throw Object.assign(new Error(`File not found: ${file}`), { code: "notFound" });
-        if (this.isUnreadable(file)) throw Object.assign(new Error(`Access to the path '${file}' is denied.`), { code: "denied" });
+        if (this.isUnreadable(file))
+          throw Object.assign(new Error(`Access to the path '${file}' is denied.`), { code: "denied", reason: this.deniedReason ?? undefined });
         return true;
       }
       case "fileUrl":
@@ -750,7 +756,15 @@ export class MockHost {
     if (existsSync(entry) && statSync(entry).isDirectory()) {
       const folderEntry = outer ?? entry;
       // Same as MaterialScanner.Scan: a folder the system won't let the app read lists nothing, and says so
-      if (this.isUnreadable(entry)) return { entry, kind: "folder", project: this.existingHome(entry) ?? folderEntry, materials: [], denied: true };
+      if (this.isUnreadable(entry))
+        return {
+          entry,
+          kind: "folder",
+          project: this.existingHome(entry) ?? folderEntry,
+          materials: [],
+          denied: true,
+          deniedReason: this.deniedReason,
+        };
       const stats = { others: 0, exts: new Set<string>(), moreOff: 0, moreExts: new Set<string>(), skipped: new Set<string>(), truncated: false };
       const materials = this.walk(entry, stats).map((f) => {
         const home = this.findHome(f, folderEntry);

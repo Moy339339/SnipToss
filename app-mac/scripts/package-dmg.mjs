@@ -10,6 +10,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { pinTimes } from "./pin-times.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..", "..");
@@ -41,6 +42,7 @@ try {
 
   const dmg = join(out, `SnipToss-${version}-${platform}.dmg`);
   rmSync(dmg, { force: true });
+  const made = join(work, "made.dmg");
   run(process.env.SNIPTOSS_DMGBUILD || "dmgbuild", [
     "-s",
     join(packaging, "dmg-settings.py"),
@@ -55,8 +57,22 @@ try {
     "-D",
     `icon=${join(app, "Contents", "Resources", "SnipToss.icns")}`,
     volume,
-    dmg,
+    made,
   ]);
+
+  // dmgbuild makes the volume's folder, the link to Applications and the window layout at the moment of the build, and has no step after
+  // the last of them: the image is opened again, writable, and everything on the volume dated the release day at 12:00 UTC (pin-times.mjs),
+  // then compressed the way dmg-settings.py asks (ULMO)
+  const writable = join(work, "writable.dmg");
+  const mount = join(work, "volume");
+  run("hdiutil", ["convert", made, "-quiet", "-format", "UDRW", "-o", writable]);
+  run("hdiutil", ["attach", writable, "-quiet", "-nobrowse", "-noautoopen", "-mountpoint", mount]);
+  try {
+    console.log(`dated ${pinTimes(mount)} items on the volume`);
+  } finally {
+    run("hdiutil", ["detach", mount, "-quiet"]);
+  }
+  run("hdiutil", ["convert", writable, "-quiet", "-format", "ULMO", "-o", dmg]);
   run("hdiutil", ["verify", dmg]);
   console.log(`made ${dmg} (volume "${volume}")`);
 } finally {

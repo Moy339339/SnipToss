@@ -48,6 +48,7 @@
         "updated_at": { "type": "string", "description": "ISO 8601 time" },
         "handed_off_at": { "type": "string", "description": "Optional (since 2026-10-20): the time of the most recent copy out (Copy as Text, Copy as Images), ISO 8601; does not change updated_at" },
         "material_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Optional: SHA-256 of the item when this note was written (lowercase hex); different from the item's current one = this note was written on an earlier version and its position is given by the snapshot (docs/annotation-format.md, \"Notes written on an earlier version\")" },
+        "material_size": { "type": "integer", "minimum": 0, "description": "Optional (from 1.2.3): the item's size in bytes when this note was written, recorded with material_sha256. A note's material_sha256 is taken as the item's current hash without reading the file only while this matches the file's size (docs/annotation-format.md, \"Notes on an earlier version\")" },
         "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$", "description": "Optional: a color set for this note's mark alone; absent = the mark color from Settings. Affects only how it is drawn, not the content of the comment" },
         "replies": { "type": "array", "items": { "$ref": "#/$defs/reply" } }
       }

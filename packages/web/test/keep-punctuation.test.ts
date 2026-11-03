@@ -1,7 +1,7 @@
 import { createElement, Fragment, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { KeepPunctuation, punctuationRuns } from "../src/KeepPunctuation";
+import { gluePaths, KeepPunctuation, punctuationRuns } from "../src/KeepPunctuation";
 
 /** The runs written as text: kept runs in brackets, places to break as | */
 const runs = (text: string) =>
@@ -27,7 +27,10 @@ describe("punctuationRuns", () => {
   });
 
   it("never sticks across white space, which is a place to break already", () => {
-    expect(runs("可在「设置 → 高级 → 跳过的文件夹」中更改")).toBe("可在|[「设]置 → 高级 → 跳过的文件[夹」]|中更改");
+    // A path's arrows keep their neighbors (no-break spaces, see gluePaths)
+    expect(runs("可在「设置 → 高级 → 跳过的文件夹」中更改").replaceAll(String.fromCharCode(0xa0), "_")).toBe(
+      "可在|[「设][置_→_高][级_→_跳]过的文件[夹」]|中更改",
+    );
     expect(runs("见 「设置」 中")).toBe("见 [「设][置」] 中");
     expect(runs("「 x 」")).toBe("「 x 」");
     expect(runs("一行。\n下一行")).toBe("一[行。]\n下一行");
@@ -122,5 +125,50 @@ describe("KeepPunctuation", () => {
 
   it("keeps numbers and empty children as they are", () => {
     expect(html(3, null, false, "。")).toBe("3。");
+  });
+});
+
+describe("gluePaths", () => {
+  const nbsp = String.fromCharCode(0xa0);
+  it("turns the spaces around a path's arrow into no-break spaces, so no line starts or ends with the arrow", () => {
+    expect(gluePaths("选择「文件 → 显示简介」")).toBe(`选择「文件${nbsp}→${nbsp}显示简介」`);
+    expect(gluePaths("System Settings → Privacy & Security → Files & Folders")).toBe(
+      `System Settings${nbsp}→${nbsp}Privacy & Security${nbsp}→${nbsp}Files & Folders`,
+    );
+    expect(gluePaths("파일 > 정보 가져오기")).toBe(`파일${nbsp}>${nbsp}정보 가져오기`);
+    expect(gluePaths("a→b and a -> b")).toBe("a→b and a -> b");
+    // Some translations already have a no-break space before the arrow and a plain one after it
+    expect(gluePaths(`Settings${nbsp}→ Advanced${nbsp}→ Skipped folders`)).toBe(
+      `Settings${nbsp}→${nbsp}Advanced${nbsp}→${nbsp}Skipped folders`,
+    );
+    expect(gluePaths("←→ 切换")).toBe("←→ 切换");
+  });
+
+  it("a separator written with a no-break space on one side is kept the same as one between plain spaces", () => {
+    const shown = (text: string) => runs(text).replaceAll(nbsp, "_");
+    expect(shown(`Change this in Settings${nbsp}→ Advanced${nbsp}→ Skipped folders`)).toBe(
+      "Change this in Setting[s_→_A]dvance[d_→_S]kipped folders",
+    );
+    expect(shown(`可在「设置${nbsp}→ 高级${nbsp}→ 跳过的文件夹」中更改`)).toBe(shown("可在「设置 → 高级 → 跳过的文件夹」中更改"));
+  });
+
+  it("an arrow right between two characters stays with both (between a closing and an opening corner bracket a line could break on either side)", () => {
+    expect(runs("选择「打开方式」→「超级批注」。")).toBe("选择|[「打]开方[式」→「超]级批[注」。]");
+    expect(runs("a→b")).toBe("[a→b]");
+    // Arrow keys are not a path
+    expect(runs("Home End 跳到首项末项、←→ 切换")).toBe("Home End 跳到首项末[项、]|←→ 切换");
+  });
+
+  it("keeps the characters on both sides of the separator in one unbreakable run (no-break spaces alone still break after a closing quote in some WebKit)", () => {
+    const shown = (text: string) => runs(text).replaceAll(nbsp, "_");
+    expect(shown("„Ablage“ → „Informationen“")).toBe("„Ablage[“_→_„]Informationen“");
+    expect(shown("파일 > 정보 가져오기를 선택")).toBe("파[일_>_정]보 가져오기를 선택");
+    expect(shown("System Settings → Privacy & Security")).toBe("System Setting[s_→_P]rivacy & Security");
+  });
+
+  it("is applied to the text KeepPunctuation lays out", () => {
+    const html = renderToStaticMarkup(createElement(KeepPunctuation, null, "「设置 → 常规」"));
+    expect(html).toContain(`置${nbsp}→${nbsp}常`);
+    expect(html).not.toContain(" → ");
   });
 });

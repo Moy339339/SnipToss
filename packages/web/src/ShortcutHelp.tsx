@@ -1,4 +1,5 @@
 import { useIntl } from "react-intl";
+import { platform } from "./host";
 import { keycaps } from "./hotkey";
 import { KeepPunctuation } from "./KeepPunctuation";
 import { Sheet } from "./Sheet";
@@ -117,6 +118,22 @@ export const SHORTCUT_GROUPS: { title: string; items: [string[], ShortcutLabel][
   },
 ];
 
+/** Rows only Windows has: the keys of the menu bar the UI draws itself (the Mac uses the system menu bar), and Shift+F10 / the Menu key, which only Windows turns into a context menu */
+const WINDOWS_ONLY = new Set<ShortcutLabel>(["sc.menus", "sc.list.menu"]);
+/** The Mac's default Screen Capture shortcut, ⌃⌥⌘A ("Control" is the Control key, "Ctrl" the Command key; the shell's Settings.swift) */
+const MAC_CAPTURE = ["Control", "Alt", "Ctrl", "A"];
+
+/** The shortcut list as this platform has it (the Shortcuts sheet and Settings → Keyboard Shortcuts) */
+export function shortcutGroups(mac = platform === "mac"): typeof SHORTCUT_GROUPS {
+  if (!mac) return SHORTCUT_GROUPS;
+  return SHORTCUT_GROUPS.map((g) => ({
+    ...g,
+    items: g.items
+      .filter(([, label]) => !WINDOWS_ONLY.has(label))
+      .map(([keys, label]): [string[], ShortcutLabel] => [label === "sc.capture.start" ? MAC_CAPTURE : keys, label]),
+  }));
+}
+
 /** One shortcut row. A parenthesized addition at the end of the description ("Open menu (or press Alt first, then the letter)") goes on its own line one size smaller, so long descriptions do not leave orphan words */
 export function ShortcutRow({ keys, label }: { keys: string[]; label: ShortcutLabel }) {
   const intl = useIntl();
@@ -151,7 +168,7 @@ export function ShortcutHelp({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title={intl.formatMessage({ id: "sc.title" })} closeKeys={["?", "F1"]} onClose={onClose}>
       <div className="sheet-grid">
-        {SHORTCUT_GROUPS.map((g) => (
+        {shortcutGroups().map((g) => (
           <section key={g.title}>
             <div className="section-label">{intl.formatMessage({ id: g.title })}</div>
             {g.items.map(([keys, label]) => (

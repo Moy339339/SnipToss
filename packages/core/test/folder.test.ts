@@ -59,7 +59,7 @@ describe("folder comments in the text copied for AI", () => {
     const text = renderHandoff([
       { material: folder("assets/ui"), root: "F:\\proj", items: [{ annotation: note("fld001", "按钮统一圆角"), index: 1 }] },
     ]);
-    expect(text).toContain("请按以下批注修改这个文件夹内的素材。");
+    expect(text).toContain("请按以下批注处理这个文件夹内的素材。");
     expect(text).toContain(
       "## 整个文件夹 ui  ·  文件夹意见，适用于文件夹内的全部素材（含子文件夹）\n文件夹：assets/ui/（完整路径：F:\\proj\\assets\\ui）",
     );

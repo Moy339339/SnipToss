@@ -5,7 +5,7 @@
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, type App } from "./harness";
-import { IS_BETA, VERSION, VERSION_LABEL } from "./mock-host";
+import { IS_BETA, VERSION_LABEL } from "./mock-host";
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 /** The row whose name is exactly `name` */
@@ -437,12 +437,12 @@ test("Footer stats read \"N projects · a images · b videos\"; a project withou
   await expect(app.page.locator(".footer-stats")).toHaveText("1 个项目");
 });
 
-test("The version tag reads the version (\"v1.1.0 Beta N\" for a beta, \"v1.1.0\" for a release) and its tooltip gives the product name, version and the build times of the UI and the app; on a mismatch it reads \"≠ app v1.0.0 Beta M\" and asks to reinstall", async ({ app }) => {
+test("The version tag reads the version (\"v1.1.0 Beta N\" for a beta, \"v1.1.0\" for a release) and its tooltip gives the product name, the version and the release date (no time of day); on a mismatch it reads \"≠ app v1.0.0 Beta M\" and asks to reinstall", async ({ app }) => {
   await app.open();
   const tag = app.page.locator(".app-version");
   await expect(tag).toHaveText(VERSION_LABEL);
   const label = VERSION_LABEL.replace(/\./g, "\\.");
-  const title = `^超级批注 ${label}${IS_BETA ? "（测试版）" : ""} · 版本 ${VERSION.replace(/\./g, "\\.")}\\n界面构建于 .+\\n程序 ${label} · 构建于 .+$`;
+  const title = `^超级批注 ${label}${IS_BETA ? "（测试版）" : ""}\\n发布于 [A-Z][a-z]{2} \\d{1,2}, \\d{4}$`;
   await expect(tag).toHaveAttribute("title", new RegExp(title));
   app.host.appInfoPatch = { version: "1.0.0-beta.1" };
   await app.page.reload();
@@ -450,16 +450,16 @@ test("The version tag reads the version (\"v1.1.0 Beta N\" for a beta, \"v1.1.0\
   await expect(tag).toHaveAttribute("title", /\n界面与程序版本不一致。请退出程序后重新安装超级批注$/);
 });
 
-test("A Mac package also has a build number (appInfo.build): the About page writes the version \"x.y.z (build)\", the tooltip of the version tag leaves the version line out (the label carries the number already), and the tag itself still reads the version", async ({ app }) => {
+test("A Mac package's build number (appInfo.build) isn't shown: the About page and the tooltip read the same as on Windows", async ({ app }) => {
   app.host.appInfoPatch = { build: "44" };
   await app.open();
   const tag = app.page.locator(".app-version");
   await expect(tag).toHaveText(VERSION_LABEL);
   await expect(tag).not.toHaveClass(/is-mismatch/);
-  const short = VERSION.replace(/-.*$/, "");
   const label = VERSION_LABEL.replace(/\./g, "\\.");
-  await expect(tag).toHaveAttribute("title", new RegExp(`^超级批注 ${label}${IS_BETA ? "（测试版）" : ""}\\n界面构建于 .+\\n程序 ${label} · 构建于 .+$`));
+  await expect(tag).toHaveAttribute("title", new RegExp(`^超级批注 ${label}${IS_BETA ? "（测试版）" : ""}\\n发布于 [A-Z][a-z]{2} \\d{1,2}, \\d{4}$`));
   await app.page.keyboard.press("Control+,");
   await app.page.locator(".settings-tab", { hasText: /^关于$/ }).click();
-  await expect(app.page.locator(".set-desc", { hasText: `版本 ${short} (44) · ` })).toBeVisible();
+  await expect(app.page.locator(".set-label", { hasText: /^版本 / }).first()).toHaveText(`版本 ${VERSION_LABEL.slice(1)}`);
+  await expect(app.page.locator(".settings-body")).not.toContainText("(44)");
 });

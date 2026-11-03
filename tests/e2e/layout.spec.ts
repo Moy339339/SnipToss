@@ -186,7 +186,7 @@ test("A library error replaces only the library with an error message while the 
   await app.page.goto("https://app.sniptoss.example/index.html");
   const box = app.page.locator(".error-boundary");
   await expect(box).toContainText("素材栏发生错误");
-  await expect(box).toContainText("批注均已保存");
+  await expect(box).toContainText("已保存的批注不受影响");
   await expect(app.page.locator("aside.panel")).toBeVisible();
   await expect(app.page).toHaveTitle("hero.png");
   expect(app.host.logs.some((l) => l.message.includes("UI error (library)"))).toBe(true);

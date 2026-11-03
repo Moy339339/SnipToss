@@ -63,7 +63,23 @@ final class ScanMethodsTests: SnipTestCase {
         XCTAssertTrue(result["moreOff"] is NSNull)
         XCTAssertTrue(result["skippedDirs"] is NSNull)
         XCTAssertTrue(result["keptHome"] is NSNull)
+        XCTAssertTrue(result["denied"] is NSNull)
+        XCTAssertTrue(result["deniedReason"] is NSNull)
         XCTAssertEqual(homes.all, [root], "the notes folder was handed out")
+    }
+
+    func testAFolderEntryTheAccountMayNotReadSaysSoAndWhichKindOfRefusal() throws {
+        try XCTSkipIf(geteuid() == 0, "root can read any folder")
+        let dir = makeTempDir()
+        let root = dir + "/锁住"
+        touch(root + "/a.png")
+        XCTAssertEqual(chmod(root, 0o000), 0)
+        defer { _ = chmod(root, 0o755) }
+        let result = try XCTUnwrap(scan([root]).first)
+        XCTAssertTrue(materials(of: result).isEmpty)
+        XCTAssertEqual(result["denied"] as? Bool, true)
+        // Its own permissions (EACCES): the page advises Get Info, not System Settings → Files & Folders
+        XCTAssertEqual(result["deniedReason"] as? String, "permissions")
     }
 
     func testANotesFolderAboveTheEntryIsTheNotesFolderOfItsItems() throws {
@@ -239,9 +255,12 @@ final class ScanMethodsTests: SnipTestCase {
         defer { _ = chmod(item, 0o644) }
         XCTAssertThrowsError(try readableLibraryItem(item, library: library)) { error in
             XCTAssertEqual((error as? BridgeError)?.code, "denied")
+            // The file's own permissions (EACCES), not the privacy settings: the page advises Get Info, not System Settings
+            XCTAssertEqual((error as? BridgeError)?.reason, "permissions")
         }
         XCTAssertThrowsError(try readableLibraryItem(dir + "/库/none.png", library: library)) { error in
             XCTAssertEqual((error as? BridgeError)?.code, "notFound")
+            XCTAssertNil((error as? BridgeError)?.reason)
         }
         // A folder is not an item: refused, but not as a missing permission
         XCTAssertThrowsError(try readableLibraryItem(dir + "/库", library: library)) { error in

@@ -90,7 +90,7 @@ test("Copy as Images at the bottom of the notes panel: with nothing checked it c
   expect(drawn.snapshot).toBe(`.sniptoss/${mine.snapshot}`);
   expect(drawn.where).toMatch(/^区域 画面/);
   // The number matches the notes panel: the 2nd on the canvas (the done overall comment is numbered separately, ADR-0008)
-  expect(drawn.name).toBe("hero.png 第2条");
+  expect(drawn.name).toBe("hero.png 第 2 条");
   expect(items[2]).toMatchObject({
     title: "project / video/clip.mp4",
     where: expect.stringMatching(/^00:01\.500–00:02\.500 · 位置 画面右下/),

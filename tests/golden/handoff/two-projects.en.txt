@@ -1,9 +1,9 @@
-Please change the items as described in the notes below (1 folder, 2 items; 9 notes in all).
+Please act on the notes below (1 folder, 2 items; 9 notes in all).
 2 of them are already resolved (marked “resolved”) and are for reference only; don't change anything for them unless the user says otherwise.
 Notes marked “Whole folder” apply to every item in that folder (including subfolders), not to one particular file.
 Where a note marks several places, the comment applies to every one of them.
 Categories: “Change” means modify the marked content as described; “Remove” means remove the marked content; “Add” means add content at the marked spot.
-For notes that have a snapshot, look at the snapshot first (the position is marked on it). Each position starts with a rough location in the frame, followed in parentheses by percentages measured from the top-left corner; px values are pixels of the original item, with the origin at the top left; video times are minutes:seconds.milliseconds (hours:minutes:seconds.milliseconds for one hour or longer).
+For notes that have a snapshot, look at the snapshot first (any position is marked on it). Each position starts with a rough location in the frame, followed in parentheses by percentages measured from the top-left corner; px values are pixels of the original item, with the origin at the top left; video times are minutes:seconds.milliseconds (hours:minutes:seconds.milliseconds for one hour or longer).
 The files are in these project folders:
 - “EP003”: E:\work\EP003
 - “poster”: \\nas\share\poster

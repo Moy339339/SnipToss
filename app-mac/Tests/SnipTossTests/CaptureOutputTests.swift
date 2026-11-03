@@ -255,8 +255,10 @@ final class CaptureOutputTests: SnipTestCase {
         let (h, _, _) = finished(notesInImage: false, folder: makeTempDir())
         XCTAssertTrue(h.clipboard.text?.contains("Here") ?? false)
         XCTAssertTrue(h.clipboard.text?.contains(h.session.lastFile ?? "?") ?? false)
-        // The notice warns that pasting into an agent app would lose them
+        // The notice warns that pasting into an agent app would lose them, and its title does not call it a picture with notes
         XCTAssertEqual(h.notices.shown.first?.detail, ShellText.t("capture.how.notInImage"))
+        XCTAssertEqual(h.notices.shown.first?.title, ShellText.t("capture.copied", values: ["what": "image", "count": 1]))
+        XCTAssertNotEqual(h.notices.shown.first?.title, ShellText.t("capture.copied", values: ["what": "notes", "count": 1]))
         // A picture without notes: just the picture, and the plain notice
         let (bare, _, _) = finished(notesInImage: false, folder: makeTempDir(), marks: [])
         XCTAssertNil(bare.clipboard.text)

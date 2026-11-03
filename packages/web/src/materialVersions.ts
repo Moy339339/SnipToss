@@ -35,7 +35,7 @@ export function useMaterialVersions(opts: {
       const entry = library.byKey.get(key);
       if (!entry) continue; // The item is gone: no modified time to compare and no fingerprint to compute
       const token = tokenOf(key, entry);
-      const v = earlierVersions(s.file, entry.mtime, shas.current.get(token));
+      const v = earlierVersions(s.file, entry.mtime, shas.current.get(token), entry.size);
       out.set(key, v.pending && failed.current.has(token) ? { earlier: new Set(), pending: false } : v);
     }
     return out;
@@ -110,7 +110,7 @@ export function useMaterialVersions(opts: {
   const currentSha = async (entry: MaterialEntry, file: MaterialFile | undefined): Promise<string | undefined> => {
     const key = keyOf(entry.path);
     const token = tokenOf(key, entry);
-    const hit = (file && knownSha(file, entry.mtime)) ?? shas.current.get(token);
+    const hit = (file && knownSha(file, entry.mtime, entry.size)) ?? shas.current.get(token);
     if (hit) return hit;
     try {
       const sha = await call("sha256", { path: entry.path });

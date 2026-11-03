@@ -85,6 +85,31 @@ describe("earlierVersions: which notes were written on an earlier version", () =
     expect(earlierVersions(f, at(12), V1).earlier).toEqual(new Set(["v2"]));
   });
 
+  it("replaced by a different file whose modification time is older than the notes (extracted from an archive, copied with its timestamps kept): the recorded size differs, so the fingerprint is computed instead of taken from the notes", () => {
+    // Written on V1 (482113 bytes) at 11:00; the file now has a modification time of 09:00 and is 90000 bytes
+    const f = file([note("a", 11, { material_sha256: V1, material_size: 482113 })]);
+    expect(knownSha(f, at(9), 90000)).toBeUndefined();
+    expect(earlierVersions(f, at(9), undefined, 90000)).toEqual({ earlier: new Set(["a"]), pending: true });
+    expect(earlierVersions(f, at(9), V2, 90000).earlier).toEqual(new Set(["a"]));
+    // The same size (the file the note was written on, only its time went back): taken from the note as before
+    expect(knownSha(f, at(9), 482113)).toBe(V1);
+    expect(earlierVersions(f, at(9), undefined, 482113)).toEqual({ earlier: new Set(), pending: false });
+  });
+
+  it("notes from before material_size, or a caller that doesn't give the size: the fingerprint is taken from the note as before", () => {
+    expect(knownSha(file([note("a", 11, { material_sha256: V1 })]), at(9), 90000)).toBe(V1);
+    expect(knownSha(file([note("a", 11, { material_sha256: V1, material_size: 482113 })]), at(9))).toBe(V1);
+  });
+
+  it("of several notes, the latest whose size matches counts: one written on the replaced file with another size is skipped", () => {
+    const f = file([
+      note("on-v1", 10, { material_sha256: V1, material_size: 100 }),
+      note("on-v2", 12, { material_sha256: V2, material_size: 200 }),
+    ]);
+    expect(knownSha(f, at(9), 100)).toBe(V1);
+    expect(knownSha(f, at(9), 200)).toBe(V2);
+  });
+
   it("folder comments have no versions", () => {
     const f: MaterialFile = { schema: "sniptoss/4", material: { path: ".", kind: "folder" }, annotations: [note("a", 1, { anchor: {} })] };
     expect(earlierVersions(f, at(10))).toEqual({ earlier: new Set(), pending: false });

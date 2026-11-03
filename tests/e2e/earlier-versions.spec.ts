@@ -4,7 +4,7 @@
 // new notes record which version they were written on.
 // Overall comments get a section of their own, are numbered from 1 by themselves, and their number does not look like a pin's
 
-import { copyFileSync, mkdirSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { expect, test, type App } from "./harness";
@@ -14,7 +14,7 @@ const heroPath = (app: App) => join(app.project, "assets", "hero.png");
 const card = (app: App, id: string) => app.page.locator(`.card[data-annot$="|${id}"]`);
 const focusStage = (app: App) => app.page.locator(".stage").click({ position: { x: 5, y: 5 } });
 const sha = (file: string) => createHash("sha256").update(readFileSync(file)).digest("hex");
-type Note = { id: string; body: string; material_sha256?: string; snapshot?: string };
+type Note = { id: string; body: string; material_sha256?: string; material_size?: number; snapshot?: string };
 const notes = (app: App): Note[] => JSON.parse(readFileSync(join(app.project, ".sniptoss", "annotations", HERO_NOTES), "utf8")).annotations;
 
 /**
@@ -81,7 +81,7 @@ test("When an item is overwritten, Copy as Text gets a section of its own that s
   await expect.poll(() => app.host.copiedImages.length).toBe(1);
   const [item] = app.host.copiedImages[0];
   expect(item.number).toBe(0);
-  expect(item.name).toBe("hero.png 旧版本 第1条");
+  expect(item.name).toBe("hero.png 旧版本 第 1 条");
   expect(item.where).toContain("（写在旧版本上，位置以截图为准）");
 });
 
@@ -101,11 +101,41 @@ test("When an item is overwritten while the app is open, marks leave the canvas 
   await app.page.locator(".composer-text").press("Enter");
   await expect.poll(() => notes(app).find((a) => a.body === "新版上的意见")?.material_sha256).toBe(sha(heroPath(app)));
   const fresh = notes(app).find((a) => a.body === "新版上的意见")!;
+  expect(fresh.material_size).toBe(statSync(heroPath(app)).size);
   await expect(app.page.locator(`.annot-badge[data-id="${fresh.id}"]`)).toHaveText("1");
   await expect(card(app, fresh.id).locator(".card-num")).not.toHaveClass(/is-plain/);
   // The old note stays in the earlier-version section, below the new one
   const order = await app.page.locator(".panel-body .card").evaluateAll((els) => els.map((e) => e.getAttribute("data-annot")!.split("|").pop()));
   expect(order.indexOf(fresh.id)).toBeLessThan(order.indexOf("k3f9a2"));
+});
+
+test("An item replaced by another file whose modified time is older than the notes (extracted from an archive, copied with its timestamps kept): the note that recorded another size goes to the earlier-version section instead of being taken as written on this file", async ({ app }) => {
+  // A note written on the current hero.png, recording its fingerprint and size
+  const file = join(app.project, ".sniptoss", "annotations", HERO_NOTES);
+  const json = JSON.parse(readFileSync(file, "utf8"));
+  const now = new Date().toISOString();
+  json.annotations.push({
+    id: "sz0001",
+    status: "open",
+    category: "change",
+    body: "写在替换前的那份上",
+    anchor: { shapes: [{ type: "point", x: 0.3, y: 0.3 }] },
+    author: "user",
+    created_at: now,
+    updated_at: now,
+    material_sha256: sha(heroPath(app)),
+    material_size: statSync(heroPath(app)).size,
+    replies: [],
+  });
+  writeFileSync(file, JSON.stringify(json, null, 2) + "\n");
+  // Then replaced by a different file (another size) that keeps an old modified time, before the note was written
+  overwriteHero(app);
+  const old = new Date("2026-01-01T00:00:00Z");
+  utimesSync(heroPath(app), old, old);
+  await app.open();
+  await expect(app.page.locator(".note-section.is-earlier")).toBeVisible();
+  await expect(card(app, "sz0001").locator(".card-num")).toHaveClass(/is-plain/);
+  await expect(app.page.locator('.annot-badge[data-id="sz0001"]')).toHaveCount(0);
 });
 
 test("An item whose modified time changed but whose content did not (for example touched by git checkout) is drawn on the canvas as usual and does not count as an earlier version", async ({ app }) => {
@@ -152,7 +182,7 @@ test("Overall comments get their own \"Overall comment\" section, are numbered f
   await expect.poll(() => app.host.copiedImages.length).toBe(1);
   const items = app.host.copiedImages[0];
   expect(items.map((i) => [i.number, i.name])).toEqual([
-    [1, "hero.png 第1条"],
+    [1, "hero.png 第 1 条"],
     [0, "hero.png 整体意见 2"],
   ]);
 });

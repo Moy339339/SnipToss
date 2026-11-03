@@ -21,13 +21,16 @@ export function writtenOn(a: Annotation, file: MaterialFile, mtimeMs: number): s
 
 /**
  * The item's current fingerprint as known without reading the file: the one recorded by the latest note that has a fingerprint and was
- * written after the item's last modification
+ * written after the item's last modification. size = the item file's size now: a note that recorded a different size (material_size) is
+ * not taken, since a file replaced by an older copy (extracted from an archive, copied with its timestamps kept) can have a modification
+ * time from before the notes; the fingerprint then has to be computed
  */
-export function knownSha(file: MaterialFile, mtimeMs: number): string | undefined {
+export function knownSha(file: MaterialFile, mtimeMs: number, size?: number): string | undefined {
   let best: { at: number; sha: string } | undefined;
   for (const a of file.annotations) {
     const at = Date.parse(a.created_at);
     if (!a.material_sha256 || !(at >= mtimeMs)) continue;
+    if (size !== undefined && a.material_size !== undefined && a.material_size !== size) continue;
     if (!best || at > best.at) best = { at, sha: a.material_sha256.toLowerCase() };
   }
   return best?.sha;
@@ -45,13 +48,13 @@ export interface Versions {
 
 /**
  * Which notes of this item were written on an earlier version. nowSha = the item's current fingerprint (if not given, knownSha is tried
- * first, and if it is still unknown the result is pending); mtimeMs = the item file's modification time.
+ * first, and if it is still unknown the result is pending); mtimeMs, size = the item file's modification time and size in bytes.
  * Folder comments have no versions
  */
-export function earlierVersions(file: MaterialFile, mtimeMs: number, nowSha?: string): Versions {
+export function earlierVersions(file: MaterialFile, mtimeMs: number, nowSha?: string, size?: number): Versions {
   const earlier = new Set<string>();
   if (file.material.kind === "folder") return { earlier, pending: false };
-  const now = nowSha?.toLowerCase() ?? knownSha(file, mtimeMs);
+  const now = nowSha?.toLowerCase() ?? knownSha(file, mtimeMs, size);
   let pending = false;
   for (const a of file.annotations) {
     const on = writtenOn(a, file, mtimeMs);

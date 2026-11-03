@@ -359,7 +359,8 @@ export function useComposer(opts: {
           author: author(),
           created_at: now,
           updated_at: now,
-          ...(sha ? { material_sha256: sha } : {}),
+          // With the size: a later file with an older modification time is told apart by it (knownSha in core's versions.ts)
+          ...(sha ? { material_sha256: sha, material_size: current.size } : {}),
           ...(colors.color ? { color: colors.color } : {}),
           replies: [],
         };

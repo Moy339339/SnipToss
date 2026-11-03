@@ -386,8 +386,9 @@ final class CaptureSession {
                 path: exists ? folder : nil, error: saveError, on: screen)
         } else {
             // The notice only says it was copied; a second line only when the notes are not in the picture (pasting into an agent app
-            // would lose them)
-            notices.copied(title: ShellText.t("capture.copied", values: what), detail: hasNotes && !o.notesInImage ? how : "", on: screen)
+            // would lose them). Its title speaks of the picture: with the notes left out it is a plain screenshot, not one with notes
+            let copied: [String: Any] = o.notesInImage ? what : ["what": "image", "count": notes.count]
+            notices.copied(title: ShellText.t("capture.copied", values: copied), detail: hasNotes && !o.notesInImage ? how : "", on: screen)
         }
     }
 

@@ -135,7 +135,7 @@ test("With an English UI, the text from Copy as Text is in English (categories, 
   app.host.prefs = { language: "en" };
   await app.open();
   await app.page.keyboard.press("Control+Shift+A");
-  await expect.poll(() => app.clipboard()).toContain("Please change the items as described in the notes below");
+  await expect.poll(() => app.clipboard()).toContain("Please act on the notes below");
   const text = await app.clipboard();
   expect(text).toContain("Change · Region: top left of the frame");
   expect(text).toContain("标题字太细了，换成粗一点的黑体");
