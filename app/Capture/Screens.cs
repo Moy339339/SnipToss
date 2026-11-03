@@ -1,6 +1,7 @@
+using System.Numerics;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using static SnipToss.App.Native;
@@ -19,57 +20,108 @@ static class Screens
 #if TEST_HOOKS
         if (CaptureFakes.Monitors is { } fake) return fake();
 #endif
+        var monitors = Monitors();
+        var pixels = GrabAll(monitors.Select(m => m.rect).ToList());
+        // The WPF bitmaps are made here, on the calling thread (the grab threads create no WPF objects)
+        var shots = new List<MonitorShot>();
+        for (var i = 0; i < monitors.Count; i++)
+        {
+            var (handle, r) = monitors[i];
+            var w = r.Right - r.Left;
+            var h = r.Bottom - r.Top;
+            _ = GetDpiForMonitor(handle, 0 /* MDT_EFFECTIVE_DPI */, out var dpi, out _); // on failure dpi is 0, and the code below uses a scale of 1
+            var shot = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels[i], w * 4);
+            shot.Freeze();
+            shots.Add(new(new Int32Rect(r.Left, r.Top, w, h), dpi > 0 ? dpi / 96.0 : 1, shot));
+        }
+        return shots;
+    }
+
+    /// <summary>
+    /// Grabs one pixel of each display the same way as <see cref="CaptureAll"/> (worker threads, GDI, the pixel copy), so the first real grab after startup does not pay for setting that up.
+    /// Done while warming up the capture overlay; reads nothing beyond that pixel and keeps nothing
+    /// </summary>
+    public static void WarmUp()
+    {
+#if TEST_HOOKS
+        if (CaptureFakes.Monitors is not null) return;
+#endif
+        GrabAll(Monitors().Select(m => new RECT { Left = m.rect.Left, Top = m.rect.Top, Right = m.rect.Left + 1, Bottom = m.rect.Top + 1 }).ToList());
+    }
+
+    /// <summary>The displays (handle, screen coordinates in physical pixels), without any that have no size</summary>
+    static List<(IntPtr handle, RECT rect)> Monitors()
+    {
         var monitors = new List<(IntPtr handle, RECT rect)>();
         EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (h, _, r, _) =>
         {
             monitors.Add((h, Marshal.PtrToStructure<RECT>(r)));
             return true;
         }, IntPtr.Zero);
-
-        var shots = new List<MonitorShot>();
-        var screen = GetDC(IntPtr.Zero);
-        try
-        {
-            foreach (var (handle, r) in monitors)
-            {
-                var w = r.Right - r.Left;
-                var h = r.Bottom - r.Top;
-                if (w <= 0 || h <= 0) continue;
-                _ = GetDpiForMonitor(handle, 0 /* MDT_EFFECTIVE_DPI */, out var dpi, out _); // on failure dpi is 0, and the code below uses a scale of 1
-                shots.Add(new(new Int32Rect(r.Left, r.Top, w, h), dpi > 0 ? dpi / 96.0 : 1, Grab(screen, r.Left, r.Top, w, h)));
-            }
-        }
-        finally
-        {
-            _ = ReleaseDC(IntPtr.Zero, screen);
-        }
-        return shots;
+        monitors.RemoveAll(m => m.rect.Right <= m.rect.Left || m.rect.Bottom <= m.rect.Top);
+        return monitors;
     }
 
-    static BitmapSource Grab(IntPtr screen, int x, int y, int w, int h)
+    /// <summary>
+    /// Grabs all the regions at once, one thread each: reading the composed screen back is most of the time (about 25 ms for a 2560 × 1440 display), and one display after another it adds up
+    /// </summary>
+    static int[][] GrabAll(List<RECT> regions)
     {
-        var mem = CreateCompatibleDC(screen);
-        var bmp = CreateCompatibleBitmap(screen, w, h);
-        var old = SelectObject(mem, bmp);
+        var pixels = new int[regions.Count][];
         try
         {
+            Parallel.For(0, regions.Count, i => pixels[i] = Grab(regions[i]));
+        }
+        catch (AggregateException ex)
+        {
+            ExceptionDispatchInfo.Throw(ex.InnerExceptions[0]); // the original error, not "One or more errors occurred", goes to the log and the error notice
+        }
+        return pixels;
+    }
+
+    /// <summary>
+    /// The pixels of one region of the screen, top row first, in Bgra32 (cropping, compositing, the magnifier and the clipboard all use this format afterwards).
+    /// Runs on a worker thread, so it touches GDI only and creates no WPF objects
+    /// </summary>
+    static int[] Grab(RECT r)
+    {
+        var (x, y, w, h) = (r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top);
+        var screen = GetDC(IntPtr.Zero);
+        var mem = CreateCompatibleDC(screen);
+        // 32 bits per pixel, top-down (negative height): the same layout as Bgra32, so the bits are copied out as they are
+        var info = new BITMAPINFOHEADER { biSize = Marshal.SizeOf<BITMAPINFOHEADER>(), biWidth = w, biHeight = -h, biPlanes = 1, biBitCount = 32 };
+        var bmp = CreateDIBSection(screen, ref info, 0 /* DIB_RGB_COLORS */, out var bits, IntPtr.Zero, 0);
+        try
+        {
+            if (bmp == IntPtr.Zero || bits == IntPtr.Zero) throw new InvalidOperationException($"Could not create a {w}×{h} bitmap for the screen grab");
+            var old = SelectObject(mem, bmp);
             // CAPTUREBLT: layered windows (tooltips, some menus) are captured too
             // On failure the result is a black image (for example on the lock screen or after a remote desktop disconnects): log it, so a "the screenshot is black" report can be traced
             if (!BitBlt(mem, 0, 0, w, h, screen, x, y, 0x00CC0020 /* SRCCOPY */ | 0x40000000 /* CAPTUREBLT */))
                 Log.Warn($"Screen grab failed (BitBlt, error code {Marshal.GetLastPInvokeError()}), region {x},{y} {w}×{h}");
+            GdiFlush(); // GDI may still be holding the drawing in a batch: flush before reading the bits directly
             SelectObject(mem, old);
-            var src = Imaging.CreateBitmapSourceFromHBitmap(bmp, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
-            // Convert to Bgra32: cropping, compositing and the clipboard all use this format afterwards
-            var converted = new FormatConvertedBitmap(src, PixelFormats.Bgra32, null, 0);
-            var frozen = new WriteableBitmap(converted);
-            frozen.Freeze();
-            return frozen;
+            var px = new int[w * h];
+            Marshal.Copy(bits, px, 0, px.Length);
+            Opaque(px);
+            return px;
         }
         finally
         {
-            DeleteObject(bmp);
+            if (bmp != IntPtr.Zero) DeleteObject(bmp);
             DeleteDC(mem);
+            _ = ReleaseDC(IntPtr.Zero, screen);
         }
+    }
+
+    /// <summary>GDI leaves the fourth byte of each pixel undefined: make every pixel fully opaque</summary>
+    internal static void Opaque(Span<int> px)
+    {
+        const int Alpha = unchecked((int)0xFF000000);
+        var vectors = MemoryMarshal.Cast<int, Vector<int>>(px);
+        var mask = new Vector<int>(Alpha);
+        for (var i = 0; i < vectors.Length; i++) vectors[i] |= mask;
+        for (var i = vectors.Length * Vector<int>.Count; i < px.Length; i++) px[i] |= Alpha;
     }
 
     /// <summary>

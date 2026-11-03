@@ -4,6 +4,12 @@ All notable changes to SnipToss Desktop are listed here: SnipToss for Windows an
 
 The annotation data format has its own version (`"schema": "sniptoss/5"`); its history is in [docs/annotation-format.md](docs/annotation-format.md).
 
+## [1.2.2] — 2026-11-03
+
+### Changed
+
+- Windows: Screen Capture appears sooner after the shortcut is pressed. All displays are captured at the same time instead of one after another, which saves about 30 ms with two displays, and the first capture after SnipToss starts no longer spends extra time setting up the screen grab.
+
 ## [1.2.1] — 2026-11-03
 
 ### Fixed
@@ -99,6 +105,7 @@ First public release.
 - Portable version: with a `data` folder next to the app, all data stays in it and the registry is never touched.
 - Command-line tool `sniptoss` (list, review, resolve, wontfix); its messages follow the system display language.
 
+[1.2.2]: https://github.com/Moy339339/SnipToss/releases/tag/v1.2.2
 [1.2.1]: https://github.com/Moy339339/SnipToss/releases/tag/v1.2.1
 [1.2.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.2.0
 [1.1.2]: https://github.com/Moy339339/SnipToss/releases/tag/v1.1.2

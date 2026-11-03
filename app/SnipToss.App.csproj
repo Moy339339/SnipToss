@@ -15,7 +15,7 @@
     <RootNamespace>SnipToss.App</RootNamespace>
     <!-- scripts/build-app.ps1 bumps the version each time it builds the installed copy (kept in sync with the root package.json); do not edit by hand.
          During testing it is 1.0.0-beta.N (shown as Beta N in the UI); it becomes a stable version number once the exit criteria are met -->
-    <Version>1.2.1</Version>
+    <Version>1.2.2</Version>
     <!-- The exe's file properties (Task Manager, Properties → Details) have one language for everyone: the English name.
          The installer, shortcuts and window title follow the UI language (超级批注 in Chinese) -->
     <Product>SnipToss</Product>

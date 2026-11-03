@@ -85,6 +85,9 @@ test("Marking a note as done in the notes panel: the shell really writes the not
 
 test("An agent writes back through the command line: the shell's file watcher notifies the UI and the UI syncs by itself", async ({ shell }) => {
   await shell.launch();
+  // launch() returns once the library is listed, which can be before the notes are read: if the agent wrote first, the UI would read the
+  // already resolved note and there would be no external change to report
+  await expect(card(shell, "k3f9a2")).toHaveClass(/status-open/);
   agent(shell, "resolve", "k3f9a2", "-m", "改好了");
   await expect(card(shell, "k3f9a2")).toHaveClass(/status-resolved/);
   await expect(shell.page.locator(".toast")).toContainText("外部更新");

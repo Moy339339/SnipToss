@@ -47,7 +47,8 @@ sealed class CaptureSession
 
     /// <summary>
     /// Builds one overlay, lays it out once and closes it (never shown, never registered as a capture in progress): it pays up front the roughly 50 ms that building the layer, applying control templates and loading fonts would cost on the first shortcut press,
-    /// so even the first press after startup stays within the "shortcut press to overlay visible ≤ 200 ms" budget. Runs once; skipped while a capture is in progress; on failure it only logs (the next press builds the layer as usual)
+    /// so even the first press after startup stays within the "shortcut press to overlay visible ≤ 200 ms" budget. Then grabs one pixel of each display (<see cref="Screens.WarmUp"/>), which takes the one-time setup of the grab threads and GDI off the first press too.
+    /// Runs once; skipped while a capture is in progress; on failure it only logs (the next press builds the layer as usual)
     /// </summary>
     public static void WarmUp(Settings settings)
     {
@@ -70,6 +71,7 @@ sealed class CaptureSession
             }
             // A window that was never shown is still in Application.Windows: close it rather than leave it
             overlay.Close();
+            Screens.WarmUp();
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or NotSupportedException or COMException or IOException)
         {

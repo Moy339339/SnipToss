@@ -617,6 +617,48 @@ public class CaptureTests
         });
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(7)]
+    [InlineData(8)]
+    [InlineData(17)]
+    [InlineData(1000)]
+    [InlineData(1037)]
+    public void Screen_grab_pixels_are_made_opaque_without_touching_the_color_including_the_tail_after_the_last_full_vector(int length)
+    {
+        const int Alpha = unchecked((int)0xFF000000);
+        var px = Enumerable.Range(0, length).Select(i => ((i * 0x010203) & 0x00FFFFFF) | (i % 3 == 0 ? 0 : 0x7F000000)).ToArray();
+        var colors = px.Select(p => p & 0x00FFFFFF).ToArray();
+        Screens.Opaque(px);
+        Assert.Equal(-1, Array.FindIndex(px, p => (p & Alpha) != Alpha));
+        Assert.Equal(colors, px.Select(p => p & 0x00FFFFFF));
+    }
+
+    [Fact]
+    public void Screen_grab_gives_one_opaque_Bgra32_picture_per_display_the_size_of_the_display()
+    {
+        // Reads the real screens in memory only (nothing is shown); the displays are grabbed on worker threads and the bitmaps made on this one
+        OnSta(() =>
+        {
+            var displays = 0;
+            Native.EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (_, _, _, _) => ++displays > 0, IntPtr.Zero);
+            var shots = Screens.CaptureAll();
+            Assert.Equal(displays, shots.Count);
+            foreach (var shot in shots)
+            {
+                Assert.Equal(System.Windows.Media.PixelFormats.Bgra32, shot.Shot.Format);
+                Assert.Equal((shot.Bounds.Width, shot.Bounds.Height), (shot.Shot.PixelWidth, shot.Shot.PixelHeight));
+                Assert.True(shot.Shot.IsFrozen);
+                Assert.True(shot.Scale > 0);
+                var px = new int[shot.Bounds.Width * shot.Bounds.Height];
+                shot.Shot.CopyPixels(px, shot.Bounds.Width * 4, 0);
+                const int Alpha = unchecked((int)0xFF000000);
+                Assert.Equal(-1, Array.FindIndex(px, p => (p & Alpha) != Alpha));
+            }
+        });
+    }
+
     static IEnumerable<object> Descendants(object node)
     {
         if (node is not System.Windows.DependencyObject d) yield break;
