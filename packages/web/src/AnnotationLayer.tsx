@@ -46,6 +46,11 @@ export interface ShownAnnotation {
   /** Number in the panel; the same number is shown on the canvas */
   index: number;
   dim: boolean;
+  /**
+   * A drawing without a note (drawings.ts): drawn and edited like a mark but with no number. In the number's place sits an invisible
+   * anchor (.annot-badge.is-ghost), which the color row and the hint align to and the context menu finds it by
+   */
+  drawing?: boolean;
 }
 
 type Pt = [number, number];
@@ -529,10 +534,21 @@ export function AnnotationLayer(props: {
         <g ref={live} />
       </svg>
 
-      {props.shown.flatMap(({ annotation: a, index, dim }) =>
+      {props.shown.flatMap(({ annotation: a, index, dim, drawing: noNumber }) =>
         partsOf(a).map((s, part) => {
           const at = labelPoint(s);
           if (!at) return null;
+          if (noNumber)
+            return (
+              <span
+                key={`${a.id}:${part}`}
+                data-id={a.id}
+                data-part={part}
+                className={`annot-badge is-ghost${props.picked?.id === a.id ? " is-picked" : ""}`}
+                style={{ left: `${at[0] * 100}%`, top: `${at[1] * 100}%` }}
+                aria-hidden
+              />
+            );
           return (
             <button
               key={`${a.id}:${part}`}
@@ -578,6 +594,9 @@ export function AnnotationLayer(props: {
               className={`annot-handle handle-${name}`}
               style={{ left: `${pt[0] * 100}%`, top: `${pt[1] * 100}%`, ...placeStyle(selected, part) }}
               onPointerDown={(e) => startEdit(e, selected, part, name)}
+              // The first click of a double-click selects the mark and brings up its handles, and a handle sits where an edge is clicked:
+              // the second click lands on it, and the double-click has to count for the mark (a drawing has no number to double-click)
+              onDoubleClick={props.onEdit && (() => props.onEdit!(selected.id))}
             />
           )),
         )}

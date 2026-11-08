@@ -92,6 +92,35 @@ static class OverlayGeometry
         return (new Point(x, y), new Point(sx, below ? y + toolbar.Height + 6 : y - 6 - subbar.Height));
     }
 
+    /// <summary>
+    /// Where the color row of a clicked mark goes (with Delete at its end, the same row the main window pops up): just below the mark, left-aligned with it;
+    /// above it when there is no room below; on top of it if neither fits. At least 4 from the screen edge
+    /// </summary>
+    public static Point RowNearMark(Rect mark, Size row, Rect full)
+    {
+        var x = Math.Clamp(mark.Left, full.Left + 4, Math.Max(full.Left + 4, full.Right - 4 - row.Width));
+        double y;
+        if (mark.Bottom + 8 + row.Height <= full.Bottom - 4) y = mark.Bottom + 8;
+        else if (mark.Top - 8 - row.Height >= full.Top + 4) y = mark.Top - 8 - row.Height;
+        else y = Math.Clamp(mark.Bottom - 8 - row.Height, full.Top + 4, Math.Max(full.Top + 4, full.Bottom - 4 - row.Height));
+        return new Point(x, y);
+    }
+
+    /// <summary>
+    /// Where the one-time hint about a drawing goes: just below the mark, left-aligned with it, else above it; a place that would cover the toolbar and its color row
+    /// (avoid) is skipped, and when neither fits it goes where the color row of a clicked mark would. At least 4 from the screen edge
+    /// </summary>
+    public static Point HintNearMark(Rect mark, Size size, Rect full, Rect avoid)
+    {
+        var x = Math.Clamp(mark.Left, full.Left + 4, Math.Max(full.Left + 4, full.Right - 4 - size.Width));
+        foreach (var y in new[] { mark.Bottom + 8, mark.Top - 8 - size.Height })
+        {
+            var r = new Rect(x, y, size.Width, size.Height);
+            if (y >= full.Top + 4 && r.Bottom <= full.Bottom - 4 && !r.IntersectsWith(avoid)) return new Point(x, y);
+        }
+        return RowNearMark(mark, size, full);
+    }
+
     /// <summary>Where the note box goes: first to the right of anchor (the mark grown by a margin, or the toolbar), else to its left, else below (above if that does not fit either); at least 8 from the screen edge</summary>
     public static Point NoteAt(Rect anchor, Size size, Rect full)
     {

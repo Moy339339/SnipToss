@@ -22,6 +22,12 @@ static class Program
             Environment.ExitCode = SetupCommand.Run(setup);
             return;
         }
+        // Started by the hang watchdog of a copy whose UI thread is stuck: writes where it is stuck to the log and exits (HangReport)
+        if (HangReport.Of(args) is var (process, thread))
+        {
+            Environment.ExitCode = HangReport.Run(process, thread);
+            return;
+        }
         // --tray: used by autostart at login; no window pops up, it just waits in the tray (the Screen Capture hotkey works)
         var toTray = args.Contains("--tray");
         args = args.Where(a => a != "--tray").Select(ArgPath).ToArray();
@@ -61,6 +67,8 @@ static class Program
                 window.OpenFromOutside(a);
             }
         }));
+        // Watch the UI thread once startup is over (the first time it is idle): a slow cold start is not a hang
+        window.Dispatcher.InvokeAsync(() => HangWatch.Start(window.Dispatcher), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         if (toTray)
         {
             // The window handle must be created even when not shown: the hotkey and the tray hang off SourceInitialized

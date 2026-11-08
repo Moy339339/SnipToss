@@ -4,9 +4,12 @@ import {
   emptyMaterialFile,
   isWritable,
   newAnnotationId,
+  removeDrawing,
+  takenIds,
   upsertAnnotation,
   type Annotation,
   type AnnotationCategory,
+  type Drawing,
   type Material,
   type Shape,
 } from "@sniptoss/core";
@@ -24,6 +27,7 @@ import type { usePanelScope } from "./panelScope";
 import type { Prefs } from "./prefs";
 import type { Report } from "./report";
 import { wantedTime } from "./scrub";
+import { exactFrameRate } from "./videoHeader";
 import type { useSnapshots } from "./snapshots";
 import type { Media } from "./Viewer";
 
@@ -31,6 +35,9 @@ import type { Media } from "./Viewer";
 // folder comments, editing an existing note. What the composer currently holds and whether there is unsaved text is in draft.ts
 
 const round3 = (v: number) => Math.round(v * 1000) / 1000;
+
+/** Tells drafts started by drawing apart (Draft.drawn.at): a new one each time a mark starts a new note */
+let drawnSeq = 0;
 
 /**
  * The current time of the video (seconds, three decimals; while dragging the progress bar or holding an arrow key the frame lags a
@@ -43,13 +50,27 @@ export const mediaTime = (media: Media | null) => (media instanceof HTMLVideoEle
  * ("the file is broken, re-export it"); then there is none and nothing is recorded (it used to record width and height 0 and duration NaN,
  * which becomes null in JSON)
  */
-function materialMetaSize(media: Media): Pick<Material, "width" | "height" | "duration"> {
-  const out: Pick<Material, "width" | "height" | "duration"> = {};
+export function materialMetaSize(media: Media): Pick<Material, "width" | "height" | "duration" | "frame_rate"> {
+  const out: Pick<Material, "width" | "height" | "duration" | "frame_rate"> = {};
   // Original image size: an SVG uses its declared size, and an image converted by the shell uses the pre-conversion size (mediaSize.ts)
   const { w, h } = naturalSize(media);
   if (w > 0 && h > 0) Object.assign(out, { width: w, height: h });
   if (media instanceof HTMLVideoElement && Number.isFinite(media.duration) && media.duration > 0) out.duration = round3(media.duration);
+  // Only a constant rate read from the file header: frame numbers for AI are computed from it (core frames.ts)
+  const fps = exactFrameRate(media);
+  if (fps) out.frame_rate = fps;
   return out;
+}
+
+/**
+ * Keeps material.frame_rate in step with the video on the canvas when a note is saved: notes files from before 1.3.0 get it, and a video
+ * re-rendered at another rate (or with a variable one) updates or drops it. Left alone while the header hasn't been read yet
+ */
+function withFrameRate(material: Material, media: Media | null): Material {
+  const fps = exactFrameRate(media);
+  if (material.kind !== "video" || fps === undefined || (fps ?? undefined) === material.frame_rate) return material;
+  const { frame_rate: _old, ...rest } = material;
+  return fps ? { ...rest, frame_rate: fps } : rest;
 }
 
 export function useComposer(opts: {
@@ -61,7 +82,7 @@ export function useComposer(opts: {
   canAnnotate: boolean;
   mediaRef: RefObject<Media | null>;
   stageRef: RefObject<HTMLElement | null>;
-  drafts: Pick<ReturnType<typeof useDraftState>, "draft" | "setDraft" | "draftDirty" | "unlessDirty">;
+  drafts: Pick<ReturnType<typeof useDraftState>, "draft" | "setDraft" | "draftDirty" | "unlessDirty" | "discardDraft">;
   setSelectedId: Dispatch<SetStateAction<string | undefined>>;
   setSelectedNote: (id: string | undefined) => void;
   store: Pick<AnnotationStore, "filesRef" | "commit">;
@@ -82,7 +103,7 @@ export function useComposer(opts: {
   onSavedNew?: () => void;
 }) {
   const { prefs, current, currentPath, mediaRef, stageRef, setSelectedId, setSelectedNote } = opts;
-  const { draft, setDraft, draftDirty, unlessDirty } = opts.drafts;
+  const { draft, setDraft, draftDirty, unlessDirty, discardDraft } = opts.drafts;
   const { filesRef, commit } = opts.store;
   const { takeSnapshot, snapshotFailed } = opts.snapshots;
   const { notifyError, reasonOf } = opts.report;
@@ -138,6 +159,8 @@ export function useComposer(opts: {
       body: "",
       anchor: stageAnchor(box),
       composing: at ? true : prefs.autoCompose,
+      // Left without a word, these marks stay as drawings on this item (draft.ts)
+      ...(current ? { drawn: { at: ++drawnSeq, item: current } } : {}),
     });
   };
   /**
@@ -193,6 +216,32 @@ export function useComposer(opts: {
       composing: true,
     });
   };
+  /**
+   * Add words to a drawing (double-click it, or "Add Note…" in its context menu): a new note with the drawing's shape, color and frame;
+   * saving it replaces the drawing (one undo step), leaving the composer keeps the drawing as it was
+   */
+  const startFromDrawing = (d: Drawing) => {
+    if (draftDirty()) return unlessDirty(() => startFromDrawing(d));
+    const rects = [...document.querySelectorAll(`.annot-shape[data-id="${CSS.escape(d.id)}"]`)].map((el) => el.getBoundingClientRect());
+    const box = rects.length
+      ? {
+          left: Math.min(...rects.map((r) => r.left)),
+          top: Math.min(...rects.map((r) => r.top)),
+          right: Math.max(...rects.map((r) => r.right)),
+          bottom: Math.max(...rects.map((r) => r.bottom)),
+        }
+      : undefined;
+    setSelectedId(undefined);
+    setDraft({
+      shapes: [d.shape],
+      time: d.time,
+      category: nextCategory(current && keyOf(current.path)),
+      body: "",
+      anchor: stageAnchor(box),
+      composing: true,
+      fromDrawing: d.id,
+    });
+  };
   /** Edit a note on the canvas */
   const startEdit = (a: Annotation) => {
     if (draft?.id === a.id && !draft.folder) return setDraft({ ...draft, composing: true }); // this note is already being edited
@@ -237,7 +286,7 @@ export function useComposer(opts: {
     const key = folderKey(folder);
     const file = filesRef.current.get(key)?.file ?? emptyMaterialFile({ path: folder.rel, kind: "folder" });
     const existing = draft?.id ? file.annotations.find((a) => a.id === draft.id) : undefined;
-    const taken = new Set([...filesRef.current.values()].flatMap((s) => s.file.annotations.map((a) => a.id)));
+    const taken = new Set([...filesRef.current.values()].flatMap((s) => [...takenIds(s.file)]));
     const now = new Date().toISOString();
     const annotation: Annotation = existing
       ? { ...existing, category: v.category, body: v.body, updated_at: now }
@@ -252,7 +301,7 @@ export function useComposer(opts: {
           updated_at: now,
           replies: [],
         };
-    setDraft(undefined);
+    discardDraft();
     if (!(await commit(folder.home, upsertAnnotation(file, annotation), { base: file }))) {
       if (opened) reopenDraft(opened, v, currentPath.current);
       return;
@@ -338,8 +387,14 @@ export function useComposer(opts: {
       const sized = materialMetaSize(media);
       if (sized.width) file = { ...file, material: { ...file.material, ...sized } };
     }
+    if (isWritable(file)) {
+      const material = withFrameRate(file.material, media);
+      if (material !== file.material) file = { ...file, material };
+    }
+    // Written from a drawing: the note takes its place
+    if (draft.fromDrawing) file = removeDrawing(file, draft.fromDrawing);
     const existing = draft.id ? file.annotations.find((a) => a.id === draft.id) : undefined;
-    const taken = new Set([...filesRef.current.values()].flatMap((s) => s.file.annotations.map((a) => a.id)));
+    const taken = new Set([...filesRef.current.values()].flatMap((s) => [...takenIds(s.file)]));
     const anchor: Annotation["anchor"] = {};
     // The color of each place and of the note as a whole: places recolored by right-click while the composer was open use the new color,
     // the rest stay as they were; places drawn afterwards carry no color, and one is added when the places differ in color
@@ -364,7 +419,7 @@ export function useComposer(opts: {
           ...(colors.color ? { color: colors.color } : {}),
           replies: [],
         };
-    setDraft(undefined);
+    discardDraft();
 
     // Only the text or category changed and the position didn't: the snapshot is not redrawn. It used to be redrawn from the current canvas
     // every time, so editing a sentence after the item was replaced overwrote the original snapshot with the new picture.
@@ -425,5 +480,16 @@ export function useComposer(opts: {
     });
   };
 
-  return { onCreate, startWhole, startTimed, startFolderNote, startEdit, saveDraft, saving, removeDraftPlace, recolorDraftPlace };
+  return {
+    onCreate,
+    startWhole,
+    startTimed,
+    startFolderNote,
+    startEdit,
+    startFromDrawing,
+    saveDraft,
+    saving,
+    removeDraftPlace,
+    recolorDraftPlace,
+  };
 }

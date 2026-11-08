@@ -126,6 +126,7 @@ describe("default values", () => {
       panelResolved: false,
       panelHidden: [],
       loop: false,
+      timeFormat: "seconds",
       volume: 1,
       muted: false,
       reviewIncludeResolved: false,

@@ -1,9 +1,9 @@
-import { useEffect, useEffectEvent, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState, type Dispatch, type RefObject, type SetStateAction } from "react";
 import { useIntl } from "react-intl";
 import type { Annotation, Shape } from "@sniptoss/core";
 import type { Ask } from "./AskDialog";
 import type { ComposerAnchor, ComposerValue } from "./Composer";
-import { baseName } from "./host";
+import { baseName, type MaterialEntry } from "./host";
 import type { FolderTarget, Library } from "./library";
 import type { Notify } from "./report";
 
@@ -33,6 +33,13 @@ export interface Draft {
   anchor: ComposerAnchor;
   /** false = "open the composer automatically after drawing" is off in Settings, and the user presses Enter or clicks the draft to write */
   composing: boolean;
+  /**
+   * A new note started by drawing on the canvas: when it was started (changes to the same draft keep it) and on which item. Left without
+   * a word by any way other than Esc / Cancel / deleting it, its marks stay on that item as drawings (docs/annotation-format.md, "Drawings")
+   */
+  drawn?: { at: number; item: MaterialEntry };
+  /** A note being written from a drawing (double-click it, or "Add Note…" in its menu): saving replaces the drawing; leaving keeps it */
+  fromDrawing?: string;
 }
 
 /**
@@ -53,12 +60,33 @@ export function useDraftState(opts: {
   reveal: (path: string) => void;
   /** Show a confirm dialog (asks when there is unsaved text) */
   ask: (q: Ask) => void;
+  /** A drawn draft was left without a word (not discarded): keep its marks as drawings */
+  onLeave?: (draft: Draft) => void;
 }) {
   const { currentPath, library, selectedKey, dims, onNotify } = opts;
   const intl = useIntl();
-  const [draft, setDraft] = useState<Draft>();
+  const [draft, setDraftState] = useState<Draft>();
+  /** The draft as last set (state lags behind within one event): what setDraft compares against */
+  const draftRef = useRef<Draft | undefined>(undefined);
   /** What the composer currently holds (reported by Composer) */
   const liveDraft = useRef<ComposerValue | undefined>(undefined);
+
+  /**
+   * A new note started by drawing, with nothing written yet, is being replaced or closed: unless that is a discard (discardDraft), its
+   * marks stay as drawings (onLeave). Everything that changes the draft comes through here
+   */
+  const onLeave = useRef(opts.onLeave);
+  onLeave.current = opts.onLeave;
+  const setDraft: Dispatch<SetStateAction<Draft | undefined>> = useCallback((next) => {
+    const prev = draftRef.current;
+    const value = typeof next === "function" ? next(prev) : next;
+    draftRef.current = value;
+    if (prev?.drawn && prev.drawn.at !== value?.drawn?.at && !prev.id && prev.shapes?.length) {
+      const body = prev.composing ? (liveDraft.current?.body ?? prev.body) : prev.body;
+      if (!body.trim()) onLeave.current?.(prev);
+    }
+    setDraftState(value);
+  }, []);
 
   /**
    * Whether the composer holds unsaved text: something was written, or the original was changed (category and time count too).
@@ -77,10 +105,14 @@ export function useDraftState(opts: {
     if (!draftDirty()) return run();
     opts.ask({ kind: "discard", body: liveDraft.current!.body.trim(), run, keep });
   };
-  /** "Discard" was clicked in the confirm dialog: the composer is cleared together with the unsaved text */
+  /**
+   * The draft is thrown away on purpose (Esc, Cancel, "Discard" in the confirm dialog, deleting its only mark) or was saved as a note:
+   * nothing stays behind as a drawing
+   */
   const discardDraft = () => {
     liveDraft.current = undefined;
-    setDraft(undefined);
+    draftRef.current = undefined;
+    setDraftState(undefined);
   };
 
   // The shell may reload the page (a newly added item is on a drive that was not mapped yet, see MainWindow.ReloadIfNewVolume; the UI process

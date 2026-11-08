@@ -46,6 +46,52 @@ describe("renderHandoff", () => {
     expect(text).toContain("截图：.sniptoss/snapshots/k3f9a2.png");
   });
 
+  it("a video with a constant frame rate: the rate after its size, frames after each time, and one line on how frames count", () => {
+    const g = video("E:\\a", "clip.mp4", [
+      { annotation: note("aaaaaa", "字幕晚了", { anchor: { time: { start: 12.5, end: 15 } } }), index: 1 },
+      {
+        annotation: note("bbbbbb", "这里闪了一下", { anchor: { time: { start: 3.05 }, shapes: [{ type: "point", x: 0.5, y: 0.5 }] } }),
+        index: 1,
+      },
+    ]);
+    const text = renderHandoff([{ ...g, material: { ...g.material, frame_rate: 30 } }]);
+    expect(text).toContain("## clip.mp4  ·  视频 1080×1920 · 00:32.500 · 30 帧/秒");
+    expect(text).toContain("1. 修改 · 00:03.050（第 91 帧） · 位置 画面中央（横 50%、纵 50%）");
+    expect(text).toContain("1. 修改 · 00:12.500–00:15.000（第 375–450 帧）\n字幕晚了");
+    expect(text).toContain("帧号从视频开头的 0 数起：帧号 = 秒 × 帧率，向下取整。");
+    const english = core.renderHandoff([{ ...g, material: { ...g.material, frame_rate: 30000 / 1001 } }], en);
+    expect(english).toContain("Video 1080×1920 · 00:32.500 · 29.97 fps");
+    expect(english).toContain("00:12.500–00:15.000 (frames 374–449)");
+    expect(english).toContain("Frame numbers count from 0 at the start of the video");
+  });
+
+  it("no frame rate (variable, WebM, older notes files) or a note on an earlier version: seconds only, and no line about frames", () => {
+    const plain = renderHandoff([
+      video("E:\\a", "clip.mp4", [{ annotation: note("aaaaaa", "一", { anchor: { time: { start: 12.5 } } }), index: 1 }]),
+    ]);
+    expect(plain).toContain("1. 修改 · 00:12.500\n");
+    expect(plain).not.toContain("帧");
+    const g = video("E:\\a", "clip.mp4", [
+      { annotation: note("aaaaaa", "一", { anchor: { time: { start: 12.5 } } }), index: 1, section: "earlier" },
+    ]);
+    const earlier = renderHandoff([{ ...g, material: { ...g.material, frame_rate: 30 } }]);
+    expect(earlier).toContain("00:12.500");
+    expect(earlier).not.toContain("第 375 帧");
+    expect(earlier).not.toContain("帧号从视频开头");
+  });
+
+  it("REVIEW.md gives frames too, but not for a note written on an earlier version", () => {
+    const file = {
+      material: { path: "clip.mp4", kind: "video" as const, sha256: "0", width: 1080, height: 1920, duration: 32.5, frame_rate: 25 },
+      annotations: [note("aaaaaa", "一", { anchor: { time: { start: 2 } } }), note("bbbbbb", "二", { anchor: { time: { start: 4 } } })],
+    };
+    const md = renderReview([file], { earlier: { "clip.mp4": ["bbbbbb"] } });
+    expect(md).toContain("## clip.mp4  ·  视频 1080×1920 · 00:32.500 · 25 帧/秒");
+    expect(md).toContain("### [aaaaaa] 修改 · 00:02.000（第 50 帧）");
+    expect(md).toContain("### [bbbbbb] 修改 · 00:04.000 · 时间点意见");
+    expect(md).toContain("帧号从视频开头的 0 数起");
+  });
+
   it("does not tell the AI to run a command to mark notes Done afterwards, and does not write the 6-character id (the notes stay as a record)", () => {
     const text = renderHandoff([video("E:\\a", "1.mp4", [{ annotation: note("aaaaaa", "一"), index: 1 }])]);
     expect(text).not.toContain("resolve");

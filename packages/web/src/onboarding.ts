@@ -9,7 +9,7 @@ import { usePrefs } from "./prefs";
  *   and on the Mac, while macOS has not allowed the app to record the screen, next to Capture (with a button that leads to where it is allowed).
  * What has been seen is stored in the onboarding entry of the settings (it is not a setting, and "Restore Defaults" leaves it alone); it is recorded as soon as something appears, without waiting for it to close, so quitting midway does not bring it back
  */
-export type HintId = "copy" | "video" | "screenAccess";
+export type HintId = "copy" | "video" | "screenAccess" | "drawing";
 
 /** The name recorded in onboarding */
 export const TOUR = "tour";
@@ -31,6 +31,8 @@ export const HINT_TARGETS: Record<HintId, string> = {
   copy: ".panel-dock .dock-buttons",
   video: ".hdr-tools .tool-timed",
   screenAccess: ".titlebar-split",
+  // The invisible anchor at the start of a drawing (AnnotationLayer)
+  drawing: ".annot-layer .annot-badge.is-ghost",
 };
 
 export interface Box {
@@ -163,6 +165,15 @@ export function useOnboarding(opts: { current?: MaterialEntry; selectedKey?: str
   };
   useEffect(() => () => pendingCopy.current?.(), []);
 
+  /** Marks were left without a word and stayed as drawings: the first time, say so next to the drawing (what it is, how to remove it or add words) */
+  const pendingDrawing = useRef<() => void>(undefined);
+  const keptDrawing = () => {
+    if (seenRef.current.includes(hintKey("drawing"))) return;
+    pendingDrawing.current?.();
+    pendingDrawing.current = whenIdle(300, () => showHint("drawing"));
+  };
+  useEffect(() => () => pendingDrawing.current?.(), []);
+
   return {
     touring,
     startTour: beginTour,
@@ -170,5 +181,6 @@ export function useOnboarding(opts: { current?: MaterialEntry; selectedKey?: str
     hint,
     closeHint: () => setShown(undefined),
     savedNew,
+    keptDrawing,
   };
 }

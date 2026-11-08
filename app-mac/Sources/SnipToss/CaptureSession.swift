@@ -82,6 +82,8 @@ final class CaptureSession {
     private let notices: CaptureNotifying
     /// The first capture was finished: the newcomer's instructions below the magnifier are not shown any more
     private let hintDone: () -> Void
+    /// The one-time hint about drawings: true only the first time ever, and recorded at once (Capture.DrawingHintDone)
+    private let drawingHint: () -> Bool
     /// The colors kept between captures (nil: none are kept, as in most tests)
     private let colors: CaptureColorStore?
     /// The options this capture started with
@@ -111,7 +113,8 @@ final class CaptureSession {
     init(
         source: ScreenSource, access: ScreenAccess = SystemScreenAccess(), guide: PermissionGuiding = PermissionGuide(), defaults: UserDefaults = .standard,
         options: @escaping () -> CaptureOptions = { CaptureOptions() }, clipboard: CaptureClipboard = SystemCaptureClipboard(),
-        notices: CaptureNotifying = CaptureNotices(), hintDone: @escaping () -> Void = {}, colors: CaptureColorStore? = nil
+        notices: CaptureNotifying = CaptureNotices(), hintDone: @escaping () -> Void = {}, drawingHint: @escaping () -> Bool = { false },
+        colors: CaptureColorStore? = nil
     ) {
         self.source = source
         self.access = access
@@ -121,8 +124,13 @@ final class CaptureSession {
         self.clipboard = clipboard
         self.notices = notices
         self.hintDone = hintDone
+        self.drawingHint = drawingHint
         self.colors = colors
     }
+
+    /// The one-time hint about drawings (a mark left without a word stays without a number): true only the first time ever, recorded at
+    /// once so no layer shows it again
+    func takeDrawingHint() -> Bool { drawingHint() }
 
     // MARK: Colors kept across captures and restarts
 

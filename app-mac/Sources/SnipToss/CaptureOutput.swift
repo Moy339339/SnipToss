@@ -111,7 +111,7 @@ enum CaptureOutput {
             overall: r.overall.isEmpty
                 ? nil
                 : NoteEntry(number: 0, color: ToolPrefs.colors[0], category: r.overallCategory, whereText: ShellText.t("capture.note.overall"), body: r.overall),
-            title: notesTitle(numbered: !notes.isEmpty), extra: extra, imageWidth: imageWidth, s: s, imageHeight: imageHeight)
+            title: notesTitle(numbered: !notes.isEmpty, drawn: hasDrawings(r)), extra: extra, imageWidth: imageWidth, s: s, imageHeight: imageHeight)
     }
 
     /// The notes one by one. The notes area and the words for the AI both come from here, so they cannot disagree. Positions are for the
@@ -122,9 +122,16 @@ enum CaptureOutput {
         }
     }
 
-    /// With only an overall comment the picture has no numbers, so the title must not say the numbers match
-    static func notesTitle(numbered: Bool) -> String {
-        ShellText.t(numbered ? "ai.capture.blockNumbered" : "ai.capture.blockOverall")
+    /// With only an overall comment the picture has no numbers, so the title must not say the numbers match. When the picture also has lines
+    /// and boxes without a number (drawings left without a word), a second line says what they are, so the AI does not take them for part
+    /// of the screenshot
+    static func notesTitle(numbered: Bool, drawn: Bool = false) -> String {
+        ShellText.t(numbered ? "ai.capture.blockNumbered" : "ai.capture.blockOverall") + (drawn ? "\n" + ShellText.t("ai.capture.drawings") : "")
+    }
+
+    /// The screenshot has drawings without a note: lines, arrows, pen strokes, boxes or ellipses that carry no number
+    static func hasDrawings(_ r: CaptureResult) -> Bool {
+        r.marks.contains { [.rect, .ellipse, .arrow, .pen].contains($0.kind) && $0.head.number == 0 }
     }
 
     /// The words for an AI: the notes with their positions, the file, the Extra instructions. Numbers are written in a fixed format (a
@@ -134,6 +141,7 @@ enum CaptureOutput {
         lines.append(ShellText.t(notes.isEmpty ? "ai.capture.introOverall" : "ai.capture.introNumbered"))
         // A note that marks several places applies to each of them (the same as the main app's Copy as Text)
         if r.marks.contains(where: { $0.lead != nil }) { lines.append(ShellText.t("ai.manyHint")) }
+        if hasDrawings(r) { lines.append(ShellText.t("ai.capture.drawings")) }
         for e in noteEntries(r, notes: notes, size: size) {
             lines.append(
                 ShellText.t("ai.capture.line", values: ["n": e.number, "category": Categories.label(e.category), "where": e.whereText, "note": e.body]))

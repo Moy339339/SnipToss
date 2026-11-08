@@ -4,7 +4,7 @@
 
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test, type App } from "./harness";
+import { escapeRegExp, expect, test, type App } from "./harness";
 
 const notes = (app: App, file: string) => app.annotations(file);
 const menuItem = (app: App, name: string | RegExp) => app.page.getByRole("menuitem", { name });
@@ -179,7 +179,7 @@ test("with only an empty folder in the library, File → Refresh List is enabled
 
 // ---------- Menu bar ----------
 
-const row = (app: App, name: string) => app.page.locator(".lib-row", { has: app.page.locator(".lib-name", { hasText: new RegExp(`^${name.replace(/\./g, "\\.")}$`) }) });
+const row = (app: App, name: string) => app.page.locator(".lib-row", { has: app.page.locator(".lib-name", { hasText: new RegExp(`^${escapeRegExp(name)}$`) }) });
 const card = (app: App, id: string) => app.page.locator(`[data-annot$="|${id}"]`);
 const toast = (app: App) => app.page.locator(".toast");
 const openMenu = (app: App, name: string) => app.page.locator(".menubar-item", { hasText: name }).click();

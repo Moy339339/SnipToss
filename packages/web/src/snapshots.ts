@@ -1,7 +1,8 @@
 import { useEffect, useEffectEvent, useRef, type RefObject } from "react";
 import { useIntl } from "react-intl";
-import { DATA_DIR, upsertAnnotation, type Annotation, type MaterialFile } from "@sniptoss/core";
+import { DATA_DIR, shapesOf, upsertAnnotation, type Annotation, type MaterialFile } from "@sniptoss/core";
 import { renderSnapshot, seekForCapture } from "./annotate";
+import { drawingsFor } from "./drawings";
 import { isFolderKey, type AnnotationStore, type Op } from "./annotationStore";
 import { call, homeJoin, logError } from "./host";
 import type { Prefs } from "./prefs";
@@ -33,12 +34,21 @@ export function useSnapshots(opts: {
    * On failure the cause is returned; with report = false nothing is said yet, and it is said once the note has really been saved (snapshotFailed):
    * in a folder without write permission the snapshot and the note fail together, and first showing "snapshot not generated, text saved anyway" and then "save failed" would contradict itself
    */
-  const takeSnapshot = async (annotation: Annotation, home: string, report = true): Promise<unknown> => {
+  const takeSnapshot = async (annotation: Annotation, home: string, report = true, file?: MaterialFile): Promise<unknown> => {
     const media = mediaRef.current;
     if (!media) return undefined;
     try {
       if (media instanceof HTMLVideoElement && annotation.anchor.time) await seekForCapture(media, annotation.anchor.time.start);
-      const shot = await renderSnapshot(media, annotation, opts.prefs);
+      // The drawings on this frame go in too (file: the notes file as it will be, when it differs from the stored one, e.g. after undo).
+      // A drawing being turned into this note is the note's own mark now, so it is not drawn twice
+      const key = currentPath.current;
+      const own = new Set(shapesOf(annotation).map((s) => JSON.stringify({ ...s, color: undefined })));
+      const drawings = key
+        ? drawingsFor(file ?? store.filesRef.current.get(key)?.file, annotation, opts.earlierOf(key)).filter(
+            (d) => !own.has(JSON.stringify({ ...d.shape, color: undefined })),
+          )
+        : [];
+      const shot = await renderSnapshot(media, annotation, opts.prefs, drawings);
       if (!shot.data) throw new Error(intl.formatMessage({ id: "app.snapshot.empty" }));
       const rel = `snapshots/${annotation.id}.${shot.ext}`;
       await call("writeBase64", { home, path: `${DATA_DIR}/${rel}`, data: shot.data });
@@ -60,9 +70,12 @@ export function useSnapshots(opts: {
   const staleShots = useRef(new Map<string, Set<string>>());
   const resnap = async (op: Op, target: MaterialFile, other?: MaterialFile) => {
     const earlier = opts.earlierOf(op.key);
+    // Drawings changed by this step (added, moved, recolored, removed): the snapshots that show them are retaken as well
+    const drawingsChanged = JSON.stringify(other?.drawings ?? []) !== JSON.stringify(target.drawings ?? []);
     const moved = target.annotations.filter((a) => {
       const o = other?.annotations.find((x) => x.id === a.id);
-      return o && !earlier.has(a.id) && (JSON.stringify(o.anchor) !== JSON.stringify(a.anchor) || o.color !== a.color);
+      if (!o || earlier.has(a.id)) return false;
+      return JSON.stringify(o.anchor) !== JSON.stringify(a.anchor) || o.color !== a.color || (drawingsChanged && !!a.snapshot);
     });
     if (moved.length === 0 || isFolderKey(op.key)) return target;
     // Decide by the latest "current item": the item may have changed while queued, and the one on the canvas may no longer be this one
@@ -73,7 +86,7 @@ export function useSnapshots(opts: {
     let next = target;
     for (const a of moved) {
       const copy = { ...a };
-      await takeSnapshot(copy, op.home);
+      await takeSnapshot(copy, op.home, true, target);
       next = upsertAnnotation(next, copy);
     }
     return next;

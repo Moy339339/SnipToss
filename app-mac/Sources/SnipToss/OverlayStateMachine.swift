@@ -62,6 +62,10 @@ protocol OverlayView: AnyObject {
 
     /// The mouse position when it is on this display (points in this layer, not snapped); nil when it is on another display
     var cursorPosition: CGPoint? { get }
+
+    /// A new note was left without a word and its marks stayed as drawings (`first` = the first of them): the place for the one-time hint
+    /// about drawings
+    func drawingsKept(_ first: Mark)
 }
 
 /// What the state machine asks the session (with several displays the selection can be on only one; see CaptureSession)
@@ -312,6 +316,15 @@ final class OverlayStateMachine {
 
     /// Left button down (p is already snapped to physical pixels). Returns true = a drag starts and the view must capture the mouse
     func down(_ p: CGPoint, clicks: Int) -> Bool {
+        // Double-click on a drawing without a note: write a note for it (it gets a number). Anywhere else a double-click inside the frame
+        // finishes
+        if clicks == 2, !noteOpen, !textOpen, host.isOwner, let drawn = placeAt(p), drawn.lead == nil, !drawn.hasNote,
+            Self.isDrawingKind(drawn.kind)
+        {
+            openNote(drawn, fromDrawing: true)
+            pick(drawn)
+            return false
+        }
         if clicks == 2, let framed = sel, framed.wpfContains(p), host.isOwner {
             // Double-click inside the frame = finish (whatever tool is selected). If the first click just opened an empty numbered dot /
             // text box, drop it (saving an empty one = removing it).
@@ -319,7 +332,7 @@ final class OverlayStateMachine {
             // (cancelling here would lose the typed text together with this note)
             if noteOpen {
                 if let last = lastAdded, last.kind == .note, last.points[0].wpfDistance(to: p) < 6 { _ = removeLastPlace() }
-                commitNote()
+                commitNote(finishing: true)
             }
             commitText()
             host.finish()
@@ -559,9 +572,10 @@ final class OverlayStateMachine {
         return true
     }
 
-    /// On finish: the open note box and text box are committed first
+    /// On finish: the open note box and text box are committed first (a box left empty keeps its marks as drawings, without the hint: the
+    /// overlay is closing)
     func commitOpenEdits() {
-        if noteOpen { commitNote() }
+        if noteOpen { commitNote(finishing: true) }
         if textOpen { commitText() }
     }
 
@@ -629,10 +643,10 @@ final class OverlayStateMachine {
         }
         put(m)
         view.redrawMarks()
-        // After drawing a rectangle, ellipse, arrow or pen stroke: pop up the note box next to it. These marks exist only together with a
-        // note: leaving the box without writing anything (a click elsewhere, Esc, Cancel) takes the mark away too, the same as in the main
-        // app (it would otherwise stay behind as a plain drawing that could not be removed)
-        if m.kind == .rect || m.kind == .ellipse || m.kind == .arrow || m.kind == .pen { openNote(m) }
+        // After drawing a rectangle, ellipse, arrow or pen stroke: pop up the note box next to it. Leaving the box without a word (a click
+        // elsewhere, Return, Finish) keeps the marks as drawings without a number; Esc / Cancel take them away (the same as in the main app).
+        // A drawing is picked, recolored and deleted like any mark
+        if Self.isDrawingKind(m.kind) { openNote(m) }
     }
 
     /// One more place marked while the note box is open: added to this note
@@ -751,7 +765,8 @@ final class OverlayStateMachine {
                 view.showNotePlaces()
                 return
             }
-            let saved = head.hasNote
+            // A drawing whose box was opened by a double-click stays when the box is cancelled, so it is deleted after (undo brings it back)
+            let saved = head.hasNote || noteOnDrawing
             cancelNote()
             if !saved { return }
             deleteNote(head)
@@ -831,10 +846,21 @@ final class OverlayStateMachine {
 
     // MARK: Writing notes (the words for the AI)
 
-    /// - Parameter m: nil = overall comment
-    private func openNote(_ m: Mark?) {
+    /// The marks that stay as drawings without a number when their note box is left without a word (a numbered dot without words goes away)
+    private static func isDrawingKind(_ kind: Tool) -> Bool {
+        kind == .rect || kind == .ellipse || kind == .arrow || kind == .pen
+    }
+
+    /// The open note box was opened on a drawing that already existed (double-click): Esc / Cancel leave the drawing as it was
+    private var noteOnDrawing = false
+
+    /// - Parameters:
+    ///   - m: nil = overall comment
+    ///   - fromDrawing: m is a drawing without a note that the user is now writing a note for
+    private func openNote(_ m: Mark?, fromDrawing: Bool = false) {
         if noteOpen { commitNote() }  // switching to open another: the open one is committed first and its preview number is taken back
         picked = nil  // when opened by clicking a mark, the caller picks the hit place again afterwards
+        noteOnDrawing = fromDrawing
         noteFor = m
         noteOpen = true
         added.removeAll()
@@ -881,18 +907,21 @@ final class OverlayStateMachine {
         view.paintNote()
     }
 
-    func commitNote() {
+    /// - Parameter finishing: committed because the capture is being finished: the overlay closes right after, so nothing is announced
+    func commitNote(finishing: Bool = false) {
         if !noteOpen { return }
         let text = view.noteDraft.trimmedBothEnds
         if !text.isEmpty { lastCategory = noteCategory }
         if let m = noteFor {
             if text.isEmpty {
-                // No text written = no note wanted: the same as cancelling, so a new note's marks go away with it (they would otherwise stay
-                // as plain drawings that could not be removed). A saved note whose text was all deleted is deleted with its places, as one
-                // step undo can bring back
+                // No text written to a new note: its lines and boxes stay as drawings without a number, each one on its own (a numbered dot
+                // without words goes). A saved note whose text was all deleted is deleted with its places, as one step undo can bring back
                 let saved = m.hasNote
+                if !saved {
+                    keepAsDrawings(m, announce: !finishing)
+                    return
+                }
                 cancelNote()
-                if !saved { return }
                 deleteNote(m)
                 renumber()
                 view.refresh()
@@ -911,11 +940,28 @@ final class OverlayStateMachine {
         if !noteOpen { return }
         // Everything done while this box was open is taken back: colors changed and places deleted are restored, places marked since are
         // removed, and a new note's own first mark goes too (a note not written has no marks, as in the main app); when editing a saved
-        // note its original places and text stay as they were
+        // note its original places and text stay as they were, and so does a drawing the box was opened for
         while undoStep(after: noteSince) {}
         for x in added { removeMark(x) }
-        if let fresh = noteFor, !fresh.hasNote { removeMark(fresh) }
+        if let fresh = noteFor, !fresh.hasNote, !noteOnDrawing { removeMark(fresh) }
         closeNote()
+    }
+
+    /// A new note left without a word: its places become drawings without a number, each standing alone (picked, recolored and deleted one
+    /// by one); places that are numbered dots go, since a dot without words says nothing. Colors and places changed while the box was open
+    /// stay as they are now
+    private func keepAsDrawings(_ head: Mark, announce: Bool) {
+        var first: Mark?
+        for x in all.filter({ !$0.removed && $0.head === head }) {
+            if Self.isDrawingKind(x.kind) {
+                x.lead = nil
+                if first == nil { first = x }
+            } else {
+                removeMark(x)
+            }
+        }
+        closeNote()
+        if announce, let first { view.drawingsKept(first) }
     }
 
     private func closeNote() {

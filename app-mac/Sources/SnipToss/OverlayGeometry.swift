@@ -101,6 +101,33 @@ enum OverlayGeometry {
         return (CGPoint(x: x, y: y), CGPoint(x: sx, y: subY))
     }
 
+    /// Where the color row of a clicked mark goes (with Delete at its end, the same row the main window pops up): just below the mark,
+    /// left-aligned with it; above it when there is no room below; on top of it if neither fits. At least 4 from the screen edge
+    static func rowNearMark(_ mark: CGRect, row: CGSize, full: CGRect) -> CGPoint {
+        let x = clampValue(mark.wpfLeft, full.wpfLeft + 4, max(full.wpfLeft + 4, full.wpfRight - 4 - row.width))
+        let y: CGFloat
+        if mark.wpfBottom + 8 + row.height <= full.wpfBottom - 4 {
+            y = mark.wpfBottom + 8
+        } else if mark.wpfTop - 8 - row.height >= full.wpfTop + 4 {
+            y = mark.wpfTop - 8 - row.height
+        } else {
+            y = clampValue(mark.wpfBottom - 8 - row.height, full.wpfTop + 4, max(full.wpfTop + 4, full.wpfBottom - 4 - row.height))
+        }
+        return CGPoint(x: x, y: y)
+    }
+
+    /// Where the one-time hint about a drawing goes: just below the mark, left-aligned with it, else above it; a place that would cover the
+    /// toolbar and its color row (`avoid`) is skipped, and when neither fits it goes where the color row of a clicked mark would. At least 4
+    /// from the screen edge
+    static func hintNearMark(_ mark: CGRect, size: CGSize, full: CGRect, avoid: CGRect) -> CGPoint {
+        let x = clampValue(mark.wpfLeft, full.wpfLeft + 4, max(full.wpfLeft + 4, full.wpfRight - 4 - size.width))
+        for y in [mark.wpfBottom + 8, mark.wpfTop - 8 - size.height] {
+            let r = CGRect(x: x, y: y, width: size.width, height: size.height)
+            if y >= full.wpfTop + 4 && r.wpfBottom <= full.wpfBottom - 4 && !r.wpfIntersects(avoid) { return CGPoint(x: x, y: y) }
+        }
+        return rowNearMark(mark, row: size, full: full)
+    }
+
     /// Where the note box goes: first to the right of anchor (the mark grown by a margin, or the toolbar), else to its left, else below
     /// (above if that does not fit either); at least 8 from the screen edge
     static func noteAt(_ anchor: CGRect, size: CGSize, full: CGRect) -> CGPoint {

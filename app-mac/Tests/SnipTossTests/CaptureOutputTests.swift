@@ -191,6 +191,27 @@ final class CaptureOutputTests: SnipTestCase {
         XCTAssertFalse(unsaved.contains("/tmp/"))
     }
 
+    func testLinesAndBoxesWithoutANumberAreExplainedOnceInTheWordsAndInTheNotesTitle() {
+        let shot = screen(400, 200)
+        let pin = noted(.note, [CGPoint(x: 50, y: 50)], note: "Here", number: 1)
+        let drawing = Mark(kind: .arrow, color: ToolPrefs.colors[0], size: 2, points: [CGPoint(x: 100, y: 100), CGPoint(x: 200, y: 150)])
+        let text = Mark(kind: .text, color: ToolPrefs.colors[0], size: 18, points: [CGPoint(x: 10, y: 10)])
+        let said = ShellText.t("ai.capture.drawings")
+
+        let plain = result(shot, sel: CGRect(x: 0, y: 0, width: 400, height: 200), marks: [pin, text])
+        XCTAssertFalse(CaptureOutput.hasDrawings(plain))  // text written on the picture is not a drawing that needs explaining
+        XCTAssertFalse(CaptureOutput.handoffText(plain, notes: [pin], file: nil, size: (400, 200), promptExtra: "").contains(said))
+
+        let drawn = result(shot, sel: CGRect(x: 0, y: 0, width: 400, height: 200), marks: [pin, drawing])
+        XCTAssertTrue(CaptureOutput.hasDrawings(drawn))
+        let lines = CaptureOutput.handoffText(drawn, notes: [pin], file: nil, size: (400, 200), promptExtra: "").components(separatedBy: "\n")
+        // Right after the opening sentence, before the notes
+        XCTAssertEqual(lines[1], said)
+        XCTAssertEqual(lines.filter { $0 == said }.count, 1)
+        XCTAssertEqual(CaptureOutput.notesTitle(numbered: true, drawn: true), ShellText.t("ai.capture.blockNumbered") + "\n" + said)
+        XCTAssertEqual(CaptureOutput.notesTitle(numbered: false), ShellText.t("ai.capture.blockOverall"))
+    }
+
     // MARK: The file
 
     func testSavingNumbersPicturesOfTheSameSecondAndCleansOnlyTheDefaultFolder() throws {

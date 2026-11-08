@@ -117,4 +117,28 @@ final class OverlayGeometryTests: SnipTestCase {
         // Dragging up-left: only 100 is left above
         XCTAssertEqual(OverlayGeometry.squareCorner(o, CGPoint(x: 100, y: 80), sel: sel), CGPoint(x: 250, y: 0))
     }
+
+    func testTheColorRowOfAClickedMarkGoesBelowItLeftAlignedElseAboveElseOnItAndStaysOnScreen() {
+        let row = CGSize(width: 300, height: 36)
+        XCTAssertEqual(OverlayGeometry.rowNearMark(CGRect(x: 200, y: 160, width: 120, height: 100), row: row, full: screen), CGPoint(x: 200, y: 268))
+        // No room below: above
+        XCTAssertEqual(OverlayGeometry.rowNearMark(CGRect(x: 200, y: 1020, width: 120, height: 50), row: row, full: screen), CGPoint(x: 200, y: 976))
+        // Neither: on the mark's lower part, still on screen
+        XCTAssertEqual(OverlayGeometry.rowNearMark(CGRect(x: -50, y: 10, width: 120, height: 1065), row: row, full: screen), CGPoint(x: 4, y: 1031))
+        // Near the right edge it moves in
+        XCTAssertEqual(OverlayGeometry.rowNearMark(CGRect(x: 1880, y: 100, width: 30, height: 30), row: row, full: screen).x, 1616)
+    }
+
+    func testTheDrawingHintGoesBelowTheMarkElseAboveSkippingAPlaceOverTheToolbarElseWhereTheColorRowWould() {
+        let hint = CGSize(width: 300, height: 80)
+        let mark = CGRect(x: 200, y: 160, width: 120, height: 100)
+        XCTAssertEqual(OverlayGeometry.hintNearMark(mark, size: hint, full: screen, avoid: WPFRect.empty), CGPoint(x: 200, y: 268))
+        // The toolbar is right below the mark: above it instead
+        let toolbar = CGRect(x: 150, y: 280, width: 400, height: 40)
+        XCTAssertEqual(OverlayGeometry.hintNearMark(mark, size: hint, full: screen, avoid: toolbar), CGPoint(x: 200, y: 72))
+        // No room below or above: where the color row of a clicked mark would go
+        let tall = CGRect(x: 200, y: 20, width: 120, height: 1000)
+        let row = OverlayGeometry.rowNearMark(tall, row: hint, full: screen)
+        XCTAssertEqual(OverlayGeometry.hintNearMark(tall, size: hint, full: screen, avoid: WPFRect.empty), row)
+    }
 }

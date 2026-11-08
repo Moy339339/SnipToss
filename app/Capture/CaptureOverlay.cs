@@ -163,8 +163,11 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
         surface.MouseLeftButtonUp += (_, _) => state.EndOp();
         surface.MouseRightButtonUp += (_, _) => state.Right();
         surface.LostMouseCapture += (_, _) => state.EndOp();
+        // The hint about drawings goes away at the next press anywhere, before the press is handled (tunneling events come first)
+        PreviewMouseDown += (_, _) => DismissDrawingHint();
         PreviewKeyDown += (_, e) =>
         {
+            DismissDrawingHint();
             // In case the IME got it first: ImeProcessedKey is the key actually pressed
             var key = e.Key switch { Key.System => e.SystemKey, Key.ImeProcessed => e.ImeProcessedKey, _ => e.Key };
             // While the color picker is open its keys come first (Enter applies, Esc closes); anything else is typed into its color box, never a tool key
@@ -303,6 +306,51 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
         return true;
     }
 
+    // ---------- The one-time hint about drawings ----------
+
+    Border? drawingHint;
+
+    /// <summary>
+    /// The first time ever a mark is left without a word and stays as a drawing, a hint next to it says what it is and how to recolor, delete or add a note (as in the main window).
+    /// It takes neither the mouse nor the keyboard and goes away at the next press (recorded at once: Settings.Capture.DrawingHintDone)
+    /// </summary>
+    public void DrawingsKept(Mark first)
+    {
+        if (!session.TakeDrawingHint()) return;
+        var text = Txt(KeepWords.Of(Locale.T("capture.drawingHint")), 13, Text);
+        text.TextWrapping = TextWrapping.Wrap;
+        text.MaxWidth = 276; // 300 with the padding, the width of the main window's hints
+        text.LineHeight = 19;
+        drawingHint = Panel(text, 12);
+        drawingHint.IsHitTestVisible = false;
+        drawingHint.Visibility = Visibility.Visible;
+        root.Children.Add(drawingHint);
+        drawingHint.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        var at = OverlayGeometry.HintNearMark(PickedExtent(first), drawingHint.DesiredSize, full, ToolbarArea());
+        Canvas.SetLeft(drawingHint, at.X);
+        Canvas.SetTop(drawingHint, at.Y);
+    }
+
+    /// <summary>Any press (mouse or key) puts the hint away; called before the press is handled, so a press that keeps a drawing can still show it</summary>
+    void DismissDrawingHint()
+    {
+        if (drawingHint is null) return;
+        root.Children.Remove(drawingHint);
+        drawingHint = null;
+    }
+
+    /// <summary>The toolbar with its thickness and color row, where they are now (DIPs in this layer)</summary>
+    Rect ToolbarArea()
+    {
+        var area = Rect.Empty;
+        foreach (var bar in new[] { toolbar, subbar })
+        {
+            var (x, y) = (Canvas.GetLeft(bar), Canvas.GetTop(bar));
+            if (bar.Visibility == Visibility.Visible && !double.IsNaN(x) && !double.IsNaN(y)) area.Union(new Rect(x, y, bar.DesiredSize.Width, bar.DesiredSize.Height));
+        }
+        return area;
+    }
+
     /// <summary>Another display started selecting: this one goes back to fully dark, with no highlight</summary>
     public void Idle() => state.Idle();
 
@@ -405,7 +453,7 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
         hint.TextWrapping = TextWrapping.Wrap;
         hint.Margin = new Thickness(0, 0, 8, 0);
         noteCancel = FootButton(Locale.T("capture.note.cancel"), primary: false, state.CancelNote, tip: Locale.T("capture.note.cancelTip"));
-        noteSave = FootButton(Locale.T("capture.note.save"), primary: true, state.CommitNote);
+        noteSave = FootButton(Locale.T("capture.note.save"), primary: true, () => state.CommitNote());
         var foot = new Grid { Margin = new Thickness(0, 12, 0, 0) };
         foot.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         foot.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -837,6 +885,19 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
         if (!ToolPrefs.Colors.Contains(current) && !recent.Contains(current)) recent.Insert(0, current);
         foreach (var c in recent.Take(Settings.RecentColorsMax)) subbarItems.Children.Add(SwatchButton(c, c == current, Locale.T("markColor.recent", ("name", ToolPrefs.Name(c)))));
         subbarItems.Children.Add(CustomColorButton(current));
+        // A clicked mark: the row pops up next to it and ends with Delete, as in the main window (same as the toolbar's Delete and the Delete key)
+        if (picked is null) return;
+        subbarItems.Children.Add(Separator());
+        subbarItems.Children.Add(IconButton("picked-delete", Icons.Trash, Locale.T("capture.tool.delete"), state.DeletePicked, () => false));
+    }
+
+    /// <summary>A picked mark's extent with its line (text by its letters, a numbered dot by its badge): the color row sits beside it</summary>
+    static Rect PickedExtent(Mark m)
+    {
+        var r = m.Kind == Tool.Text ? MarkPainter.TextBounds(m) : m.Bounds;
+        var grow = m.Kind == Tool.Note ? 14 : m.Size / 2 + 2;
+        r.Inflate(grow, grow);
+        return r;
     }
 
     /// <summary>One color on the sub-toolbar: a 14 circle; the color in use gets a ring around it with a gap (visible for white and black too)</summary>
@@ -1061,8 +1122,10 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
         Canvas.SetTop(toolbar, bar.Y);
         if (sb.Height > 0)
         {
-            Canvas.SetLeft(subbar, sub.X);
-            Canvas.SetTop(subbar, sub.Y);
+            // A clicked mark's colors and Delete pop up next to it, as in the main window; while its note box is open they stay by the toolbar (the box sits next to the mark)
+            var at = state.Picked is { } pm && !state.NoteOpen ? OverlayGeometry.RowNearMark(PickedExtent(pm), sb, full) : sub;
+            Canvas.SetLeft(subbar, at.X);
+            Canvas.SetTop(subbar, at.Y);
         }
         // The color picker goes with the color row: closed when the row is gone (tool put down, mark no longer picked), otherwise kept next to it
         if (!PickerOpen) return;

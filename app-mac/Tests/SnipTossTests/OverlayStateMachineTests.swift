@@ -58,6 +58,11 @@ private final class FakeView: OverlayView {
     }
 
     var cursorPosition: CGPoint? { cursor }
+
+    /// The marks announced as kept drawings (the overlay shows its one-time hint next to the first)
+    var kept: [Mark] = []
+
+    func drawingsKept(_ first: Mark) { kept.append(first) }
 }
 
 /// A fake session (with just this one layer): claim / release follow CaptureSession's rules, and on release every layer (this one
@@ -690,47 +695,142 @@ final class OverlayStateMachineTests: SnipTestCase {
         XCTAssertEqual(rect.number, 1)
     }
 
-    // MARK: Marks exist only with a note: leaving a new one unwritten takes its mark away
+    // MARK: A new note left without a word: its lines and boxes stay as drawings without a number; Esc / Cancel / right-click take them away
 
-    func testLeavingANewMarksNoteBoxWithoutWritingTakesTheMarkAway() {
-        let ways = [
-            "click outside", "click inside", "Esc", "Cancel", "right-click", "Return", "switch to Pixelate", "overall comment",
-            "double-click to finish",
-        ]
-        for how in ways {
+    private static let waysToKeep = ["click outside", "click inside", "Return", "switch to Pixelate", "overall comment", "double-click to finish"]
+    private static let waysToDrop = ["Esc", "Cancel", "right-click"]
+
+    private static func leave(_ a: Layer, _ how: String) {
+        switch how {
+        case "click outside": a.click(700, 600)
+        case "click inside": a.click(450, 450)
+        case "Esc": XCTAssertTrue(a.state.noteKey(.escape, []))
+        case "Cancel": a.state.cancelNote()
+        case "right-click": a.state.right()
+        case "Return": XCTAssertTrue(a.state.noteKey(.enter, []))
+        case "switch to Pixelate": a.state.chooseTool(.mosaic)
+        case "overall comment": a.state.toggleOverall()
+        default: a.down(450, 450, clicks: 2)
+        }
+    }
+
+    func testLeavingANewMarksNoteBoxWithoutWritingKeepsTheMarkAsADrawingWithoutANumber() throws {
+        for how in Self.waysToKeep {
             for tool in [Tool.rect, .ellipse, .arrow, .pen] {
                 let a = Layer().selected()
                 a.state.chooseTool(tool)
                 a.drag(from: (250, 250), to: (330, 320))
                 XCTAssertTrue(a.state.noteOpen, "\(how) \(tool)")
-                XCTAssertEqual(a.state.marks.count, 1, "\(how) \(tool)")
                 a.view.noteDraft = "  "  // only spaces count as nothing written
-                switch how {
-                case "click outside": a.click(700, 600)
-                case "click inside": a.click(450, 450)
-                case "Esc": XCTAssertTrue(a.state.noteKey(.escape, []))
-                case "Cancel": a.state.cancelNote()
-                case "right-click": a.state.right()
-                case "Return": XCTAssertTrue(a.state.noteKey(.enter, []))
-                case "switch to Pixelate": a.state.chooseTool(.mosaic)
-                case "overall comment": a.state.toggleOverall()
-                default: a.down(450, 450, clicks: 2)
+                Self.leave(a, how)
+                let m = try only(a.state.marks)
+                XCTAssertEqual(m.kind, tool, "\(how) \(tool)")
+                XCTAssertFalse(m.hasNote, "\(how) \(tool)")
+                XCTAssertEqual(m.number, 0, "\(how) \(tool)")
+                XCTAssertEqual(m.pendingNumber, 0, "\(how) \(tool)")
+                XCTAssertNil(m.lead, "\(how) \(tool)")
+                XCTAssertNil(a.state.noteFor, "\(how) \(tool)")
+                // Announced for the one-time hint next to it, except when the capture is being finished (the overlay closes at once)
+                if how == "double-click to finish" {
+                    XCTAssertTrue(a.view.kept.isEmpty, "\(how) \(tool)")
+                } else {
+                    XCTAssertIdentical(try only(a.view.kept), m, "\(how) \(tool)")
                 }
+            }
+        }
+    }
+
+    func testFinishingWithAnEmptyNoteBoxOpenKeepsItsDrawingWithoutAnnouncingIt() throws {
+        let a = Layer().selected()
+        a.state.chooseTool(.rect)
+        a.drag(from: (250, 250), to: (330, 320))
+        a.state.commitOpenEdits()
+        XCTAssertFalse(try only(a.state.marks).hasNote)
+        XCTAssertTrue(a.view.kept.isEmpty)
+    }
+
+    func testEscCancelOrRightClickOnANewMarksNoteBoxTakesTheMarkAway() {
+        for how in Self.waysToDrop {
+            for tool in [Tool.rect, .ellipse, .arrow, .pen] {
+                let a = Layer().selected()
+                a.state.chooseTool(tool)
+                a.drag(from: (250, 250), to: (330, 320))
+                Self.leave(a, how)
                 XCTAssertTrue(a.state.marks.isEmpty, "\(how) \(tool)")
                 XCTAssertNil(a.state.noteFor, "\(how) \(tool)")
             }
         }
     }
 
-    func testASecondPlaceDrawnIntoANewNoteGoesTooWhenTheNoteIsLeftUnwritten() {
+    func testANewNoteWithTwoPlacesLeftUnwrittenLeavesTwoDrawingsEachOnItsOwn() throws {
         let a = Layer().selected()
         a.state.chooseTool(.rect)
         a.drag(from: (250, 250), to: (300, 300))
         a.drag(from: (350, 350), to: (420, 420))  // the box is still open: another place of the same note
         XCTAssertEqual(a.state.notePlaces, 2)
         a.click(700, 600)
+        XCTAssertEqual(a.state.marks.count, 2)
+        for m in a.state.marks {
+            XCTAssertNil(m.lead)
+            XCTAssertFalse(m.hasNote)
+        }
+        XCTAssertIdentical(try only(a.view.kept), a.state.marks[0])  // announced once, at the first of them
+        // Each one is picked and deleted on its own
+        a.click(250, 275)
+        XCTAssertIdentical(a.state.picked, a.state.marks[0])
+        a.state.deletePicked()
+        XCTAssertEqual(a.state.marks.count, 1)
+    }
+
+    func testANumberedDotLeftWithoutWordsStillGoesAway() {
+        let a = Layer().selected()
+        a.state.chooseTool(.note)
+        a.click(300, 300)
+        XCTAssertTrue(a.state.noteOpen)
+        a.click(700, 600)
         XCTAssertTrue(a.state.marks.isEmpty)
-        XCTAssertFalse(a.state.locked)  // nothing left, so the selection can be moved and re-selected again
+        XCTAssertTrue(a.view.kept.isEmpty)
+    }
+
+    func testDoubleClickingADrawingOpensANoteForItWritingNumbersItAndEscLeavesTheDrawingAsItWas() throws {
+        let a = Layer().selected()
+        a.state.chooseTool(.rect)
+        a.drag(from: (250, 250), to: (330, 320))
+        a.click(700, 600)
+        let drawing = try only(a.state.marks)
+        XCTAssertFalse(drawing.hasNote)
+
+        a.click(250, 280)
+        a.down(250, 280, clicks: 2)
+        XCTAssertTrue(a.state.noteOpen)
+        XCTAssertIdentical(a.state.noteFor, drawing)
+        XCTAssertTrue(a.state.noteKey(.escape, []))
+        XCTAssertIdentical(try only(a.state.marks), drawing)
+        XCTAssertFalse(drawing.hasNote)
+
+        a.click(250, 280)
+        a.down(250, 280, clicks: 2)
+        a.view.noteDraft = "这个框里改一下"
+        XCTAssertTrue(a.state.noteKey(.enter, []))
+        XCTAssertEqual(drawing.note, "这个框里改一下")
+        XCTAssertEqual(drawing.number, 1)
+    }
+
+    func testDeletingADrawingWhileItsDoubleClickedNoteBoxIsOpenDeletesItAndUndoBringsItBack() throws {
+        let a = Layer().selected()
+        a.state.chooseTool(.rect)
+        a.drag(from: (250, 250), to: (330, 320))
+        a.click(700, 600)
+        let drawing = try only(a.state.marks)
+        a.click(250, 280)
+        a.down(250, 280, clicks: 2)
+        XCTAssertIdentical(a.state.picked, drawing)  // the color row ends with Delete for it
+        a.state.deletePicked()
+        XCTAssertFalse(a.state.noteOpen)
+        XCTAssertTrue(a.state.marks.isEmpty)
+        a.state.undo()
+        XCTAssertIdentical(try only(a.state.marks), drawing)
+        XCTAssertFalse(drawing.hasNote)
     }
 
     // MARK: Deleting a picked mark (the toolbar's Delete, delete / forward delete)

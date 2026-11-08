@@ -102,4 +102,30 @@ public class OverlayGeometryTests
         // At the top: does not leave the top edge of the screen
         Assert.Equal(8, OverlayGeometry.NoteAt(new Rect(0, 0, 1920, 1080), box, Screen).Y);
     }
+
+    [Fact]
+    public void The_color_row_of_a_clicked_mark_goes_below_it_left_aligned_else_above_else_on_it_and_stays_on_screen()
+    {
+        var row = new Size(300, 36);
+        Assert.Equal(new Point(200, 268), OverlayGeometry.RowNearMark(new Rect(200, 160, 120, 100), row, Screen));
+        // No room below: above
+        Assert.Equal(new Point(200, 976), OverlayGeometry.RowNearMark(new Rect(200, 1020, 120, 50), row, Screen));
+        // Neither: on the mark's lower part, still on screen
+        Assert.Equal(new Point(4, 1031), OverlayGeometry.RowNearMark(new Rect(-50, 10, 120, 1065), row, Screen));
+        // Near the right edge it moves in
+        Assert.Equal(1616, OverlayGeometry.RowNearMark(new Rect(1880, 100, 30, 30), row, Screen).X);
+    }
+
+    [Fact]
+    public void The_drawing_hint_goes_below_the_mark_else_above_skipping_a_place_over_the_toolbar_else_where_the_color_row_would()
+    {
+        var hint = new Size(300, 80);
+        var mark = new Rect(200, 160, 120, 100);
+        Assert.Equal(new Point(200, 268), OverlayGeometry.HintNearMark(mark, hint, Screen, Rect.Empty));
+        // The toolbar is right below the mark: above it instead
+        Assert.Equal(new Point(200, 72), OverlayGeometry.HintNearMark(mark, hint, Screen, new Rect(150, 280, 400, 40)));
+        // No room below or above: where the color row of a clicked mark would go
+        var tall = new Rect(200, 20, 120, 1000);
+        Assert.Equal(OverlayGeometry.RowNearMark(tall, hint, Screen), OverlayGeometry.HintNearMark(tall, hint, Screen, Rect.Empty));
+    }
 }

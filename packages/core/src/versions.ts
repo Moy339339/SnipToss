@@ -1,4 +1,4 @@
-import type { Annotation, MaterialFile } from "./types.js";
+import type { MaterialFile } from "./types.js";
 
 // Which version of an item a note was written on (docs/adr/0008-earlier-versions.md; format document, "Notes written on an earlier
 // version"). Pure logic: the item's current fingerprint and modification time are supplied by the caller (the UI gets them through the
@@ -13,7 +13,7 @@ import type { Annotation, MaterialFile } from "./types.js";
  * was written).
  * A time that cannot be parsed (a hand-edited file) counts as the current version: when unsure, a note is not counted as "earlier"
  */
-export function writtenOn(a: Annotation, file: MaterialFile, mtimeMs: number): string | undefined {
+export function writtenOn(a: { material_sha256?: string; created_at: string }, file: MaterialFile, mtimeMs: number): string | undefined {
   if (a.material_sha256) return a.material_sha256.toLowerCase();
   if (!(Date.parse(a.created_at) < mtimeMs)) return undefined;
   return file.material.sha256?.toLowerCase() || undefined;
@@ -37,7 +37,7 @@ export function knownSha(file: MaterialFile, mtimeMs: number, size?: number): st
 }
 
 export interface Versions {
-  /** Notes written on an earlier version (ids) */
+  /** Notes written on an earlier version (ids), and drawings made on one (from 1.3.0; their ids never clash with notes') */
   earlier: Set<string>;
   /**
    * The item's current fingerprint is needed to decide and was not given: earlier is a guess that it changed (it was modified after these
@@ -56,7 +56,7 @@ export function earlierVersions(file: MaterialFile, mtimeMs: number, nowSha?: st
   if (file.material.kind === "folder") return { earlier, pending: false };
   const now = nowSha?.toLowerCase() ?? knownSha(file, mtimeMs, size);
   let pending = false;
-  for (const a of file.annotations) {
+  for (const a of [...file.annotations, ...(file.drawings ?? [])]) {
     const on = writtenOn(a, file, mtimeMs);
     if (on === undefined) continue;
     if (now === undefined) pending = true;

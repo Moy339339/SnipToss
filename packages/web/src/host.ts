@@ -3,7 +3,7 @@
 //   shell → UI { id, result } or { id, error }
 // The shell side is app/Bridge.cs; the method names on both sides must match.
 
-import { ANNOTATIONS_DIR, parseMaterialFile, pathSep, type MaterialFile, type MaterialKind } from "@sniptoss/core";
+import { ANNOTATIONS_DIR, parseMaterialFile, pathSep, trimTrailingSeparators, type MaterialFile, type MaterialKind } from "@sniptoss/core";
 import type { NativeCommand, SetMenus } from "./menuModel";
 export type { MaterialFile };
 
@@ -639,7 +639,7 @@ export const keyOf = (path: string) => path.replaceAll("/", "\\").normalize("NFC
 /** Notes folder + relative path → absolute path (the separator follows the notes folder, see pathSep) */
 export const homeJoin = (home: string, rel: string) => {
   const sep = pathSep(home);
-  return `${home.replace(/[\\/]+$/, "")}${sep}${rel.replaceAll("/", sep)}`;
+  return `${trimTrailingSeparators(home)}${sep}${rel.replaceAll("/", sep)}`;
 };
 
 /**

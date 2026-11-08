@@ -1,12 +1,14 @@
 import { useEffect, useEffectEvent, useRef } from "react";
 import { useIntl } from "react-intl";
-import { formatTime, shapesOf, type Annotation, type NoteSection } from "@sniptoss/core";
+import { shapesOf, type Annotation, type NoteSection } from "@sniptoss/core";
 import { CheckBox } from "./Checkbox";
 import { Highlight } from "./Highlight";
 import { EyeIcon, EyeOffIcon, MoreIcon, SparkIcon } from "./icons";
 import { placeStyle } from "./markColors";
 import { Menu, type MenuItem } from "./Menu";
+import { usePrefs } from "./prefs";
 import { shortWhen } from "./shortWhen";
+import { timeText } from "./timeFormat";
 
 // One note (card) in the notes panel: checkbox, number, category, tags, time, body, replies, plus the copy button and "⋯" menu on hover;
 // reachable by keyboard, ↑ ↓ move between cards
@@ -58,6 +60,8 @@ export function AnnotationCard(props: {
   onPick: () => void;
   onEdit: () => void;
   onCopy: () => void;
+  /** The video's constant frame rate, when known: the time is shown in the format chosen in Settings (timeFormat.ts) */
+  fps?: number;
   /** The "⋯" menu: the same menu as the right-click on the card and on this mark on the canvas */
   menu: (MenuItem | "-")[];
   /** Right-click: the same menu as right-clicking this mark on the canvas */
@@ -66,6 +70,7 @@ export function AnnotationCard(props: {
   const { a } = props;
   const time = a.anchor.time;
   const intl = useIntl();
+  const { prefs } = usePrefs();
   // If the card disappears while hovered (searched out, filtered out, status changed) it never gets the leave event:
   // send one on unmount so the mark on the canvas does not stay lit
   const hovering = useRef(false);
@@ -166,12 +171,7 @@ export function AnnotationCard(props: {
       {/* The video time goes at the start of the body (as in Frame.io): the right end of the title row belongs to the action bar on hover
           and would be covered */}
       <div className="card-body">
-        {time && (
-          <span className="card-time">
-            {formatTime(time.start)}
-            {time.end !== undefined && `–${formatTime(time.end)}`}
-          </span>
-        )}
+        {time && <span className="card-time">{timeText(intl, time, prefs.timeFormat, props.fps)}</span>}
         <Highlight text={a.body} terms={props.terms} />
       </div>
       {a.replies.map((r, i) => (

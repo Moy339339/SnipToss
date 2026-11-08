@@ -13,6 +13,10 @@ import { fileURLToPath } from "node:url";
 import { MockHost, pathOfUrl } from "./mock-host";
 
 export const ROOT = fileURLToPath(new URL("../..", import.meta.url));
+
+/** Text → a regex source that matches it literally (file names and version numbers put into new RegExp) */
+export const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const DIST = join(ROOT, "packages", "web", "dist");
 const FIXTURE = join(ROOT, "tests", "e2e", "fixtures", "project");
 

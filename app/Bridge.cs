@@ -118,6 +118,7 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
                 }),
 #if TEST_HOOKS
                 "debugThrow" => TestHooks.Throw(window, Str(args, "where")),
+                "debugBlock" => TestHooks.Block(window, args.GetProperty("ms").GetInt32(), Str(args, "how")),
                 "debugTray" => TestHooks.TrayState(window),
                 "debugTrayAct" => TestHooks.TrayAct(window, Str(args, "action")),
                 "debugUpdateFound" => TestHooks.UpdateFound(window, args),

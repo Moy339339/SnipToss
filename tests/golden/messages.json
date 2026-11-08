@@ -161,6 +161,12 @@
     },
     {
       "locale": "de",
+      "key": "markColor.deleteDrawing",
+      "args": {},
+      "text": "Diese Zeichnung löschen"
+    },
+    {
+      "locale": "de",
       "key": "markColor.field",
       "args": {},
       "text": "Sättigung und Helligkeit"
@@ -1008,6 +1014,12 @@
     },
     {
       "locale": "de",
+      "key": "capture.drawingHint",
+      "args": {},
+      "text": "Markierungen ohne Text bleiben als Zeichnungen erhalten: ohne Nummer, sie bleiben im Screenshot. Klicken, um die Farbe zu ändern oder zu löschen; Doppelklick, um eine Notiz hinzuzufügen."
+    },
+    {
+      "locale": "de",
       "key": "capture.tool.rect",
       "args": {},
       "text": "Rechteck (R)"
@@ -1410,6 +1422,12 @@
     },
     {
       "locale": "de",
+      "key": "ai.capture.drawings",
+      "args": {},
+      "text": "Linien, Pfeile und Rahmen ohne Nummer wurden zur Erklärung der Notizen gezeichnet; sie gehören nicht zum Screenshot."
+    },
+    {
+      "locale": "de",
       "key": "ai.capture.blockOverall",
       "args": {},
       "text": "Notizen für die KI: Die folgenden Kommentare beziehen sich auf den gesamten Screenshot"
@@ -1562,11 +1580,38 @@
     },
     {
       "locale": "de",
+      "key": "ai.material.fps",
+      "args": {
+        "fps": "<fps>"
+      },
+      "text": "<fps> fps"
+    },
+    {
+      "locale": "de",
       "key": "ai.anchor.page",
       "args": {
         "page": "<page>"
       },
       "text": "Seite <page>"
+    },
+    {
+      "locale": "de",
+      "key": "ai.anchor.frame",
+      "args": {
+        "time": "<time>",
+        "frame": "<frame>"
+      },
+      "text": "<time> (Frame <frame>)"
+    },
+    {
+      "locale": "de",
+      "key": "ai.anchor.frames",
+      "args": {
+        "time": "<time>",
+        "start": "<start>",
+        "end": "<end>"
+      },
+      "text": "<time> (Frames <start>–<end>)"
     },
     {
       "locale": "de",
@@ -1614,6 +1659,18 @@
       "key": "ai.positionHint",
       "args": {},
       "text": "Jede Position beginnt mit einer groben Lage im Bild, gefolgt von Prozentwerten in Klammern, gemessen von der oberen linken Ecke; px-Werte sind Pixel des Originalelements mit dem Ursprung oben links; Videozeiten haben das Format Minuten:Sekunden.Millisekunden (ab einer Stunde Stunden:Minuten:Sekunden.Millisekunden)."
+    },
+    {
+      "locale": "de",
+      "key": "ai.frameHint",
+      "args": {},
+      "text": "Frame-Nummern zählen ab 0 am Anfang des Videos: Frame = Sekunden × Bildrate, abgerundet."
+    },
+    {
+      "locale": "de",
+      "key": "ai.drawingsHint",
+      "args": {},
+      "text": "Linien, Pfeile und Rahmen ohne Nummer auf den Schnappschüssen hat der Benutzer zur Erklärung der Notizen gezeichnet; sie gehören nicht zum Element."
     },
     {
       "locale": "de",
@@ -2669,6 +2726,12 @@
     },
     {
       "locale": "en",
+      "key": "markColor.deleteDrawing",
+      "args": {},
+      "text": "Delete this drawing"
+    },
+    {
+      "locale": "en",
       "key": "markColor.field",
       "args": {},
       "text": "Saturation and brightness"
@@ -3516,6 +3579,12 @@
     },
     {
       "locale": "en",
+      "key": "capture.drawingHint",
+      "args": {},
+      "text": "Marks left without words stay as drawings: they have no number and stay in the screenshot. Click one to recolor or delete it; double-click to add a note."
+    },
+    {
+      "locale": "en",
       "key": "capture.tool.rect",
       "args": {},
       "text": "Rectangle (R)"
@@ -3918,6 +3987,12 @@
     },
     {
       "locale": "en",
+      "key": "ai.capture.drawings",
+      "args": {},
+      "text": "Lines, arrows and boxes without a number were drawn to help explain the notes; they are not part of the screenshot."
+    },
+    {
+      "locale": "en",
       "key": "ai.capture.blockOverall",
       "args": {},
       "text": "Notes for AI: the comments below are about the whole screenshot"
@@ -4070,11 +4145,38 @@
     },
     {
       "locale": "en",
+      "key": "ai.material.fps",
+      "args": {
+        "fps": "<fps>"
+      },
+      "text": "<fps> fps"
+    },
+    {
+      "locale": "en",
       "key": "ai.anchor.page",
       "args": {
         "page": "<page>"
       },
       "text": "Page <page>"
+    },
+    {
+      "locale": "en",
+      "key": "ai.anchor.frame",
+      "args": {
+        "time": "<time>",
+        "frame": "<frame>"
+      },
+      "text": "<time> (frame <frame>)"
+    },
+    {
+      "locale": "en",
+      "key": "ai.anchor.frames",
+      "args": {
+        "time": "<time>",
+        "start": "<start>",
+        "end": "<end>"
+      },
+      "text": "<time> (frames <start>–<end>)"
     },
     {
       "locale": "en",
@@ -4122,6 +4224,18 @@
       "key": "ai.positionHint",
       "args": {},
       "text": "Each position starts with a rough location in the frame, followed in parentheses by percentages measured from the top-left corner; px values are pixels of the original item, with the origin at the top left; video times are minutes:seconds.milliseconds (hours:minutes:seconds.milliseconds for one hour or longer)."
+    },
+    {
+      "locale": "en",
+      "key": "ai.frameHint",
+      "args": {},
+      "text": "Frame numbers count from 0 at the start of the video: frame = seconds × frame rate, rounded down."
+    },
+    {
+      "locale": "en",
+      "key": "ai.drawingsHint",
+      "args": {},
+      "text": "Lines, arrows and boxes without a number in the snapshots were drawn by the user to help explain the notes; they are not part of the item."
     },
     {
       "locale": "en",
@@ -5177,6 +5291,12 @@
     },
     {
       "locale": "es",
+      "key": "markColor.deleteDrawing",
+      "args": {},
+      "text": "Eliminar este dibujo"
+    },
+    {
+      "locale": "es",
       "key": "markColor.field",
       "args": {},
       "text": "Saturación y brillo"
@@ -6024,6 +6144,12 @@
     },
     {
       "locale": "es",
+      "key": "capture.drawingHint",
+      "args": {},
+      "text": "Las marcas sin texto se quedan como dibujos: no llevan número y aparecen en la captura de pantalla. Haga clic para cambiar el color o eliminarlas; doble clic para añadir una nota."
+    },
+    {
+      "locale": "es",
       "key": "capture.tool.rect",
       "args": {},
       "text": "Rectángulo (R)"
@@ -6426,6 +6552,12 @@
     },
     {
       "locale": "es",
+      "key": "ai.capture.drawings",
+      "args": {},
+      "text": "Las líneas, flechas y recuadros sin número se dibujaron para explicar las notas; no forman parte de la captura."
+    },
+    {
+      "locale": "es",
       "key": "ai.capture.blockOverall",
       "args": {},
       "text": "Notas para la IA: los comentarios de abajo se refieren a toda la captura de pantalla"
@@ -6578,11 +6710,38 @@
     },
     {
       "locale": "es",
+      "key": "ai.material.fps",
+      "args": {
+        "fps": "<fps>"
+      },
+      "text": "<fps> fps"
+    },
+    {
+      "locale": "es",
       "key": "ai.anchor.page",
       "args": {
         "page": "<page>"
       },
       "text": "Página <page>"
+    },
+    {
+      "locale": "es",
+      "key": "ai.anchor.frame",
+      "args": {
+        "time": "<time>",
+        "frame": "<frame>"
+      },
+      "text": "<time> (fotograma <frame>)"
+    },
+    {
+      "locale": "es",
+      "key": "ai.anchor.frames",
+      "args": {
+        "time": "<time>",
+        "start": "<start>",
+        "end": "<end>"
+      },
+      "text": "<time> (fotogramas <start>–<end>)"
     },
     {
       "locale": "es",
@@ -6630,6 +6789,18 @@
       "key": "ai.positionHint",
       "args": {},
       "text": "Cada posición empieza con una ubicación aproximada en la imagen, seguida entre paréntesis de porcentajes medidos desde la esquina superior izquierda; los valores en px son píxeles del elemento original, con el origen en la esquina superior izquierda; los tiempos de video se escriben como minutos:segundos.milisegundos (horas:minutos:segundos.milisegundos si duran una hora o más)."
+    },
+    {
+      "locale": "es",
+      "key": "ai.frameHint",
+      "args": {},
+      "text": "Los números de fotograma se cuentan desde 0 al inicio del video: fotograma = segundos × velocidad de fotogramas, redondeado hacia abajo."
+    },
+    {
+      "locale": "es",
+      "key": "ai.drawingsHint",
+      "args": {},
+      "text": "Las líneas, flechas y recuadros sin número en las capturas los dibujó el usuario para explicar las notas; no forman parte del elemento."
     },
     {
       "locale": "es",
@@ -7685,6 +7856,12 @@
     },
     {
       "locale": "fr",
+      "key": "markColor.deleteDrawing",
+      "args": {},
+      "text": "Supprimer ce dessin"
+    },
+    {
+      "locale": "fr",
       "key": "markColor.field",
       "args": {},
       "text": "Saturation et luminosité"
@@ -8532,6 +8709,12 @@
     },
     {
       "locale": "fr",
+      "key": "capture.drawingHint",
+      "args": {},
+      "text": "Les marques laissées sans texte restent comme dessins : sans numéro, elles figurent dans la capture d’écran. Cliquez pour changer la couleur ou supprimer ; double-cliquez pour ajouter une note."
+    },
+    {
+      "locale": "fr",
       "key": "capture.tool.rect",
       "args": {},
       "text": "Rectangle (R)"
@@ -8934,6 +9117,12 @@
     },
     {
       "locale": "fr",
+      "key": "ai.capture.drawings",
+      "args": {},
+      "text": "Les traits, flèches et cadres sans numéro ont été dessinés pour expliquer les notes ; ils ne font pas partie de la capture."
+    },
+    {
+      "locale": "fr",
       "key": "ai.capture.blockOverall",
       "args": {},
       "text": "Notes pour l’IA : les commentaires ci-dessous concernent l’ensemble de la capture d’écran"
@@ -9086,11 +9275,38 @@
     },
     {
       "locale": "fr",
+      "key": "ai.material.fps",
+      "args": {
+        "fps": "<fps>"
+      },
+      "text": "<fps> i/s"
+    },
+    {
+      "locale": "fr",
       "key": "ai.anchor.page",
       "args": {
         "page": "<page>"
       },
       "text": "Page <page>"
+    },
+    {
+      "locale": "fr",
+      "key": "ai.anchor.frame",
+      "args": {
+        "time": "<time>",
+        "frame": "<frame>"
+      },
+      "text": "<time> (image <frame>)"
+    },
+    {
+      "locale": "fr",
+      "key": "ai.anchor.frames",
+      "args": {
+        "time": "<time>",
+        "start": "<start>",
+        "end": "<end>"
+      },
+      "text": "<time> (images <start>–<end>)"
     },
     {
       "locale": "fr",
@@ -9138,6 +9354,18 @@
       "key": "ai.positionHint",
       "args": {},
       "text": "Chaque position commence par un emplacement approximatif dans le cadre, suivi entre parenthèses de pourcentages mesurés depuis le coin supérieur gauche. Les valeurs en px sont des pixels de l’élément d’origine, l’origine étant en haut à gauche. Les temps de vidéo sont au format minutes:secondes.millisecondes (heures:minutes:secondes.millisecondes à partir d’une heure)."
+    },
+    {
+      "locale": "fr",
+      "key": "ai.frameHint",
+      "args": {},
+      "text": "Les numéros d’image partent de 0 au début de la vidéo : image = secondes × fréquence d’images, arrondie à l’entier inférieur."
+    },
+    {
+      "locale": "fr",
+      "key": "ai.drawingsHint",
+      "args": {},
+      "text": "Les traits, flèches et cadres sans numéro sur les captures ont été dessinés par l’utilisateur pour expliquer les notes ; ils ne font pas partie de l’élément."
     },
     {
       "locale": "fr",
@@ -10193,6 +10421,12 @@
     },
     {
       "locale": "it",
+      "key": "markColor.deleteDrawing",
+      "args": {},
+      "text": "Elimina questo disegno"
+    },
+    {
+      "locale": "it",
       "key": "markColor.field",
       "args": {},
       "text": "Saturazione e luminosità"
@@ -11040,6 +11274,12 @@
     },
     {
       "locale": "it",
+      "key": "capture.drawingHint",
+      "args": {},
+      "text": "I segni lasciati senza testo restano come disegni: senza numero, compaiono nello screenshot. Fai clic per cambiare colore o eliminarli; doppio clic per aggiungere una nota."
+    },
+    {
+      "locale": "it",
       "key": "capture.tool.rect",
       "args": {},
       "text": "Rettangolo (R)"
@@ -11442,6 +11682,12 @@
     },
     {
       "locale": "it",
+      "key": "ai.capture.drawings",
+      "args": {},
+      "text": "Linee, frecce e riquadri senza numero sono stati disegnati per spiegare le note; non fanno parte dello screenshot."
+    },
+    {
+      "locale": "it",
       "key": "ai.capture.blockOverall",
       "args": {},
       "text": "Note per l'IA: i commenti qui sotto riguardano l'intero screenshot"
@@ -11594,11 +11840,38 @@
     },
     {
       "locale": "it",
+      "key": "ai.material.fps",
+      "args": {
+        "fps": "<fps>"
+      },
+      "text": "<fps> fps"
+    },
+    {
+      "locale": "it",
       "key": "ai.anchor.page",
       "args": {
         "page": "<page>"
       },
       "text": "Pagina <page>"
+    },
+    {
+      "locale": "it",
+      "key": "ai.anchor.frame",
+      "args": {
+        "time": "<time>",
+        "frame": "<frame>"
+      },
+      "text": "<time> (fotogramma <frame>)"
+    },
+    {
+      "locale": "it",
+      "key": "ai.anchor.frames",
+      "args": {
+        "time": "<time>",
+        "start": "<start>",
+        "end": "<end>"
+      },
+      "text": "<time> (fotogrammi <start>–<end>)"
     },
     {
       "locale": "it",
@@ -11646,6 +11919,18 @@
       "key": "ai.positionHint",
       "args": {},
       "text": "Ogni posizione inizia con un'indicazione approssimativa nell'immagine, seguita tra parentesi dalle percentuali misurate dall'angolo in alto a sinistra; i valori in px sono pixel dell'elemento originale, con origine in alto a sinistra; i tempi del video sono minuti:secondi.millisecondi (ore:minuti:secondi.millisecondi da un'ora in su)."
+    },
+    {
+      "locale": "it",
+      "key": "ai.frameHint",
+      "args": {},
+      "text": "I numeri dei fotogrammi partono da 0 all'inizio del video: fotogramma = secondi × frequenza dei fotogrammi, arrotondato per difetto."
+    },
+    {
+      "locale": "it",
+      "key": "ai.drawingsHint",
+      "args": {},
+      "text": "Linee, frecce e riquadri senza numero nelle istantanee li ha disegnati l'utente per spiegare le note; non fanno parte dell'elemento."
     },
     {
       "locale": "it",
@@ -12701,6 +12986,12 @@
     },
     {
       "locale": "ja",
+      "key": "markColor.deleteDrawing",
+      "args": {},
+      "text": "この描画を削除"
+    },
+    {
+      "locale": "ja",
       "key": "markColor.field",
       "args": {},
       "text": "彩度と明度"
@@ -13494,6 +13785,12 @@
     },
     {
       "locale": "ja",
+      "key": "capture.drawingHint",
+      "args": {},
+      "text": "文字を入力しなかった印は描画として残ります。番号は付かず、スクリーンショットに含まれます。クリックで色の変更や削除、ダブルクリックでメモを追加できます。"
+    },
+    {
+      "locale": "ja",
       "key": "capture.tool.rect",
       "args": {},
       "text": "四角形（R）"
@@ -13896,6 +14193,12 @@
     },
     {
       "locale": "ja",
+      "key": "ai.capture.drawings",
+      "args": {},
+      "text": "番号のない線・矢印・枠はメモの説明のために描いたもので、スクリーンショット自体の内容ではありません。"
+    },
+    {
+      "locale": "ja",
       "key": "ai.capture.blockOverall",
       "args": {},
       "text": "AI 向けのメモ：以下のコメントはスクリーンショット全体についてのものです"
@@ -14048,11 +14351,38 @@
     },
     {
       "locale": "ja",
+      "key": "ai.material.fps",
+      "args": {
+        "fps": "<fps>"
+      },
+      "text": "<fps> fps"
+    },
+    {
+      "locale": "ja",
       "key": "ai.anchor.page",
       "args": {
         "page": "<page>"
       },
       "text": "<page> ページ"
+    },
+    {
+      "locale": "ja",
+      "key": "ai.anchor.frame",
+      "args": {
+        "time": "<time>",
+        "frame": "<frame>"
+      },
+      "text": "<time>（フレーム <frame>）"
+    },
+    {
+      "locale": "ja",
+      "key": "ai.anchor.frames",
+      "args": {
+        "time": "<time>",
+        "start": "<start>",
+        "end": "<end>"
+      },
+      "text": "<time>（フレーム <start>–<end>）"
     },
     {
       "locale": "ja",
@@ -14100,6 +14430,18 @@
       "key": "ai.positionHint",
       "args": {},
       "text": "各位置は、まず画面内のおおよその場所を示し、続く括弧内に左上隅を基準にしたパーセンテージを示します。px の値は元の項目のピクセル数で、原点は左上です。動画の再生位置は 分:秒.ミリ秒 の形式です（1 時間以上の場合は 時:分:秒.ミリ秒）。"
+    },
+    {
+      "locale": "ja",
+      "key": "ai.frameHint",
+      "args": {},
+      "text": "フレーム番号は動画の先頭を 0 として数えます（フレーム番号 = 秒 × フレームレート、小数点以下切り捨て）。"
+    },
+    {
+      "locale": "ja",
+      "key": "ai.drawingsHint",
+      "args": {},
+      "text": "スナップショット上の番号のない線・矢印・枠は、メモの説明のためにユーザーが描いたもので、項目自体の内容ではありません。"
     },
     {
       "locale": "ja",
@@ -15155,6 +15497,12 @@
     },
     {
       "locale": "ko",
+      "key": "markColor.deleteDrawing",
+      "args": {},
+      "text": "이 그림 삭제"
+    },
+    {
+      "locale": "ko",
       "key": "markColor.field",
       "args": {},
       "text": "채도와 명도"
@@ -15948,6 +16296,12 @@
     },
     {
       "locale": "ko",
+      "key": "capture.drawingHint",
+      "args": {},
+      "text": "내용을 입력하지 않은 표시는 그림으로 남습니다. 번호가 붙지 않고 스크린샷에 포함됩니다. 클릭하면 색을 바꾸거나 삭제하고, 더블클릭하면 메모를 추가할 수 있습니다."
+    },
+    {
+      "locale": "ko",
       "key": "capture.tool.rect",
       "args": {},
       "text": "사각형(R)"
@@ -16350,6 +16704,12 @@
     },
     {
       "locale": "ko",
+      "key": "ai.capture.drawings",
+      "args": {},
+      "text": "번호가 없는 선, 화살표, 상자는 메모를 설명하려고 그린 것이며 스크린샷 자체의 내용이 아닙니다."
+    },
+    {
+      "locale": "ko",
       "key": "ai.capture.blockOverall",
       "args": {},
       "text": "AI용 메모: 아래 의견은 스크린샷 전체에 대한 것입니다"
@@ -16502,11 +16862,38 @@
     },
     {
       "locale": "ko",
+      "key": "ai.material.fps",
+      "args": {
+        "fps": "<fps>"
+      },
+      "text": "<fps>fps"
+    },
+    {
+      "locale": "ko",
       "key": "ai.anchor.page",
       "args": {
         "page": "<page>"
       },
       "text": "<page>페이지"
+    },
+    {
+      "locale": "ko",
+      "key": "ai.anchor.frame",
+      "args": {
+        "time": "<time>",
+        "frame": "<frame>"
+      },
+      "text": "<time>(<frame>번 프레임)"
+    },
+    {
+      "locale": "ko",
+      "key": "ai.anchor.frames",
+      "args": {
+        "time": "<time>",
+        "start": "<start>",
+        "end": "<end>"
+      },
+      "text": "<time>(<start>–<end>번 프레임)"
     },
     {
       "locale": "ko",
@@ -16554,6 +16941,18 @@
       "key": "ai.positionHint",
       "args": {},
       "text": "각 위치는 화면 안의 대략적인 위치로 시작하고, 괄호 안에 왼쪽 위 모서리를 기준으로 한 백분율이 이어집니다. px 값은 원본 항목의 픽셀이며 원점은 왼쪽 위입니다. 비디오 시간은 분:초.밀리초 형식입니다(1시간 이상이면 시:분:초.밀리초)."
+    },
+    {
+      "locale": "ko",
+      "key": "ai.frameHint",
+      "args": {},
+      "text": "프레임 번호는 비디오 시작을 0으로 하여 셉니다(프레임 번호 = 초 × 프레임 레이트, 소수점 이하 버림)."
+    },
+    {
+      "locale": "ko",
+      "key": "ai.drawingsHint",
+      "args": {},
+      "text": "스냅샷에서 번호가 없는 선, 화살표, 상자는 메모를 설명하려고 사용자가 그린 것이며 항목 자체의 내용이 아닙니다."
     },
     {
       "locale": "ko",
@@ -17609,6 +18008,12 @@
     },
     {
       "locale": "pt-BR",
+      "key": "markColor.deleteDrawing",
+      "args": {},
+      "text": "Excluir este desenho"
+    },
+    {
+      "locale": "pt-BR",
       "key": "markColor.field",
       "args": {},
       "text": "Saturação e brilho"
@@ -18456,6 +18861,12 @@
     },
     {
       "locale": "pt-BR",
+      "key": "capture.drawingHint",
+      "args": {},
+      "text": "Marcas deixadas sem texto ficam como desenhos: não têm número e aparecem na captura de tela. Clique para trocar a cor ou excluir; clique duas vezes para adicionar uma nota."
+    },
+    {
+      "locale": "pt-BR",
       "key": "capture.tool.rect",
       "args": {},
       "text": "Retângulo (R)"
@@ -18858,6 +19269,12 @@
     },
     {
       "locale": "pt-BR",
+      "key": "ai.capture.drawings",
+      "args": {},
+      "text": "Linhas, setas e caixas sem número foram desenhadas para explicar as notas; não fazem parte da captura."
+    },
+    {
+      "locale": "pt-BR",
       "key": "ai.capture.blockOverall",
       "args": {},
       "text": "Notas para a IA: os comentários abaixo se referem à captura de tela inteira"
@@ -19010,11 +19427,38 @@
     },
     {
       "locale": "pt-BR",
+      "key": "ai.material.fps",
+      "args": {
+        "fps": "<fps>"
+      },
+      "text": "<fps> fps"
+    },
+    {
+      "locale": "pt-BR",
       "key": "ai.anchor.page",
       "args": {
         "page": "<page>"
       },
       "text": "Página <page>"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "ai.anchor.frame",
+      "args": {
+        "time": "<time>",
+        "frame": "<frame>"
+      },
+      "text": "<time> (quadro <frame>)"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "ai.anchor.frames",
+      "args": {
+        "time": "<time>",
+        "start": "<start>",
+        "end": "<end>"
+      },
+      "text": "<time> (quadros <start>–<end>)"
     },
     {
       "locale": "pt-BR",
@@ -19062,6 +19506,18 @@
       "key": "ai.positionHint",
       "args": {},
       "text": "Cada posição começa com uma localização aproximada na imagem, seguida, entre parênteses, de porcentagens medidas a partir do canto superior esquerdo; os valores em px são pixels do item original, com a origem no canto superior esquerdo; os tempos de vídeo são minutos:segundos.milissegundos (horas:minutos:segundos.milissegundos a partir de uma hora)."
+    },
+    {
+      "locale": "pt-BR",
+      "key": "ai.frameHint",
+      "args": {},
+      "text": "Os números de quadro contam a partir de 0 no início do vídeo: quadro = segundos × taxa de quadros, arredondado para baixo."
+    },
+    {
+      "locale": "pt-BR",
+      "key": "ai.drawingsHint",
+      "args": {},
+      "text": "Linhas, setas e caixas sem número nos instantâneos foram desenhadas pelo usuário para explicar as notas; não fazem parte do item."
     },
     {
       "locale": "pt-BR",
@@ -20117,6 +20573,12 @@
     },
     {
       "locale": "ru",
+      "key": "markColor.deleteDrawing",
+      "args": {},
+      "text": "Удалить этот рисунок"
+    },
+    {
+      "locale": "ru",
       "key": "markColor.field",
       "args": {},
       "text": "Насыщенность и яркость"
@@ -21018,6 +21480,12 @@
     },
     {
       "locale": "ru",
+      "key": "capture.drawingHint",
+      "args": {},
+      "text": "Пометки без текста остаются рисунками: без номера, они попадают в снимок экрана. Щёлкните, чтобы сменить цвет или удалить; двойной щелчок — добавить заметку."
+    },
+    {
+      "locale": "ru",
       "key": "capture.tool.rect",
       "args": {},
       "text": "Прямоугольник (R)"
@@ -21420,6 +21888,12 @@
     },
     {
       "locale": "ru",
+      "key": "ai.capture.drawings",
+      "args": {},
+      "text": "Линии, стрелки и рамки без номера нарисованы, чтобы пояснить заметки; они не относятся к самому снимку экрана."
+    },
+    {
+      "locale": "ru",
       "key": "ai.capture.blockOverall",
       "args": {},
       "text": "Заметки для ИИ: комментарии ниже относятся ко всему снимку экрана"
@@ -21572,11 +22046,38 @@
     },
     {
       "locale": "ru",
+      "key": "ai.material.fps",
+      "args": {
+        "fps": "<fps>"
+      },
+      "text": "<fps> кадр/с"
+    },
+    {
+      "locale": "ru",
       "key": "ai.anchor.page",
       "args": {
         "page": "<page>"
       },
       "text": "Страница <page>"
+    },
+    {
+      "locale": "ru",
+      "key": "ai.anchor.frame",
+      "args": {
+        "time": "<time>",
+        "frame": "<frame>"
+      },
+      "text": "<time> (кадр <frame>)"
+    },
+    {
+      "locale": "ru",
+      "key": "ai.anchor.frames",
+      "args": {
+        "time": "<time>",
+        "start": "<start>",
+        "end": "<end>"
+      },
+      "text": "<time> (кадры <start>–<end>)"
     },
     {
       "locale": "ru",
@@ -21624,6 +22125,18 @@
       "key": "ai.positionHint",
       "args": {},
       "text": "Каждое положение начинается с примерного расположения в кадре, за которым в скобках указаны проценты, отсчитываемые от левого верхнего угла; значения в px — пиксели исходного элемента с началом координат в левом верхнем углу; время в видео записывается как минуты:секунды.миллисекунды (часы:минуты:секунды.миллисекунды — для одного часа и более)."
+    },
+    {
+      "locale": "ru",
+      "key": "ai.frameHint",
+      "args": {},
+      "text": "Номера кадров отсчитываются от 0 с начала видео: кадр = секунды × частота кадров с округлением вниз."
+    },
+    {
+      "locale": "ru",
+      "key": "ai.drawingsHint",
+      "args": {},
+      "text": "Линии, стрелки и рамки без номера на снимках нарисовал пользователь, чтобы пояснить заметки; они не относятся к самому элементу."
     },
     {
       "locale": "ru",
@@ -22679,6 +23192,12 @@
     },
     {
       "locale": "zh-CN",
+      "key": "markColor.deleteDrawing",
+      "args": {},
+      "text": "删除这个涂鸦"
+    },
+    {
+      "locale": "zh-CN",
       "key": "markColor.field",
       "args": {},
       "text": "饱和度和亮度"
@@ -23472,6 +23991,12 @@
     },
     {
       "locale": "zh-CN",
+      "key": "capture.drawingHint",
+      "args": {},
+      "text": "未填写内容的标记保留为涂鸦：不编号，随截图一并交出。单击可更换颜色或删除，双击可补写批注。"
+    },
+    {
+      "locale": "zh-CN",
       "key": "capture.tool.rect",
       "args": {},
       "text": "矩形（R）"
@@ -23712,6 +24237,12 @@
     },
     {
       "locale": "zh-CN",
+      "key": "ai.capture.drawings",
+      "args": {},
+      "text": "图上没有序号的线条、箭头和框是另外画的，帮助说明意见，不是截图本身的内容。"
+    },
+    {
+      "locale": "zh-CN",
       "key": "ai.capture.blockOverall",
       "args": {},
       "text": "批注（供 AI 参考）：以下意见针对整张截图"
@@ -23816,11 +24347,38 @@
     },
     {
       "locale": "zh-CN",
+      "key": "ai.material.fps",
+      "args": {
+        "fps": "<fps>"
+      },
+      "text": "<fps> 帧/秒"
+    },
+    {
+      "locale": "zh-CN",
       "key": "ai.anchor.page",
       "args": {
         "page": "<page>"
       },
       "text": "第 <page> 页"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "ai.anchor.frame",
+      "args": {
+        "time": "<time>",
+        "frame": "<frame>"
+      },
+      "text": "<time>（第 <frame> 帧）"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "ai.anchor.frames",
+      "args": {
+        "time": "<time>",
+        "start": "<start>",
+        "end": "<end>"
+      },
+      "text": "<time>（第 <start>–<end> 帧）"
     },
     {
       "locale": "zh-CN",
@@ -23868,6 +24426,18 @@
       "key": "ai.positionHint",
       "args": {},
       "text": "位置描述先给出画面中的大致方位，括号内为以左上角为原点的百分比；px 为素材原始像素，原点在左上角；视频时间格式为 分:秒.毫秒（一小时以上为 时:分:秒.毫秒）。"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "ai.frameHint",
+      "args": {},
+      "text": "帧号从视频开头的 0 数起：帧号 = 秒 × 帧率，向下取整。"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "ai.drawingsHint",
+      "args": {},
+      "text": "截图上没有编号的线条、箭头和框是用户另外画的，帮助说明意见，不是素材本身的内容。"
     },
     {
       "locale": "zh-CN",
@@ -24620,6 +25190,12 @@
       "key": "markColor.deleteNote",
       "args": {},
       "text": "刪除這則批註"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "markColor.deleteDrawing",
+      "args": {},
+      "text": "刪除這個塗鴉"
     },
     {
       "locale": "zh-TW",
@@ -25416,6 +25992,12 @@
     },
     {
       "locale": "zh-TW",
+      "key": "capture.drawingHint",
+      "args": {},
+      "text": "未填寫內容的標記保留為塗鴉：不編號，隨截圖一併交出。按一下可更換顏色或刪除，按兩下可補寫批註。"
+    },
+    {
+      "locale": "zh-TW",
       "key": "capture.tool.rect",
       "args": {},
       "text": "矩形（R）"
@@ -25656,6 +26238,12 @@
     },
     {
       "locale": "zh-TW",
+      "key": "ai.capture.drawings",
+      "args": {},
+      "text": "圖上沒有序號的線條、箭頭和框是另外畫的，幫助說明意見，不是截圖本身的內容。"
+    },
+    {
+      "locale": "zh-TW",
       "key": "ai.capture.blockOverall",
       "args": {},
       "text": "批註（供 AI 參考）：以下意見針對整張截圖"
@@ -25760,11 +26348,38 @@
     },
     {
       "locale": "zh-TW",
+      "key": "ai.material.fps",
+      "args": {
+        "fps": "<fps>"
+      },
+      "text": "每秒 <fps> 格"
+    },
+    {
+      "locale": "zh-TW",
       "key": "ai.anchor.page",
       "args": {
         "page": "<page>"
       },
       "text": "第 <page> 頁"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "ai.anchor.frame",
+      "args": {
+        "time": "<time>",
+        "frame": "<frame>"
+      },
+      "text": "<time>（影格 <frame>）"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "ai.anchor.frames",
+      "args": {
+        "time": "<time>",
+        "start": "<start>",
+        "end": "<end>"
+      },
+      "text": "<time>（影格 <start>–<end>）"
     },
     {
       "locale": "zh-TW",
@@ -25812,6 +26427,18 @@
       "key": "ai.positionHint",
       "args": {},
       "text": "位置描述先給出畫面中的大致方位，括號內為以左上角為原點的百分比；px 為素材原始像素，原點在左上角；影片時間格式為 分:秒.毫秒（一小時以上為 時:分:秒.毫秒）。"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "ai.frameHint",
+      "args": {},
+      "text": "影格編號從影片開頭的 0 數起：影格編號 = 秒 × 影格速率，無條件捨去。"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "ai.drawingsHint",
+      "args": {},
+      "text": "截圖上沒有編號的線條、箭頭和框是使用者另外畫的，幫助說明意見，不是素材本身的內容。"
     },
     {
       "locale": "zh-TW",

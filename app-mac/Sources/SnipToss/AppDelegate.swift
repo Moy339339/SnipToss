@@ -56,18 +56,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     private lazy var captureSession: CaptureSession = {
         let options: () -> CaptureOptions = { [weak self] in self?.captureOptions() ?? CaptureOptions() }
         let hintDone: () -> Void = { [weak self] in _ = self?.settings.update { $0.capture.selectHintDone = true } }
+        // The hint about drawings is shown once ever: recorded the moment it is taken
+        let drawingHint: () -> Bool = { [weak self] in
+            guard let settings = self?.settings, !settings.capture.drawingHintDone else { return false }
+            _ = settings.update { $0.capture.drawingHintDone = true }
+            return true
+        }
         // The smoke runs record what would go on the clipboard and into a notice: the runner's clipboard is left alone
         switch Self.smokeMode {
         case "capture", "annotate":
             return CaptureSession(
                 source: CaptureSmoke.source(), access: CaptureSmoke.Access(), options: options, clipboard: CaptureSmoke.clipboard,
-                notices: CaptureSmoke.notices, hintDone: hintDone, colors: settings)
+                notices: CaptureSmoke.notices, hintDone: hintDone, drawingHint: drawingHint, colors: settings)
         case "captureTiming":
             return CaptureSession(
                 source: ScreenCaptureKitSource(), options: options, clipboard: CaptureSmoke.clipboard, notices: CaptureSmoke.notices,
                 colors: settings)
         default:
-            return CaptureSession(source: ScreenCaptureKitSource(), options: options, hintDone: hintDone, colors: settings)
+            return CaptureSession(source: ScreenCaptureKitSource(), options: options, hintDone: hintDone, drawingHint: drawingHint, colors: settings)
         }
     }()
     private static let smokeMode = ProcessInfo.processInfo.environment["SNIPTOSS_SMOKE_OUT"] == nil ? nil : SmokeRun.mode

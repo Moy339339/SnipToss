@@ -318,7 +318,7 @@ final class SettingsTests: SnipTestCase {
               "Topmost": true,
               "Prefs": { "language": "en", "moreFormats": true, "kinds": { "video": false } },
               "Capture": { "Hotkey": "Ctrl+Alt+K", "HotkeyCustom": true, "KeepInTray": false, "TrayHintShown": true, "SelectHintDone": true,
-                "HideWindow": false, "NotesInImage": false, "Folder": "/Users/me/shots" },
+                "DrawingHintDone": true, "HideWindow": false, "NotesInImage": false, "Folder": "/Users/me/shots" },
               "SkipDirs": [ "node_modules" ],
               "MarkColor": "#ff6a3d",
               "UpdatesCheckedAt": "2026-10-23T01:02:03Z",
@@ -348,6 +348,7 @@ final class SettingsTests: SnipTestCase {
         XCTAssertFalse(v.capture.keepInTray)
         XCTAssertTrue(v.capture.trayHintShown)
         XCTAssertTrue(v.capture.selectHintDone)
+        XCTAssertTrue(v.capture.drawingHintDone)
         XCTAssertFalse(v.capture.hideWindow)
         XCTAssertFalse(v.capture.notesInImage)
         XCTAssertEqual(v.capture.folder, "/Users/me/shots")

@@ -7,7 +7,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { posix, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DATA_DIR, LEGACY_DATA_DIR, MARK_COLORS } from "@sniptoss/core";
+import { DATA_DIR, LEGACY_DATA_DIR, MARK_COLORS, trimTrailingSeparators } from "@sniptoss/core";
 // The write lock is the command line's own (app/FileLock.cs uses the same name and the same rules)
 import { withFileLock } from "../../packages/cli/dist/fs-store.js";
 
@@ -67,7 +67,7 @@ const path = process.platform === "win32" ? win32 : posix;
 export const norm = (p: string) => {
   const full = path.resolve(p);
   const root = path.parse(full).root;
-  return full.length > root.length ? full.replace(/[\\/]+$/, "") : full;
+  return full.length > root.length ? trimTrailingSeparators(full) : full;
 };
 const same = (a: string, b: string) => norm(a).toLowerCase() === norm(b).toLowerCase();
 /** Same as Library.Inside: excludes the folder itself (a drive root like E:\ is not inside E:\) */

@@ -42,7 +42,8 @@ export function checkMaterialFile(data: unknown): string[] {
   else {
     if (typeof m.path !== "string" || m.path === "") want("material.path", m.path, "string");
     if (typeof m.kind !== "string" || m.kind === "") want("material.kind", m.kind, "string");
-    for (const k of ["width", "height", "duration"]) if (m[k] !== undefined && !isNum(m[k])) want(`material.${k}`, m[k], "number");
+    for (const k of ["width", "height", "duration", "frame_rate"])
+      if (m[k] !== undefined && !isNum(m[k])) want(`material.${k}`, m[k], "number");
     if (m.pages !== undefined && !(Array.isArray(m.pages) && m.pages.every((p) => isObj(p) && isNum(p.width) && isNum(p.height))))
       want("material.pages", m.pages, "[{ width, height }]");
   }
@@ -97,6 +98,27 @@ export function checkMaterialFile(data: unknown): string[] {
         }
       });
   });
+
+  // Drawings without notes (from 1.3.0): checked like a note's anchor; an empty list counts as absent
+  if (data.drawings !== undefined) {
+    if (!Array.isArray(data.drawings)) want("drawings", data.drawings, "array");
+    else {
+      const drawn = new Map<string, number>();
+      data.drawings.forEach((d: unknown, i) => {
+        const at = `drawings[${i}]`;
+        if (!isObj(d)) return want(at, d, "object");
+        if (typeof d.id !== "string" || d.id === "") want(`${at}.id`, d.id, "string");
+        else if (drawn.has(d.id)) problems.push(`${at}.id: ${show(d.id)} = drawings[${drawn.get(d.id)}].id`);
+        else drawn.set(d.id, i);
+        checkShape(d.shape, `${at}.shape`, want);
+        checkAnchor({ time: d.time, page: d.page }, at, want);
+        if (d.created_at === undefined) d.created_at = "";
+        else if (typeof d.created_at !== "string") want(`${at}.created_at`, d.created_at, "string");
+        if (d.material_sha256 !== undefined && typeof d.material_sha256 !== "string") delete d.material_sha256;
+      });
+      if (data.drawings.length === 0) delete data.drawings;
+    }
+  }
   return problems;
 }
 

@@ -37,6 +37,10 @@ export function Viewer(props: {
   /** A click on blank canvas: deselect; returns whether anything was selected (on video, a click while something is selected only deselects and does not play) */
   onBackgroundClick: () => boolean;
   onMarkClick: (id: string) => void;
+  /** The notes panel's number of each note (VideoPlayer shows it on the play bar) */
+  labels?: ReadonlyMap<string, { index: number; plain: boolean }>;
+  /** A video's constant frame rate read from its header (VideoPlayer; null = none, undefined = not read yet): how times are shown (timeFormat.ts) */
+  onFrameRate?: (fps: number | null | undefined) => void;
   layer: (size: { w: number; h: number }, t?: number, playing?: boolean, fps?: number) => React.ReactNode;
   /** The canvas cannot open (reports this URL): the drawing tools must be grayed out */
   onFail: (url: string) => void;
@@ -138,6 +142,8 @@ export function Viewer(props: {
           onSize={props.onSize}
           onMarkClick={props.onMarkClick}
           onBackgroundClick={props.onBackgroundClick}
+          onFrameRate={props.onFrameRate}
+          labels={props.labels}
           onError={fail}
           overlay={(t, s, playing, fps) => props.layer(s, t, playing, fps)}
         />

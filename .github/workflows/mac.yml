@@ -266,6 +266,14 @@ jobs:
             expect("typeText", "the text ended with Esc", (s) => !s.textOpen && mark(s, 2).kind === "text" && mark(s, 2).text === "Hi");
             expect("drawUnwritten", "a rectangle with its note box open", (s) => s.noteOpen && (s.marks || []).length === 4);
             expect("leaveUnwritten", "Esc with nothing written takes the rectangle away", (s) => !s.noteOpen && (s.marks || []).length === 3);
+            expect("drawDoodle", "another rectangle with its note box open", (s) => s.noteOpen && (s.marks || []).length === 4);
+            const apart = (a, b) => a[0] + a[2] <= b[0] || b[0] + b[2] <= a[0] || a[1] + a[3] <= b[1] || b[1] + b[3] <= a[1];
+            expect("keepDoodle", "a click elsewhere with nothing written keeps it as a drawing without a number, and the one-time hint shows next to it, clear of the toolbar", (s) => !s.noteOpen && (s.marks || []).length === 4 && mark(s, 3).kind === "rect" && mark(s, 3).number === 0 && mark(s, 3).pending === 0 && !mark(s, 3).lead && s.drawingHint && s.toolbar && apart(s.drawingHint, s.toolbar) && (!s.subbar || apart(s.drawingHint, s.subbar)));
+            expect("pickDoodle", "a click on the drawing picks it, its colors and Delete pop up below it, and the hint is gone", (s) => s.picked && s.picked.kind === "rect" && (s.buttons || []).includes("picked-delete") && s.subbar && s.subbar[1] > mark(s, 3).points[1][1] && !s.drawingHint);
+            expect("noteOnDoodle", "a double click on the drawing opens a note for it (number 3 to come), the keyboard in the box", (s) => s.noteOpen && s.firstResponder === "note" && mark(s, 3).pending === 3 && (s.marks || []).length === 4);
+            expect("escapeDoodleNote", "Esc in that box leaves the drawing as it was", (s) => !s.noteOpen && (s.marks || []).length === 4 && mark(s, 3).kind === "rect" && mark(s, 3).number === 0 && mark(s, 3).pending === 0);
+            expect("pickDoodleAgain", "picked again", (s) => s.picked && s.picked.kind === "rect" && (s.buttons || []).includes("picked-delete"));
+            expect("deleteDoodle", "Delete in that row deletes it", (s) => (s.marks || []).length === 3 && !s.picked && !(s.buttons || []).includes("picked-delete"));
             expect("white", "8 is white", (s) => s.color === "#ffffff");
             expect("black", "7 is black", (s) => s.color === "#000000");
             expect("pickText", "a click on the text picks it, no note box, Delete lit", (s) => s.picked && s.picked.kind === "text" && s.deleteEnabled && !s.noteOpen);

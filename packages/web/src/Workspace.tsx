@@ -11,7 +11,7 @@ import { baseName, call, homeJoin, keyOf, logError, materialUrl, onHostEvent, pl
 import { buildMenus } from "./appMenus";
 import { useNativeMenus } from "./nativeMenus";
 import { ContextMenu, type MenuItem } from "./Menu";
-import { annotationMenu, draftMarkMenu, materialMenu, panelMenu, stagePointAt, type StagePoint } from "./stageMenu";
+import { annotationMenu, draftMarkMenu, drawingMenu, materialMenu, panelMenu, stagePointAt, type StagePoint } from "./stageMenu";
 import { noteColorOf, placeColorOf } from "./markColors";
 import { TitleBar } from "./TitleBar";
 import { folderAt, folderOfMaterial, useLibrary } from "./library";
@@ -45,7 +45,8 @@ import { copyDiagnostics, diagnosticsText, reportIssue } from "./diagnostics";
 import { useUpdates } from "./updates";
 import { useHoldKeys } from "./holdKeys";
 import { useLibraryActions } from "./libraryActions";
-import { useDraftState } from "./draft";
+import { useDraftState, type Draft } from "./draft";
+import { drawingNote, useDrawings } from "./drawings";
 import { useSnapshots } from "./snapshots";
 import { mediaTime, useComposer } from "./compose";
 import { useNavigation } from "./navigation";
@@ -100,10 +101,21 @@ export function WorkspaceView(props: {
   });
   earlierInRef.current = versions.earlierIn;
   const currentEarlier = versions.earlierOf(selectedKey);
+  /** Drawings without notes on the item on the canvas, except ones made on an older version of it (ADR-0008) */
+  const currentDrawings = useMemo(
+    () => (currentFile?.drawings ?? []).filter((d) => !currentEarlier.has(d.id)),
+    [currentFile, currentEarlier],
+  );
+  const drawingOf = (id: string | undefined) => (id ? currentDrawings.find((d) => d.id === id) : undefined);
   /** The notes of the item on the canvas, split into sections and numbered (same as the notes panel) */
   const currentItems = useMemo(
     () => (selectedKey ? numbered(selectedKey, annotations, currentEarlier) : []),
     [selectedKey, annotations, currentEarlier],
+  );
+  /** Each note's number in the notes panel, for the play bar (timestamped comments are numbered in their own section, drawn as gray squares) */
+  const timelineLabels = useMemo(
+    () => new Map(currentItems.map((it) => [it.a.id, { index: it.index, plain: it.section !== "marked" }])),
+    [currentItems],
   );
   const currentBlocked = current
     ? blockedReason(unreadable, current.home, { path: current.homeRel, kind: current.kind }, currentFile)
@@ -134,6 +146,18 @@ export function WorkspaceView(props: {
   const [selectedNote, setSelectedNote] = useState<string>();
   const [seek, setSeek] = useState<SeekRequest>();
   const [dims, setDims] = useState<{ w: number; h: number }>();
+  /** The constant frame rate of the video on the canvas as read from its header (VideoPlayer; null = none, undefined = not read yet) */
+  const [liveFps, setLiveFps] = useState<{ key: string | undefined; fps: number | null | undefined }>();
+  /**
+   * The frame rate times of an item's notes are shown with (timeFormat.ts): the one just read for the video on the canvas, otherwise the
+   * one its notes file recorded
+   */
+  const fpsOf = (key: string | undefined) =>
+    liveFps && liveFps.key === key && liveFps.fps !== undefined
+      ? (liveFps.fps ?? undefined)
+      : key
+        ? files.get(key)?.file.material.frame_rate
+        : undefined;
   const mediaRef = useRef<Media | null>(null);
   const stageRef = useRef<HTMLElement>(null);
   // On the Mac: whether macOS lets the app record the screen (asked once; allowing it takes a restart of the app anyway)
@@ -149,6 +173,8 @@ export function WorkspaceView(props: {
   const onboarding = useOnboarding({ current, selectedKey, video: canTimed && !!dims, noScreenAccess });
   const [ask, setAsk] = useState<Ask>();
   // The note being written in the composer: draft.ts; opening the composer and saving: compose.ts (see "Drawing notes" below)
+  /** Marks left without a word stay as drawings (drawings.ts, set up below once the snapshots are) */
+  const keepDrawings = useRef<(d: Draft) => void>(undefined);
   const { draft, setDraft, liveDraft, draftDirty, unlessDirty, discardDraft } = useDraftState({
     currentPath,
     library,
@@ -157,6 +183,7 @@ export function WorkspaceView(props: {
     onNotify,
     reveal: (path) => reveal(path),
     ask: setAsk,
+    onLeave: (d) => keepDrawings.current?.(d),
   });
   // Note snapshots: snapshots.ts
   const { takeSnapshot, snapshotFailed, resnap, refreshShots } = useSnapshots({
@@ -169,6 +196,17 @@ export function WorkspaceView(props: {
     report: { notifyError, reasonOf },
     earlierOf: versions.earlierOf,
   });
+  // Drawings without notes (marks left without a word): drawings.ts
+  const drawings = useDrawings({
+    store,
+    versions,
+    snapshots: { refreshShots },
+    currentPath,
+    mediaRef,
+    report: { notifyError, reasonOf },
+    onKept: onboarding.keptDrawing,
+  });
+  keepDrawings.current = drawings.keep;
   const layoutRef = useRef<HTMLDivElement>(null);
   const { panels, vars, toggle, toggleBoth, startDrag, reset, resetAll } = usePanels(layoutRef);
 
@@ -357,27 +395,44 @@ export function WorkspaceView(props: {
   const { handHeld } = useHoldKeys({ chooseTool, setTool, holdTools: prefs.holdTools, canDraw });
   const videoTime = () => mediaTime(mediaRef.current);
 
-  const { onCreate, startWhole, startTimed, startFolderNote, startEdit, saveDraft, saving, removeDraftPlace, recolorDraftPlace } =
-    useComposer({
-      appInfo: props.appInfo,
-      prefs,
-      current,
-      currentPath,
-      canAnnotate,
-      mediaRef,
-      stageRef,
-      drafts: { draft, setDraft, draftDirty, unlessDirty },
-      setSelectedId,
-      setSelectedNote,
-      store,
-      snapshots: { takeSnapshot, snapshotFailed },
-      report: { notifyError, reasonOf },
-      scope,
-      reveal,
-      pauseVideo,
-      versions,
-      onSavedNew: onboarding.savedNew,
-    });
+  const {
+    onCreate,
+    startWhole,
+    startTimed,
+    startFolderNote,
+    startEdit,
+    startFromDrawing,
+    saveDraft,
+    saving,
+    removeDraftPlace,
+    recolorDraftPlace,
+  } = useComposer({
+    appInfo: props.appInfo,
+    prefs,
+    current,
+    currentPath,
+    canAnnotate,
+    mediaRef,
+    stageRef,
+    drafts: { draft, setDraft, draftDirty, unlessDirty, discardDraft },
+    setSelectedId,
+    setSelectedNote,
+    store,
+    snapshots: { takeSnapshot, snapshotFailed },
+    report: { notifyError, reasonOf },
+    scope,
+    reveal,
+    pauseVideo,
+    versions,
+    onSavedNew: onboarding.savedNew,
+  });
+  /** Delete a drawing of the item on the canvas (its color row, its context menu, Delete): no question, Ctrl+Z brings it back */
+  const removeDrawingAt = (id: string) => {
+    if (!selectedKey) return;
+    void drawings.remove(selectedKey, id);
+    if (selectedId === id) setSelectedId(undefined);
+    setPicked(undefined);
+  };
   /** The folder containing the item on the canvas (Shift+N, menu Annotate, right-click on the canvas) */
   const currentFolder = current ? folderOfMaterial(current) : undefined;
   const startCurrentFolderNote = () => currentFolder && startFolderNote(currentFolder);
@@ -602,7 +657,7 @@ export function WorkspaceView(props: {
     ...(platform === "mac" ? { "Ctrl+W": () => windowCmd("close"), "Ctrl+M": () => windowCmd("minimize") } : {}),
     "Ctrl+L": toggleLoop,
     Escape: () => {
-      if (draft) setDraft(undefined);
+      if (draft) discardDraft();
       else if (tool !== "select") setTool("select");
       else if (selectedId || selectedNote) {
         setSelectedId(undefined);
@@ -617,6 +672,9 @@ export function WorkspaceView(props: {
     // Same as D: delete the checked notes if any are checked, otherwise the selected note (asks first)
     ...(statusTargets.length > 0 && !draft
       ? { Delete: () => removeTargets(statusTargets), Backspace: () => removeTargets(statusTargets) }
+      : {}),
+    ...(drawingOf(selectedId) && selectedKey && !draft && !currentBlocked
+      ? { Delete: () => removeDrawingAt(selectedId!), Backspace: () => removeDrawingAt(selectedId!) }
       : {}),
     // Images have no "internal paging", so ← → switch items directly; on video ← → step frames, handled in VideoPlayer
     ...(current?.kind === "image" && !draft ? { ArrowLeft: () => stepMaterial(-1), ArrowRight: () => stepMaterial(1) } : {}),
@@ -645,6 +703,8 @@ export function WorkspaceView(props: {
     draftPart?: number;
     at?: StagePoint;
     panel?: boolean;
+    /** A drawing without a note was right-clicked (its id) */
+    drawing?: string;
   }>();
   const onStageContextMenu = (e: React.MouseEvent) => {
     if (!current || (e.target as HTMLElement).closest(".composer, input, textarea")) return;
@@ -653,10 +713,18 @@ export function WorkspaceView(props: {
     const layer = stageRef.current?.querySelector(".annot-layer");
     const target = e.target as HTMLElement;
     const onMedia = !!target.closest(".zoom-view") && !target.closest(".zoom-control");
-    const find = (id: string) => annotations.find((x) => x.id === id);
+    const find = (id: string) => {
+      const d = drawingOf(id);
+      return annotations.find((x) => x.id === id) ?? (d && drawingNote(d));
+    };
     const drafted = draft?.id && currentEarlier.has(draft.id) ? undefined : draft?.shapes;
     const hit = layer && onMedia ? markAt(layer, e.clientX, e.clientY, find, selectedId, drafted) : undefined;
     if (hit && hit.id === undefined) return setStageMenu({ x: e.clientX, y: e.clientY, draftPart: hit.part });
+    if (drawingOf(hit?.id) && !draft && !currentBlocked) {
+      setSelectedNote(undefined);
+      setSelectedId(hit!.id);
+      return setStageMenu({ x: e.clientX, y: e.clientY, drawing: hit!.id });
+    }
     const a = hit?.id ? find(hit.id) : undefined;
     if (a) setSelectedId(a.id);
     const at = !a && canDraw ? stagePointAt(e, stageRef.current, mediaRef.current, videoTime()) : undefined;
@@ -673,7 +741,18 @@ export function WorkspaceView(props: {
       m.currentTime = at.time;
   };
   /** The menu for one note (right-click on a mark on the canvas, right-click in the notes panel and "⋯"); no it = right-click on blank canvas, at = where in the canvas the right-click landed */
-  const stageMenuItems = (it?: Item, at?: StagePoint, part?: number, draftPart?: number): (MenuItem | "-")[] => {
+  const stageMenuItems = (it?: Item, at?: StagePoint, part?: number, draftPart?: number, drawing?: string): (MenuItem | "-")[] => {
+    const d = drawingOf(drawing);
+    if (d && selectedKey)
+      return drawingMenu(intl, {
+        color: {
+          current: d.shape.color ?? prefs.markColor,
+          default: prefs.markColor,
+          pick: (c) => void drawings.recolor(selectedKey, d.id, c),
+        },
+        addNote: () => startFromDrawing(d),
+        remove: () => removeDrawingAt(d.id),
+      });
     if (draftPart !== undefined)
       return draftMarkMenu(intl, {
         places: draft?.shapes?.length ?? 0,
@@ -684,7 +763,7 @@ export function WorkspaceView(props: {
           pick: (c) => recolorDraftPlace(draftPart, c),
         },
         remove: () => removeDraftPlace(draftPart),
-        cancel: () => setDraft(undefined),
+        cancel: discardDraft,
       });
     if (it) {
       const stored = filesRef.current.get(it.key);
@@ -878,9 +957,10 @@ export function WorkspaceView(props: {
   /** Goes up each time a click on blank canvas leaves the composer open (Composer's refocus) */
   const [composerRefocus, setComposerRefocus] = useState(0);
   /**
-   * A click on blank canvas while a new note's composer is open and nothing is written in it yet: the note is dropped together with its marks
-   * (a mark never stays behind without its note; same as clicking away from an empty note box in Screen Capture). Once text is written the
-   * composer stays (a stray click must not lose it), and so does an existing note being edited (Esc / Cancel closes it). Returns whether it did
+   * A click on blank canvas while a new note's composer is open and nothing is written in it yet: the composer closes and its marks stay as
+   * drawings without a note (draft.ts; Esc / Cancel drop them instead; same as clicking away from an empty note box in Screen Capture). Once
+   * text is written the composer stays (a stray click must not lose it), and so does an existing note being edited (Esc / Cancel closes
+   * it). Returns whether it closed
    */
   const leaveEmptyDraft = () => {
     if (!draft?.composing) return false;
@@ -908,12 +988,18 @@ export function WorkspaceView(props: {
   // Same frame: by frame rate, the same slot; or less than 2 ms apart (stored times have three decimals, which also counts when exactly crossing a frame boundary). Notes with an end time follow their time range.
   // Only the canvas-marks section is drawn (numbered like the notes panel): timestamped and overall comments have no position, and positions on older versions refer to the canvas before it was overwritten (ADR-0008).
   // Hidden ones (hide all, hide one) are not drawn except the selected note; the selected one is drawn on top (so you can tell which one is selected when marks overlap)
+  // Drawings without notes are drawn first, under the notes, with no number; the one being turned into a note is the composer's mark meanwhile
   const shownAt = (t?: number, playing = false, fps = 30): ShownAnnotation[] =>
-    currentItems
-      .filter((it) => it.section === "marked")
-      .filter((it) => it.a.id === selectedId || !(marksHidden || hiddenMarks.has(itemId(it))))
-      .map((it) => ({ annotation: it.a, index: it.index, dim: it.a.status !== "open" }))
-      .filter(({ annotation: a, dim }) => (!dim || prefs.showResolved) && a.id !== draft?.id)
+    [
+      ...currentDrawings
+        .filter((d) => d.id !== draft?.fromDrawing && (d.id === selectedId || !marksHidden))
+        .map((d) => ({ annotation: drawingNote(d), index: 0, dim: false, drawing: true })),
+      ...currentItems
+        .filter((it) => it.section === "marked")
+        .filter((it) => it.a.id === selectedId || !(marksHidden || hiddenMarks.has(itemId(it))))
+        .map((it) => ({ annotation: it.a, index: it.index, dim: it.a.status !== "open" }))
+        .filter(({ annotation: a, dim }) => (!dim || prefs.showResolved) && a.id !== draft?.id),
+    ]
       .filter(({ annotation: a }) => {
         if (t === undefined || !a.anchor.time) return true;
         const { start, end } = a.anchor.time;
@@ -956,6 +1042,13 @@ export function WorkspaceView(props: {
   // For a note with several marks only the clicked one is recolored, for a single-mark note the whole note (same as the context menu). While a note is being written only that note's own marks count; nothing pops up on read-only items
   const onPick = (hit: MarkHit) => {
     if (hit.id === undefined) return setPicked(hit);
+    if (drawingOf(hit.id)) {
+      if (draft || currentBlocked) return;
+      setSelectedNote(undefined);
+      setSelectedId(hit.id);
+      setArmed({ id: hit.id, part: 0 });
+      return setPicked(hit);
+    }
     const a = annotations.find((x) => x.id === hit.id);
     if (!a || draft || currentBlocked) return;
     if (a.id !== selectedId) pickAnnotation(a);
@@ -979,8 +1072,20 @@ export function WorkspaceView(props: {
         current: s.color ?? draftColor ?? prefs.markColor,
         many,
         pick: (c: string | undefined) => recolorDraftPlace(picked.part, c),
-        remove: many ? () => removeDraftPlace(picked.part) : draftOf ? () => remove(draftOf) : () => unlessDirty(() => setDraft(undefined)),
+        remove: many ? () => removeDraftPlace(picked.part) : draftOf ? () => remove(draftOf) : () => unlessDirty(discardDraft),
         removeLabel: many ? removePlace : deleteNote,
+      };
+    }
+    const d = drawingOf(picked.id);
+    if (d) {
+      if (draft || currentBlocked || !selectedKey) return undefined;
+      return {
+        anchor: `.annot-badge[data-id="${CSS.escape(d.id)}"][data-part="0"]`,
+        current: d.shape.color ?? prefs.markColor,
+        many: false,
+        pick: (c: string | undefined) => void drawings.recolor(selectedKey, d.id, c),
+        remove: () => removeDrawingAt(d.id),
+        removeLabel: intl.formatMessage({ id: "markColor.deleteDrawing" }),
       };
     }
     const it = currentItems.find((x) => x.a.id === picked.id && x.section === "marked");
@@ -1017,14 +1122,22 @@ export function WorkspaceView(props: {
       onSelect={(id) => {
         const a = annotations.find((x) => x.id === id);
         if (a) pickAnnotation(a);
+        else if (drawingOf(id)) {
+          setSelectedNote(undefined);
+          setSelectedId(id);
+        }
       }}
-      onChange={(id, part, shape) => void changeShape(id, part, shape)}
+      onChange={(id, part, shape) =>
+        void (drawingOf(id) && selectedKey ? drawings.move(selectedKey, id, shape) : changeShape(id, part, shape))
+      }
       onArm={setArmed}
       onPick={onPick}
       picked={colorBar ? picked : undefined}
       onEdit={(id) => {
         const a = annotations.find((x) => x.id === id);
+        const d = drawingOf(id);
         if (a) startEdit(a);
+        else if (d) startFromDrawing(d);
       }}
       locked={!!currentBlocked}
       drawOnBlank={activeTool === "select" && (!draft?.composing || draftTakesMarks) && canDraw}
@@ -1058,6 +1171,7 @@ export function WorkspaceView(props: {
       onPick={() => pickItem(it)}
       onEdit={() => editItem(it)}
       onCopy={() => copyOne(it)}
+      fps={fpsOf(it.key)}
       menu={stageMenuItems(it)}
       onMenu={(e) => {
         pickItem(it);
@@ -1169,6 +1283,8 @@ export function WorkspaceView(props: {
                     }}
                     selectedId={selectedId}
                     onSize={setDims}
+                    onFrameRate={(fps) => setLiveFps({ key: selectedKey, fps })}
+                    labels={timelineLabels}
                     onBackgroundClick={() => {
                       if (leaveEmptyDraft()) return true; // the click only dropped the empty note (a video does not start playing)
                       const had = !!(selectedId || selectedNote);
@@ -1226,6 +1342,7 @@ export function WorkspaceView(props: {
                   }
                   initial={{ category: draft.category, body: draft.body, time: draft.time }}
                   currentTime={current?.kind === "video" && !draft.folder ? () => videoTime() ?? 0 : undefined}
+                  fps={draft.folder ? undefined : fpsOf(selectedKey)}
                   timeOptional={!draft.shapes?.length}
                   places={draft.shapes?.length ?? 0}
                   onUndoPlace={() => removeDraftPlace()}
@@ -1233,7 +1350,7 @@ export function WorkspaceView(props: {
                   refocus={composerRefocus}
                   onSave={(v) => void saveDraft(v)}
                   saving={saving}
-                  onCancel={() => setDraft(undefined)}
+                  onCancel={discardDraft}
                   onLive={(v) => {
                     liveDraft.current = v;
                   }}
@@ -1325,7 +1442,11 @@ export function WorkspaceView(props: {
         <ContextMenu
           x={stageMenu.x}
           y={stageMenu.y}
-          items={stageMenu.panel ? panelMenuItems() : stageMenuItems(stageMenu.item, stageMenu.at, stageMenu.part, stageMenu.draftPart)}
+          items={
+            stageMenu.panel
+              ? panelMenuItems()
+              : stageMenuItems(stageMenu.item, stageMenu.at, stageMenu.part, stageMenu.draftPart, stageMenu.drawing)
+          }
           onClose={() => setStageMenu(undefined)}
         />
       )}

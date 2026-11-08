@@ -37,6 +37,11 @@ export interface Material {
   height?: number;
   /** Video only, in seconds */
   duration?: number;
+  /**
+   * Video only (from 1.3.0): frames per second, written only when the file header gives one constant rate (MP4 / MOV). Frame numbers in
+   * the text for AI come from it (frames.ts); absent = no frame numbers
+   */
+  frame_rate?: number;
   /** pdf/slides only */
   pages?: PageSize[];
 }
@@ -151,9 +156,30 @@ export function markLightness(color: string): number {
 export const placeColors = (a: { anchor: Anchor; color?: string }): (string | undefined)[] =>
   shapesOf(a).map((s) => (isMarkColor(s.color) ? s.color : isMarkColor(a.color) ? a.color : undefined));
 
+/**
+ * A line, arrow, freehand stroke or box the user drew on the item without writing a note (from 1.3.0): it has no number and no comment.
+ * It is drawn on the canvas and into the notes' snapshots, so the picture an agent gets shows it too; the text for agents only says that
+ * unnumbered lines in snapshots are the user's drawings, not part of the item
+ */
+export interface Drawing {
+  /** Unique among the file's drawings */
+  id: string;
+  /** Its color, when it has one, is shape.color; without one it follows the mark color in Settings */
+  shape: Shape;
+  /** Video only: the moment it was drawn on (seconds); like a note's time, it may be a span */
+  time?: { start: number; end?: number };
+  /** pdf/slides only, starting at 1 */
+  page?: number;
+  created_at: string;
+  /** The item's SHA-256 when it was drawn: on a newer version of the item it is no longer drawn (like notes, see versions.ts) */
+  material_sha256?: string;
+}
+
 export interface MaterialFile {
   /** An older version that was read has already been converted to SCHEMA; a newer one is kept as is (read-only, see isWritable in store.ts) */
   schema: string;
   material: Material;
   annotations: Annotation[];
+  /** Drawings without notes (optional, from 1.3.0); absent when there are none */
+  drawings?: Drawing[];
 }

@@ -59,6 +59,9 @@ interface IOverlayView
 
     /// <summary>The mouse position when it is on this display (DIPs in this layer, not snapped); null when it is on another display</summary>
     Point? CursorPosition { get; }
+
+    /// <summary>A new note was left without a word and its marks stayed as drawings (first = the first of them): the place for the one-time hint about drawings</summary>
+    void DrawingsKept(Mark first);
 }
 
 /// <summary>What the state machine asks the session (with several displays the selection can be on only one; see CaptureSession)</summary>
@@ -266,6 +269,13 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
     /// <summary>Left button down (p is already snapped to physical pixels). Returns true = a drag starts and the window must capture the mouse</summary>
     public bool Down(Point p, int clicks)
     {
+        // Double-click on a drawing without a note: write a note for it (it gets a number). Anywhere else a double-click inside the frame finishes
+        if (clicks == 2 && !NoteOpen && !TextOpen && host.IsOwner && PlaceAt(p) is { Lead: null, HasNote: false } drawn && IsDrawingKind(drawn.Kind))
+        {
+            OpenNote(drawn, fromDrawing: true);
+            Pick(drawn);
+            return false;
+        }
         if (clicks == 2 && Sel is { } framed && framed.Contains(p) && host.IsOwner)
         {
             // Double-click inside the frame = finish (whatever tool is selected). If the first click just opened an empty numbered dot / text box, drop it (saving an empty one = removing it).
@@ -273,7 +283,7 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
             if (NoteOpen)
             {
                 if (LastAdded is { Kind: Tool.Note } last && (last.Points[0] - p).Length < 6) RemoveLastPlace();
-                CommitNote();
+                CommitNote(finishing: true);
             }
             CommitText();
             host.Finish();
@@ -520,10 +530,10 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
         return true;
     }
 
-    /// <summary>On finish: the open note box and text box are committed first</summary>
+    /// <summary>On finish: the open note box and text box are committed first (a box left empty keeps its marks as drawings, without the hint: the overlay is closing)</summary>
     public void CommitOpenEdits()
     {
-        if (NoteOpen) CommitNote();
+        if (NoteOpen) CommitNote(finishing: true);
         if (TextOpen) CommitText();
     }
 
@@ -599,9 +609,9 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
         }
         Put(m);
         view.RedrawMarks();
-        // After drawing a rectangle, ellipse, arrow or pen stroke: pop up the note box next to it. These marks exist only together with a note: leaving the box without writing
-        // anything (a click elsewhere, Esc, Cancel) takes the mark away too, the same as in the main app (it used to stay behind as a plain drawing that could not be removed)
-        if (m.Kind is Tool.Rect or Tool.Ellipse or Tool.Arrow or Tool.Pen) OpenNote(m);
+        // After drawing a rectangle, ellipse, arrow or pen stroke: pop up the note box next to it. Leaving the box without a word (a click elsewhere, Enter, Finish) keeps the
+        // marks as drawings without a number; Esc / Cancel take them away (the same as in the main app). A drawing is picked, recolored and deleted like any mark
+        if (IsDrawingKind(m.Kind)) OpenNote(m);
     }
 
     /// <summary>One more place marked while the note box is open: added to this note</summary>
@@ -729,7 +739,8 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
                 view.ShowNotePlaces();
                 return;
             }
-            var saved = head.HasNote;
+            // A drawing whose box was opened by a double-click is kept by CancelNote (Esc leaves it as it was), so Delete must still delete it, as one step undo brings back
+            var saved = head.HasNote || noteOnDrawing;
             CancelNote();
             if (!saved) return;
             DeleteNote(head);
@@ -797,11 +808,19 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
 
     // ---------- Writing notes (the words for the AI) ----------
 
+    /// <summary>The marks that stay as drawings without a number when their note box is left without a word (a numbered dot without words goes away)</summary>
+    static bool IsDrawingKind(Tool kind) => kind is Tool.Rect or Tool.Ellipse or Tool.Arrow or Tool.Pen;
+
+    /// <summary>The open note box was opened on a drawing that already existed (double-click): Esc / Cancel leave the drawing as it was</summary>
+    bool noteOnDrawing;
+
     /// <param name="m">null = overall comment</param>
-    void OpenNote(Mark? m)
+    /// <param name="fromDrawing">m is a drawing without a note that the user is now writing a note for</param>
+    void OpenNote(Mark? m, bool fromDrawing = false)
     {
         if (NoteOpen) CommitNote(); // switching to open another: the open one is committed first and its preview number is taken back
         Picked = null; // when opened by clicking a mark, the caller picks the hit place again afterwards
+        noteOnDrawing = fromDrawing;
         NoteFor = m;
         NoteOpen = true;
         added.Clear();
@@ -844,7 +863,8 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
         view.PaintNote();
     }
 
-    public void CommitNote()
+    /// <param name="finishing">Committed because the capture is being finished: the overlay closes right after, so nothing is announced</param>
+    public void CommitNote(bool finishing = false)
     {
         if (!NoteOpen) return;
         var text = view.NoteDraft.Trim();
@@ -853,11 +873,15 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
         {
             if (text.Length == 0)
             {
-                // No text written = no note wanted: the same as cancelling, so a new note's marks go away with it (they used to stay as plain drawings that could not be removed).
+                // No text written to a new note: its lines and boxes stay as drawings without a number, each one on its own (a numbered dot without words goes).
                 // A saved note whose text was all deleted is deleted with its places, as one step undo can bring back
                 var saved = m.HasNote;
+                if (!saved)
+                {
+                    KeepAsDrawings(m, announce: !finishing);
+                    return;
+                }
                 CancelNote();
-                if (!saved) return;
                 DeleteNote(m);
                 Renumber();
                 view.Refresh();
@@ -878,11 +902,32 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
     {
         if (!NoteOpen) return;
         // Everything done while this box was open is taken back: colors changed and places deleted are restored, places marked since are removed,
-        // and a new note's own first mark goes too (a note not written has no marks, as in the main app); when editing a saved note its original places and text stay as they were
+        // and a new note's own first mark goes too (a note not written has no marks, as in the main app); when editing a saved note its original places and text stay as they were,
+        // and so does a drawing the box was opened for
         while (UndoStep(noteSince)) { }
         foreach (var x in added) marks.Remove(x);
-        if (NoteFor is { HasNote: false } fresh) marks.Remove(fresh);
+        if (NoteFor is { HasNote: false } fresh && !noteOnDrawing) marks.Remove(fresh);
         CloseNote();
+    }
+
+    /// <summary>
+    /// A new note left without a word: its places become drawings without a number, each standing alone (picked, recolored and deleted one by one); places that are
+    /// numbered dots go, since a dot without words says nothing. Colors and places changed while the box was open stay as they are now
+    /// </summary>
+    void KeepAsDrawings(Mark head, bool announce)
+    {
+        Mark? first = null;
+        foreach (var x in marks.Where(x => !x.Removed && x.Head == head).ToList())
+        {
+            if (IsDrawingKind(x.Kind))
+            {
+                x.Lead = null;
+                first ??= x;
+            }
+            else marks.Remove(x);
+        }
+        CloseNote();
+        if (announce && first is not null) view.DrawingsKept(first);
     }
 
     void CloseNote()

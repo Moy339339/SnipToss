@@ -845,18 +845,53 @@ test("note marks on the play bar: an open note is drawn as a tick and one with a
   expect(await app.page.locator(".track-mark.is-selected").evaluate((e) => parseFloat((e as HTMLElement).style.left))).toBeCloseTo(20, 2);
 });
 
-test("clicking a note mark on the play bar selects that note (its card is highlighted and scrolled into view), pauses and jumps to its start time, and doesn't count as dragging the progress bar", async ({ app }) => {
+test("clicking a note's number on the play bar selects that note (its card is highlighted and scrolled into view), pauses and jumps to its start time, and doesn't count as dragging the progress bar", async ({ app }) => {
   await app.open();
   await openClip(app);
   await focusStage(app);
   await app.page.keyboard.press("Space");
   await expect.poll(async () => (await video(app)).paused).toBe(false);
-  const m = (await app.page.locator(".track-mark").boundingBox())!;
-  await app.page.mouse.click(m.x + m.width * 0.9, m.y + m.height / 2);
+  // The number is the one the note has in the notes panel
+  await expect(app.page.locator(".track-badge")).toHaveText("1");
+  await app.page.locator(".track-badge").click();
   await expect(card(app, "p0c7xe")).toHaveClass(/is-selected/);
   await expect(card(app, "p0c7xe")).toBeInViewport();
   await expect(app.page.locator(".track-mark")).toHaveClass(/is-selected/);
+  await expect(app.page.locator(".track-badge")).toHaveClass(/is-selected/);
   await expect.poll(() => video(app)).toMatchObject({ paused: true, time: 1.5 });
+  // A click on the span itself (on the rail) seeks to where it was clicked, like anywhere else on the bar
+  const span = (await app.page.locator(".track-mark").boundingBox())!;
+  await app.page.mouse.click(span.x + span.width * 0.9, span.y + span.height / 2);
+  await expect.poll(async () => (await video(app)).time).toBeGreaterThan(2.2);
+});
+
+test("numbers too close to tell apart on the play bar merge into a stack: hovering lists its notes, a click opens the list and picking one selects it; the selected number stands on its own and no two numbers overlap", async ({
+  app,
+}) => {
+  addNotes(app, "video__clip.mp4.json", [
+    { id: "near01", body: "第一处", anchor: { time: { start: 0.3 } } },
+    { id: "near02", category: "remove", body: "第二处", anchor: { time: { start: 0.32, end: 0.6 } } },
+    { id: "near03", body: "第三处", anchor: { time: { start: 0.34 } } },
+  ]);
+  await app.open();
+  await openClip(app);
+  const stack = app.page.locator(".track-stack");
+  await expect(stack).toHaveCount(1);
+  await expect(stack).toHaveText("3");
+  await expect(stack).toHaveAttribute("aria-label", "这里有 3 条批注");
+  await expect(stack).toHaveAttribute("data-tip", /^这里有 3 条批注\n1 · 修改 · 00:00\.300  第一处\n2 · 删除 · 00:00\.320–00:00\.600  第二处\n3 · 修改 · 00:00\.340  第三处$/);
+
+  await stack.click();
+  const items = app.page.locator(".menu [role=menuitem]");
+  await expect(items).toHaveCount(3);
+  await items.nth(1).click();
+  await expect(card(app, "near02")).toHaveClass(/is-selected/);
+  await expect.poll(() => video(app)).toMatchObject({ paused: true, time: 0.32 });
+  await expect(app.page.locator(".track-badge.is-selected")).toHaveText("2");
+  await expect(app.page.locator(".track-mark.is-selected")).toHaveCount(1);
+  const boxes = await app.page.locator(".track-badge, .track-stack").evaluateAll((els) => els.map((e) => e.getBoundingClientRect()).map((r) => [r.left, r.right]));
+  boxes.sort((a, b) => a[0] - b[0]);
+  for (let i = 1; i < boxes.length; i++) expect(boxes[i][0]).toBeGreaterThanOrEqual(boxes[i - 1][1]);
 });
 
 test("each video remembers where it stopped: switching away and back resumes at the last position; arriving from a note card jumps to the card's time", async ({ app }) => {

@@ -2,7 +2,7 @@
 
 Thanks for helping. Bug reports, translation fixes and pull requests are all welcome.
 
-- **Bugs**: open an issue with the steps, what you expected and what happened. Attach the diagnostic info (**Help → Copy Diagnostic Info**) — it has versions and the system, but no file paths. If the app misbehaved, **Help → Export Diagnostics Package…** saves a zip with recent logs and settings (item paths and your name removed); attach it if you're comfortable sharing it.
+- **Bugs**: open an issue with the steps, what you expected and what happened. Attach the diagnostic info (**Help → Copy Diagnostic Info**) — it has versions and the system, but no file paths. If the app misbehaved or froze, **Help → Export Diagnostics Package…** saves a zip with recent logs and settings (item paths and your name removed; on Windows, when the app stops responding the log records where it was stuck); attach it if you're comfortable sharing it.
 - **Bigger changes** (new features, UI changes, changes to the data format): please open an issue first so we can agree on the approach before you spend time on code.
 - **Questions and ideas**: open an issue (**Question** or **Feature request**). New releases are announced in [Discussions](https://github.com/Moy339339/SnipToss/discussions/categories/announcements).
 - **SnipToss for Chrome** (the browser extension): problems, ideas and questions are welcome here too — choose the **SnipToss for Chrome** form (the extension's Feedback button opens it with the versions filled in). Its source code isn't in this repository, so pull requests can't cover it.
@@ -33,7 +33,7 @@ app/bin/Release/net10.0-windows/SnipToss.exe <folder or file>
 
 For UI work, run `npm run dev:web` and start the app with `$env:SNIPTOSS_DEV_URL = 'http://localhost:5173'`; changes reload instantly.
 
-Logs: `%LOCALAPPDATA%\SnipToss\logs` (a test instance writes to `logs\` next to its settings file). Check them first when something goes wrong — UI errors and rejected bridge calls are logged too.
+Logs: `%LOCALAPPDATA%\SnipToss\logs` (a test instance writes to `logs\` next to its settings file). Check them first when something goes wrong — UI errors and rejected bridge calls are logged too, and so is where the UI thread was stuck whenever it stopped responding for 3 seconds (a "Hang report").
 
 ## Before you send a pull request
 

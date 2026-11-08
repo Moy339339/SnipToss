@@ -28,9 +28,13 @@ final class OverlayPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 
-    /// A press is shown to the layer before it reaches what is under it (a click outside the open color picker puts the picker away first)
+    /// A press is shown to the layer before it reaches what is under it (a click outside the open color picker puts the picker away first;
+    /// any press puts away the one-time hint about drawings)
     override func sendEvent(_ event: NSEvent) {
-        if event.type == .leftMouseDown, let overlay = contentView as? CaptureOverlay, !overlay.pressArrives(at: event.locationInWindow) { return }
+        if let overlay = contentView as? CaptureOverlay {
+            if [.leftMouseDown, .rightMouseDown, .otherMouseDown, .keyDown].contains(event.type) { overlay.dismissDrawingHint() }
+            if event.type == .leftMouseDown, !overlay.pressArrives(at: event.locationInWindow) { return }
+        }
         super.sendEvent(event)
     }
 }
@@ -116,6 +120,8 @@ final class CaptureOverlay: NSView, OverlayView {
     let textBox = OverlayTextBox()
     let warn = OverlayBanner(size: 13, stroke: OverlayStyle.danger, radius: 8, padX: 12, padY: 6, shadow: false)
     private var warnTimer: Timer?
+    /// The one-time hint next to the first mark left as a drawing: the toolbar's panel, never takes a click
+    let drawingHint = OverlayBanner(size: 13, stroke: OverlayStyle.borderStrong, radius: 10, padX: 12, padY: 12, shadow: true)
     /// The system's tooltips are windows below the overlay's level and would not show; the overlay draws its own
     let tooltip = OverlayBanner(size: 12, stroke: OverlayStyle.borderStrong, radius: 4, padX: 8, padY: 4, shadow: true)
     private var tooltipTimer: Timer?
@@ -197,7 +203,7 @@ final class CaptureOverlay: NSView, OverlayView {
         picker.onClose = { [weak self] in self?.pickerClosed() }
 
         // Bottom to top, as the Windows overlay stacks them
-        for v in [pictureView, marksView, sizeLabel, textBox, toolbar, subbar, noteBox!, picker, magnifier, warn, tooltip] as [NSView] {
+        for v in [pictureView, marksView, sizeLabel, textBox, toolbar, subbar, noteBox!, picker, magnifier, warn, drawingHint, tooltip] as [NSView] {
             addSubview(v)
         }
         buildToolbar()
@@ -359,6 +365,8 @@ final class CaptureOverlay: NSView, OverlayView {
     /// behind, and would act on it (⌘W would close the main window, ⌘O open a file there). In an input box the editing keys go to the box
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         guard !isClosed, event.type == .keyDown else { return super.performKeyEquivalent(with: event) }
+        // ⌘ keys come here before the window's sendEvent: the hint about drawings goes away here too
+        dismissDrawingHint()
         let flags = event.modifierFlags.intersection([.command, .option, .shift, .control])
         if flags.contains(.command) {
             // Q
@@ -640,6 +648,35 @@ final class CaptureOverlay: NSView, OverlayView {
         picker.setFrameOrigin(OverlayGeometry.snap(CGPoint(x: x, y: y), scale: scale))
     }
 
+    // MARK: The one-time hint about drawings
+
+    /// The first time ever a mark is left without a word and stays as a drawing, a hint next to it says what it is and how to recolor,
+    /// delete or add a note (as in the main window). It takes neither the mouse nor the keyboard and goes away at the next press (recorded
+    /// at once: Capture.DrawingHintDone)
+    func drawingsKept(_ first: Mark) {
+        guard !isClosed, session?.takeDrawingHint() == true else { return }
+        let label = drawingHint.label
+        label.lineHeight = 19
+        label.width = nil
+        label.text = KeepWords.of(ShellText.t("capture.drawingHint"))
+        // 300 with the padding, the width of the main window's hints
+        if label.fitting.width > 276 { label.width = 276 }
+        drawingHint.show(label.text)
+        drawingHint.setFrameOrigin(OverlayGeometry.hintNearMark(pickedExtent(first), size: drawingHint.frame.size, full: full, avoid: toolbarArea()))
+    }
+
+    /// Any press (mouse or key) puts the hint away; called before the press is handled, so a press that keeps a drawing can still show it
+    func dismissDrawingHint() {
+        drawingHint.isHidden = true
+    }
+
+    /// The toolbar with its thickness and color row, where they are now
+    private func toolbarArea() -> CGRect {
+        var area = WPFRect.empty
+        for bar in [toolbar, subbar] where !bar.isHidden { area = area.wpfUnion(bar.frame) }
+        return area
+    }
+
     /// Before a press is handed to whatever is under it: while the color picker is open, a press outside it puts it away first. On the
     /// picture that is all it does (nothing is picked or drawn); on the toolbar, the color row or the note box the press then works as
     /// usual. The hue disc toggles the picker itself. Returns false = the press goes no further
@@ -770,10 +807,11 @@ final class CaptureOverlay: NSView, OverlayView {
     }
 
     /// A 32 × 32 tool button: the current tool has a blue background and a white icon, hover is one step lighter. One that cannot be used
-    /// now (`enabled` false) is faded and does not light up; its tooltip still says what it is for, and a click does nothing
+    /// now (`enabled` false) is faded and does not light up; its tooltip still says what it is for, and a click does nothing.
+    /// `listed`: kept in `toolButtons` (the toolbar's own; the color row's are made again each time the row changes)
     private func iconButton(
         _ id: String, _ icon: [String], _ tip: String, act: @escaping (OverlayStateMachine) -> Void, on: @escaping (OverlayStateMachine) -> Bool,
-        enabled: ((OverlayStateMachine) -> Bool)? = nil
+        enabled: ((OverlayStateMachine) -> Bool)? = nil, listed: Bool = true
     ) -> OverlayButton {
         let isOn: () -> Bool = { [weak self] in self.map { on($0.state) } ?? false }
         let usable: () -> Bool = { [weak self] in self.map { enabled?($0.state) ?? true } ?? false }
@@ -792,7 +830,7 @@ final class CaptureOverlay: NSView, OverlayView {
         }
         b.enabled = usable
         b.onHover = { [weak self] b, inside in self?.hoverTip(b, inside) }
-        toolButtons.append((b, isOn))
+        if listed { toolButtons.append((b, isOn)) }
         return b
     }
 
@@ -863,7 +901,23 @@ final class CaptureOverlay: NSView, OverlayView {
             }
             views.append(customColorButton(current))
         }
+        // A clicked mark: the row pops up next to it and ends with Delete, as in the main window (same as the toolbar's Delete and the
+        // delete key)
+        if picked != nil {
+            views.append(OverlaySeparator())
+            views.append(
+                iconButton(
+                    "picked-delete", OverlayIcons.trash, ShellText.t("capture.tool.delete"), act: { $0.deletePicked() }, on: { _ in false },
+                    listed: false))
+        }
         subbar.set(views)
+    }
+
+    /// A picked mark's extent with its line (text by its letters, a numbered dot by its badge): the color row sits beside it
+    private func pickedExtent(_ m: Mark) -> CGRect {
+        let r = m.kind == .text ? MarkPainter.textBounds(m, measure: measure) : m.bounds
+        let grow = m.kind == .note ? 14 : m.size / 2 + 2
+        return r.wpfInflated(by: grow, grow)
     }
 
     /// One color on the sub-toolbar: a 14-point circle; the color in use gets a ring around it with a gap (visible for white and black too)
@@ -952,7 +1006,15 @@ final class CaptureOverlay: NSView, OverlayView {
         let at = OverlayGeometry.toolbarAt(s, toolbar: toolbar.frame.size, subbar: sub, full: full)
         toolbar.setFrameOrigin(at.toolbar)
         toolbarPlaced = true
-        if sub.height > 0 { subbar.setFrameOrigin(at.subbar) }
+        if sub.height > 0 {
+            // A clicked mark's colors and Delete pop up next to it, as in the main window; while its note box is open they stay by the
+            // toolbar (the box sits next to the mark)
+            if let pm = state.picked, !state.noteOpen {
+                subbar.setFrameOrigin(OverlayGeometry.rowNearMark(pickedExtent(pm), row: sub, full: full))
+            } else {
+                subbar.setFrameOrigin(at.subbar)
+            }
+        }
         // The color picker goes with the color row: put away when the row is gone (tool put down, mark no longer picked), otherwise kept
         // next to it
         if picker.isOpen {

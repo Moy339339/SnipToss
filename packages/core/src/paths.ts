@@ -10,11 +10,21 @@ export function pathSep(path: string): "\\" | "/" {
 }
 
 /**
+ * The path without the separators at its end (E:\proj\ → E:\proj, / → empty). A loop rather than /[\\/]+$/: that regex is retried from
+ * every separator in a long run that isn't at the end, so a path with thousands of slashes in a row would take quadratic time
+ */
+export function trimTrailingSeparators(path: string): string {
+  let end = path.length;
+  while (end > 0 && (path[end - 1] === "\\" || path[end - 1] === "/")) end--;
+  return path.slice(0, end);
+}
+
+/**
  * Notes folder + relative path (forward slashes) → absolute path; . = the notes folder itself. The separator follows the notes folder:
  * Windows ones (E:\…, \\server\…) use backslashes, other systems' (/Users/…) use forward slashes, so paths also work for a macOS version
  */
 export function joinPath(root: string, rel: string): string {
-  const base = root.replace(/[\\/]+$/, "");
+  const base = trimTrailingSeparators(root);
   const sep = pathSep(root);
   return rel === "." || rel === "" ? base : `${base}${sep}${rel.replaceAll("/", sep)}`;
 }

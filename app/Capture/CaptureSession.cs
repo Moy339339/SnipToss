@@ -178,6 +178,14 @@ sealed class CaptureSession
         if (!closing && Owner is { IsVisible: true } owner) owner.Activate();
     }
 
+    /// <summary>The one-time hint about drawings (a mark left without a word stays without a number): true only the first time ever, recorded at once so no layer shows it again</summary>
+    public bool TakeDrawingHint()
+    {
+        if (settings.Capture.DrawingHintDone) return false;
+        settings.Update(s => s.Capture.DrawingHintDone = true);
+        return true;
+    }
+
     /// <summary>Esc and the × on the toolbar: if notes have been written, warn once instead of discarding everything at once (see CaptureOverlay.GuardCancel)</summary>
     public void RequestCancel()
     {
@@ -440,7 +448,7 @@ sealed class CaptureSession
         return NotesBlock.Build(
             NoteEntries(r, notes, (imageWidth, imageHeight)),
             r.Overall.Length > 0 ? new NoteEntry(0, default, r.OverallCategory, Locale.T("capture.note.overall"), r.Overall) : null,
-            NotesTitle(notes.Count > 0),
+            NotesTitle(notes.Count > 0, HasDrawings(r)),
             extraText,
             imageWidth,
             s,
@@ -454,9 +462,16 @@ sealed class CaptureSession
     internal static List<NoteEntry> NoteEntries(CaptureResult r, IEnumerable<Mark> notes, (int w, int h) size) =>
         notes.Select(m => new NoteEntry(m.Number, m.Color, m.Category, m.WhereAll(r.Marks, r.Selection, size), m.Note)).ToList();
 
-    /// <summary>The notes area's title: with only an overall comment the image has no numbers, so it must not say "the numbers correspond one to one"</summary>
-    internal static string NotesTitle(bool numbered) =>
-        Locale.T(numbered ? "ai.capture.blockNumbered" : "ai.capture.blockOverall");
+    /// <summary>
+    /// The notes area's title: with only an overall comment the image has no numbers, so it must not say "the numbers correspond one to one".
+    /// When the image also has lines and boxes without a number (drawings left without a word), a second line says what they are, so the AI does not take them for part of the screenshot
+    /// </summary>
+    internal static string NotesTitle(bool numbered, bool drawn = false) =>
+        Locale.T(numbered ? "ai.capture.blockNumbered" : "ai.capture.blockOverall") + (drawn ? "\n" + Locale.T("ai.capture.drawings") : "");
+
+    /// <summary>The screenshot has drawings without a note: lines, arrows, pen strokes, boxes or ellipses that carry no number</summary>
+    internal static bool HasDrawings(CaptureResult r) =>
+        r.Marks.Any(m => m.Kind is Tool.Rect or Tool.Ellipse or Tool.Arrow or Tool.Pen && m.Head.Number == 0);
 
     // ---------- Saving the file, the clipboard, the text for the AI ----------
 
@@ -513,6 +528,7 @@ sealed class CaptureSession
         sb.AppendLine(Locale.T(notes.Count > 0 ? "ai.capture.introNumbered" : "ai.capture.introOverall"));
         // When some note marks several places: say that the comment applies to every place (same as the main app's Copy as Text, ADR-0009)
         if (r.Marks.Any(m => m.Lead is not null)) sb.AppendLine(Locale.T("ai.manyHint"));
+        if (HasDrawings(r)) sb.AppendLine(Locale.T("ai.capture.drawings"));
         // "1. Change · Region: top left of the frame (x 10%–40%, y 5%–25%), x=100 y=50 w=300 h=200 px: ...", with the category and position worded the same as the main app's copied text
         // Numbers are always written in a fixed format (not following the system region: some regions use a comma as the decimal point and have thousands separators, which would make the AI misread the coordinates)
         foreach (var e in NoteEntries(r, notes, size))

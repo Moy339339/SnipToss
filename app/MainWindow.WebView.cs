@@ -138,6 +138,7 @@ sealed partial class MainWindow
         switch (e.ProcessFailedKind)
         {
             case CoreWebView2ProcessFailedKind.BrowserProcessExited:
+                browserGone = true;
                 UiNotLoaded("shell.ui.processExited");
                 break;
             case CoreWebView2ProcessFailedKind.RenderProcessExited:
@@ -145,7 +146,7 @@ sealed partial class MainWindow
                 renderCrashes.Enqueue(now);
                 while (renderCrashes.Count > 0 && now - renderCrashes.Peek() > TimeSpan.FromMinutes(1)) renderCrashes.Dequeue();
                 if (renderCrashes.Count >= 3) UiNotLoaded("shell.ui.crashLoop"); // log it: the log tells whether it stopped or reloaded again
-                else web.CoreWebView2?.Reload();
+                else Core?.Reload();
                 break;
             // The UI is unresponsive (RenderProcessUnresponsive): WebView2 waits for it to recover itself, a log entry is enough; the rest are GPU and other helper processes, which WebView2 restarts itself
         }
@@ -312,7 +313,17 @@ sealed partial class MainWindow
     }
 
 
-    void Post(object payload) => web.CoreWebView2?.PostWebMessageAsJson(System.Text.Json.JsonSerializer.Serialize(payload));
+    /// <summary>The whole browser process is gone (the notice page is up): the control is dead for good</summary>
+    bool browserGone;
+
+    /// <summary>
+    /// The page's WebView2, or null before it is created and once the browser process is gone. Always go through this: after a browser crash
+    /// the control's own CoreWebView2 getter throws, and a window brought back from the tray to show the notice page threw on activation
+    /// (the error window came up inside Show and the window stayed cloaked behind it)
+    /// </summary>
+    CoreWebView2? Core => browserGone ? null : web.CoreWebView2;
+
+    void Post(object payload) => Core?.PostWebMessageAsJson(System.Text.Json.JsonSerializer.Serialize(payload));
 
     /// <summary>
     /// Keyboard focus into the page when the window is active: WPF only gives focus back to an element that had it, so after startup (and
@@ -321,7 +332,7 @@ sealed partial class MainWindow
     /// </summary>
     void FocusPage()
     {
-        if (IsActive && web.CoreWebView2 is not null && !web.IsKeyboardFocusWithin) web.Focus();
+        if (IsActive && Core is not null && !web.IsKeyboardFocusWithin) web.Focus();
     }
 
 

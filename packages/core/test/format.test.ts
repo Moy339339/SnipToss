@@ -64,6 +64,18 @@ describe("samples of every version (tests/golden/formats)", () => {
   }
 });
 
+describe("material.frame_rate (optional, from 1.3.0)", () => {
+  const video = (frameRate: unknown) =>
+    JSON.stringify({ schema: SCHEMA, material: { path: "a.mp4", kind: "video", duration: 3, frame_rate: frameRate }, annotations: [ok] });
+  it("is kept when read and written back, NTSC values unrounded", () => {
+    const written = JSON.parse(serializeMaterialFile(parseMaterialFile(video(29.97002997), "x.json")));
+    expect(written.material).toEqual({ path: "a.mp4", kind: "video", duration: 3, frame_rate: 29.97002997 });
+  });
+  it("a value that is not a number makes the file unreadable, like width / height / duration", () => {
+    expect(failure(video("30")).reason).toBe("invalid");
+  });
+});
+
 describe("written files (docs/host-api.md: UTF-8 without BOM, 2-space indent, trailing newline)", () => {
   it("2-space indent, one trailing newline, no BOM at the start; non-ASCII text is written as is, not as \\u escapes", () => {
     const text = serializeMaterialFile(parseMaterialFile(minimal({ ...ok, body: "标题改粗" })));

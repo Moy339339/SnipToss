@@ -86,7 +86,7 @@
   --h-bar: 32px; /* menu bar, bottom bar */
   --mac-traffic-inset: 78px; /* Mac: room at the left of the title bar for the system's three window buttons (12 px each, 8 apart, 20 from the edge, then a gap) */
   --h-header: 44px; /* the title bar of the three columns */
-  --h-transport: 48px;
+  --h-transport: 72px;
 
   /* ---------- Radii (S6: concentric) ---------- */
   --r-tag: 4px;
@@ -1790,16 +1790,24 @@ kbd {
 }
 
 /* The control bar extends 8 outward on each side: its buttons land on the same vertical line as the toolbar's buttons (S5).
-   The controls sit in the lower 32, on the same center line as the text of the bottom bars on both sides: the bottom row of the window is aligned */
+   Two rows: the bar with the notes' numbers above it runs the full width (the more width it has, the more numbers fit side by side);
+   the controls sit in the lower 32, on the same center line as the text of the bottom bars on both sides: the bottom row of the window is aligned */
 .transport {
   position: relative;
   flex: none;
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
   height: var(--h-transport);
   margin: 0 -8px;
-  padding-top: 16px;
+}
+.transport-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--h-lg);
+}
+.transport-gap {
+  flex: 1;
 }
 .text-btn {
   height: var(--h-lg);
@@ -1817,20 +1825,31 @@ kbd {
   font-variant-numeric: tabular-nums;
   color: var(--text);
 }
+/* With a constant frame rate the time is a button: a click switches seconds / timecode / frames (timeFormat.ts) */
+.timecode.is-switch {
+  height: var(--h-lg);
+  border-radius: var(--r-control);
+}
+.timecode.is-switch:hover {
+  background: var(--hover);
+}
 
+/* The bar's row: 40 high, the numbers in the upper 24 and the rail's center 8 above the bottom; its ends line up with the play icon on the
+   left and the volume slider's end on the right (8 in from the control bar's edges). The whole row can be dragged to seek */
 .track {
   position: relative;
-  flex: 1;
-  height: var(--h-lg);
+  flex: none;
+  height: 40px;
+  margin: 0 8px;
   touch-action: none;
 }
 .track-rail {
   position: absolute;
   left: 0;
   right: 0;
-  top: 50%;
+  bottom: 8px;
   height: 4px;
-  translate: 0 -50%;
+  translate: 0 50%;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.12);
   overflow: hidden;
@@ -1848,11 +1867,11 @@ kbd {
 }
 .track-head {
   position: absolute;
-  top: 50%;
+  bottom: 8px;
   left: 0;
   width: 12px;
   height: 12px;
-  margin: -6px 0 0 -6px;
+  margin: 0 0 -6px -6px;
   border-radius: 50%;
   background: #fff;
   box-shadow: var(--shadow-on-media);
@@ -1865,28 +1884,95 @@ kbd {
 .track:active .track-head {
   scale: 1;
 }
-/* Where a note sits on the control bar: a 4px orange stroke above the track (a dot for a moment, a bar for a range). Clickable: selects it and seeks there */
+/* Where each note sits on the control bar: its span lies on the rail in the mark color (a short tick for a moment), and the number it has in
+   the notes panel stands above where it starts, in the same style as there (a colored circle; a gray square for a timestamped comment).
+   Numbers that would overlap merge into a stack (trackBadges.ts). Only numbers and stacks take clicks: spans let them through, so clicking
+   the bar still seeks. While a note is selected the other spans fade, so its span reads clearly among many */
 .track-mark {
   position: absolute;
-  top: 50%;
-  min-width: 6px;
-  height: 6px;
-  margin-top: -12px;
+  bottom: 8px;
+  min-width: 2px;
+  height: 4px;
+  translate: 0 50%;
   border-radius: 999px;
   background: var(--mark);
+  pointer-events: none;
+  transition: height var(--dur-fast) var(--ease);
+}
+.track:hover .track-mark {
+  height: 6px;
+}
+.track-mark.is-plain {
+  background: var(--text-2);
+}
+.track-mark.is-selected,
+.track-mark.is-hover {
+  z-index: 1;
+  height: 6px;
+}
+.track-mark.is-plain.is-selected,
+.track-mark.is-plain.is-hover {
+  background: var(--text);
+}
+.track:has(.track-mark.is-selected) .track-mark:not(.is-selected, .is-hover) {
+  opacity: var(--dim);
+}
+.track-badge,
+.track-stack {
+  position: absolute;
+  top: 4px;
+  translate: -50% 0;
+  min-width: var(--h-xs);
+  height: var(--h-xs);
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--mark);
+  color: #fff;
+  color: oklch(from var(--mark) clamp(0.2, (0.9 - l) * 1000, 1) 0 0); /* dark on a light mark color, as on the canvas */
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  line-height: var(--h-xs);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 1px var(--casing);
   cursor: pointer;
+  pointer-events: auto;
   transition: box-shadow var(--dur-fast) var(--ease);
 }
-/* 6px is too hard to hit, so expand outward by a margin as the click area */
-.track-mark::before {
-  content: "";
-  position: absolute;
-  inset: -6px -2px -4px;
+.track-badge.is-plain {
+  border-radius: var(--r-tag);
+  background: var(--hover-over);
+  color: var(--text-2);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
 }
-.track-mark.is-selected {
+.track-badge.is-selected {
+  z-index: 2;
   box-shadow:
     0 0 0 2px var(--bg),
     0 0 0 3px #fff;
+}
+/* Several notes too close to tell apart: the stack icon and how many, in neutral colors so it can't be taken for a note's number.
+   Hovering lists them; a click opens the list to pick one */
+.track-stack {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: var(--h-xs);
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--floating);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  line-height: var(--h-xs);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  z-index: 1;
+}
+.track-stack:hover,
+.track-stack.is-open {
+  background: var(--hover-over);
 }
 /* The time above the control bar: follows the mouse on hover, drag and click, and the playhead on keyboard jumps (.is-on, fading out 1 second after the hand stops).
    One size larger than the timecode at the lower left, readable while dragging; its lower edge is at the control bar's upper edge (the orange note stroke above the track plus another 4), floating up into the gap above it to the picture */
@@ -1911,6 +1997,10 @@ kbd {
 .track:hover .track-tip,
 .track-tip.is-on {
   opacity: 1;
+}
+/* Over a note's number the tooltip says which note it is: the time bubble would sit on top of it */
+.track:has(.track-badge:hover, .track-stack:hover) .track-tip {
+  opacity: 0;
 }
 /* Volume: a thin track like the control bar's (the lit part = the volume), with the round knob enlarging on hover */
 .volume-slider {

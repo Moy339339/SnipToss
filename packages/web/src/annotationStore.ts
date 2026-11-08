@@ -18,6 +18,7 @@ import {
   serializeProject,
   shapesOf,
   slugFor,
+  trimTrailingSeparators,
   type Anchor,
   type Material,
   type MaterialFile,
@@ -44,7 +45,9 @@ export interface Stored {
  * which cannot collide with the path of an item or of the folder itself, and is not found in library.byKey (so it is never opened as an item)
  */
 export const fileKey = (home: string, m: Pick<Material, "path" | "kind">) =>
-  m.kind === "folder" ? `${keyOf(homeJoin(home, m.path === "." ? "" : m.path)).replace(/\\+$/, "")}|folder` : keyOf(homeJoin(home, m.path));
+  m.kind === "folder"
+    ? `${trimTrailingSeparators(keyOf(homeJoin(home, m.path === "." ? "" : m.path)))}|folder`
+    : keyOf(homeJoin(home, m.path));
 export const folderKey = (t: FolderTarget) => fileKey(t.home, { path: t.rel, kind: "folder" });
 export const isFolderKey = (key: string) => key.endsWith("|folder");
 /** Key of an unreadable notes file: notes folder + file name inside annotations/ (Windows is case-insensitive) */

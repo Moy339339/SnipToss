@@ -31,6 +31,8 @@ struct CaptureSettings {
     var keepInTray = true
     var trayHintShown = false
     var selectHintDone = false
+    /// The one-time hint next to the first mark left without a word (it stays as a drawing without a number) has been shown
+    var drawingHintDone = false
     var hideWindow = true
     var notesInImage = true
     var folder: String?
@@ -187,6 +189,7 @@ extension SettingsValues {
         cap.set("KeepInTray", capture.keepInTray)
         cap.set("TrayHintShown", capture.trayHintShown)
         cap.set("SelectHintDone", capture.selectHintDone)
+        cap.set("DrawingHintDone", capture.drawingHintDone)
         cap.set("HideWindow", capture.hideWindow)
         cap.set("NotesInImage", capture.notesInImage)
         cap.set("Folder", jsonOrNull(capture.folder))
@@ -253,6 +256,7 @@ extension SettingsValues {
             values.capture.keepInTray = try JSONField.bool(cap["KeepInTray"], "Capture.KeepInTray") ?? defaults.keepInTray
             values.capture.trayHintShown = try JSONField.bool(cap["TrayHintShown"], "Capture.TrayHintShown") ?? defaults.trayHintShown
             values.capture.selectHintDone = try JSONField.bool(cap["SelectHintDone"], "Capture.SelectHintDone") ?? defaults.selectHintDone
+            values.capture.drawingHintDone = try JSONField.bool(cap["DrawingHintDone"], "Capture.DrawingHintDone") ?? defaults.drawingHintDone
             values.capture.hideWindow = try JSONField.bool(cap["HideWindow"], "Capture.HideWindow") ?? defaults.hideWindow
             values.capture.notesInImage = try JSONField.bool(cap["NotesInImage"], "Capture.NotesInImage") ?? defaults.notesInImage
             values.capture.folder = try JSONField.string(cap["Folder"], "Capture.Folder")

@@ -55,6 +55,46 @@ static class TestHooks
         return null;
     }
 
+    /// <summary>
+    /// The UI thread stops responding for ms milliseconds, as in a hang (HangWatch, HangReport). Queued behind the bridge's reply, so the call itself returns first.
+    /// how: sleep = waiting (asleep); native = asleep inside a callback from Windows (EnumWindows), so the stack goes .NET → native → .NET, like a hang inside an input method or other COM code;
+    /// spin = busy in a loop (on the CPU the whole time)
+    /// </summary>
+    public static object? Block(MainWindow window, int ms, string how)
+    {
+        Check();
+        stallFor = ms;
+        Action stall = how switch
+        {
+            "sleep" => () => Stall(ms),
+            "native" => () => Native.EnumWindows(StallInCallback, IntPtr.Zero),
+            "spin" => () => Spin(ms),
+            _ => throw new ArgumentException($"Unknown how: {how}"),
+        };
+        window.Dispatcher.BeginInvoke(DispatcherPriority.Background, stall);
+        return null;
+    }
+
+    static int stallFor;
+
+    /// <summary>Methods of their own, so the hang report has frames with names to look for</summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static void Stall(int ms) => Thread.Sleep(ms);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static void Spin(int ms)
+    {
+        var until = Environment.TickCount64 + ms;
+        while (Environment.TickCount64 < until) Thread.SpinWait(1000);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static bool StallInCallback(IntPtr hwnd, IntPtr data)
+    {
+        Stall(stallFor);
+        return false; // the first window is enough
+    }
+
     /// <summary>The failing task keeps no reference (a separate method that isn't inlined), so it counts as "unhandled" at garbage collection</summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     static void Unobserved() => _ = Task.Run(Fail);

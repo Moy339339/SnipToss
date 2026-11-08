@@ -21,12 +21,12 @@ sealed partial class MainWindow
     /// <summary>Opened from outside and already added to the list: if the UI is listening it is told to locate it and explain what wasn't added, otherwise they wait</summary>
     void Opened(Library.AddResult result)
     {
-        if (web.CoreWebView2 is null || !Pending.Listening)
+        if (Core is null || !Pending.Listening)
         {
             // The UI isn't up yet (the window was never shown after an autostart) or is loading (the listener isn't attached yet, so a push would be lost): remember it, and the UI takes it along when it reads the list
             // (the first case used to map virtual hosts directly and crash with a null reference; in the second, the location and the explanations were lost)
             Pending.Stash(result);
-            if (web.CoreWebView2 is not null) ReloadIfNewVolume(result.Added, null);
+            if (Core is not null) ReloadIfNewVolume(result.Added, null);
             return;
         }
         // Include the recognized moved ones too: the UI says "recognized" (before, only drag-in and the file picker said so; ones opened from the context menu were silently swapped, and it looked like one more entry had appeared)

@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { formatTime, type Annotation } from "@sniptoss/core";
+import { fpsLabel, type Annotation } from "@sniptoss/core";
 import { Ambient } from "./Ambient";
 import { logError } from "./host";
 import { useKeys } from "./keys";
 import { placeStyle } from "./markColors";
 import { usePrefs } from "./prefs";
 import { scrubber, wantedTime, type Scrubber } from "./scrub";
-import { videoHeader } from "./videoHeader";
+import { clock, nextTimeFormat, timeText as noteTime, type TimeFormat } from "./timeFormat";
+import { ContextMenu } from "./Menu";
+import { layoutBadges } from "./trackBadges";
+import { setExactFrameRate, videoHeader } from "./videoHeader";
 import { ZoomView } from "./ZoomView";
 
 const RATES = [0.25, 0.5, 1, 1.5, 2];
@@ -49,6 +52,13 @@ export function VideoPlayer(props: {
    * Consistent with images; if it played directly, clicking a blank spot while looking at a note on a paused frame would make the video run away from that frame
    */
   onBackgroundClick?: () => boolean;
+  /**
+   * The number each note has in the notes panel (index within its section; plain = a timestamped comment, a gray square there rather than
+   * a colored circle): the play bar shows the same number on each note, so "1" on the bar is "1" in the panel
+   */
+  labels?: ReadonlyMap<string, { index: number; plain: boolean }>;
+  /** The constant frame rate read from the file header (timeFormat.ts); null = read, but the rate varies or can't be had; undefined = not read yet */
+  onFrameRate?: (fps: number | null | undefined) => void;
 }) {
   const video = useRef<HTMLVideoElement>(null);
   const fill = useRef<HTMLDivElement>(null);
@@ -70,6 +80,18 @@ export function VideoPlayer(props: {
     fps.current = f;
     setFpsNow(f);
   };
+  /**
+   * The frame rate when the header says it is constant: only then are timecode and frame numbers shown (timeFormat.ts). Kept apart from
+   * fps, which stepping uses even when it was only estimated
+   */
+  const [exactFps, setExactFps] = useState<number>();
+  /** The bar's width (pre-zoom pixels): how many numbers fit side by side above it (trackBadges.ts) */
+  const [trackWidth, setTrackWidth] = useState(0);
+  /** The note whose number the mouse is on (its span stands out), and the list a stack opened */
+  const [hoverIds, setHoverIds] = useState<readonly string[]>([]);
+  const [stackMenu, setStackMenu] = useState<{ x: number; y: number; ids: string[] }>();
+  /** What paint writes the times in (it runs every frame outside React, so it reads this rather than state) */
+  const shown = useRef<{ format: TimeFormat; fps?: number }>({ format: "seconds" });
 
   const [playing, setPlaying] = useState(false);
   const [rate, setRate] = useState(1);
@@ -105,7 +127,7 @@ export function VideoPlayer(props: {
     const p = t / v.duration;
     fill.current!.style.transform = `scaleX(${p})`;
     head.current!.style.left = `${p * 100}%`;
-    timeText.current!.textContent = formatTime(t, v.duration >= 3600);
+    timeText.current!.textContent = clock(t, shown.current.format, shown.current.fps, v.duration >= 3600);
     // No "buffered up to here" bar: the files are local, so buffering is meaningless, and a lit segment sitting at 0 seconds would look as if some of it had already played
   }, []);
 
@@ -154,14 +176,23 @@ export function VideoPlayer(props: {
   const scrub = useRef<Scrubber>(undefined);
 
   // Read the frame rate and keyframes from the file header (re-read when the file changes, since the URL carries the modified time)
+  /** exact: a constant rate; null = the header was read and gives none; undefined = not read yet */
+  const tellFrameRate = useEffectEvent((exact: number | null | undefined) => {
+    setExactFps(exact ?? undefined);
+    if (video.current) setExactFrameRate(video.current, exact);
+    props.onFrameRate?.(exact);
+  });
   useEffect(() => {
     let alive = true;
     setFrameRate(30);
     fromFile.current = false;
+    tellFrameRate(undefined);
     if (scrub.current) scrub.current.keyframes = undefined;
     void videoHeader(src).then((h) => {
       if (!alive) return;
       if (scrub.current) scrub.current.keyframes = h.keyframes;
+      // Eight decimals keep an NTSC rate exact enough (30000/1001 → 29.97002997) without a float tail in the notes file
+      tellFrameRate(h.fps && h.constant ? Number(h.fps.toFixed(8)) : null);
       if (!h.fps) return;
       setFrameRate(h.fps);
       fromFile.current = true;
@@ -182,6 +213,33 @@ export function VideoPlayer(props: {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
+
+  // The time format follows Settings (or a click on the time below); a video without a constant frame rate stays in seconds
+  useEffect(() => {
+    shown.current = { format: prefs.timeFormat, fps: exactFps };
+    paint();
+  }, [prefs.timeFormat, exactFps, paint]);
+  const formatName = (f: TimeFormat) =>
+    intl.formatMessage({
+      id:
+        f === "seconds"
+          ? "settings.annotate.timeSeconds"
+          : f === "timecode"
+            ? "settings.annotate.timeTimecode"
+            : "settings.annotate.timeFrames",
+    });
+  const switchFormat = () => {
+    const next = nextTimeFormat(prefs.timeFormat);
+    setPrefs({ timeFormat: next });
+    flash(formatName(next));
+  };
+
+  useEffect(() => {
+    const el = track.current!;
+    const ro = new ResizeObserver(() => setTrackWidth(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     const s = scrubber(video.current!);
@@ -246,7 +304,7 @@ export function VideoPlayer(props: {
   const placeTip = (t: number) => {
     const tip = hoverTip.current!;
     const d = video.current!.duration || 0;
-    tip.textContent = formatTime(t, d >= 3600);
+    tip.textContent = clock(t, shown.current.format, shown.current.fps, d >= 3600);
     const w = track.current!.clientWidth;
     const half = tip.offsetWidth / 2;
     tip.style.left = `${Math.min(Math.max(d ? (t / d) * w : 0, half), w - half)}px`;
@@ -374,13 +432,40 @@ export function VideoPlayer(props: {
   const marks = duration
     ? props.annotations
         .filter((a) => (a.status === "open" || a.id === props.selectedId) && a.anchor.time && a.anchor.time.start <= duration)
-        .map((a) => ({
-          id: a.id,
-          start: a.anchor.time!.start,
-          end: a.anchor.time!.end && Math.min(a.anchor.time!.end, duration),
-          style: placeStyle(a, 0),
-        }))
+        .map((a) => {
+          const label = props.labels?.get(a.id);
+          const time = noteTime(intl, a.anchor.time!, prefs.timeFormat, exactFps);
+          const body = a.body.length > 80 ? `${a.body.slice(0, 80)}…` : a.body;
+          // Which note it is, as its card would say: number · category · time, then the words
+          const line = `${label ? `${label.index} · ` : ""}${intl.formatMessage({ id: `category.${a.category}` })} · ${time}`;
+          return {
+            id: a.id,
+            start: a.anchor.time!.start,
+            end: a.anchor.time!.end && Math.min(a.anchor.time!.end, duration),
+            style: placeStyle(a, 0),
+            label,
+            line,
+            body,
+          };
+        })
     : [];
+  const markById = new Map(marks.map((m) => [m.id, m]));
+  // The numbers above the bar: ones that would overlap merge into a stack (trackBadges.ts); the selected note keeps its own number, and its
+  // neighbors make room for it
+  const groups = layoutBadges(
+    marks.map((m) => ({ id: m.id, start: m.start, text: String(m.label?.index ?? "") })),
+    duration,
+    trackWidth,
+    props.selectedId,
+  );
+  const pick = (id: string) => props.onMarkClick?.(id);
+  /** A stack's tooltip: its notes one per line (the first eight), then how many more */
+  const stackTip = (ids: string[]) =>
+    [
+      intl.formatMessage({ id: "player.stack" }, { count: ids.length }),
+      ...ids.slice(0, 8).map((id) => `${markById.get(id)!.line}  ${markById.get(id)!.body}`),
+      ...(ids.length > 8 ? [intl.formatMessage({ id: "player.stackMore" }, { count: ids.length - 8 })] : []),
+    ].join("\n");
 
   // The three icon-only buttons: the name also goes into aria-label. The window-wide tooltip takes the title off while the mouse rests (Tooltip.tsx), and at that moment the button would have no name
   const playLabel = intl.formatMessage({ id: playing ? "video.pause" : "video.play" });
@@ -433,23 +518,6 @@ export function VideoPlayer(props: {
       </div>
 
       <div className="transport">
-        <button className="icon-btn" onClick={toggle} title={playLabel} aria-label={playLabel}>
-          {playing ? (
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <rect x="3.5" y="2.5" width="3" height="11" rx="1" />
-              <rect x="9.5" y="2.5" width="3" height="11" rx="1" />
-            </svg>
-          ) : (
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M4.5 2.8v10.4a.8.8 0 001.2.7l8.3-5.2a.8.8 0 000-1.4L5.7 2.1a.8.8 0 00-1.2.7z" />
-            </svg>
-          )}
-        </button>
-        <div className="timecode">
-          {/* The text is set directly by paint (it changes every frame, not through React); after loading, the first paint switches to this video's format (with hours for an hour or longer) */}
-          <span ref={timeText}>00:00.000</span>
-          <span className="muted"> / {formatTime(duration)}</span>
-        </div>
         <div
           className="track"
           ref={track}
@@ -461,78 +529,183 @@ export function VideoPlayer(props: {
           <div className="track-rail">
             <div className="track-fill" ref={fill} />
           </div>
+          {/* Each note's span of time lies on the bar (a short tick for a moment) and lets clicks through, so clicking the bar still seeks there */}
           {marks.map((m) => (
             <div
               key={m.id}
-              className={`track-mark${m.id === props.selectedId ? " is-selected" : ""}`}
+              className={`track-mark${m.label?.plain ? " is-plain" : ""}${m.end === undefined ? " is-moment" : ""}${m.id === props.selectedId ? " is-selected" : ""}${hoverIds.includes(m.id) ? " is-hover" : ""}`}
               style={{
                 left: `${(m.start / duration) * 100}%`,
                 width: m.end !== undefined ? `${((m.end - m.start) / duration) * 100}%` : undefined,
                 ...m.style,
               }}
-              onPointerDown={(e) => {
-                // A click on a note mark on the control bar: select it and seek there, not treated as dragging the progress bar
-                if (e.button !== 0) return;
-                e.stopPropagation();
-                props.onMarkClick?.(m.id);
-              }}
             />
           ))}
+          {/* Above the bar, the same number each note has in the notes panel; numbers that would overlap merge into a stack.
+              A click on a number selects that note and seeks there (not a drag of the bar); a click on a stack lists its notes */}
+          {groups.map((g) =>
+            g.ids.length === 1 ? (
+              <Badge
+                key={g.ids[0]}
+                mark={markById.get(g.ids[0])!}
+                x={g.x}
+                selected={g.ids[0] === props.selectedId}
+                onPick={pick}
+                onHover={setHoverIds}
+              />
+            ) : (
+              <span
+                key={g.ids[0]}
+                className={`track-stack${stackMenu?.ids[0] === g.ids[0] ? " is-open" : ""}`}
+                style={{ left: `${g.x}px` }}
+                data-tip={stackTip(g.ids)}
+                role="button"
+                aria-label={intl.formatMessage({ id: "player.stack" }, { count: g.ids.length })}
+                onPointerEnter={() => setHoverIds(g.ids)}
+                onPointerLeave={() => setHoverIds([])}
+                onPointerDown={(e) => {
+                  if (e.button !== 0) return;
+                  e.stopPropagation();
+                  const r = e.currentTarget.getBoundingClientRect();
+                  setStackMenu({ x: r.left, y: r.top, ids: g.ids });
+                }}
+              >
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2">
+                  <rect x="0.6" y="3.6" width="6.8" height="5.8" rx="1.2" />
+                  <path d="M2.6 1.6h5.2a1.6 1.6 0 011.6 1.6v4.2" />
+                </svg>
+                {g.ids.length}
+              </span>
+            ),
+          )}
           <div className="track-head" ref={head} />
           <div className="track-tip" ref={hoverTip} />
         </div>
-        <button className="text-btn" onClick={cycleRate} title={intl.formatMessage({ id: "video.rate" })}>
-          {rate}×
-        </button>
-        <button
-          className={`icon-btn${prefs.loop ? " is-on" : ""}`}
-          onClick={toggleLoop}
-          title={loopLabel}
-          aria-label={loopLabel}
-          aria-pressed={prefs.loop}
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M2.5 7.5v-1a2 2 0 012-2h8M10.5 2.5l2 2-2 2" />
-            <path d="M13.5 8.5v1a2 2 0 01-2 2h-8M5.5 13.5l-2-2 2-2" />
-          </svg>
-        </button>
-        <button className="icon-btn" onClick={toggleMute} title={muteLabel} aria-label={muteLabel} aria-pressed={prefs.muted}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round">
-            <path d="M2.5 6h2.2L8 3.2v9.6L4.7 10H2.5z" fill="currentColor" />
-            {silent ? (
-              <path d="M11 6l3.5 4M14.5 6L11 10" strokeLinecap="round" />
+        <div className="transport-row">
+          <button className="icon-btn" onClick={toggle} title={playLabel} aria-label={playLabel}>
+            {playing ? (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <rect x="3.5" y="2.5" width="3" height="11" rx="1" />
+                <rect x="9.5" y="2.5" width="3" height="11" rx="1" />
+              </svg>
             ) : (
-              <path d="M10.8 5.6a3.4 3.4 0 010 4.8M12.6 3.9a5.8 5.8 0 010 8.2" strokeLinecap="round" />
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M4.5 2.8v10.4a.8.8 0 001.2.7l8.3-5.2a.8.8 0 000-1.4L5.7 2.1a.8.8 0 00-1.2.7z" />
+              </svg>
             )}
-          </svg>
-        </button>
-        {/* Volume: a thin track like the control bar's. While the cursor is on it, ← → adjust the volume itself rather than stepping frames (keys.ts leaves single keys in inputs to the input) */}
-        <input
-          type="range"
-          name="volume"
-          className="volume-slider"
-          min={0}
-          max={1}
-          step={0.05}
-          value={prefs.muted ? 0 : volume}
-          style={{ "--fill": `${(prefs.muted ? 0 : volume) * 100}%` } as React.CSSProperties}
-          onChange={(e) => {
-            setVolume(Number(e.target.value));
-            if (prefs.muted) setPrefs({ muted: false });
-          }}
-          title={intl.formatMessage({ id: "video.volumeTitle" }, { percent: Math.round((prefs.muted ? 0 : volume) * 100) })}
-          aria-label={intl.formatMessage({ id: "video.volumeLabel" })}
-        />
+          </button>
+          {/* The text is set directly by paint (it changes every frame, not through React); after loading, the first paint switches to this video's format (with hours for an hour or longer).
+            With a constant frame rate a click switches seconds → timecode → frames, as in editing software */}
+          {exactFps ? (
+            <button
+              className="timecode is-switch"
+              onClick={switchFormat}
+              title={intl.formatMessage({ id: "player.timeFormatTip" }, { fps: fpsLabel(exactFps) })}
+            >
+              <span ref={timeText}>00:00.000</span>
+              <span className="muted"> / {clock(duration, prefs.timeFormat, exactFps)}</span>
+            </button>
+          ) : (
+            <div
+              className="timecode"
+              title={prefs.timeFormat === "seconds" ? undefined : intl.formatMessage({ id: "player.timeFormatSeconds" })}
+            >
+              <span ref={timeText}>00:00.000</span>
+              <span className="muted"> / {clock(duration, "seconds", undefined)}</span>
+            </div>
+          )}
+          <span className="transport-gap" />
+          <button className="text-btn" onClick={cycleRate} title={intl.formatMessage({ id: "video.rate" })}>
+            {rate}×
+          </button>
+          <button
+            className={`icon-btn${prefs.loop ? " is-on" : ""}`}
+            onClick={toggleLoop}
+            title={loopLabel}
+            aria-label={loopLabel}
+            aria-pressed={prefs.loop}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M2.5 7.5v-1a2 2 0 012-2h8M10.5 2.5l2 2-2 2" />
+              <path d="M13.5 8.5v1a2 2 0 01-2 2h-8M5.5 13.5l-2-2 2-2" />
+            </svg>
+          </button>
+          <button className="icon-btn" onClick={toggleMute} title={muteLabel} aria-label={muteLabel} aria-pressed={prefs.muted}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round">
+              <path d="M2.5 6h2.2L8 3.2v9.6L4.7 10H2.5z" fill="currentColor" />
+              {silent ? (
+                <path d="M11 6l3.5 4M14.5 6L11 10" strokeLinecap="round" />
+              ) : (
+                <path d="M10.8 5.6a3.4 3.4 0 010 4.8M12.6 3.9a5.8 5.8 0 010 8.2" strokeLinecap="round" />
+              )}
+            </svg>
+          </button>
+          {/* Volume: a thin track like the control bar's. While the cursor is on it, ← → adjust the volume itself rather than stepping frames (keys.ts leaves single keys in inputs to the input) */}
+          <input
+            type="range"
+            name="volume"
+            className="volume-slider"
+            min={0}
+            max={1}
+            step={0.05}
+            value={prefs.muted ? 0 : volume}
+            style={{ "--fill": `${(prefs.muted ? 0 : volume) * 100}%` } as React.CSSProperties}
+            onChange={(e) => {
+              setVolume(Number(e.target.value));
+              if (prefs.muted) setPrefs({ muted: false });
+            }}
+            title={intl.formatMessage({ id: "video.volumeTitle" }, { percent: Math.round((prefs.muted ? 0 : volume) * 100) })}
+            aria-label={intl.formatMessage({ id: "video.volumeLabel" })}
+          />
+        </div>
       </div>
+      {stackMenu && (
+        <ContextMenu
+          x={stackMenu.x}
+          y={stackMenu.y}
+          onClose={() => setStackMenu(undefined)}
+          items={stackMenu.ids.map((id) => {
+            const m = markById.get(id);
+            return { label: m ? `${m.line}  ${m.body.length > 40 ? `${m.body.slice(0, 40)}…` : m.body}` : id, onClick: () => pick(id) };
+          })}
+        />
+      )}
     </div>
+  );
+}
+
+/** One note's number above the play bar (VideoPlayer): its color and shape as in the notes panel; the mouse on it lights up its span */
+function Badge(props: {
+  mark: { id: string; style?: React.CSSProperties; label?: { index: number; plain: boolean }; line: string; body: string };
+  x: number;
+  selected?: boolean;
+  onPick: (id: string) => void;
+  onHover: (ids: readonly string[]) => void;
+}) {
+  const { mark: m } = props;
+  return (
+    <span
+      className={`track-badge${m.label?.plain ? " is-plain" : ""}${props.selected ? " is-selected" : ""}`}
+      style={{ left: `${props.x}px`, ...m.style }}
+      data-tip={`${m.line}\n${m.body}`}
+      onPointerEnter={() => props.onHover([m.id])}
+      onPointerLeave={() => props.onHover([])}
+      onPointerDown={(e) => {
+        if (e.button !== 0) return;
+        e.stopPropagation();
+        props.onPick(m.id);
+      }}
+    >
+      {m.label?.index ?? ""}
+    </span>
   );
 }

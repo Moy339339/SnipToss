@@ -119,7 +119,8 @@ test("removing the time with × turns it into an overall comment that goes into 
   await app.page.keyboard.press("Control+Shift+A");
   await expect.poll(() => app.clipboard()).toContain("整体节奏偏慢");
   const text = (await app.clipboard())!;
-  expect(text).toContain("### 时间点意见（针对视频的某一时刻或某一段，不指定位置）\n\n1. 修改 · 00:01.000\n这一帧太暗");
+  // clip.mp4 has a constant 15 fps, so the time comes with its frame (docs/annotation-format.md, "Frame numbers")
+  expect(text).toContain("### 时间点意见（针对视频的某一时刻或某一段，不指定位置）\n\n1. 修改 · 00:01.000（第 15 帧）\n这一帧太暗");
   expect(text).toContain("### 整体意见（针对整个文件，不指定位置）\n\n1. 修改\n整体节奏偏慢");
   expect(text.indexOf("这段水印去掉")).toBeLessThan(text.indexOf("### 时间点意见"));
   expect(text.indexOf("### 时间点意见")).toBeLessThan(text.indexOf("### 整体意见"));

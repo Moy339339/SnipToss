@@ -53,5 +53,18 @@
       "updated_at": "2026-10-25T12:02:00Z",
       "replies": []
     }
+  ],
+  "drawings": [
+    {
+      "id": "dra5w1",
+      "shape": { "type": "arrow", "from": [0.6, 0.8], "to": [0.5, 0.62], "color": "#ff4d6d" },
+      "created_at": "2026-11-09T04:00:00Z",
+      "material_sha256": "9f2c1b7e0d4a6c3f8b5e2d1a0c9f8e7d6b5a4c3f2e1d0c9b8a7f6e5d4c3b2a19"
+    },
+    {
+      "id": "dra5w2",
+      "shape": { "type": "path", "points": [[0.1, 0.1], [0.2, 0.15], [0.3, 0.1]] },
+      "created_at": "2026-11-09T04:01:00Z"
+    }
   ]
 }

@@ -1,7 +1,16 @@
 // Pure logic, no file system access: shared by the desktop app (inside WebView2) and the CLI (Node).
 // The actual reading and writing live in the app's Bridge and in cli/src/fs-store.ts.
 
-import { READABLE_SCHEMAS, SCHEMA, type Anchor, type Annotation, type MaterialFile, type Shape, type TargetKind } from "./types.js";
+import {
+  READABLE_SCHEMAS,
+  SCHEMA,
+  type Anchor,
+  type Annotation,
+  type Drawing,
+  type MaterialFile,
+  type Shape,
+  type TargetKind,
+} from "./types.js";
 import { checkMaterialFile, isObj, show } from "./validate.js";
 
 /** The notes data directory, placed in the notes folder (the item's project) */
@@ -150,6 +159,30 @@ export function upsertAnnotation(file: MaterialFile, annotation: Annotation): Ma
 export function removeAnnotation(file: MaterialFile, id: string): MaterialFile {
   return { ...file, annotations: file.annotations.filter((a) => a.id !== id) };
 }
+
+/** The file with its drawings replaced; no drawings = no field (files without drawings look as they always did) */
+export function withDrawings(file: MaterialFile, drawings: readonly Drawing[]): MaterialFile {
+  const { drawings: _old, ...rest } = file;
+  return drawings.length ? { ...rest, drawings: [...drawings] } : rest;
+}
+
+/** Replaces the drawing with the same id, or appends it; returns a new object */
+export function upsertDrawing(file: MaterialFile, drawing: Drawing): MaterialFile {
+  const list = file.drawings ?? [];
+  const i = list.findIndex((d) => d.id === drawing.id);
+  return withDrawings(file, i < 0 ? [...list, drawing] : list.map((d, j) => (j === i ? drawing : d)));
+}
+
+export function removeDrawing(file: MaterialFile, id: string): MaterialFile {
+  return withDrawings(
+    file,
+    (file.drawings ?? []).filter((d) => d.id !== id),
+  );
+}
+
+/** Every id in the file, of notes and of drawings: a new one of either kind avoids all of them */
+export const takenIds = (file: MaterialFile): Set<string> =>
+  new Set([...file.annotations.map((a) => a.id), ...(file.drawings ?? []).map((d) => d.id)]);
 
 const ID_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
 

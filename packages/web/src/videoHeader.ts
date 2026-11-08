@@ -8,6 +8,11 @@ export type ReadRange = (start: number, end: number) => Promise<Uint8Array>;
 
 export interface VideoHeader {
   fps?: number;
+  /**
+   * Every frame lasts the same (all but at most two of them, which some encoders leave odd at the ends): only then do frame numbers and
+   * timecode mean something (timeFormat.ts, material.frame_rate). Phone recordings and screen captures usually have a variable rate
+   */
+  constant?: boolean;
   /** The keyframe moments (seconds, ascending). Absent when there is no stss (every frame is a keyframe) or it cannot be read */
   keyframes?: number[];
 }
@@ -46,7 +51,8 @@ export async function videoHeaderFrom(read: ReadRange, size = Infinity): Promise
     if (box.type === "moov") {
       if (box.size > MAX_MOOV) return {};
       const moov = (await read(pos, pos + box.size)).subarray(box.header);
-      return { fps: frameRateOfMoov(moov), keyframes: keyframesOfMoov(moov) };
+      const rate = rateOfMoov(moov);
+      return { fps: rate?.fps, constant: rate?.constant, keyframes: keyframesOfMoov(moov) };
     }
     pos += box.size;
   }
@@ -71,24 +77,42 @@ function videoTracks(moov: Uint8Array) {
 }
 
 /** The contents of the moov (without the moov box's own header) → the video track's frame rate */
-export function frameRateOfMoov(moov: Uint8Array): number | undefined {
+export const frameRateOfMoov = (moov: Uint8Array): number | undefined => rateOfMoov(moov)?.fps;
+
+/** The video track's frame rate, and whether it is constant (see VideoHeader.constant) */
+export function rateOfMoov(moov: Uint8Array): { fps: number; constant: boolean } | undefined {
   for (const { stbl, timescale } of videoTracks(moov)) {
     const stts = boxes(stbl, "stts")[0];
     if (!stts) continue;
     // Each entry is "this many consecutive frames, each this long": take the frame duration with the most frames (a few odd frames at the start or end do not count)
     const count = u32(stts, 4);
     let best = { frames: 0, delta: 0 };
+    let total = 0;
     for (let i = 0; i < count && 8 + i * 8 + 8 <= stts.length; i++) {
       const frames = u32(stts, 8 + i * 8);
       const delta = u32(stts, 12 + i * 8);
+      total += frames;
       if (frames > best.frames && delta > 0) best = { frames, delta };
     }
     if (!best.delta) continue;
     const fps = timescale / best.delta;
-    if (fps >= 1 && fps <= 1000) return fps;
+    if (fps >= 1 && fps <= 1000) return { fps, constant: total - best.frames <= 2 };
   }
   return undefined;
 }
+
+/**
+ * The constant frame rate of each open video element (VideoPlayer sets it): saving a note records it as material.frame_rate (compose.ts).
+ * null = the header has been read and gives no constant rate (variable, or not an MP4 / MOV), so a stored rate is out of date;
+ * undefined = not read yet, nothing is known
+ */
+const exactRates = new WeakMap<HTMLVideoElement, number | null>();
+export function setExactFrameRate(video: HTMLVideoElement, fps: number | null | undefined) {
+  if (fps === undefined) exactRates.delete(video);
+  else exactRates.set(video, fps);
+}
+export const exactFrameRate = (media: unknown): number | null | undefined =>
+  media instanceof HTMLVideoElement ? exactRates.get(media) : undefined;
 
 /**
  * The contents of the moov → the display moments of the video track's keyframes (seconds, ascending).

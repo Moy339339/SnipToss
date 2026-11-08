@@ -1,4 +1,4 @@
-import { formatTime, pathRuns, shapesOf, type Annotation, type Shape } from "@sniptoss/core";
+import { formatTime, isMarkColor, pathRuns, shapesOf, type Annotation, type Drawing, type Shape } from "@sniptoss/core";
 import { placeColorOf } from "./markColors";
 import { isTransparent, workSize, type Size } from "./mediaSize";
 import type { Prefs } from "./prefs";
@@ -32,6 +32,8 @@ export async function renderSnapshot(
   media: HTMLImageElement | HTMLVideoElement,
   annotation: Annotation,
   prefs: Prefs,
+  /** Drawings without notes on the same frame (drawings.ts): drawn under the note's marks and not dimmed, so the agent sees them too */
+  drawings: readonly Drawing[] = [],
 ): Promise<{ data: string; ext: "png" | "jpg" }> {
   const { w, h } = workSize(media);
   const scale = snapshotScale(w, h, prefs.snapshotMax);
@@ -47,6 +49,7 @@ export async function renderSnapshot(
   const line = Math.max(3, Math.round(Math.max(cw, ch) / 400));
   const shapes = shapesOf(annotation);
   dimOutside(g, shapes, cw, ch);
+  for (const d of drawings) drawShape(g, d.shape, cw, ch, line, isMarkColor(d.shape.color) ? d.shape.color : prefs.markColor);
   shapes.forEach((s, i) => drawShape(g, s, cw, ch, line, placeColorOf(annotation, i, prefs.markColor)));
 
   const time = annotation.anchor.time;

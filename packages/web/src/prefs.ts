@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
 import { isMarkColor, NOTE_SECTIONS, type AnnotationCategory, type MaterialKind, type NoteSection } from "@sniptoss/core";
+import { TIME_FORMATS, type TimeFormat } from "./timeFormat";
 
 // Settings. Stored in the shell's settings.json (Prefs in %APPDATA%\SnipToss\settings.json).
 // The shell itself reads some of them: kinds, moreFormats, skipDirs, markColor, defaultCategory, promptExtra, language, updateCheck (app/Settings.cs); renaming one means changing both sides.
@@ -38,6 +39,8 @@ export interface Prefs {
   panelHidden: NoteSection[];
   /** A video starts over after reaching the end (the control bar button, Ctrl+L and the menu's Playback all change it, so it is remembered) */
   loop: boolean;
+  /** How video times are shown: seconds / timecode / frame numbers (timeFormat.ts; the latter two only for a constant frame rate) */
+  timeFormat: TimeFormat;
   /** A video's volume 0–1 and mute: kept across videos and restarts (remembering only mute, and forgetting it on the next video, would be wrong) */
   volume: number;
   muted: boolean;
@@ -94,6 +97,7 @@ export const DEFAULT_PREFS: Prefs = {
   panelResolved: false,
   panelHidden: [],
   loop: false,
+  timeFormat: "seconds",
   volume: 1,
   muted: false,
   reviewIncludeResolved: false,
@@ -144,6 +148,7 @@ const CHOICES: Partial<Record<keyof Prefs, readonly unknown[]>> = {
   panelScope: ["material", "project"],
   snapshotFormat: ["png", "jpeg"],
   initialSelect: ["first", "firstOpen"],
+  timeFormat: TIME_FORMATS,
 };
 /** Ranges of numbers: out-of-range values are clamped (the interface size is written into the CSS zoom, and 0 or a negative value would make the whole interface vanish) */
 const RANGES: Partial<Record<keyof Prefs, [number, number]>> = {

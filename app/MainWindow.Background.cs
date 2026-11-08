@@ -283,7 +283,7 @@ sealed partial class MainWindow
     /// </summary>
     void ApplyLanguage()
     {
-        Title = WindowTitle(web.CoreWebView2 is { } core && IsOwnUi(core.Source) ? core.DocumentTitle : null);
+        Title = WindowTitle(Core is { } core && IsOwnUi(core.Source) ? core.DocumentTitle : null);
         tray?.Relabel();
         if (hotkeyError is not null && !hotkeyPaused) hotkeyError = hotkey?.Set(settings.Capture.Hotkey);
         try

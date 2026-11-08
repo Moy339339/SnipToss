@@ -237,6 +237,77 @@ final class CaptureOverlayTests: SnipTestCase {
         XCTAssertEqual(o.state.marks.count, 1)
     }
 
+    // MARK: Drawings (marks left without a word)
+
+    /// A rectangle from (150, 150) to (250, 220), its note box left empty by a click outside the selection: it stays as a drawing
+    private func leaveADrawing(_ o: CaptureOverlay) throws -> Mark {
+        if o.state.tool != .rect { o.state.chooseTool(.rect) }  // choosing the chosen tool again would put it down
+        drag(o, CGPoint(x: 150, y: 150), CGPoint(x: 250, y: 220))
+        XCTAssertTrue(o.state.noteOpen)
+        _ = o.state.down(CGPoint(x: 700, y: 500), clicks: 1)
+        o.state.endOp()
+        XCTAssertFalse(o.state.noteOpen)
+        let m = try XCTUnwrap(o.state.marks.last)
+        XCTAssertFalse(m.hasNote)
+        return m
+    }
+
+    func testAClickedMarksColorRowPopsUpNextToItAndEndsWithDelete() throws {
+        let o = selected()
+        let drawing = try leaveADrawing(o)
+        o.state.chooseTool(.rect)  // put the tool down
+        XCTAssertTrue(o.subbar.isHidden)
+        _ = o.state.down(CGPoint(x: 150, y: 185), clicks: 1)
+        o.state.endOp()
+        XCTAssertIdentical(o.state.picked, drawing)
+        let presets = ToolPrefs.colors.map { "color-\($0.hexText.dropFirst())" }
+        XCTAssertEqual(ids(o.subbar), presets + ["color-custom", "picked-delete"])
+        // Just below the mark and its line (2 wide: half of it and 2 more), left-aligned with it
+        XCTAssertEqual(o.subbar.frame.origin, CGPoint(x: 147, y: 223 + 8))
+        try XCTUnwrap(o.subbarButton("picked-delete")).click()
+        XCTAssertTrue(o.state.marks.isEmpty)
+        XCTAssertTrue(o.subbar.isHidden)
+    }
+
+    func testWhileTheNoteBoxOfAPickedMarkIsOpenItsColorRowStaysByTheToolbar() throws {
+        let o = selected()
+        let drawing = try leaveADrawing(o)
+        o.state.chooseTool(.rect)  // put the tool down
+        _ = o.state.down(CGPoint(x: 150, y: 185), clicks: 1)
+        o.state.endOp()
+        _ = o.state.down(CGPoint(x: 150, y: 185), clicks: 2)  // a double click: a note for the drawing
+        XCTAssertTrue(o.state.noteOpen)
+        XCTAssertIdentical(o.state.picked, drawing)
+        XCTAssertEqual(o.subbar.frame.minY, o.toolbar.frame.maxY + 6)
+        XCTAssertEqual(ids(o.subbar).last, "picked-delete")
+    }
+
+    func testTheFirstDrawingLeftShowsTheHintOnceBelowItAndAPressPutsItAway() throws {
+        var given = false
+        session = CaptureSession(
+            source: PatternScreenSource(screens: []),
+            drawingHint: {
+                if given { return false }
+                given = true
+                return true
+            })
+        let o = selected()
+        XCTAssertTrue(o.drawingHint.isHidden)
+        _ = try leaveADrawing(o)
+        XCTAssertFalse(o.drawingHint.isHidden)
+        XCTAssertEqual(o.drawingHint.label.text, KeepWords.of(ShellText.t("capture.drawingHint")))
+        XCTAssertEqual(o.drawingHint.frame.origin, CGPoint(x: 147, y: 223 + 8))
+        XCTAssertLessThanOrEqual(o.drawingHint.frame.width, 300)
+        XCTAssertFalse(o.drawingHint.frame.intersects(o.toolbar.frame))
+        XCTAssertNil(o.drawingHint.hitTest(CGPoint(x: 10, y: 10)), "it never takes a click")
+        // Any press puts it away (⌘ keys too, which do not go through the window's sendEvent)
+        _ = o.performKeyEquivalent(with: key(0x06, "z", .command))
+        XCTAssertTrue(o.drawingHint.isHidden)
+        // Once only
+        _ = try leaveADrawing(o)
+        XCTAssertTrue(o.drawingHint.isHidden)
+    }
+
     func testTheNoteBoxIsDraggedByItsTitleRowAndStaysThereUntilANewOneOpens() {
         let o = selected()
         o.state.chooseTool(.rect)

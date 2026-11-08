@@ -20,7 +20,7 @@ Versions:
 | `pizhu/1` | First version. A subset of the newer versions and read as usual; a file the app modifies is written back in the current version |
 
 Additions that only add optional content do not bump the version number; from 1.0.0 on, the document states from which app version they exist. Everything described here is already in 1.0.0, including the optional `project.json` (the language of REVIEW.md), a note's `material_sha256` (which version of the item it was written on), a note's `color` (a color picked for its marks) and a `color` on each entry of `anchor.shapes` (a color picked for one place).
-Added later: a note's `material_size` (the item's size when the note was written; from 1.2.3).
+Added later: a note's `material_size` (the item's size when the note was written; from 1.2.3); a video's `material.frame_rate` (frames per second; from 1.3.0); `drawings` (lines and boxes drawn without a note; from 1.3.0).
 
 ## Where it lives
 
@@ -76,11 +76,19 @@ Whether the notes themselves are committed to git is up to the user; the app doe
     "sha256": "9f2c…",                  // SHA-256 of the item when the first note was written; each note also records its own (material_sha256), which takes precedence
     "width": 1920, "height": 1080,      // pixel size of an image/video; not written for pdf/slides, see each page
     "duration": 63.2,                   // video only: seconds
+    "frame_rate": 30,                   // video only, optional (from 1.3.0): frames per second, see "Frame numbers" below
     "pages": [{ "width": 960, "height": 540 }]  // pdf/slides only: the size of each page (PDF points / slide pixels)
   },
   "annotations": [ /* see below */ ]
 }
 ```
+
+### Frame numbers (videos, from 1.3.0)
+
+Times are always stored in seconds. When the video file has **one constant frame rate** that can be read from its header (MP4 / MOV), the app also records it as `material.frame_rate`
+(an NTSC rate is written as its exact value, e.g. `29.97002997` for 30000/1001). Frames count from 0 at the start of the video, as ffmpeg and code-driven video tools do:
+**frame = ⌊seconds × frame_rate⌋**. The text for agents (`REVIEW.md`, Copy as Text) then gives the frame rate after the video's size and duration, and the frames after each time, e.g. `00:12.500–00:15.000 (frames 375–450)`.
+Without `frame_rate` (WebM and other containers, variable frame rate, or a header that can't be read) only seconds are given: a frame number computed from a guessed rate would point at the wrong frame.
 
 Where `width` / `height` come from for some image types:
 
@@ -181,6 +189,27 @@ its location and time refer to the image at that time; go by its screenshot (the
   A file replaced by an older copy (extracted from an archive, copied with its timestamps kept) can have a modification time from before the notes; a different size shows it is not the file the notes were written on, so its hash has to be computed (`knownSha` in `versions.ts`).
 - SnipToss does not draw notes on an earlier version on the image and lists them in a section of their own in the notes panel; Copy as Text puts them in their own section and says to go by the screenshots; `REVIEW.md` and `sniptoss list` mark each one.
   The notes themselves are neither changed nor deleted; their status is up to the user (docs/adr/0008-earlier-versions.md).
+
+## Drawings without notes: `drawings` (optional, from 1.3.0)
+
+Lines, arrows, freehand strokes and boxes the user drew on the item **without writing a note**: a mark whose note box was left empty stays as a drawing.
+They have no number and no comment. SnipToss draws them on the item and **into the notes' snapshots** (only those on the same video frame / page), so the picture an agent looks at shows them too;
+Copy as Text and `REVIEW.md` then add one sentence saying that unnumbered lines in the snapshots are the user's drawings, not part of the item. They are not listed one by one: there is nothing to act on in a drawing alone.
+
+```jsonc
+"drawings": [
+  {
+    "id": "d4w9q2",                         // unique among the file's drawings (SnipToss avoids note ids too)
+    "shape": { "type": "arrow", "from": [0.6, 0.8], "to": [0.5, 0.62], "color": "#e5484d" },  // one shape, as in a note's anchor.shapes; no color = the mark color from Settings
+    "time": { "start": 12.5 },              // video only: the frame it was drawn on
+    "created_at": "2026-11-09T04:00:00Z",
+    "material_sha256": "9f2c…"              // optional: like a note's; on a newer version of the item it is no longer drawn
+  }
+]
+```
+
+- Absent when there are none (files without drawings look exactly as before); an empty list counts as absent.
+- Reading: `shape`, `time` and `page` are checked like a note's anchor; a malformed `material_sha256` counts as not recorded. Older versions of SnipToss keep the field when they rewrite the file.
 
 ## What `REVIEW.md` looks like
 

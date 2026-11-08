@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+import { trimTrailingSeparators } from "@sniptoss/core";
 import type { AnnotationStore } from "./annotationStore";
 import { call, keyOf, type MaterialEntry } from "./host";
 import type { Library } from "./library";
@@ -95,7 +96,7 @@ export function useNavigation(opts: {
     // The setting "select the first one with open notes first": when a folder was added, look inside it. Wait until those projects' notes have been read before looking
     // (otherwise, when a new project is added its notes are not read yet, none is found and the first item is always selected)
     if (target && prefs.initialSelect === "firstOpen" && keyOf(target.path) !== keyOf(path)) {
-      const under = keyOf(path).replace(/\\+$/, "") + "\\";
+      const under = trimTrailingSeparators(keyOf(path)) + "\\";
       const inside = library.ordered.filter((m) => keyOf(m.path).startsWith(under));
       if (inside.some((m) => !isHomeRead(m.home))) return;
       target = inside.find((m) => openCount(keyOf(m.path)) > 0) ?? target;

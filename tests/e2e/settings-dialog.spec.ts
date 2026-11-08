@@ -4,7 +4,7 @@
 
 import { copyFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test, type App } from "./harness";
+import { escapeRegExp, expect, test, type App } from "./harness";
 import { VERSION, VERSION_LABEL } from "./mock-host";
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -828,9 +828,9 @@ test("Diagnostic info gives the UI's release date and no build times of day (it 
   await app.open();
   await openSettings(app, "关于");
   await setRow(app, "反馈问题").getByRole("button", { name: "复制诊断信息" }).click();
-  await expect.poll(() => app.clipboard()).toMatch(new RegExp(`\\nUI: ${VERSION.replace(/\./g, "\\.")}, released \\d{4}-\\d{2}-\\d{2}\\n`));
+  await expect.poll(() => app.clipboard()).toMatch(new RegExp(`\\nUI: ${escapeRegExp(VERSION)}, released \\d{4}-\\d{2}-\\d{2}\\n`));
   const text = await app.clipboard();
-  expect(text).toMatch(new RegExp(`\\nShell: ${VERSION.replace(/\./g, "\\.")}\\n`));
+  expect(text).toMatch(new RegExp(`\\nShell: ${escapeRegExp(VERSION)}\\n`));
   expect(text).not.toMatch(/T\d\d:\d\d/);
 });
 

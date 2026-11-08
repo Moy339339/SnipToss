@@ -203,6 +203,36 @@ export function draftMarkMenu(
 }
 
 /**
+ * Right-click on a drawing without a note (drawings.ts): its color, adding words to it (it becomes a note) and deleting it (no question:
+ * Ctrl+Z brings it back)
+ */
+export function drawingMenu(
+  intl: IntlShape,
+  ctx: {
+    /** current is the color it is drawn in now, default is the one in Settings */
+    color: { current: string; default: string; pick: (color: string | undefined) => void };
+    addNote: () => void;
+    remove: () => void;
+  },
+): (MenuItem | "-")[] {
+  return [
+    markColorRow(intl, {
+      label: intl.formatMessage({ id: "card.menu.color" }),
+      current: ctx.color.current,
+      defaultColor: ctx.color.default,
+      pick: ctx.color.pick,
+    }),
+    "-",
+    {
+      label: intl.formatMessage({ id: "stage.menu.drawingNote" }),
+      title: intl.formatMessage({ id: "stage.menu.drawingNoteTitle" }),
+      onClick: ctx.addNote,
+    },
+    { label: intl.formatMessage({ id: "stage.menu.drawingDelete" }), icon: <CloseIcon />, hint: "Delete", onClick: ctx.remove },
+  ];
+}
+
+/**
  * Right-click on blank canvas: it targets the one item on the canvas, so the menu holds only what concerns it (otherwise right-clicking an image would show a 'comment for folder "Downloads"' entry, which has nothing to do with the image and is puzzling).
  * Copy likewise hands over only this item, like this row in the library's right-click menu; the notes panel's bottom buttons and Ctrl+Shift+A still hand over what the notes panel lists.
  * The containing folder's comment (Shift N, menu Annotate, the folder row in the library) and the notes folder (menu File, the project row in the library, the bottom of the notes panel) are not here

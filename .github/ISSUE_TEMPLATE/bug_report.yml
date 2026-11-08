@@ -41,4 +41,4 @@ body:
     id: extra
     attributes:
       label: Anything else
-      description: Screenshots, a sample file, or the diagnostics package (Help → Export Diagnostics Package…) if you're comfortable sharing it. Check attachments for anything private first.
+      description: Screenshots, a sample file, or the diagnostics package (Help → Export Diagnostics Package…) if you're comfortable sharing it (if SnipToss for Windows froze, its log says where it was stuck). Check attachments for anything private first.

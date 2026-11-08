@@ -4,6 +4,18 @@ All notable changes to SnipToss Desktop are listed here: SnipToss for Windows an
 
 The annotation data format has its own version (`"schema": "sniptoss/5"`); its history is in [docs/annotation-format.md](docs/annotation-format.md).
 
+## [Unreleased]
+
+## [1.3.0] — 2026-11-08
+
+### Added
+
+- Videos: the time on the playback bar can be shown in seconds, timecode or frame numbers. Click it to switch, or choose in **Settings → Annotations**. Timecode and frame numbers need a constant frame rate read from the file (MP4 / MOV); otherwise seconds are shown. The text copied for AI tools gives the frame numbers along with each time (`material.frame_rate`, an optional field in the notes format).
+- Videos: the notes' numbers stand above the playback bar where each note starts, the same numbers as in the notes panel. Numbers that would overlap merge into a stack that shows how many notes it holds. Click a number to go to its note, or a stack to pick one of its notes. The bar now has a row of its own across the full width.
+- Drawings: a rectangle, arrow or pen stroke whose note is left without a word now stays on the picture as a drawing without a number instead of disappearing; Esc or Cancel still removes it. Click a drawing to change its color or delete it, double-click it to write a note for it. Drawings go out with the snapshots, Copy as Images and Screen Capture images, and the text for AI tools says that unnumbered lines and boxes were drawn on top (`drawings`, an optional field in the notes format). The first time, a short hint next to the drawing explains this.
+- Screen Capture: clicking a mark opens its colors right next to it, with Delete at the end. Ellipses can stay as drawings too.
+- Windows: when the window stops responding for 3 seconds, the log records whether the app was busy or waiting, where it was stuck and, once it recovers, for how long. A freeze can be reported with **Help → Export Diagnostics Package…**; the record holds function and module names only, nothing from your notes or files. It costs next to nothing while the app runs normally.
+
 ## [1.2.3] — 2026-11-03
 
 ### Changed
@@ -122,6 +134,7 @@ First public release.
 - Portable version: with a `data` folder next to the app, all data stays in it and the registry is never touched.
 - Command-line tool `sniptoss` (list, review, resolve, wontfix); its messages follow the system display language.
 
+[1.3.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.3.0
 [1.2.3]: https://github.com/Moy339339/SnipToss/releases/tag/v1.2.3
 [1.2.2]: https://github.com/Moy339339/SnipToss/releases/tag/v1.2.2
 [1.2.1]: https://github.com/Moy339339/SnipToss/releases/tag/v1.2.1

@@ -365,6 +365,9 @@ sealed class CaptureSettings
     /// <summary>Screen Capture has been finished once: the few lines of beginner hints under the magnifier on the capture overlay (drag to select an area, click to select a window, Esc to exit) are no longer shown</summary>
     public bool SelectHintDone { get; set; }
 
+    /// <summary>The one-time hint next to the first mark left without a word (it stays as a drawing without a number) has been shown</summary>
+    public bool DrawingHintDone { get; set; }
+
     /// <summary>When the Capture button in the window is clicked, hide this window first so it isn't captured</summary>
     public bool HideWindow { get; set; } = true;
 

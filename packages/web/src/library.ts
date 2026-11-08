@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { pathSep, type MaterialKind } from "@sniptoss/core";
+import { pathSep, trimTrailingSeparators, type MaterialKind } from "@sniptoss/core";
 import { compareNames } from "./collate";
 import {
   addDropped,
@@ -113,19 +113,18 @@ export interface FolderTarget {
   name: string;
 }
 
-const folderName = (home: string, rel: string) => (rel === "." ? baseName(home.replace(/[\\/]+$/, "")) || home : rel.split("/").pop()!);
+const folderName = (home: string, rel: string) => (rel === "." ? baseName(trimTrailingSeparators(home)) || home : rel.split("/").pop()!);
 
 /** Notes folder + relative path → FolderTarget */
 export const folderAt = (home: string, rel: string): FolderTarget => ({ home, rel, name: folderName(home, rel) });
 
 /** A folder inside the notes folder (absolute path) → FolderTarget; none if it is not inside this notes folder */
 export function folderTarget(home: string, path: string): FolderTarget | undefined {
-  const base = home.replace(/[\\/]+$/, "");
-  const k = keyOf(path).replace(/\\+$/, "");
+  const base = trimTrailingSeparators(home);
+  const k = trimTrailingSeparators(keyOf(path));
   if (k === keyOf(base)) return { home, rel: ".", name: folderName(home, ".") };
   if (!k.startsWith(keyOf(base) + "\\")) return undefined;
-  const rel = path
-    .replace(/[\\/]+$/, "")
+  const rel = trimTrailingSeparators(path)
     .slice(base.length + 1)
     .replaceAll("\\", "/");
   return { home, rel, name: folderName(home, rel) };
@@ -234,7 +233,7 @@ export function entryContaining(entries: LibraryEntry[], path: string): LibraryE
  */
 export function projectPlace(home: string): string | undefined {
   const parent = dirName(home);
-  if (keyOf(parent).replace(/\\+$/, "") === keyOf(home).replace(/\\+$/, "")) return undefined;
+  if (trimTrailingSeparators(keyOf(parent)) === trimTrailingSeparators(keyOf(home))) return undefined;
   // Windows: E:\Users\name; macOS: /Users/name (Linux's /home/name is written the same way)
   return parent.replace(/^[a-z]:\\users\\[^\\]+(?=\\|$)/i, "~").replace(/^\/(?:Users|home)\/[^/]+(?=\/|$)/, "~");
 }
@@ -247,7 +246,7 @@ export const treeMaterials = (f: TreeFolder): MaterialEntry[] => [...f.folders.f
 
 /** The parent path relative to the project folder (empty if directly inside the project folder) */
 export function relParent(home: string, path: string): string {
-  const base = home.replace(/[\\/]+$/, "");
+  const base = trimTrailingSeparators(home);
   const parent = dirName(path);
   return parent.length > base.length && keyOf(parent).startsWith(keyOf(base) + "\\") ? parent.slice(base.length + 1) : "";
 }

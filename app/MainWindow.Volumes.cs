@@ -23,7 +23,7 @@ sealed partial class MainWindow
         if (volumes.All(volumesAtLoad.Contains)) return false;
         if (result is not null) Pending.Stash(result);
         // A reload is already pending (scanned again and added another entry in the same round): don't queue a second one
-        if (!reloadQueued) Dispatcher.InvokeAsync(() => web.CoreWebView2?.Reload(), System.Windows.Threading.DispatcherPriority.Background);
+        if (!reloadQueued) Dispatcher.InvokeAsync(() => Core?.Reload(), System.Windows.Threading.DispatcherPriority.Background);
         reloadQueued = true;
         return true;
     }
@@ -39,7 +39,7 @@ sealed partial class MainWindow
     void MapVolume(string path)
     {
         // Don't map while the UI isn't up: InitWebViewAsync maps the drives used by the list in one go
-        if (web.CoreWebView2 is not { } core) return;
+        if (Core is not { } core) return;
         var volume = Path.GetPathRoot(Path.GetFullPath(path));
         if (string.IsNullOrEmpty(volume) || volumes.Contains(volume)) return;
         // Drive absent (USB stick not plugged in, network drive not connected): WebView2 throws when mapping a nonexistent folder (an entry on an unplugged drive used to keep the UI from starting).

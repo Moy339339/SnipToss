@@ -193,7 +193,9 @@ enum CaptureSmoke {
 
     /// Drag out a selection, click Rectangle on the toolbar, draw one, type a note (one key typed the way the keyboard types it) and click
     /// Save; C for the Pin, a click, a note saved with Return; T for Text, a click, a word ended with Esc. Then R and a rectangle left
-    /// without a note (Esc takes it away); 8 and 7 for white and black; a click on the text picks it, delete deletes it and ⌘Z brings it
+    /// without a note (Esc takes it away); another one left empty by a click elsewhere stays as a drawing without a number (the one-time hint
+    /// shows), a click on it picks it (its colors and Delete pop up below it) and that Delete deletes it; 8 and 7 for white and black; a
+    /// click on the text picks it, delete deletes it and ⌘Z brings it
     /// back; the hue disc opens the color picker, six digits are typed with the keyboard (7 and 8 among them: they must not be color keys
     /// there) and Return uses the color. Esc once more only warns (notes were written); a picture of the layer; Finish on the toolbar
     static func mainLine(_ s: Stage) -> Steps {
@@ -226,6 +228,16 @@ enum CaptureSmoke {
                 s.drag(s.at(0.5, 0.5), s.at(0.62, 0.62))
             }),
             ("leaveUnwritten", { s.key(53, "\u{1B}") }),
+            // Rectangle is still the tool
+            ("drawDoodle", { s.drag(s.at(0.5, 0.5), s.at(0.62, 0.62)) }),
+            ("keepDoodle", { CaptureSmoke.click(s.at(0.85, 0.85), in: s.panel) }),
+            ("doodleHintPicture", { s.picture("capture-doodle-hint.png") }),
+            ("pickDoodle", { CaptureSmoke.click(s.at(0.5, 0.56), in: s.panel) }),
+            ("doodleRowPicture", { s.picture("capture-doodle-row.png") }),
+            ("noteOnDoodle", { CaptureSmoke.doubleClick(s.at(0.5, 0.56), in: s.panel) }),
+            ("escapeDoodleNote", { s.key(53, "\u{1B}") }),
+            ("pickDoodleAgain", { CaptureSmoke.click(s.at(0.5, 0.56), in: s.panel) }),
+            ("deleteDoodle", { s.click("picked-delete") }),
             ("white", { s.key(0x1C, "8") }),
             ("black", { s.key(0x1A, "7") }),
             ("pickText", { CaptureSmoke.click(CGPoint(x: textAt.x + 4, y: textAt.y + 8), in: s.panel) }),
@@ -343,12 +355,12 @@ enum CaptureSmoke {
     // MARK: Posting input
 
     /// A mouse event at a point of the layer (y pointing down), posted into the app's queue for the layer's window
-    static func post(_ type: NSEvent.EventType, at p: CGPoint, in panel: NSPanel, flags: NSEvent.ModifierFlags = []) {
+    static func post(_ type: NSEvent.EventType, at p: CGPoint, in panel: NSPanel, flags: NSEvent.ModifierFlags = [], clicks: Int = 1) {
         let location = CGPoint(x: p.x, y: panel.frame.height - p.y)
         let pressure: Float = type == .leftMouseUp || type == .rightMouseUp ? 0 : 1
         if let event = NSEvent.mouseEvent(
             with: type, location: location, modifierFlags: flags, timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: panel.windowNumber,
-            context: nil, eventNumber: 0, clickCount: 1, pressure: pressure)
+            context: nil, eventNumber: 0, clickCount: clicks, pressure: pressure)
         {
             NSApp.postEvent(event, atStart: false)
         }
@@ -358,6 +370,13 @@ enum CaptureSmoke {
         guard let p else { return }
         post(.leftMouseDown, at: p, in: panel)
         post(.leftMouseUp, at: p, in: panel)
+    }
+
+    /// Two clicks the way a double click arrives: the second press carries a click count of 2
+    static func doubleClick(_ p: CGPoint, in panel: NSPanel) {
+        click(p, in: panel)
+        post(.leftMouseDown, at: p, in: panel, clicks: 2)
+        post(.leftMouseUp, at: p, in: panel, clicks: 2)
     }
 
     static func drag(from a: CGPoint, to b: CGPoint, steps: Int = 8, in panel: NSPanel) {
@@ -425,6 +444,7 @@ enum CaptureSmoke {
             "toolbar": o.toolbar.isHidden ? NSNull() as Any : rect(o.toolbar.frame), "subbar": o.subbar.isHidden ? NSNull() as Any : rect(o.subbar.frame),
             "sizeLabel": o.sizeLabel.isHidden ? NSNull() as Any : o.sizeLabel.label.text as Any, "magnifier": !o.magnifier.isHidden,
             "warn": o.warn.isHidden ? NSNull() as Any : o.warn.label.text as Any, "level": o.window?.level.rawValue ?? -1, "key": o.window?.isKeyWindow ?? false,
+            "drawingHint": o.drawingHint.isHidden ? NSNull() as Any : rect(o.drawingHint.frame),
             "buttons": buttons(in: o).map { $0.id },
             "picked": s.picked.map { describeMark($0) as Any } ?? NSNull(),
             "deleteEnabled": buttons(in: o).first { $0.id == "delete" }?.enabled() ?? false, "noteMoved": o.noteMoved,

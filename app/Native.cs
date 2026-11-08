@@ -226,4 +226,90 @@ static class Native
 
     [DllImport("dbghelp.dll", SetLastError = true)]
     public static extern bool MiniDumpWriteDump(IntPtr process, uint processId, SafeFileHandle file, uint type, IntPtr exception, IntPtr userStream, IntPtr callback);
+
+    // ---------- Hang report: watching the UI thread (HangWatch), reading where it is stuck from another process (HangReport; kernel32, dbghelp) ----------
+
+    public const uint THREAD_SUSPEND_RESUME = 0x0002;
+    public const uint THREAD_GET_CONTEXT = 0x0008;
+    public const uint THREAD_QUERY_INFORMATION = 0x0040;
+    public const uint THREAD_QUERY_LIMITED_INFORMATION = 0x0800;
+    public const uint PROCESS_VM_READ = 0x0010;
+    public const uint PROCESS_QUERY_INFORMATION = 0x0400;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MEMORY_BASIC_INFORMATION
+    {
+        public IntPtr BaseAddress, AllocationBase;
+        public uint AllocationProtect;
+        public ushort PartitionId;
+        public IntPtr RegionSize;
+        public uint State, Protect, Type;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct ADDRESS64
+    {
+        public ulong Offset;
+        public ushort Segment;
+        public int Mode;
+    }
+
+    /// <summary>STACKFRAME64: the fields used here; Size covers the rest (KDHELP64, zeroed), 264 bytes in all</summary>
+    [StructLayout(LayoutKind.Sequential, Size = 264)]
+    public struct STACKFRAME64
+    {
+        public ADDRESS64 AddrPC, AddrReturn, AddrFrame, AddrStack, AddrBStore;
+    }
+
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+    public delegate bool ReadMemoryRoutine(IntPtr process, ulong address, IntPtr buffer, uint size, out uint read);
+
+    [DllImport("kernel32.dll")]
+    public static extern uint GetCurrentThreadId();
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern IntPtr OpenThread(uint access, bool inherit, uint threadId);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern IntPtr OpenProcess(uint access, bool inherit, int processId);
+
+    [DllImport("kernel32.dll")]
+    public static extern bool CloseHandle(IntPtr handle);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern uint SuspendThread(IntPtr thread);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern uint ResumeThread(IntPtr thread);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool GetThreadContext(IntPtr thread, IntPtr context);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool GetThreadTimes(IntPtr thread, out long creation, out long exit, out long kernel, out long user);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool ReadProcessMemory(IntPtr process, IntPtr address, IntPtr buffer, IntPtr size, out IntPtr read);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool ReadProcessMemory(IntPtr process, IntPtr address, [Out] byte[] buffer, IntPtr size, out IntPtr read);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern IntPtr VirtualQueryEx(IntPtr process, IntPtr address, out MEMORY_BASIC_INFORMATION info, IntPtr length);
+
+    [DllImport("dbghelp.dll")]
+    public static extern uint SymSetOptions(uint options);
+
+    [DllImport("dbghelp.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern bool SymInitializeW(IntPtr process, string? searchPath, bool invadeProcess);
+
+    [DllImport("dbghelp.dll")]
+    public static extern bool SymCleanup(IntPtr process);
+
+    [DllImport("dbghelp.dll", SetLastError = true)]
+    public static extern bool StackWalk64(uint machine, IntPtr process, IntPtr thread, ref STACKFRAME64 frame, IntPtr context,
+        ReadMemoryRoutine read, IntPtr functionTableAccess, IntPtr getModuleBase, IntPtr translateAddress);
+
+    [DllImport("dbghelp.dll", SetLastError = true)]
+    public static extern bool SymFromAddrW(IntPtr process, ulong address, out ulong displacement, IntPtr symbol);
 }

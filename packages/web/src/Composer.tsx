@@ -1,10 +1,12 @@
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
-import { CATEGORIES, formatTime, type AnnotationCategory } from "@sniptoss/core";
+import { CATEGORIES, type AnnotationCategory } from "@sniptoss/core";
 import { useIntl } from "react-intl";
 import { cssZoom } from "./cssZoom";
 import { afterToolHold } from "./hold";
 import { CloseIcon, GripIcon, PlusIcon, UndoIcon } from "./icons";
 import { pressesControl, useKeys } from "./keys";
+import { usePrefs } from "./prefs";
+import { clock, formatFor } from "./timeFormat";
 
 export interface ComposerValue {
   category: AnnotationCategory;
@@ -62,6 +64,8 @@ export function Composer(props: {
   title: string | ((timed: boolean) => string);
   /** Video: gets the current playback time, used to set the start / end of the span */
   currentTime?: () => number;
+  /** The video's constant frame rate, when known: the chips show the time in the format chosen in Settings (timeFormat.ts) */
+  fps?: number;
   /**
    * The time is optional: a video's overall comment (no marks) targets the whole video by default; "Set time" adds one and × removes
    * it (it used to be tied to the current time and could not be removed). A note with marks always has a time: the frame the marks were drawn on
@@ -90,6 +94,10 @@ export function Composer(props: {
   refocus?: number;
 }) {
   const intl = useIntl();
+  const { prefs } = usePrefs();
+  // In frames the chips hold bare frame numbers, so the label in front says "Frame" instead of "Time"
+  const showAt = (t: number) => clock(t, prefs.timeFormat, props.fps);
+  const timeLabel = intl.formatMessage({ id: formatFor(prefs.timeFormat, props.fps) === "frames" ? "composer.frame" : "composer.time" });
   const [category, setCategory] = useState(props.initial.category);
   const [body, setBody] = useState(props.initial.body);
   const [time, setTime] = useState(props.initial.time);
@@ -303,7 +311,7 @@ export function Composer(props: {
       {time && (
         <>
           <div className="composer-time">
-            <span className="muted">{intl.formatMessage({ id: "composer.time" })}</span>
+            <span className="muted">{timeLabel}</span>
             <button
               className="time-chip"
               onClick={setStart}
@@ -313,7 +321,7 @@ export function Composer(props: {
                   : intl.formatMessage({ id: "composer.startTitle" })
               }
             >
-              {formatTime(time.start)}
+              {showAt(time.start)}
             </button>
             {time.end === undefined ? (
               <>
@@ -338,7 +346,7 @@ export function Composer(props: {
               <>
                 <span className="muted">{intl.formatMessage({ id: "composer.to" })}</span>
                 <button className="time-chip" onClick={setEnd} title={intl.formatMessage({ id: "composer.endTitle" })}>
-                  {formatTime(time.end)}
+                  {showAt(time.end)}
                 </button>
                 <button
                   className="time-clear"

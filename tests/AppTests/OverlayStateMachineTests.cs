@@ -78,6 +78,11 @@ public class OverlayStateMachineTests
         }
 
         public Point? CursorPosition => Cursor;
+
+        /// <summary>The marks announced as kept drawings (the overlay shows its one-time hint next to the first)</summary>
+        public readonly List<Mark> Kept = [];
+
+        public void DrawingsKept(Mark first) => Kept.Add(first);
     }
 
     /// <summary>
@@ -666,13 +671,30 @@ public class OverlayStateMachineTests
         Assert.Equal(1, rect.Number);
     }
 
-    // ---------- Marks exist only with a note: leaving a new one unwritten takes its mark away ----------
+    // ---------- A new note left without a word: its lines and boxes stay as drawings without a number; Esc / Cancel / right-click take them away ----------
 
-    public static TheoryData<string> WaysToLeave => ["click outside", "click inside", "Esc", "Cancel", "right-click", "Enter", "switch to Pixelate", "overall comment", "double-click to finish"];
+    public static TheoryData<string> WaysToKeep => ["click outside", "click inside", "Enter", "switch to Pixelate", "overall comment", "double-click to finish"];
+    public static TheoryData<string> WaysToDrop => ["Esc", "Cancel", "right-click"];
+
+    static void Leave(Layer a, string how)
+    {
+        switch (how)
+        {
+            case "click outside": a.Click(700, 600); break;
+            case "click inside": a.Click(450, 450); break;
+            case "Esc": Assert.True(a.State.NoteKey(Key.Escape, ModifierKeys.None)); break;
+            case "Cancel": a.State.CancelNote(); break;
+            case "right-click": a.State.Right(); break;
+            case "Enter": Assert.True(a.State.NoteKey(Key.Enter, ModifierKeys.None)); break;
+            case "switch to Pixelate": a.State.ChooseTool(Tool.Mosaic); break;
+            case "overall comment": a.State.ToggleOverall(); break;
+            case "double-click to finish": a.Down(450, 450, 2); break;
+        }
+    }
 
     [Theory]
-    [MemberData(nameof(WaysToLeave))]
-    public void Leaving_a_new_marks_note_box_without_writing_takes_the_mark_away(string how)
+    [MemberData(nameof(WaysToKeep))]
+    public void Leaving_a_new_marks_note_box_without_writing_keeps_the_mark_as_a_drawing_without_a_number(string how)
     {
         foreach (var tool in new[] { Tool.Rect, Tool.Ellipse, Tool.Arrow, Tool.Pen })
         {
@@ -680,27 +702,49 @@ public class OverlayStateMachineTests
             a.State.ChooseTool(tool);
             a.Drag((250, 250), (330, 320));
             Assert.True(a.State.NoteOpen);
-            Assert.Single(a.State.Marks);
             a.View.NoteDraft = "  "; // only spaces count as nothing written
-            switch (how)
-            {
-                case "click outside": a.Click(700, 600); break;
-                case "click inside": a.Click(450, 450); break;
-                case "Esc": Assert.True(a.State.NoteKey(Key.Escape, ModifierKeys.None)); break;
-                case "Cancel": a.State.CancelNote(); break;
-                case "right-click": a.State.Right(); break;
-                case "Enter": Assert.True(a.State.NoteKey(Key.Enter, ModifierKeys.None)); break;
-                case "switch to Pixelate": a.State.ChooseTool(Tool.Mosaic); break;
-                case "overall comment": a.State.ToggleOverall(); break;
-                case "double-click to finish": a.Down(450, 450, 2); break;
-            }
+            Leave(a, how);
+            var m = Assert.Single(a.State.Marks);
+            Assert.Equal(tool, m.Kind);
+            Assert.False(m.HasNote);
+            Assert.Equal(0, m.Number);
+            Assert.Equal(0, m.PendingNumber);
+            Assert.Null(m.Lead);
+            Assert.Null(a.State.NoteFor);
+            // Announced for the one-time hint next to it, except when the capture is being finished (the overlay closes at once)
+            if (how == "double-click to finish") Assert.Empty(a.View.Kept);
+            else Assert.Same(m, Assert.Single(a.View.Kept));
+        }
+    }
+
+    [Fact]
+    public void Finishing_with_an_empty_note_box_open_keeps_its_drawing_without_announcing_it()
+    {
+        var a = new Layer().Selected();
+        a.State.ChooseTool(Tool.Rect);
+        a.Drag((250, 250), (330, 320));
+        a.State.CommitOpenEdits();
+        Assert.False(Assert.Single(a.State.Marks).HasNote);
+        Assert.Empty(a.View.Kept);
+    }
+
+    [Theory]
+    [MemberData(nameof(WaysToDrop))]
+    public void Esc_Cancel_or_right_click_on_a_new_marks_note_box_takes_the_mark_away(string how)
+    {
+        foreach (var tool in new[] { Tool.Rect, Tool.Ellipse, Tool.Arrow, Tool.Pen })
+        {
+            var a = new Layer().Selected();
+            a.State.ChooseTool(tool);
+            a.Drag((250, 250), (330, 320));
+            Leave(a, how);
             Assert.Empty(a.State.Marks);
             Assert.Null(a.State.NoteFor);
         }
     }
 
     [Fact]
-    public void A_second_place_drawn_into_a_new_note_goes_too_when_the_note_is_left_unwritten()
+    public void A_new_note_with_two_places_left_unwritten_leaves_two_drawings_each_on_its_own()
     {
         var a = new Layer().Selected();
         a.State.ChooseTool(Tool.Rect);
@@ -708,8 +752,83 @@ public class OverlayStateMachineTests
         a.Drag((350, 350), (420, 420)); // the box is still open: another place of the same note
         Assert.Equal(2, a.State.NotePlaces);
         a.Click(700, 600);
+        Assert.Equal(2, a.State.Marks.Count);
+        Assert.All(a.State.Marks, m =>
+        {
+            Assert.Null(m.Lead);
+            Assert.False(m.HasNote);
+        });
+        Assert.Same(a.State.Marks[0], Assert.Single(a.View.Kept)); // announced once, at the first of them
+        // Each one is picked and deleted on its own
+        a.Click(250, 275);
+        Assert.Same(a.State.Marks[0], a.State.Picked);
+        a.State.DeletePicked();
+        Assert.Single(a.State.Marks, m => !m.Removed);
+    }
+
+    [Fact]
+    public void A_numbered_dot_left_without_words_still_goes_away()
+    {
+        var a = new Layer().Selected();
+        a.State.ChooseTool(Tool.Note);
+        a.Click(300, 300);
+        Assert.True(a.State.NoteOpen);
+        a.Click(700, 600);
         Assert.Empty(a.State.Marks);
-        Assert.False(a.State.Locked); // nothing left, so the selection can be moved and re-selected again
+        Assert.Empty(a.View.Kept);
+    }
+
+    [Fact]
+    public void Double_clicking_a_drawing_opens_a_note_for_it_writing_numbers_it_and_Esc_leaves_the_drawing_as_it_was()
+    {
+        var a = new Layer().Selected();
+        a.State.ChooseTool(Tool.Rect);
+        a.Drag((250, 250), (330, 320));
+        a.Click(700, 600);
+        var drawing = Assert.Single(a.State.Marks);
+        Assert.False(drawing.HasNote);
+
+        a.Down(250, 280, 1);
+        a.Up();
+        a.Down(250, 280, 2);
+        Assert.True(a.State.NoteOpen);
+        Assert.Same(drawing, a.State.NoteFor);
+        Assert.True(a.State.NoteKey(Key.Escape, ModifierKeys.None));
+        Assert.Same(drawing, Assert.Single(a.State.Marks));
+        Assert.False(drawing.HasNote);
+
+        a.Down(250, 280, 1);
+        a.Up();
+        a.Down(250, 280, 2);
+        a.View.NoteDraft = "这个框里改一下";
+        Assert.True(a.State.NoteKey(Key.Enter, ModifierKeys.None));
+        Assert.Equal("这个框里改一下", drawing.Note);
+        Assert.Equal(1, drawing.Number);
+    }
+
+    [Fact]
+    public void Deleting_a_drawing_while_its_double_clicked_note_box_is_open_deletes_it_and_undo_brings_it_back()
+    {
+        var a = new Layer().Selected();
+        a.State.ChooseTool(Tool.Rect);
+        a.Drag((250, 250), (330, 320));
+        a.Click(700, 600);
+        var drawing = Assert.Single(a.State.Marks);
+
+        a.Down(250, 280, 1);
+        a.Up();
+        a.Down(250, 280, 2);
+        Assert.Same(drawing, a.State.NoteFor);
+        Assert.Same(drawing, a.State.Picked);
+        a.View.NoteDraft = "写了一半";
+        a.State.DeletePicked();
+        Assert.False(a.State.NoteOpen);
+        Assert.True(drawing.Removed);
+
+        a.State.Undo();
+        Assert.False(drawing.Removed);
+        Assert.False(drawing.HasNote);
+        Assert.Equal(0, drawing.Number);
     }
 
     // ---------- Deleting a picked mark (the toolbar's Delete, Delete / Backspace) ----------

@@ -449,6 +449,17 @@ function Annotate() {
       <Row label={t("settings.annotate.loop")} desc={t("settings.annotate.loopDesc")}>
         <Switch on={prefs.loop} onChange={(v) => setPrefs({ loop: v })} />
       </Row>
+      <Row label={t("settings.annotate.timeFormat")} desc={t("settings.annotate.timeFormatDesc")}>
+        <Choice
+          value={prefs.timeFormat}
+          options={[
+            { value: "seconds", label: t("settings.annotate.timeSeconds") },
+            { value: "timecode", label: t("settings.annotate.timeTimecode") },
+            { value: "frames", label: t("settings.annotate.timeFrames") },
+          ]}
+          onChange={(v) => setPrefs({ timeFormat: v })}
+        />
+      </Row>
       <Row label={t("settings.annotate.showResolved")} desc={t("settings.annotate.showResolvedDesc")}>
         <Switch on={prefs.showResolved} onChange={(v) => setPrefs({ showResolved: v })} />
       </Row>

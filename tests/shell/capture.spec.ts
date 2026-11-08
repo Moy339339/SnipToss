@@ -69,6 +69,8 @@ type Layer = {
   /** enabled: whether a toolbar button can be clicked now (null for other buttons) */
   buttons: { id: string; name: string; on: boolean | null; enabled: boolean | null }[];
   warn: { text: string; box: Box } | null;
+  /** The one-time hint next to the first mark left as a drawing */
+  drawingHint: { text: string; box: Box } | null;
 };
 type State = { open: boolean; overlays: Layer[] };
 type Shown = { kind: "toast" | "error"; title: string; detail: string; path: string | null; error: string | null };
@@ -1138,7 +1140,7 @@ test("Delete (toolbar button, Delete / Backspace): grayed out until a mark is pi
   expect(r.clipboard!.text).toMatch(/\n1\. 修改 · 2 处：位置 [^；]+；位置 [^；]+：这三个按钮改成圆角\r\n/);
 });
 
-test("A rectangle, ellipse, arrow or pen stroke goes away with its note when nothing is written: Esc, Cancel, a click elsewhere, right-click, Enter on an empty box and Finish leave no mark and unlock the selection; Pixelate and Text stay", async ({
+test("A rectangle, ellipse, arrow or pen stroke with nothing written: Esc, Cancel and right-click take it away with its note and unlock the selection; a click elsewhere, Enter on an empty box and Finish keep it as a drawing without a number (in the image too); Pixelate and Text never have a note", async ({
   shell,
 }) => {
   await shell.launch();
@@ -1151,30 +1153,147 @@ test("A rectangle, ellipse, arrow or pen stroke goes away with its note when not
   expect([o.note, o.marks.length, o.locked, o.open]).toEqual([null, 0, false, true]);
   o = await run(shell, [box, { op: "click", id: "note-cancel" }]);
   expect([o.note, o.marks.length]).toEqual([null, 0]);
-  // A click elsewhere on the canvas saves a note that has text; with none it drops the box (and that click draws nothing)
-  o = await run(shell, [{ op: "key", key: "O" }, box, { op: "down", x: 500, y: 450 }, { op: "up" }]);
-  expect([o.note, o.marks.length]).toEqual([null, 0]);
   o = await run(shell, [{ op: "key", key: "A" }, box, { op: "right", x: 500, y: 450 }]);
   expect([o.note, o.marks.length, o.open, o.sel]).toEqual([null, 0, true, { x: 200, y: 200, width: 400, height: 300 }]);
-  o = await run(shell, [{ op: "key", key: "B" }, box, { op: "type", text: "  " }, { op: "key", key: "Enter" }]);
-  expect([o.note, o.marks.length, o.locked]).toEqual([null, 0, false]);
-  // Drawings without a note
+  // Left without a word: a click elsewhere on the canvas (that click draws nothing) and Enter with only spaces keep the stroke, without a number
+  o = await run(shell, [{ op: "key", key: "O" }, { op: "drag", from: [220, 220], to: [300, 280] }, { op: "down", x: 500, y: 450 }, { op: "up" }]);
+  expect([o.note, o.locked, o.marks.map((m) => [m.kind, m.number, m.lead])]).toEqual([null, true, [["ellipse", 0, -1]]]);
+  o = await run(shell, [{ op: "key", key: "B" }, { op: "drag", from: [320, 220], to: [400, 280] }, { op: "type", text: "  " }, { op: "key", key: "Enter" }]);
+  expect([
+    o.note,
+    o.marks.map((m) => [m.kind, m.number]),
+  ]).toEqual([
+    null,
+    [
+      ["ellipse", 0],
+      ["pen", 0],
+    ],
+  ]);
   o = await run(shell, [
     { op: "key", key: "M" },
-    { op: "drag", from: [450, 260], to: [520, 300] },
+    { op: "drag", from: [450, 220], to: [520, 260] },
     { op: "key", key: "T" },
     { op: "down", x: 250, y: 420 },
     { op: "up" },
     { op: "type", text: "字" },
     { op: "key", key: "Escape" },
   ]);
-  expect(o.marks.map((m) => m.kind)).toEqual(["mosaic", "text"]);
-  // Finish with an empty box open: its rectangle is not in the image, and with no notes it is a plain screenshot
-  o = await run(shell, [{ op: "key", key: "R" }, box, { op: "click", id: "done" }]);
+  expect(o.marks.map((m) => m.kind)).toEqual(["ellipse", "pen", "mosaic", "text"]);
+  // Finish with an empty box open: the box stays in the image (its left edge is drawn, its inside is the screen), and with no notes it is a plain screenshot
+  o = await run(shell, [{ op: "key", key: "R" }, { op: "drag", from: [320, 320], to: [420, 400] }, { op: "click", id: "done" }]);
   expect(o.open).toBe(false);
-  const r = await result(shell, [[50, 70]]);
-  expect(r.pixels).toEqual([color(250, 270)]);
+  const r = await result(shell, [
+    [120, 160],
+    [160, 160],
+  ]);
+  expect(r.pixels![0]).not.toBe(color(320, 360));
+  expect(r.pixels![1]).toBe(color(360, 360));
   expect(r.shown[0].title).toBe("截图\n已添加到剪贴板");
+});
+
+test("Drawings: a click picks one and its colors pop up just below it, ending with Delete; a color changes only it; Delete takes it away and undo brings it back; a double-click writes a note for it, which numbers it (Esc leaves it as it was); the copied text says what the unnumbered lines are", async ({
+  shell,
+}) => {
+  await shell.launch();
+  await shell.ask("setCaptureSettings", { notesInImage: false });
+  await open(shell);
+  await select(shell);
+  let o = await run(shell, [
+    { op: "key", key: "R" },
+    { op: "drag", from: [250, 250], to: [330, 300] },
+    { op: "down", x: 560, y: 470 },
+    { op: "up" },
+    { op: "drag", from: [400, 250], to: [480, 300] },
+    { op: "key", key: "Enter" },
+  ]);
+  expect(o.marks.map((m) => [m.kind, m.number, m.lead])).toEqual([
+    ["rect", 0, -1],
+    ["rect", 0, -1],
+  ]);
+  const drawn = o.color;
+  const byToolbar = o.subbar!;
+  expect(o.buttons.some((b) => b.id === "picked-delete")).toBe(false);
+  // A click on the first one's edge picks it: the color row leaves the toolbar for just below the box, lined up with its left, and ends with Delete
+  o = await run(shell, [{ op: "down", x: 250, y: 275 }, { op: "up" }, { op: "shot", path: test.info().outputPath("picked-row.png") }]);
+  expect([o.picked, o.note]).toEqual([0, null]);
+  expect(o.subbar!.y).toBeGreaterThan(300);
+  expect(o.subbar!.y).toBeLessThan(330);
+  expect(Math.abs(o.subbar!.x - 250)).toBeLessThan(10);
+  expect(o.buttons.find((b) => b.id === "picked-delete")?.name).toBe("删除选中的标记（Delete）");
+  // A color in that row changes only the picked box
+  const other = o.buttons.find((b) => b.id.startsWith("color-") && b.id !== `color-${drawn}` && b.id !== "color-custom")!.id.slice(6);
+  o = await run(shell, [{ op: "click", id: `color-${other}` }]);
+  expect([o.picked, o.marks.map((m) => m.color)]).toEqual([0, [other, drawn]]);
+  // Delete at the end of the row takes it away, and the row goes back by the toolbar; undo brings it back
+  o = await run(shell, [{ op: "click", id: "picked-delete" }]);
+  expect([o.picked, o.marks.length, o.subbar]).toEqual([-1, 1, byToolbar]);
+  o = await run(shell, [{ op: "key", key: "Z", ctrl: true }]);
+  expect(o.marks.map((m) => [m.number, m.color])).toEqual([
+    [0, other],
+    [0, drawn],
+  ]);
+  // A double-click on the second one opens a note for it; Esc leaves it a drawing, writing and Enter number it
+  o = await run(shell, [{ op: "dblclick", x: 400, y: 275 }]);
+  expect([o.note?.title, o.marks.length]).toEqual(["批注 1", 2]);
+  o = await run(shell, [{ op: "key", key: "Escape" }]);
+  expect([o.note, o.marks.map((m) => m.number)]).toEqual([null, [0, 0]]);
+  // With that box open, Delete at the end of the color row deletes the drawing (not only the box); undo brings it back
+  o = await run(shell, [{ op: "dblclick", x: 400, y: 275 }, { op: "click", id: "picked-delete" }]);
+  expect([o.note, o.marks.length]).toEqual([null, 1]);
+  o = await run(shell, [{ op: "key", key: "Z", ctrl: true }]);
+  expect(o.marks.map((m) => m.number)).toEqual([0, 0]);
+  o = await run(shell, [{ op: "dblclick", x: 400, y: 275 }, { op: "type", text: "这个框里改一下" }, { op: "key", key: "Enter" }]);
+  expect([o.note, o.marks.map((m) => [m.number, m.note])]).toEqual([
+    null,
+    [
+      [0, ""],
+      [1, "这个框里改一下"],
+    ],
+  ]);
+  // Finished: the copied text says that the unnumbered box was drawn on top, then lists the note
+  o = await run(shell, [{ op: "click", id: "done" }]);
+  const r = await result(shell);
+  expect(r.clipboard!.text).toContain("图上没有序号的线条、箭头和框是另外画的，帮助说明意见，不是截图本身的内容。");
+  expect(r.clipboard!.text).toMatch(/\n1\. 修改 · [^：]+：这个框里改一下\r\n/);
+});
+
+test("Drawings, first time: a hint just below the first mark left as a drawing, clear of the toolbar; clicks go through it and the next press puts it away; shown once ever; not when the drawing is kept by finishing", async ({
+  shell,
+}) => {
+  const file = join(shell.temp, "settings.json");
+  const s = JSON.parse(readFileSync(file, "utf8"));
+  writeFileSync(file, JSON.stringify({ ...s, Capture: { ...s.Capture, DrawingHintDone: false } }, null, 2));
+  const done = () => JSON.parse(readFileSync(file, "utf8")).Capture?.DrawingHintDone === true;
+  await shell.launch();
+  await open(shell);
+  await select(shell);
+  // Kept by Finish: the overlay closes at once, so the hint is neither shown nor counted as seen
+  await run(shell, [{ op: "key", key: "R" }, { op: "drag", from: [250, 250], to: [330, 300] }, { op: "click", id: "done" }]);
+  await closed(shell);
+  expect(done()).toBe(false);
+
+  await open(shell);
+  await select(shell);
+  let o = await run(shell, [
+    { op: "key", key: "R" },
+    { op: "drag", from: [250, 250], to: [330, 300] },
+    { op: "down", x: 560, y: 470 },
+    { op: "up" },
+    { op: "shot", path: test.info().outputPath("drawing-hint.png") },
+  ]);
+  expect(o.drawingHint!.text).toBe("未填写内容的标记保留为涂鸦：不编号，随截图一并交出。单击可更换颜色或删除，双击可补写批注。");
+  const box = o.drawingHint!.box;
+  expect(box.y).toBeGreaterThan(300);
+  expect(box.y).toBeLessThan(330);
+  expect(Math.abs(box.x - 250)).toBeLessThan(10);
+  expect(box.y + box.height).toBeLessThan(o.toolbar!.y);
+  await waitFor("the hint to be recorded as seen", done);
+  // A click on it lands on the canvas below (it takes no clicks) and puts it away
+  o = await run(shell, [{ op: "down", x: box.x + box.width / 2, y: box.y + box.height / 2 }, { op: "up" }]);
+  expect([o.results[0], o.drawingHint, o.marks.length]).toEqual(["surface", null, 1]);
+  // Once ever: the next mark left as a drawing has no hint
+  o = await run(shell, [{ op: "drag", from: [400, 250], to: [480, 300] }, { op: "key", key: "Enter" }]);
+  expect([o.marks.length, o.drawingHint]).toEqual([2, null]);
 });
 
 test("More colors: 7 and 8 are black and white; the hue disc after the colors opens the color picker on the color in use; Esc closes only it; typed digits + Enter use the color and add it to the recent colors (shared with the main window, kept for the next capture and after a restart); dragging the hue strip and field picks as it goes; a click on the canvas only closes it; with a mark picked only that mark changes", async ({
@@ -1321,7 +1440,7 @@ test("Note box: category defaults to the setting and follows the previous note, 
   o = await run(shell, [{ op: "down", x: 400, y: 250 }, { op: "up" }, { op: "type", text: "改" }, { op: "right" }]);
   o = await run(shell, [{ op: "down", x: 400, y: 250 }, { op: "up" }, { op: "type", text: "改" }, { op: "click", id: "note-cancel" }]);
   expect(o.marks[1].note).toBe("二");
-  // Esc after drawing a box: the box goes with the note (rectangles, ellipses, arrows and pen strokes exist only with a note, as in the main app)
+  // Esc after drawing a box: the box goes with the note (Esc takes back everything done while the box was open; leaving it another way keeps the box as a drawing)
   o = await run(shell, [{ op: "key", key: "O" }, { op: "drag", from: [450, 400], to: [550, 480] }, { op: "type", text: "不要" }, { op: "key", key: "Escape" }]);
   expect([o.note, o.marks.length]).toEqual([null, 2]);
 });
@@ -1813,7 +1932,7 @@ test("Captures older than 30 days in the default folder are cleaned up (the olde
 
 // ---------- 10. Regression cases ----------
 
-test("Clicking Overall comment with the note box open saves the note being written first (no text lost; a new box with nothing written goes with its note and number); clicking it again closes it", async ({
+test("Clicking Overall comment with the note box open saves the note being written first (no text lost; a new box with nothing written stays as a drawing and its preview number goes); clicking it again closes it", async ({
   shell,
 }) => {
   await shell.launch();
@@ -1822,9 +1941,15 @@ test("Clicking Overall comment with the note box open saves the note being writt
   let o = await run(shell, [{ op: "key", key: "R" }, { op: "drag", from: [250, 250], to: [350, 350] }, { op: "type", text: "没保存的字" }, { op: "click", id: "overall" }]);
   expect(o.marks[0]).toMatchObject({ note: "没保存的字", number: 1, pending: 0 });
   expect(o.note).toMatchObject({ overall: true, title: "整体意见（不指定位置）" });
-  // A newly drawn box with nothing written, then Overall comment: the box goes with its empty note, and the preview number with it
+  // A newly drawn box with nothing written, then Overall comment: the box stays as a drawing without a number, and its preview number goes
   o = await run(shell, [{ op: "key", key: "Escape" }, { op: "drag", from: [400, 250], to: [500, 350] }, { op: "click", id: "overall" }]);
-  expect([o.marks.length, o.marks[0].number, o.note!.overall]).toEqual([1, 1, true]);
+  expect([o.marks.map((m) => [m.number, m.pending]), o.note!.overall]).toEqual([
+    [
+      [1, 0],
+      [0, 0],
+    ],
+    true,
+  ]);
   // Click again while the overall comment is open: done writing, closes
   o = await run(shell, [{ op: "type", text: "整体" }, { op: "click", id: "overall" }]);
   expect([o.note, o.overall]).toEqual([null, "整体"]);

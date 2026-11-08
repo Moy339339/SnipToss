@@ -62,8 +62,9 @@ for (const dep of Object.keys(core.dependencies ?? {})) collect(dep, join(ROOT, 
 
 // ---------- NuGet: versions as written in the csproj ----------
 const csproj = readFileSync(join(ROOT, "app", "SnipToss.App.csproj"), "utf8");
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const nugetVersion = (id) => {
-  const m = new RegExp(`<PackageReference Include="${id.replace(/\./g, "\\.")}" Version="([^"]+)"`).exec(csproj);
+  const m = new RegExp(`<PackageReference Include="${escapeRegExp(id)}" Version="([^"]+)"`).exec(csproj);
   if (!m) throw new Error(`The csproj has no ${id}`);
   return m[1];
 };

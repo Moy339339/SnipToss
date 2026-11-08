@@ -1,7 +1,7 @@
 // Screenshots of the native windows in every language (the part of the full-UI language screenshots that web pages can't draw;
 // the web part is in tests/e2e/i18n-shots.spec.ts):
 // every state of the capture overlay (magnifier and first-use hint, dragging a region, toolbar, note box, overall comment, text box,
-// selected mark, cancel warning), finish / error toasts, the composited image of Screen Capture (with notes), the image Copy as Images draws,
+// selected mark, hint next to the first drawing, cancel warning), finish / error toasts, the composited image of Screen Capture (with notes), the image Copy as Images draws,
 // the error window, and the notice page shown when the UI can't start; one set per language, for a person to go through one by one.
 // The tooltips of the toolbar buttons (popup windows can't be drawn into the overlay), the tray menu and the sentences in the overlay
 // go into texts.json to be read together.
@@ -26,6 +26,7 @@ type Layer = {
   buttons: { id: string; name: string }[];
   picked: number;
   warn: { text: string } | null;
+  drawingHint: { text: string } | null;
   magnifier: { hint: string | null } | null;
 };
 type Op = Record<string, unknown> & { op: string };
@@ -54,7 +55,7 @@ function preset(shell: Shell, locale: string) {
   const s = JSON.parse(readFileSync(file, "utf8"));
   writeFileSync(
     file,
-    JSON.stringify({ ...s, Prefs: { ...s.Prefs, language: locale }, Capture: { ...s.Capture, SelectHintDone: false } }, null, 2),
+    JSON.stringify({ ...s, Prefs: { ...s.Prefs, language: locale }, Capture: { ...s.Capture, SelectHintDone: false, DrawingHintDone: false } }, null, 2),
   );
 }
 
@@ -121,10 +122,16 @@ for (const locale of LOCALES) {
     expect(o.picked, "clicking the left edge of the rectangle selects it").toBeGreaterThanOrEqual(0);
     texts["color bar while a mark is selected"] = o.buttons.map((b) => `${b.id}: ${b.name}`);
     await shot("selected mark (color bar)");
+    // A box left without a word stays as a drawing: the first time, a hint below it (Esc puts the selected mark down first)
     o = await run(shell, [
       { op: "key", key: "Escape" },
-      { op: "key", key: "Escape" },
-    ]); // the first puts down the selected mark, the second shows the warning
+      { op: "drag", from: [450, 230], to: [560, 300] },
+      { op: "down", x: 580, y: 480 },
+      { op: "up" },
+    ]);
+    texts["hint next to the first drawing"] = o.drawingHint?.text;
+    await shot("first drawing (hint)");
+    o = await run(shell, [{ op: "key", key: "Escape" }]); // nothing selected now: the first Esc shows the warning
     texts["cancel warning"] = o.warn?.text;
     await shot("cancel warning");
 

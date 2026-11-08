@@ -4,10 +4,10 @@
 
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test, type App } from "./harness";
+import { escapeRegExp, expect, test, type App } from "./harness";
 
 const row = (app: App, name: string) =>
-  app.page.locator(".lib-row", { has: app.page.locator(".lib-name", { hasText: new RegExp(`^${name.replace(/\./g, "\\.")}$`) }) });
+  app.page.locator(".lib-row", { has: app.page.locator(".lib-name", { hasText: new RegExp(`^${escapeRegExp(name)}$`) }) });
 const card = (app: App, id: string) => app.page.locator(`[data-annot$="|${id}"]`);
 const focusStage = (app: App) => app.page.locator(".stage").click({ position: { x: 5, y: 5 } });
 const video = (app: App) => app.page.locator("video");

@@ -32,6 +32,19 @@ describe("videoHeaderFrom: reading the frame rate from the moov of an MP4 / MOV"
     expect(r.reads.at(-1)![1]).toBe(f.length);
   });
 
+  it("a constant rate is reported as constant; a variable one is not (frame numbers are only given for constant rates)", async () => {
+    for (const name of ["60fps-faststart.mp4", "29.97fps-moov-at-end.mp4", "60fps-keyframes.mp4"]) {
+      const f = fixture(name);
+      expect((await videoHeaderFrom(reader(f).read, f.length)).constant).toBe(true);
+    }
+    // ffmpeg -f lavfi -i testsrc2=size=64x36:rate=30:duration=2 -vf "setpts='if(lt(N,30),N/30,1+(N-30)/10)/TB'" -fps_mode vfr
+    //   -c:v libx264 -pix_fmt yuv420p -movflags +faststart: 30 frames at 30 fps, then 30 at 10 fps
+    const vfr = fixture("vfr.mp4");
+    const h = await videoHeaderFrom(reader(vfr).read, vfr.length);
+    expect(h.fps).toBeDefined();
+    expect(h.constant).toBe(false);
+  });
+
   it("WebM (not MP4): nothing can be read, so nothing is returned", async () => {
     const f = fixture("24fps.webm");
     expect(await videoHeaderFrom(reader(f).read, f.length)).toEqual({});

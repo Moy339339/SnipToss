@@ -4,7 +4,7 @@ SnipToss is a Windows desktop app made of a thin native shell and a web UI, plus
 
 ```
 SnipToss.exe  (app/, .NET 10 WPF)
-├─ window, tray, global hotkey, single instance, settings, logs, crash handling
+├─ window, tray, global hotkey, single instance, settings, logs, crash handling, hang reports
 ├─ screen capture overlay  (app/Capture, native WPF)
 └─ WebView2
    └─ UI  (packages/web, React + Vite; note logic from packages/core)
@@ -19,7 +19,7 @@ SnipToss.exe  (app/, .NET 10 WPF)
 
 ## Pieces
 
-**`app/` — the shell (C#, WPF + WebView2).** Owns everything that needs the operating system: the main window (the system title bar is removed; the UI draws its own), the tray icon, the global screen-capture hotkey, the single-instance pipe (opening a file while the app runs hands it to the open window), settings in `%APPDATA%\SnipToss\settings.json`, logs in `%LOCALAPPDATA%\SnipToss\logs`, the File Explorer context menu and start-at-sign-in (HKCU only). Each drive that holds items is mapped to a WebView2 virtual host, so the UI loads images and videos without file:// access. A portable copy (a `data` folder next to the exe) keeps all of this inside `data` and never touches the registry (`AppPaths.cs`).
+**`app/` — the shell (C#, WPF + WebView2).** Owns everything that needs the operating system: the main window (the system title bar is removed; the UI draws its own), the tray icon, the global screen-capture hotkey, the single-instance pipe (opening a file while the app runs hands it to the open window), settings in `%APPDATA%\SnipToss\settings.json`, logs in `%LOCALAPPDATA%\SnipToss\logs`, the File Explorer context menu and start-at-sign-in (HKCU only). Each drive that holds items is mapped to a WebView2 virtual host, so the UI loads images and videos without file:// access. A portable copy (a `data` folder next to the exe) keeps all of this inside `data` and never touches the registry (`AppPaths.cs`). When the UI thread stops responding for 3 seconds, a second copy of the app reads where it is stuck and writes it to the log (`HangWatch.cs`, `HangReport.cs`).
 
 **`app/Updates.cs` — the only network access.** Asks the GitHub Releases API for a newer version in the same channel (stable, or betas for a beta build) — once a day after startup unless turned off, or from Help → Check for Updates. It only reports; the user opens the download page.
 
@@ -48,7 +48,7 @@ SnipToss.exe  (app/, .NET 10 WPF)
 - `tests/AppTests` — xUnit for the shell: settings, atomic writes, the capture state machine and geometry, path handling, localization.
 - `packages/*/test` — vitest for core, the CLI and UI helpers, including the golden files shared with C#.
 - `tests/e2e` — Playwright against the built UI with the mock host: each test gets its own temporary project and fake clipboard, and every notes file written is validated against the JSON Schema.
-- `tests/shell` — Playwright over CDP against real `SnipToss.exe` test instances (built with test hooks into `tests/shell/.app`): virtual hosts, writing to disk, file watching, single instance, tray, crash recovery, screen capture on fake off-screen monitors.
+- `tests/shell` — Playwright over CDP against real `SnipToss.exe` test instances (built with test hooks into `tests/shell/.app`): virtual hosts, writing to disk, file watching, single instance, tray, crash recovery, hang reports, screen capture on fake off-screen monitors.
 - `tests/perf` — performance budgets: startup, hotkey to overlay, a 20,000-item library, 1,000 notes.
 
 ## Decision records

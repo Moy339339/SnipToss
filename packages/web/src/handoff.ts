@@ -123,6 +123,14 @@ export function useHandoff(opts: {
    * Hand these notes to AI: put them on the clipboard and show a toast saying how many. done is the "Copied …" half sentence (a message)
    * and receives the count handed over (also written as "1 note" when one is checked). Returns true if the copy succeeded
    */
+  /** Marks which items have drawings without notes in their snapshots (not ones made on an earlier version): the text then says what they are */
+  const withDrawings = (list: HandoffMaterial[]): HandoffMaterial[] =>
+    list.map((g) => {
+      const key = fileKey(g.root, g.material);
+      const earlier = earlierOf(key);
+      const drawn = filesRef.current.get(key)?.file.drawings?.some((d) => !earlier.has(d.id));
+      return drawn ? { ...g, drawings: true } : g;
+    });
   const handOff = async (list: HandoffMaterial[], done: (count: number) => string, mode: HandoffMode = "text") => {
     const n = list.reduce((s, g) => s + g.items.length, 0);
     try {
@@ -131,7 +139,7 @@ export function useHandoff(opts: {
         const { count } = await call("copyImages", { items: imageItems(list), extra: prefs.promptExtra });
         text = intl.formatMessage({ id: "app.copy.images.hint" }, { done: done(n), images: count });
       } else {
-        await navigator.clipboard.writeText(renderHandoff(list, translate, { extra: prefs.promptExtra }));
+        await navigator.clipboard.writeText(renderHandoff(withDrawings(list), translate, { extra: prefs.promptExtra }));
         text = intl.formatMessage({ id: "app.copy.done.hint" }, { done: done(n) });
       }
       // Say so if they were copied before (copying the same batch twice used to give no hint)

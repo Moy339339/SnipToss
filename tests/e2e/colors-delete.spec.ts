@@ -241,9 +241,10 @@ test("while writing a note: Delete on the bar of one of its places removes that 
   await expect(draftBadges(app)).toHaveCount(0);
 });
 
-test("a click on blank canvas while a new note's composer is still empty drops the note with its mark (Select and drawing tools alike); with text written the composer stays", async ({
+test("a click on blank canvas while a new note's composer is still empty closes it and the mark stays as a drawing without a number (Select and drawing tools alike); with text written the composer stays", async ({
   app,
 }) => {
+  const drawings = () => JSON.parse(readFileSync(join(app.project, ".sniptoss", "annotations", HERO_NOTES), "utf8")).drawings ?? [];
   await app.open();
   await app.page.locator(".stage").click({ position: { x: 5, y: 5 } });
   await app.page.keyboard.press("r");
@@ -255,16 +256,19 @@ test("a click on blank canvas while a new note's composer is still empty drops t
   await app.page.mouse.click(...(await blankSpot(app, box)));
   await expect(composer(app)).toHaveCount(0);
   await expect(draftBadges(app)).toHaveCount(0);
+  await expect.poll(() => drawings().length).toBe(1);
+  expect(heroNotes(app)).toHaveLength(2);
 
   // The same with the Select tool (the rectangle is dragged out on blank space)
   await app.page.keyboard.press("v");
-  await drag(app, at(box, 0.1, 0.5), at(box, 0.3, 0.75));
+  await drag(app, at(box, 0.4, 0.5), at(box, 0.6, 0.75));
   await expect(composer(app)).toBeVisible();
   await app.page.mouse.click(...(await blankSpot(app, box)));
   await expect(composer(app)).toHaveCount(0);
+  await expect.poll(() => drawings().length).toBe(2);
 
-  // With text written a stray click loses nothing
-  await drag(app, at(box, 0.1, 0.5), at(box, 0.3, 0.75));
+  // With text written a stray click loses nothing (drawn clear of the two drawings, or the drag would move one of them)
+  await drag(app, at(box, 0.7, 0.3), at(box, 0.9, 0.45));
   await app.page.locator(".composer-text").fill("这里改圆角");
   await app.page.mouse.click(...(await blankSpot(app, box)));
   await expect(composer(app)).toBeVisible();

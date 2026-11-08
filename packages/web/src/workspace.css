@@ -519,6 +519,19 @@
     box-shadow var(--dur-fast) var(--ease),
     opacity var(--dur-fast) var(--ease);
 }
+/* A drawing has no number (AnnotationLayer, ShownAnnotation.drawing): this stand-in at its start is neither seen nor clicked; the color row
+   and the first-use hint align to it */
+.annot-badge.is-ghost {
+  min-width: 0;
+  width: 4px;
+  height: 4px;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  opacity: 0;
+  transform: scale(var(--inv-zoom, 1)) translate(-50%, -50%);
+  pointer-events: none;
+}
 /* A point: made as a pushpin with its tip exactly on the point */
 .annot-badge.is-pin {
   min-width: var(--h-sm);

@@ -1,4 +1,5 @@
-import { joinPath } from "./paths.js";
+import { frameAt, fpsLabel } from "./frames.js";
+import { joinPath, trimTrailingSeparators } from "./paths.js";
 import { DATA_DIR, MaterialFileError } from "./store.js";
 import {
   MARK_COLOR_NAMES,
@@ -42,12 +43,7 @@ export const isFolder = (m: Material) => m.kind === "folder";
 const folderPath = (m: Material) => (m.path === "." ? "./" : `${m.path}/`);
 /** A folder's name: the folder that holds .sniptoss uses its own name (root is its absolute path) */
 const folderName = (m: Material, root: string) =>
-  m.path === "."
-    ? root
-        .replace(/[\\/]+$/, "")
-        .split(/[\\/]/)
-        .pop() || root
-    : m.path.split("/").pop()!;
+  m.path === "." ? trimTrailingSeparators(root).split(/[\\/]/).pop() || root : m.path.split("/").pop()!;
 /** Folder comments come first (the whole before each file), and the folder that holds .sniptoss comes before all the others */
 function foldersFirst<T extends { material: Material }>(list: T[]): T[] {
   const rank = (m: Material) => (!isFolder(m) ? 2 : m.path === "." ? 0 : 1);
@@ -162,9 +158,38 @@ function describeMaterial(m: Material, t: Translate): string {
   // The duration uses the same format as the times in notes (not "63.2s", which would not match the "minutes:seconds.milliseconds" the
   // intro describes)
   if (m.duration !== undefined) parts.push(formatTime(m.duration));
+  if (m.frame_rate) parts.push(t("ai.material.fps", { fps: fpsLabel(m.frame_rate) }));
   if (m.pages) parts.push(t("ai.material.pages", { count: m.pages.length }));
   return parts.join(" · ");
 }
+
+/**
+ * "00:12.500–00:15.000", followed by the frames when the video has a constant frame rate, "00:12.500–00:15.000 (frames 375–450)"
+ * (frames.ts). Numbers go in as strings, so no locale thousands separators get into them
+ */
+function timeText(time: { start: number; end?: number }, fps: number | undefined, t: Translate): string {
+  const text = time.end !== undefined ? `${formatTime(time.start)}–${formatTime(time.end)}` : formatTime(time.start);
+  if (!fps) return text;
+  const start = String(frameAt(time.start, fps));
+  return time.end !== undefined
+    ? t("ai.anchor.frames", { time: text, start, end: String(frameAt(time.end, fps)) })
+    : t("ai.anchor.frame", { time: text, frame: start });
+}
+
+/**
+ * A note on an earlier version of the item (ADR-0008) gets no frame numbers: the item may have been re-rendered at another frame rate, and
+ * its snapshot is what says where it is
+ */
+const atVersion = (m: Material, earlier: boolean): Material => (earlier && m.frame_rate ? { ...m, frame_rate: undefined } : m);
+
+/** When some time in the text has frame numbers after it, the intro says how frames count (Copy as Text, REVIEW.md) */
+const frameHint = (framed: boolean, t: Translate) => (framed ? [t("ai.frameHint")] : []);
+
+/**
+ * When snapshots also show the user's drawings without notes, the intro says what those unnumbered lines are, so an agent does not take
+ * an arrow for part of the item and try to change it
+ */
+const drawingsHint = (drawn: boolean, t: Translate) => (drawn ? [t("ai.drawingsHint")] : []);
 
 /**
  * "00:12.500–00:15.000 · Region: upper left of the frame (…)" (shown in English; the text follows the chosen language): where it is (page,
@@ -177,7 +202,7 @@ export function describeWhere(a: Annotation, m: Material, t: Translate, bare = f
   const { page, time } = a.anchor;
   const shapes = shapesOf(a);
   if (page !== undefined) parts.push(t("ai.anchor.page", { page: String(page) }));
-  if (time) parts.push(time.end !== undefined ? `${formatTime(time.start)}–${formatTime(time.end)}` : formatTime(time.start));
+  if (time) parts.push(timeText(time, m.frame_rate, t));
   // A note with several places: "2 places: Region …; Point …", and the comment applies to every place (ADR-0009; the intro says so too, see
   // manyHint).
   // When the places have different colors, each is prefixed with its color, "(Yellow) Point …": a color is changed so that the comment can
@@ -209,7 +234,11 @@ function notesBelow(a: Annotation, dataDir: string, t: Translate): string[] {
 }
 
 function renderAnnotation(a: Annotation, m: Material, dataDir: string, t: Translate, earlier: boolean): string {
-  return [`### [${a.id}] ${describeAnchor(a, m, t)}${earlier ? t("ai.earlier") : ""}`, a.body, ...notesBelow(a, dataDir, t)].join("\n");
+  return [
+    `### [${a.id}] ${describeAnchor(a, atVersion(m, earlier), t)}${earlier ? t("ai.earlier") : ""}`,
+    a.body,
+    ...notesBelow(a, dataDir, t),
+  ].join("\n");
 }
 
 /**
@@ -237,6 +266,8 @@ export interface HandoffMaterial {
   items: { annotation: Annotation; index: number; section?: NoteSection }[];
   /** The item file cannot be found now (the group of missing items in the UI) */
   missing?: boolean;
+  /** The snapshots of these notes show drawings without notes (unnumbered lines and boxes, from 1.3.0): the intro says what they are */
+  drawings?: boolean;
 }
 
 export interface HandoffOptions {
@@ -256,11 +287,7 @@ function categoryHint(used: AnnotationCategory[], t: Translate): string[] {
 }
 
 /** The name of the project folder (notes folder): the last path segment; for a drive root, the drive letter */
-const projectName = (root: string) =>
-  root
-    .replace(/[\\/]+$/, "")
-    .split(/[\\/]/)
-    .pop() || root;
+const projectName = (root: string) => trimTrailingSeparators(root).split(/[\\/]/).pop() || root;
 
 /**
  * The text that Copy as Text puts on the clipboard: the notes themselves are written into it, so pasting it into any agent's conversation
@@ -311,9 +338,21 @@ export function renderHandoff(list: HandoffMaterial[], t: Translate, options: Ha
   const shots = items.filter((i) => i.annotation.snapshot).length;
   const shotHint = shots === 0 ? "" : shots === total ? t("ai.handoff.shotsAll", { count: total }) : t("ai.handoff.shotsSome");
   out.push(t("ai.handoff.hints", { shots: shotHint, position: t("ai.positionHint") }).trim());
+  out.push(
+    ...frameHint(
+      groups.some(
+        (g) => g.material.frame_rate && g.items.some((x) => x.annotation.anchor.time && sectionOf(x.annotation, x.section) !== "earlier"),
+      ),
+      t,
+    ),
+    ...drawingsHint(
+      groups.some((g) => g.drawings && g.items.some((x) => x.annotation.snapshot)),
+      t,
+    ),
+  );
 
   // Where the project folders are: one gets a single sentence; several are listed, and each file also says which project it belongs to
-  const roots = [...new Set(groups.map((g) => g.root.replace(/[\\/]+$/, "")))];
+  const roots = [...new Set(groups.map((g) => trimTrailingSeparators(g.root)))];
   const several = roots.length > 1;
   if (several) out.push(t("ai.handoff.roots"), ...roots.map((r) => t("ai.handoff.rootLine", { name: projectName(r), path: r })));
   else out.push(t("ai.handoff.oneRoot", { name: projectName(roots[0]), path: roots[0] }));
@@ -351,7 +390,7 @@ export function renderHandoff(list: HandoffMaterial[], t: Translate, options: Ha
       last = s;
       const status = a.status === "resolved" ? t("ai.status.resolved") : a.status === "wontfix" ? t("ai.status.wontfix") : "";
       out.push(
-        `${index}.${status} ${describeAnchor(a, m, t, (s === "overall" || s === "timed") && !isFolder(m))}`,
+        `${index}.${status} ${describeAnchor(a, atVersion(m, s === "earlier"), t, (s === "overall" || s === "timed") && !isFolder(m))}`,
         a.body,
         ...notesBelow(a, DATA_DIR, t),
         "",
@@ -392,12 +431,16 @@ export interface ReviewOptions {
  * this notes folder recorded (t, see reviewLanguage)
  */
 export function renderReview(
-  files: { material: Material; annotations: Annotation[] }[],
+  files: { material: Material; annotations: Annotation[]; drawings?: readonly unknown[] }[],
   t: Translate,
   options: ReviewOptions = {},
 ): string {
   const group = (pick: (a: Annotation) => boolean) =>
-    foldersFirst(files.map((f) => ({ material: f.material, list: f.annotations.filter(pick) })).filter((g) => g.list.length > 0));
+    foldersFirst(
+      files
+        .map((f) => ({ material: f.material, list: f.annotations.filter(pick), drawn: !!f.drawings?.length }))
+        .filter((g) => g.list.length > 0),
+    );
   const open = group((a) => a.status === "open");
   const total = open.reduce((n, g) => n + g.list.length, 0);
   const title = (m: Material) => (isFolder(m) ? folderPath(m) : m.path);
@@ -428,6 +471,17 @@ export function renderReview(
         t,
       ),
       t("ai.review.paths", { position: t("ai.positionHint") }),
+      ...frameHint(
+        open.some((g) => {
+          const earlier = new Set(options.earlier?.[g.material.path] ?? []);
+          return g.material.frame_rate && g.list.some((a) => a.anchor.time && !earlier.has(a.id));
+        }),
+        t,
+      ),
+      ...drawingsHint(
+        open.some((g) => g.drawn && g.list.some((a) => a.snapshot)),
+        t,
+      ),
       "",
     );
     for (const g of open) {

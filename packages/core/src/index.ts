@@ -2,6 +2,7 @@ export * from "./types.js";
 export * from "./store.js";
 export * from "./review.js";
 export * from "./paths.js";
+export * from "./frames.js";
 export * from "./geometry.js";
 export * from "./merge.js";
 export * from "./locale.js";

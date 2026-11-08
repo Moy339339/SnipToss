@@ -4,7 +4,7 @@
 
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test, type App } from "./harness";
+import { escapeRegExp, expect, test, type App } from "./harness";
 import { IS_BETA, VERSION_LABEL } from "./mock-host";
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -441,7 +441,7 @@ test("The version tag reads the version (\"v1.1.0 Beta N\" for a beta, \"v1.1.0\
   await app.open();
   const tag = app.page.locator(".app-version");
   await expect(tag).toHaveText(VERSION_LABEL);
-  const label = VERSION_LABEL.replace(/\./g, "\\.");
+  const label = escapeRegExp(VERSION_LABEL);
   const title = `^超级批注 ${label}${IS_BETA ? "（测试版）" : ""}\\n发布于 [A-Z][a-z]{2} \\d{1,2}, \\d{4}$`;
   await expect(tag).toHaveAttribute("title", new RegExp(title));
   app.host.appInfoPatch = { version: "1.0.0-beta.1" };
@@ -456,7 +456,7 @@ test("A Mac package's build number (appInfo.build) isn't shown: the About page a
   const tag = app.page.locator(".app-version");
   await expect(tag).toHaveText(VERSION_LABEL);
   await expect(tag).not.toHaveClass(/is-mismatch/);
-  const label = VERSION_LABEL.replace(/\./g, "\\.");
+  const label = escapeRegExp(VERSION_LABEL);
   await expect(tag).toHaveAttribute("title", new RegExp(`^超级批注 ${label}${IS_BETA ? "（测试版）" : ""}\\n发布于 [A-Z][a-z]{2} \\d{1,2}, \\d{4}$`));
   await app.page.keyboard.press("Control+,");
   await app.page.locator(".settings-tab", { hasText: /^关于$/ }).click();

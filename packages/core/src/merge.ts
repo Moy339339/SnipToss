@@ -13,9 +13,10 @@
 //   replies: replies added on either side are kept (de-duplicated by author + time + content)
 //   everything else (comment text, category, position, snapshot…): mine wins, and it is recorded in conflicts
 // Deletion: deleted on one side and untouched on the other → deleted; edited on the other → if I deleted it, it is deleted (an explicit user action),
-// if they deleted it, my edited copy is kept
+// if they deleted it, my edited copy is kept.
+// Drawings without notes (from 1.3.0) are merged the same way, drawing by drawing; when both sides changed the same drawing, mine wins
 
-import type { Annotation, MaterialFile, Reply } from "./types.js";
+import type { Annotation, Drawing, MaterialFile, Reply } from "./types.js";
 
 export interface MergeResult {
   file: MaterialFile;
@@ -71,11 +72,35 @@ export function mergeMaterialFiles(base: MaterialFile | undefined, mine: Materia
       conflicts.push(`file.${key}`);
       return (mine as unknown as Obj)[key];
     },
-    ["annotations"],
+    ["annotations", "drawings"],
   ) as unknown as MaterialFile;
   merged.schema = mine.schema;
   merged.annotations = annotations;
+  const drawings = mergeDrawings(base?.drawings ?? [], mine.drawings ?? [], theirs.drawings ?? [], conflicts);
+  if (drawings.length) merged.drawings = drawings;
   return { file: merged, conflicts };
+}
+
+/** Drawings, one by one: added on either side kept; deleted on one side and untouched on the other deleted; changed on both, mine wins */
+function mergeDrawings(base: Drawing[], mine: Drawing[], theirs: Drawing[], conflicts: string[]): Drawing[] {
+  const baseById = new Map(base.map((d) => [d.id, d]));
+  const theirsById = new Map(theirs.map((d) => [d.id, d]));
+  const mineIds = new Set(mine.map((d) => d.id));
+  const out: Drawing[] = [];
+  for (const m of mine) {
+    const b = baseById.get(m.id);
+    const t = theirsById.get(m.id);
+    if (!b) out.push(m);
+    else if (!t) {
+      if (!same(m, b)) out.push(m);
+    } else if (same(m, b)) out.push(t);
+    else {
+      if (!same(t, b) && !same(m, t)) conflicts.push(`drawing ${m.id}`);
+      out.push(m);
+    }
+  }
+  for (const t of theirs) if (!mineIds.has(t.id) && !baseById.has(t.id)) out.push(t);
+  return out;
 }
 
 function mergeAnnotation(b: Annotation, m: Annotation, t: Annotation, conflicts: string[]): Annotation {

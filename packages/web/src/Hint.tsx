@@ -15,12 +15,13 @@ const CARET_INSET = 16;
 
 /**
  * Which side of the control the hint goes on: the copy button is at the very bottom of the notes panel, so above; timestamped comment is
- * in the toolbar, and Capture in the title bar, so below
+ * in the toolbar, and Capture in the title bar, so below; a drawing's hint goes wherever the canvas leaves room
  */
 const SIDES: Record<HintId, ("below" | "above")[]> = {
   copy: ["above", "below"],
   video: ["below", "above"],
   screenAccess: ["below", "above"],
+  drawing: ["below", "above"],
 };
 
 /**

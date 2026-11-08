@@ -138,6 +138,7 @@ sealed partial class CaptureOverlay
     string TestDown(Point p, int clicks)
     {
         testMouse = p;
+        DismissDrawingHint(); // the window's PreviewMouseDown
         var target = TestTarget(p);
         if (target == surface) Down(Snap(p), clicks);
         else Raise(target, Mouse.MouseDownEvent, MouseButton.Left);
@@ -171,6 +172,7 @@ sealed partial class CaptureOverlay
     void TestRight(Point p)
     {
         testMouse = p;
+        DismissDrawingHint(); // the window's PreviewMouseDown
         if (TestTarget(p) == surface) state.Right();
     }
 
@@ -183,7 +185,8 @@ sealed partial class CaptureOverlay
     {
         var key = Enum.Parse<Key>(a.GetProperty("key").GetString()!, ignoreCase: true);
         var mods = (Flag(a, "ctrl") ? ModifierKeys.Control : 0) | (Flag(a, "shift") ? ModifierKeys.Shift : 0) | (Flag(a, "alt") ? ModifierKeys.Alt : 0);
-        // Same order as the window's PreviewKeyDown: an open color picker takes the keys first, and lets the rest through to its digits box
+        // Same order as the window's PreviewKeyDown: the hint about drawings goes away, an open color picker takes the keys first, and lets the rest through to its digits box
+        DismissDrawingHint();
         if (PickerOpen) return new { handled = PickerKey(key), by = "picker" };
         var handled = state.Press(key, mods);
         if (!handled)
@@ -280,6 +283,8 @@ sealed partial class CaptureOverlay
                 return new { id = AutomationProperties.GetAutomationId(e), name = AutomationProperties.GetName(e), on = t.on?.Invoke(), enabled = t.button is null ? null : (bool?)(t.enabled?.Invoke() != false) };
             }).ToList(),
             warn = warn is { Visibility: Visibility.Visible } w ? new { text = (w.Child as TextBlock)?.Text, box = Shown(w) } : null,
+            // The one-time hint next to the first mark left as a drawing
+            drawingHint = drawingHint is { } h ? new { text = (h.Child as TextBlock)?.Text, box = Shown(h) } : null,
         };
     }
 
