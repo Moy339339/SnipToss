@@ -16,6 +16,10 @@ The annotation data format has its own version (`"schema": "sniptoss/5"`); its h
 - Screen Capture: clicking a mark opens its colors right next to it, with Delete at the end. Ellipses can stay as drawings too.
 - Windows: when the window stops responding for 3 seconds, the log records whether the app was busy or waiting, where it was stuck and, once it recovers, for how long. A freeze can be reported with **Help → Export Diagnostics Package…**; the record holds function and module names only, nothing from your notes or files. It costs next to nothing while the app runs normally.
 
+### Fixed
+
+- Windows: when the interface's browser process quit while SnipToss was waiting in the tray, the window came back hidden behind an error window instead of showing the notice page with **Restart**. It now shows the notice page.
+
 ## [1.2.3] — 2026-11-03
 
 ### Changed
