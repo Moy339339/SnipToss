@@ -10,7 +10,7 @@
 
 **[下载超级批注 Windows 版](https://github.com/Moy339339/SnipToss/releases/latest)** · 64 位 Windows 11 · **[下载超级批注 Mac 版](https://github.com/Moy339339/SnipToss/releases/latest)** · macOS 14 及以上 · [安装说明](#安装)
 
-> **1.2 新功能：超级批注 Mac 版。** 和 Windows 版是同一个程序，支持 macOS 14 及以上（Apple 芯片和 Intel），截图批注也有。批注在两种系统上是同样的文件，同一个项目在哪边都能批注。[更新说明](https://github.com/Moy339339/SnipToss/releases/tag/v1.2.0) · [更新日志](CHANGELOG.md)
+> **1.3 新功能：帧号、播放条上的批注编号、涂鸦。** 视频可以逐帧批注，每条批注的编号标在播放条上，画了不写字的标记留作涂鸦。[看新功能](#13-新功能) · [更新说明](https://github.com/Moy339339/SnipToss/releases/latest) · [更新日志](CHANGELOG.md)
 
 超级批注是 Windows 和 Mac 上的桌面程序，用来审阅 Claude Code、Codex 等生成的素材：用图钉、矩形、画笔或箭头标出要改的位置，写下修改要求，
 批注的**内容、位置、时间点**和**标出位置的截图**都以普通文件保存在素材所在项目的 `.sniptoss/` 文件夹中。能读本机文件的 AI agent 直接从那里读取，按意见修改素材。
@@ -46,22 +46,24 @@
 - **11 种界面语言**：简体中文、繁體中文、English、日本語、한국어、Français、Deutsch、Español、Italiano、Português (Brasil)、Русский，默认跟随 Windows 显示语言。
 - **隐私**：不收集数据、不需要账号。唯一的联网是检查更新（每天最多向 GitHub 查询一次版本号，可在设置 → 常规中关闭）。批注只留在你的电脑上。
 
-## 1.1 新功能
+## 1.3 新功能
 
-![超级批注 Windows 版 1.1：黑白两色与取色面板、单独删除一处标记、批注框可以拖开、截图批注同样支持。](docs/images/whatsnew-1.1.zh-CN.png)
+![超级批注桌面版 1.3：帧号与时间码、播放条上的批注编号、不写字的标记留作涂鸦、截图批注同样支持。](docs/images/whatsnew-1.3.zh-CN.png)
 
 <details>
 <summary>逐个看动图</summary>
 
-![动图：在示例咖啡首页上，一处标记变成黑色，一处变成白色（编号改用深色字），箭头用取色面板换成自定义颜色，这个颜色随后出现在「最近使用」里。](docs/images/whatsnew-1.1-colors.zh-CN.webp)
+![动图：在示例视频上，单击播放条上的时间，从秒切到时间码再切到帧号；按方向键前进一帧，在这一帧写的意见显示帧号。](docs/images/whatsnew-1.3-frames.zh-CN.webp)
 
-![动图：在示例爵士海报上，一条批注标了两处；从颜色条上删掉其中一处，批注还在；按 Ctrl+Z 找回。](docs/images/whatsnew-1.1-delete.zh-CN.webp)
+![动图：示例视频的播放条上，每条批注都有一个编号；单击编号跳到那条批注，单击合并成一叠的三条会列出其中的批注。](docs/images/whatsnew-1.3-badges.zh-CN.webp)
 
-![动图：批注框挡住了刚标的按钮旁边的链接；按住标题行把它拖开，再把链接标成同一条批注的第二处。](docs/images/whatsnew-1.1-movebox.zh-CN.webp)
+![动图：在示例咖啡首页上，画了箭头和一圈画笔都没写字，它们留作涂鸦；给圆圈换了颜色，双击箭头补写批注后它有了编号。](docs/images/whatsnew-1.3-drawings.zh-CN.webp)
 
-![动图：截图批注盖在一个网页上：用取色面板给箭头选了自定义颜色，把批注框拖开，选中一处标记用工具条的「删除」删掉，再找回。](docs/images/whatsnew-1.1-capture-toolbar.zh-CN.webp)
+![动图：截图批注盖在一个网页上：箭头和椭圆留作涂鸦；单击椭圆，颜色和删除贴着它弹出；双击箭头给它写批注。](docs/images/whatsnew-1.3-capture-drawings.zh-CN.webp)
 
 </details>
+
+超级批注 Mac 版从 1.2 起提供：和 Windows 版是同一个程序，支持 macOS 14 及以上（Apple 芯片和 Intel），截图批注也有。批注在两种系统上是同样的文件，同一个项目在哪边都能批注。
 
 ## 安装
 

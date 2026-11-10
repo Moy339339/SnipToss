@@ -145,12 +145,14 @@ final class NotesInteropTests: SnipTestCase {
         writeText(fileText(["k3f9a2", "done01"]), to: full)
         let each = 60
 
-        // Two command-line processes, each writing back `each` replies through the same path an agent's write-back takes
+        // Two command-line processes, each writing back `each` replies through the same path an agent's write-back takes: one from the
+        // start, the other started when the shell is halfway through its own
         var children: [Child] = []
-        for tag in ["n0", "n1"] {
+        func start(_ tag: String) throws {
             children.append(
                 try Child(node: tools.node, arguments: [writer, home, "k3f9a2", tag, String(each)], logPath: logs + "/" + tag + ".log"))
         }
+        try start("n0")
         defer { for child in children { child.stop() } }
 
         // Wait until the command line has really started writing, so the shell does not finish before Node is up
@@ -162,9 +164,12 @@ final class NotesInteropTests: SnipTestCase {
         var refused = 0
         var theirs = 0
         for k in 0..<each {
+            // The first process can be done with all its replies before the shell gets its first write in. The second one starts in
+            // the middle of the shell's writes, so its replies land among them however the first went
+            if k == each / 2 { try start("n1") }
             refused += try writeReply(full, noteId: "k3f9a2", body: "sw-\(k)")
             guard k % 10 == 9 else { continue }
-            let until = Date().addingTimeInterval(5)
+            let until = Date().addingTimeInterval(20)
             while children.contains(where: { $0.process.isRunning }) && Date() < until {
                 let count = ((try? replies(in: AtomicFile.readAllText(full), noteId: "k3f9a2")) ?? []).filter { $0.hasPrefix("n") }.count
                 if count > theirs {

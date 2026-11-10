@@ -45,6 +45,11 @@ export const NOTES = {
     sameStyle: "Give these two the same button style.",
     label: "Brighten the record label a little.",
     arm: "Tone down the glare on the tonearm.",
+    // The 1.3 scenes (scripts/readme-shots/whatsnew13.mjs)
+    flicker: "One frame flickers here.",
+    cut: "Cut two frames earlier.",
+    grade: "Warm up the color in this shot.",
+    logo: "Hold the logo half a second longer.",
   },
   "zh-CN": {
     title: "标题字太细，压在背景上看不清，改成粗体。",
@@ -62,6 +67,10 @@ export const NOTES = {
     sameStyle: "这两个改成同样的按钮样式。",
     label: "唱片标签再提亮一点。",
     arm: "唱臂上的反光压暗一些。",
+    flicker: "这一帧闪了一下。",
+    cut: "这里早两帧切。",
+    grade: "这个镜头的颜色调暖一点。",
+    logo: "标志多停半秒。",
   },
 };
 

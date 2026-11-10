@@ -5,6 +5,7 @@
 //   pwsh -File scripts/build-app.ps1 -Out tests/shell/.app -TestHooks     the shell-test build (its test hooks draw the capture overlay to PNG; it looks the same as the installed app)
 //   node scripts/readme-shots.mjs [SnipToss.exe] [--only hero,marking,stills,video,capture,languages] [--locales en,zh-CN] [--work <folder>]
 //   node scripts/readme-shots.mjs --only colors,delete,movebox,capture-toolbar,colors-still --work <folder>     the 1.1 what's-new pictures (not part of the default run)
+//   node scripts/readme-shots.mjs --only frames,badges,drawings,capture-drawings --work <folder>                 the 1.3 what's-new pictures (readme-shots/whatsnew13.mjs)
 //
 // README scenes (the default run): hero = the main window with the second sample (a poster) at 2×; marking = animation frames of the four tools and one note on several places;
 // stills = the main window at 2×, REVIEW.md, the images "Copy as Images" makes; video = animation frames of a note on a moment and another on a mark;
@@ -21,6 +22,7 @@ import { join } from "node:path";
 import { ROOT, PROJECTS } from "./readme-shots/common.mjs";
 import { capture, hero, languages, marking, prepareProject, stills, video } from "./readme-shots/scenes.mjs";
 import { captureToolbar, colors, colorsStill, deletePlace, movebox } from "./readme-shots/whatsnew.mjs";
+import { badges, captureDrawings, drawings, frames } from "./readme-shots/whatsnew13.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name) => {
@@ -53,6 +55,10 @@ try {
     movebox,
     "capture-toolbar": captureToolbar,
     "colors-still": colorsStill,
+    frames,
+    badges,
+    drawings,
+    "capture-drawings": captureDrawings,
   };
   for (const name of only) {
     if (name === "languages") await languages(ctx);

@@ -10,7 +10,7 @@ Annotate the images and videos your coding agent made — then hand the notes st
 
 **[Download SnipToss for Windows](https://github.com/Moy339339/SnipToss/releases/latest)** · 64-bit Windows 11 · **[Download SnipToss for Mac](https://github.com/Moy339339/SnipToss/releases/latest)** · macOS 14 or later · [Install notes](#install)
 
-> **New in 1.2: SnipToss for Mac.** The same app on macOS 14 or later (Apple silicon and Intel), screen capture included. Notes are the same files on both systems, so a project can be reviewed on either one. [Release notes](https://github.com/Moy339339/SnipToss/releases/tag/v1.2.0) · [Changelog](CHANGELOG.md)
+> **New in 1.3: frame numbers, note numbers on the playback bar, and drawings.** Videos can be reviewed frame by frame, each note's number stands on the playback bar, and a mark left without a word stays as a drawing. [See what's new](#whats-new-in-13) · [Release notes](https://github.com/Moy339339/SnipToss/releases/latest) · [Changelog](CHANGELOG.md)
 
 SnipToss is a desktop app for Windows and Mac for reviewing AI-generated assets. Mark what needs to change with a pin, rectangle, pen or arrow, write the change you want, and SnipToss saves the note — its text, position, time and a cropped snapshot — as plain files in the project's `.sniptoss/` folder. Claude Code, Codex and other agents that can read local files pick the notes up from there and fix the assets.
 
@@ -45,22 +45,24 @@ Web pages, PDF and slides are planned.
 - **11 languages**: English, 简体中文, 繁體中文, 日本語, 한국어, Français, Deutsch, Español, Italiano, Português (Brasil), Русский. Follows the Windows display language by default.
 - **Private**: no telemetry, no account. The only network request is the update check (it asks GitHub for the latest version once a day; you can turn it off in Settings → General). Notes stay on your computer.
 
-## What's new in 1.1
+## What's new in 1.3
 
-![SnipToss for Windows 1.1: black, white and a color picker; deleting one place of a note; dragging the note box aside; the same tools in screen capture.](docs/images/whatsnew-1.1.png)
+![SnipToss Desktop 1.3: frame numbers and timecode; note numbers on the playback bar; marks without a note stay as drawings; drawings in screen capture.](docs/images/whatsnew-1.3.png)
 
 <details>
 <summary>See each one in action</summary>
 
-![Animation: on a sample coffee landing page, one mark turns black, another white with a dark number, and an arrow gets a custom color from the color picker, which then shows up among the recent colors.](docs/images/whatsnew-1.1-colors.webp)
+![Animation: on a sample video, a click on the time in the playback bar switches from seconds to timecode to frame numbers; the arrow key steps one frame, and a comment on that frame shows the frame number.](docs/images/whatsnew-1.3-frames.webp)
 
-![Animation: on a sample jazz poster, a note marks two places; one of them is deleted from its color bar while the note stays, then Ctrl+Z brings it back.](docs/images/whatsnew-1.1-delete.webp)
+![Animation: the playback bar of a sample video with a number for each note; a click on a number goes to its note, and a click on a stack of three lists the notes in it.](docs/images/whatsnew-1.3-badges.webp)
 
-![Animation: the note box covers a link next to the button just marked; it is dragged aside by its title row, and the link is marked as a second place of the same note.](docs/images/whatsnew-1.1-movebox.webp)
+![Animation: on a sample coffee landing page, an arrow and a pen circle are left without a note and stay as drawings; the circle's color is changed, and a double-click on the arrow writes a note for it, which gives it a number.](docs/images/whatsnew-1.3-drawings.webp)
 
-![Animation: the screen-capture overlay over a web page: a custom color is picked for an arrow, the note box is dragged aside, and a selected mark is deleted with the toolbar's Delete button and brought back.](docs/images/whatsnew-1.1-capture-toolbar.webp)
+![Animation: the screen-capture overlay over a web page: an arrow and an ellipse stay as drawings; a click on the ellipse opens its colors and Delete right next to it, and a double-click on the arrow writes its note.](docs/images/whatsnew-1.3-capture-drawings.webp)
 
 </details>
+
+SnipToss for Mac arrived in 1.2: the same app on macOS 14 or later (Apple silicon and Intel), screen capture included. Notes are the same files on both systems, so a project can be reviewed on either one.
 
 ## Install
 
