@@ -142,7 +142,7 @@ test("only shortcuts are shown on the right of menu items, with explanations in 
   const top = app.page.getByRole("menuitemcheckbox", { name: "窗口置顶" });
   await expect(top).toBeVisible();
   await expect(top.locator(".menu-hint")).toHaveCount(0);
-  await expect(top).toHaveAttribute("title", /并排/);
+  await expect(top).toHaveAttribute("title", "始终显示在其他窗口之上");
   await app.page.keyboard.press("Escape");
   await app.page.keyboard.press("Alt+v");
   await expect(menuItem(app, /^放大/).locator(".menu-hint")).toHaveText("Ctrl +");
@@ -216,12 +216,12 @@ test("an item that can't be opened: the five zoom entries in View are disabled; 
   writeFileSync(join(app.project, "video", "broken.mp4"), "不是视频");
   await app.open();
   await row(app, "broken.png").click();
-  await expect(app.page.getByRole("alert")).toContainText("无法打开这张图片");
+  await expect(app.page.getByRole("alert")).toContainText("无法打开此图片");
   await openMenu(app, "视图");
   for (const name of ["适合窗口", "铺满窗口", "原始大小（100%）", "放大", "缩小"]) await expect(menuItem(app, name)).toBeDisabled();
   await app.page.keyboard.press("Escape");
   await row(app, "broken.mp4").click();
-  await expect(app.page.getByRole("alert")).toContainText("无法播放这个视频");
+  await expect(app.page.getByRole("alert")).toContainText("无法播放此视频");
   await openMenu(app, "播放");
   for (const name of ["播放/暂停", "后退 5 秒", "前进 5 秒", "上一帧", "下一帧", "转到开头", "转到结尾", "减速", "加速"])
     await expect(menuItem(app, name)).toBeDisabled();
@@ -377,12 +377,12 @@ test("Loop: Ctrl+L toggles it even on an image with no video open (same as the m
   await expect(app.page).toHaveTitle("hero.png");
   await focusStage(app);
   await app.page.keyboard.press("Control+l");
-  await expect(toast(app)).toContainText("循环播放：开");
+  await expect(toast(app)).toContainText("已开启循环播放");
   await expect.poll(() => app.host.prefs?.loop).toBe(true);
   await openMenu(app, "播放");
   await expect(app.page.getByRole("menuitemcheckbox", { name: "循环播放" })).toHaveAttribute("aria-checked", "true");
   await app.page.getByRole("menuitemcheckbox", { name: "循环播放" }).click();
-  await expect(toast(app)).toContainText("循环播放：关");
+  await expect(toast(app)).toContainText("已关闭循环播放");
   await expect.poll(() => app.host.prefs?.loop).toBeFalsy();
   // On a video, Mute is a toggle with a check mark
   await row(app, "clip.mp4").click();

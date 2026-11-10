@@ -264,7 +264,7 @@ test("multi-place note: right-clicking one place and picking its mark color chan
   twoPlaces(app);
   await app.open();
   await placeBadge(app, "mp0001", 1).click({ button: "right" });
-  await expect(app.page.getByRole("group", { name: "这处标记的颜色" })).toBeVisible();
+  await expect(app.page.getByRole("group", { name: "此处标记的颜色" })).toBeVisible();
   await expect(app.page.getByRole("group", { name: "颜色", exact: true })).toHaveCount(0);
   await expect(swatch(app, "橙色（默认）")).toHaveAttribute("aria-checked", "true");
   // Number keys change the place picked with a left click; this right-click row shows no number keys
@@ -331,7 +331,7 @@ test("with the composer open, right-clicking one place and picking its mark colo
   await expect(drafts).toHaveCount(2);
   const pin = (await drafts.nth(1).boundingBox())!;
   await app.page.mouse.click(pin.x + pin.width / 2, pin.y + pin.height / 2, { button: "right" });
-  await expect(app.page.getByRole("group", { name: "这处标记的颜色" })).toBeVisible();
+  await expect(app.page.getByRole("group", { name: "此处标记的颜色" })).toBeVisible();
   await swatch(app, "黄色").click();
   await expect.poll(() => bg(drafts.nth(1))).toBe(YELLOW);
   await expect.poll(() => bg(drafts.nth(0))).toBe(ORANGE);
@@ -378,9 +378,9 @@ test("clicking a mark on the canvas rings its number in blue and pops up a color
   await expect(colorBar(app)).toHaveCount(0);
   await expect(badge(app, "pt0001")).not.toHaveClass(/is-picked/);
 
-  // Multi-place note: only the clicked place changes; screen readers announce "这处标记的颜色" (the mark color of this place)
+  // Multi-place note: only the clicked place changes; screen readers announce "此处标记的颜色" (the mark color of this place)
   await placeBadge(app, "mp0001", 1).click();
-  await expect(app.page.getByRole("radiogroup", { name: "这处标记的颜色" })).toBeVisible();
+  await expect(app.page.getByRole("radiogroup", { name: "此处标记的颜色" })).toBeVisible();
   await barSwatch(app, "黄色").click();
   await expect.poll(() => places(app, "mp0001").anchor.shapes!.map((s) => s.color)).toEqual(["#ff6a3d", "#ffc233"]);
   // Clicking elsewhere (the notes panel) closes it
@@ -459,7 +459,7 @@ test("with the composer open, clicking the places being drawn opens the color ba
   // With the Pin tool, clicking the second place picks it instead of dropping another pin
   const second = (await drafts.nth(1).boundingBox())!;
   await app.page.mouse.click(second.x + second.width / 2, second.y + second.height / 2);
-  await expect(app.page.getByRole("radiogroup", { name: "这处标记的颜色" })).toBeVisible();
+  await expect(app.page.getByRole("radiogroup", { name: "此处标记的颜色" })).toBeVisible();
   await expect(drafts).toHaveCount(2);
   await expect(drafts.nth(1)).toHaveClass(/is-picked/);
   await barSwatch(app, "黄色").click();

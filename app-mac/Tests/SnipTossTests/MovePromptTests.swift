@@ -44,9 +44,9 @@ final class MovePromptTests: SnipTestCase {
         guard let formatter, FileManager.default.fileExists(atPath: formatter) else { throw XCTSkip("the shell's resources are not built") }
         _ = ShellLocale.use(pref: "zh-CN", system: "en-US")
         let texts = MovePrompt.texts(for: .translocated)
-        XCTAssertEqual(texts.title, "请把超级批注移到「应用程序」文件夹")
+        XCTAssertEqual(texts.title, "请将超级批注移到「应用程序」文件夹")
         XCTAssertEqual(texts.body.components(separatedBy: "\n\n").count, 2, texts.body)
-        XCTAssertEqual(texts.buttons, ["退出并打开「应用程序」", "这次仍从这里打开"])
+        XCTAssertEqual(texts.buttons, ["退出并打开「应用程序」", "本次仍从当前位置打开"])
     }
 
     /// The title and the body are as high as their text needs at the width they end up with: no empty line under a title that fits one

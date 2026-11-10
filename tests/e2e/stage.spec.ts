@@ -725,12 +725,12 @@ test("loop: Ctrl+L, the play bar button and the Playback menu all toggle it, fla
   await focusStage(app);
   await app.page.keyboard.press("Control+l");
   await expect(loopBtn(app)).toHaveAttribute("aria-pressed", "true");
-  await expect(hud(app)).toHaveText("循环播放：开");
+  await expect(hud(app)).toHaveText("已开启循环播放");
   await expect.poll(() => app.host.prefs?.loop).toBe(true);
   expect((await video(app)).loop).toBe(true);
   await press(app, loopBtn(app));
   await expect(loopBtn(app)).toHaveAttribute("aria-pressed", "false");
-  await expect(hud(app)).toHaveText("循环播放：关");
+  await expect(hud(app)).toHaveText("已关闭循环播放");
   // Back to the default: no longer written to the settings file (only changed items are stored, see storedPrefs in prefs.ts)
   await expect.poll(() => app.host.prefs?.loop).toBeUndefined();
   await topMenu(app, "播放");
@@ -878,8 +878,8 @@ test("numbers too close to tell apart on the play bar merge into a stack: hoveri
   const stack = app.page.locator(".track-stack");
   await expect(stack).toHaveCount(1);
   await expect(stack).toHaveText("3");
-  await expect(stack).toHaveAttribute("aria-label", "这里有 3 条批注");
-  await expect(stack).toHaveAttribute("data-tip", /^这里有 3 条批注\n1 · 修改 · 00:00\.300  第一处\n2 · 删除 · 00:00\.320–00:00\.600  第二处\n3 · 修改 · 00:00\.340  第三处$/);
+  await expect(stack).toHaveAttribute("aria-label", "此处有 3 条批注");
+  await expect(stack).toHaveAttribute("data-tip", /^此处有 3 条批注\n1 · 修改 · 00:00\.300  第一处\n2 · 删除 · 00:00\.320–00:00\.600  第二处\n3 · 修改 · 00:00\.340  第三处$/);
 
   await stack.click();
   const items = app.page.locator(".menu [role=menuitem]");
@@ -1024,7 +1024,7 @@ test("an item that can't be opened: Show in File Explorer on the canvas locates 
   await app.open();
   await open(app, "broken.png");
   const alert = app.page.getByRole("alert");
-  await expect(alert).toContainText("无法打开这张图片");
+  await expect(alert).toContainText("无法打开此图片");
   await alert.getByRole("button", { name: "在资源管理器中显示" }).click();
   await expect
     .poll(() => app.host.calls.some((c) => c.method === "reveal" && JSON.stringify(c.params).includes("broken.png")))

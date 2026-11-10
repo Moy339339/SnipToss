@@ -89,7 +89,7 @@ test("a setting change that wasn't saved (the shell can't write the settings fil
   app.host.failMethods.add("setPrefs");
   await openSettings(app, "批注");
   await setRow(app, "循环播放视频").getByRole("switch").click();
-  await expect(toast(app)).toContainText("设置未能保存，下次更改设置时将重试");
+  await expect(toast(app)).toContainText("设置未能保存");
   // Changing another item still fails to save: the same toast, without queueing up a pile of them
   await setRow(app, "在画面上显示已处理的批注").getByRole("switch").click();
   await expect(toast(app)).toHaveCount(1);
@@ -611,7 +611,7 @@ test("capture shortcut: shows the current keys; an unset shortcut reads Not set;
   app.host.capture.hotkeyError = null;
   await openSettings(app, "截图批注");
   await expect(keyRow.locator(".hotkey-input")).toHaveText("未设置");
-  await expect(keyRow).toContainText("全局快捷键，在任何程序中均可使用");
+  await expect(keyRow).toContainText("在任何程序中都可用");
 });
 
 test("recording the capture shortcut: the old one is paused while recording and restored afterwards; the title bar tooltip and the menu follow the new one; Esc only cancels recording and Backspace clears it", async ({ app }) => {
@@ -760,7 +760,7 @@ test("portable build: the two switches that write to the registry (start at logi
 test("Shortcuts page: shows the same groups as the ones you get by pressing ?", async ({ app }) => {
   await app.open();
   await openSettings(app, "快捷键");
-  await expect(app.page.locator(".settings-body .set-heading")).toContainText("也可按 ? 查看此列表。截图批注的快捷键可在「截图批注」中更改");
+  await expect(app.page.locator(".settings-body .set-heading")).toContainText("按 ? 也可查看此列表。截图快捷键在「截图批注」中更改");
   const inSettings = await app.page.locator(".keys-grid .section-label").allInnerTexts();
   expect(inSettings.length).toBeGreaterThanOrEqual(6);
   await app.page.keyboard.press("Escape");
@@ -802,7 +802,7 @@ test("About page: version, author, license, homepage, runtime and issue reportin
   await expect(body.locator(".set-desc").first()).toHaveText(/^发布于 [A-Z][a-z]{2} \d{1,2}, \d{4}$/);
   await expect(body.locator(".text-danger")).toHaveCount(0);
   await expect(setRow(app, "作者")).toContainText("MoyGoldenAge");
-  await expect(setRow(app, "许可证")).toContainText("MIT 许可证，开源");
+  await expect(setRow(app, "许可证")).toContainText("MIT 开源许可证");
   await expect(setRow(app, "运行环境")).toContainText(".NET e2e · WebView2 e2e");
   await setRow(app, "许可证").getByRole("button", { name: "查看" }).click();
   await setRow(app, "主页").getByRole("button", { name: "打开" }).click();
@@ -841,7 +841,7 @@ test("About page: third-party notices can be read inside the app and are only lo
   await setRow(app, "第三方声明").getByRole("button", { name: "查看" }).click();
   const sheet = app.page.getByRole("dialog", { name: "第三方声明" });
   // The intro and the header follow the UI language; each component has a row, and the license text starts collapsed
-  await expect(sheet.locator(".notices-intro")).toContainText("许可证以英文原文为准");
+  await expect(sheet.locator(".notices-intro")).toContainText("许可证为英文原文");
   await expect(sheet.locator(".notices-head")).toHaveText("组件版本许可证");
   await expect(sheet.locator(".notice-name")).toContainText([
     ".NET Runtime",
@@ -900,7 +900,7 @@ test("third-party notices follow the UI language: the intro and header use the c
   await app.page.locator(".settings-tab", { hasText: /^Info$/ }).click();
   await setRow(app, "Hinweise zu Drittanbietern").getByRole("button", { name: "Anzeigen" }).click();
   const sheet = app.page.getByRole("dialog", { name: "Hinweise zu Drittanbietern" });
-  await expect(sheet.locator(".notices-intro")).toContainText("Maßgeblich ist der englische Originaltext");
+  await expect(sheet.locator(".notices-intro")).toContainText("im englischen Original");
   await expect(sheet.locator(".notices-head")).toHaveText("KomponenteVersionLizenz");
   await sheet.getByRole("button", { name: /^react 19\.\S+ MIT$/ }).click();
   await expect(sheet.locator(".notice-source")).toContainText("Quelle");

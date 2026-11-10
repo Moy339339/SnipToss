@@ -279,6 +279,14 @@ The Chinese copy doesn't address the user directly (no second-person pronoun); E
 **W5 For a global audience**: the software faces users all over the world, so its text must work in every country. Products that are popular or usable only in some countries or regions are not named (WeChat, QQ, ChatGPT…);
 use generic terms: “chat apps”, “web-based AI”, “AI tools” (in Chinese 聊天软件, 网页版 AI). Only Claude Code and Codex, which this product integrates with specifically, are named.
 Examples, defaults and the reasons given in descriptions likewise shouldn't assume the habits of one region.
+**W6 Length**: say a thing once, in the place it is needed. A tooltip gives the control's name, its shortcut and at most one clause on what it does; it doesn't explain how the feature works, who it is for,
+or what other keys do nearby. The description under a setting is one sentence, two when there is a consequence the user has to know; it doesn't restate the label or list other ways to reach the same thing.
+A Keyboard Shortcuts row names the action; an aside in parentheses is for another key that does the same, or for one limit. What the welcome page, the tour or a first-use hint already teaches is not repeated in tooltips.
+Words that add nothing go (“for convenience”, “simply”, “as well as”, “if needed” and their counterparts in each language), and there are no parentheses inside parentheses.
+
+**W7 Native wording**: every language is written the way software in that language is written, not carried over word for word from the source. Ask what Windows, macOS or a well-made native app prints in that spot.
+Patterns that are fine in one language and a calque in another are decided per language: “This image” on a tab is natural in English and Japanese, while Chinese, German, French, Spanish, Italian, Portuguese and Korean say “current image” and Russian uses the bare noun;
+“Click to …”, “Drag to …”, “Loop: on” and “… will be deleted” each have their own form too. Terms follow Microsoft's terminology for the language, and Apple's on the strings shown only on macOS. A text that is embedded in a sentence in one place and shown to an AI agent in another gets two messages (`app.kind.this` and `ai.kind.this`).
 
 | Colloquial (no longer used) | Professional |
 |---|---|

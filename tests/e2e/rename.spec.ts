@@ -28,13 +28,13 @@ test("opening a project from before the rename moves .pizhu to .sniptoss, shows 
   expect(existsSync(join(app.project, ".pizhu"))).toBe(false);
 });
 
-test("first launch after upgrading: a notice says the technical name is now SnipToss and the old notes folder is renamed automatically; it only closes on OK", async ({ app }) => {
+test("first launch after upgrading: a notice says notes folders are now named .sniptoss and old ones are renamed automatically; it only closes on OK", async ({ app }) => {
   app.host.renamedFromPizhu = true;
   await app.open();
   const toast = app.page.locator(".toast");
-  await expect(toast).toContainText("SnipToss");
-  await expect(toast).toContainText("旧的批注文件夹会自动重命名为 .sniptoss");
-  await expect(toast).toContainText("批注内容完整保留");
+  await expect(toast).toContainText("批注文件夹已改名为 .sniptoss");
+  await expect(toast).toContainText("打开项目时自动改名");
+  await expect(toast).toContainText("批注完整保留");
   await toast.getByRole("button", { name: "知道了" }).click();
   await expect(toast).toHaveCount(0);
 });

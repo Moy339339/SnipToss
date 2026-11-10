@@ -343,7 +343,7 @@ test("an image that can't be opened can still take an overall comment (no size i
   writeFileSync(broken, "不是图片");
   await app.open();
   await open(app, "broken.png");
-  await expect(app.page.getByRole("alert")).toContainText("无法打开这张图片");
+  await expect(app.page.getByRole("alert")).toContainText("无法打开此图片");
   await focusStage(app);
   await app.page.keyboard.press("n");
   await app.page.locator(".composer-text").fill("文件坏了，重新导出一张");

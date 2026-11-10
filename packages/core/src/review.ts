@@ -311,7 +311,7 @@ export function renderHandoff(list: HandoffMaterial[], t: Translate, options: Ha
   if (done === total) out.push(t("ai.handoff.allDone", { count: total }));
   else if (only && isFolder(only)) out.push(t("ai.handoff.folder", { count: total }));
   else if (total === 1) out.push(t("ai.handoff.one"));
-  else if (only) out.push(t("ai.handoff.material", { count: total, thisKind: t("app.kind.this", { kind: only.kind }) }));
+  else if (only) out.push(t("ai.handoff.material", { count: total, thisKind: t("ai.kind.this", { kind: only.kind }) }));
   else {
     const parts = [
       ...(folders ? [t("ai.handoff.folders", { count: folders })] : []),

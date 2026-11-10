@@ -101,7 +101,7 @@ Terms used in `i18n/locales/en.json` (docs/adr/0001-i18n.md). New English text f
 - Sentence case: tooltips, descriptions, toasts, settings labels, shortcut-list rows, step headings.
 - References to a UI label inside a sentence use the label's own capitalization and no quotes: Copy as Text, Select (tool), Solid (option), File menu. Quote (curly “ ”) only user data (names, paths) or when the label would be ambiguous in the sentence.
 - Curly quotes “ ” only; straight quotes appeared in two settings descriptions (fixed).
-- `{this}` (from `app.kind.this`) is always lower-case ("this image") -> never place it at the start of a sentence.
+- `{this}` (from `app.kind.this`) is always lower-case ("this image") -> never place it at the start of a sentence. Each language words it the way its own software does (de das aktuelle Bild, ru in the dative after «к»; Chinese says "current image"); the text for agents has its own copy, `ai.kind.this`.
 
 ## Other languages
 
@@ -150,12 +150,12 @@ Term choices made when the second-tier languages were first translated (first-pa
 | project / folder | プロジェクト / フォルダー | |
 | canvas | キャンバス | AI 向け文面の "frame" は「画面」 |
 | draft | 下書き | |
-| note box | メモ ボックス | 入力ウィンドウ。エラー領域名は「メモ エディター」 |
+| note box | メモ入力欄 | 入力ウィンドウ。エラー領域名は「メモ エディター」 |
 | overall comment / folder comment | 全体コメント / フォルダー コメント | 短縮形 "Overall" は「全体」 |
 | timestamped comment | 時点コメント | 短縮形「時点」。動画のみ。「時刻」は時計の時刻なので使わない |
 | Whole folder | フォルダー全体 | AI が探すマーカー文字列。全箇所で同じ表記 |
 | open / resolved | 未対応 / 解決済み | 解決済み = 対応済み + 対応不要 |
-| done / won't fix / reopen | 対応済み / 対応不要 / 再度開く | |
+| done / won't fix / reopen | 対応済み / 対応不要 / 未対応に戻す | |
 | check / uncheck | チェック / チェックを外す | 選択 (select) とは別 |
 | mark | マーク | |
 | Pin (tool) / Pin to Top | ピン / 先頭に固定 | 固定を解除 = Unpin |
@@ -248,7 +248,7 @@ Term choices made when the second-tier languages were first translated (first-pa
 | Settings | Paramètres | pages: Général, Annotations, Copie, Système, Raccourcis, Avancé, À propos |
 | log | journal | |
 | Finish (capture) / OK | Terminer / OK | |
-| Restore Defaults / Reset | Rétablir par défaut / Réinitialiser | |
+| Restore Defaults / Reset | Rétablir (button; the label spells it out: Rétablir les valeurs par défaut) / Réinitialiser | |
 | Shift, Enter, Esc, Delete, Wheel | Maj, Entrée, Échap, Suppr, molette | |
 
 ### Deutsch (`de`)
@@ -329,7 +329,7 @@ Term choices made when the second-tier languages were first translated (first-pa
 | notes panel | riquadro delle note | Windows-style "riquadro" for pane |
 | canvas | area di disegno | |
 | overall comment | commento generale | Short form: Generale |
-| timestamped comment | commento con marca temporale | Short form: Marca temporale; video only |
+| timestamped comment | commento con timestamp | Short form: Timestamp; video only ("marca temporale" is the legal time stamp of e-signatures) |
 | folder comment | commento sulla cartella | AI marker "Whole folder" = Intera cartella |
 | open / resolved | aperta / risolta | Resolved = fatta + da non modificare |
 | done / won't fix | fatta / da non modificare | Command: Segna come fatta / Segna come da non modificare |

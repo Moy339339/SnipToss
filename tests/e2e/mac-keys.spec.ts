@@ -74,7 +74,7 @@ test("on the Mac the capture shortcut is recorded with Control, Command, Option 
   // The default on the Mac, ⌃⌥⌘A, with one keycap for each part
   await expect(input.locator("kbd")).toHaveText(["⌃", "⌥", "⌘", "A"]);
   // The page says that a global shortcut takes the same shortcut away from other apps
-  await expect(app.page.locator(".set-row", { hasText: "快捷键" }).first()).toContainText("全局快捷键会使其他程序中相同的快捷键失效");
+  await expect(app.page.locator(".set-row", { hasText: "快捷键" }).first()).toContainText("其他程序中相同的快捷键会失效");
   await input.click();
   // Option alone and Shift alone are refused, with the reason in the box; the box keeps waiting
   await app.page.keyboard.press("Alt+KeyK");

@@ -74,7 +74,7 @@ final class HotKeyNoticeTests: SnipTestCase {
         _ = ShellLocale.use(pref: "zh-CN", system: "en-US")
         XCTAssertEqual(HotKeyNotice.body(reason: "⌃⌥⌘A 已被其他程序占用，请更换快捷键"), "⌃⌥⌘A 已被其他程序占用，请更换快捷键。\n单击此处打开设置。")
         _ = ShellLocale.use(pref: "ko", system: "en-US")
-        XCTAssertEqual(HotKeyNotice.body(reason: "R"), "R.\n여기를 클릭하면 설정이 열립니다.")
+        XCTAssertEqual(HotKeyNotice.body(reason: "R"), "R.\n클릭하면 설정이 열립니다.")
     }
 
     func testPressingTheCardOpensAndItsCloseOnlyCloses() {

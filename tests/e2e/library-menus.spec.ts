@@ -87,7 +87,7 @@ test("The right side of the library context menu shows only shortcuts and counts
   await expect(menuItem(app, "置顶").locator(".menu-hint")).toHaveCount(0);
   await expect(menuItem(app, "置顶")).toHaveAttribute("title", "排在最前，清空列表时保留");
   await expect(menuItem(app, "复制批注成图片").locator(".menu-hint")).toHaveCount(0);
-  await expect(menuItem(app, "复制批注成图片")).toHaveAttribute("title", "适用于网页版 AI、聊天软件");
+  await expect(menuItem(app, "复制批注成图片")).toHaveAttribute("title", "用于网页版 AI 和聊天软件");
   await expect(menuItem(app, "从列表中移除此项目").locator(".menu-hint")).toHaveText("Delete");
   await expect(menuItem(app, "从列表中移除此项目")).toHaveAttribute("title", "不删除文件和批注");
   await expect(menuItem(app, "清空列表…").locator(".menu-hint")).toHaveCount(0);
@@ -111,7 +111,7 @@ test("Removing two selected projects together: the confirm dialog says \"these 2
   await app.page.keyboard.press("Escape");
   await app.page.keyboard.press("Delete");
   const dialog = app.page.getByRole("alertdialog");
-  await expect(dialog).toContainText("从列表中移除这 2 项？");
+  await expect(dialog).toContainText("从列表中移除选中的 2 项？");
   await dialog.getByRole("button", { name: "移除" }).click();
   await expect.poll(() => app.host.entries).toEqual([]);
 });
@@ -447,7 +447,7 @@ test("The version tag reads the version (\"v1.1.0 Beta N\" for a beta, \"v1.1.0\
   app.host.appInfoPatch = { version: "1.0.0-beta.1" };
   await app.page.reload();
   await expect(tag).toHaveText(`${VERSION_LABEL} ≠ 程序 v1.0.0 Beta 1`);
-  await expect(tag).toHaveAttribute("title", /\n界面与程序版本不一致。请退出程序后重新安装超级批注$/);
+  await expect(tag).toHaveAttribute("title", /\n界面与程序版本不一致，请重新安装超级批注$/);
 });
 
 test("A Mac package's build number (appInfo.build) isn't shown: the About page and the tooltip read the same as on Windows", async ({ app }) => {

@@ -65,7 +65,7 @@ test("Settings → General → Check for updates automatically: on by default, a
   await app.open();
   await app.page.keyboard.press("Control+,");
   const row = app.page.locator(".set-row", { hasText: "自动检查更新" });
-  await expect(row).toContainText("只查询版本号，不发送任何个人信息");
+  await expect(row).toContainText("只查询版本号，不发送个人信息");
   await expect(row.getByRole("switch")).toHaveAttribute("aria-checked", "true");
   await row.getByRole("switch").click();
   await expect.poll(() => app.host.prefs?.updateCheck).toBe(false);

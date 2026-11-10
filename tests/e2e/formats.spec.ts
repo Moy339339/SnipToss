@@ -123,7 +123,7 @@ test("HEIC without the HEIF Image Extensions: the canvas says what is missing, t
   await app.open();
   await expect(app.page).toHaveTitle("photo.heic");
   const alert = app.page.getByRole("alert");
-  await expect(alert).toContainText("无法打开这张图片");
+  await expect(alert).toContainText("无法打开此图片");
   await expect(alert).toContainText("HEIF 图像扩展");
   await alert.getByRole("button", { name: "获取 HEIF 图像扩展" }).click();
   await expect.poll(() => app.host.opened).toEqual(["https://apps.microsoft.com/detail/9pmmsr1cgpwg"]);

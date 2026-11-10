@@ -45,7 +45,7 @@ test("When an item is overwritten, old notes are not drawn on the canvas and mov
   const k = card(app, "k3f9a2");
   await expect(k).toBeVisible();
   await expect(app.page.locator(".note-section.is-earlier .note-section-title")).toHaveText("旧版本上的批注");
-  await expect(app.page.locator(".note-section-hint")).toContainText("画面上不再标出它们");
+  await expect(app.page.locator(".note-section-hint")).toContainText("画面上不再标出");
   await expect(k.locator(".card-num")).toHaveClass(/is-plain/);
   await expect(k.locator(".card-num")).toHaveText("1");
   await expect(app.page.locator('.annot-badge[data-id="k3f9a2"]')).toHaveCount(0);
@@ -56,7 +56,7 @@ test("When an item is overwritten, old notes are not drawn on the canvas and mov
   await k.click();
   const shot = app.page.locator(".earlier-shot");
   await expect(shot).toBeVisible();
-  await expect(shot.locator(".earlier-title")).toHaveText("写这条批注时的画面");
+  await expect(shot.locator(".earlier-title")).toHaveText("写下此批注时的画面");
   await expect(shot.locator(".earlier-img")).toHaveAttribute("src", /snapshots\/k3f9a2\.png$/);
   await expect.poll(() => shot.locator(".earlier-img").evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
   await app.page.keyboard.press("Escape");

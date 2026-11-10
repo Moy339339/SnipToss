@@ -503,7 +503,7 @@ test("First use: a hint under the magnifier says how to select, goes away once d
   await shell.launch();
   await open(shell);
   let o = await run(shell, [{ op: "move", x: 300, y: 260 }]);
-  expect(o.magnifier!.hint).toBe("拖动以选择区域\n单击以选择窗口\n按 Esc 退出");
+  expect(o.magnifier!.hint).toBe("拖动框选区域\n单击选中窗口\n按 Esc 退出");
   // The hint lives inside the magnifier, which still flips to the other side of the cursor near the bottom-right edge and stays on screen
   o = await run(shell, [{ op: "move", x: 1250, y: 700 }]);
   expect(o.magnifier!.box.y + o.magnifier!.box.height).toBe(680);
@@ -900,7 +900,7 @@ test("Pin: a click drops a numbered point and opens the note box, and only Save 
   // The mouse isn't captured: clicking Finish on the toolbar responds (the overlay once kept hold of the mouse and froze on the first mouse use)
   o = await run(shell, [{ op: "click", id: "done" }]);
   expect(o.open).toBe(false);
-  expect((await result(shell)).shown[0].title).toBe("批注图片\n已添加到剪贴板");
+  expect((await result(shell)).shown[0].title).toBe("批注图片\n已复制到剪贴板");
 });
 
 test("Overall comment: opened by N or the button, titled Overall Comment, leaves no number on the canvas; writing it locks the selection; reopening brings back the text and category; with no marks, undo clears it", async ({
@@ -1010,7 +1010,7 @@ test("One note, several marks: with the note box open, the Pin tool and boxes ke
   const r = await result(shell);
   expect(r.clipboard!.text).toContain("标了几处的批注，意见对每一处都适用。");
   expect(r.clipboard!.text).toMatch(/\n1\. 修改 · 3 处：位置 [^；]+；位置 [^；]+；位置 [^；]+：这三个按钮都改成圆角\r\n/);
-  expect(r.shown[0].title).toBe("截图\n已添加到剪贴板"); // the notes are left out of the image, so only the screenshot is named
+  expect(r.shown[0].title).toBe("截图\n已复制到剪贴板"); // the notes are left out of the image, so only the screenshot is named
 });
 
 test("Clicking a mark to change its color: with the note box open it selects that mark and a swatch changes only it; with no box open, clicking the line selects it, 1–6 change it and Esc puts it down first; the text for AI gives each mark's color when they differ", async ({
@@ -1188,7 +1188,7 @@ test("A rectangle, ellipse, arrow or pen stroke with nothing written: Esc, Cance
   ]);
   expect(r.pixels![0]).not.toBe(color(320, 360));
   expect(r.pixels![1]).toBe(color(360, 360));
-  expect(r.shown[0].title).toBe("截图\n已添加到剪贴板");
+  expect(r.shown[0].title).toBe("截图\n已复制到剪贴板");
 });
 
 test("Drawings: a click picks one and its colors pop up just below it, ending with Delete; a color changes only it; Delete takes it away and undo brings it back; a double-click writes a note for it, which numbers it (Esc leaves it as it was); the copied text says what the unnumbered lines are", async ({
@@ -1281,7 +1281,7 @@ test("Drawings, first time: a hint just below the first mark left as a drawing, 
     { op: "up" },
     { op: "shot", path: test.info().outputPath("drawing-hint.png") },
   ]);
-  expect(o.drawingHint!.text).toBe("未填写内容的标记保留为涂鸦：不编号，随截图一并交出。单击可更换颜色或删除，双击可补写批注。");
+  expect(o.drawingHint!.text).toBe("未写批注的标记留作涂鸦：不编号，但会出现在截图中。单击可换色或删除，双击可补写批注。");
   const box = o.drawingHint!.box;
   expect(box.y).toBeGreaterThan(300);
   expect(box.y).toBeLessThan(330);
@@ -1459,7 +1459,7 @@ test("Esc: with no note one press cancels; with notes the first press only warns
   await select(shell);
   let o = await run(shell, [{ op: "key", key: "N" }, { op: "type", text: "意见" }, { op: "key", key: "Enter" }, { op: "key", key: "R" }, { op: "key", key: "Escape" }]);
   expect(o.open).toBe(true);
-  expect(o.warn!.text).toBe("批注尚未复制：再次按 Esc 或单击 × 将放弃，按 Enter 完成");
+  expect(o.warn!.text).toBe("批注尚未复制：再按 Esc 或单击 × 放弃，按 Enter 完成");
   // Toolbar below the selection, sub-toolbar below the toolbar: the warning sits above the whole group
   expect(o.warn!.box.y + o.warn!.box.height).toBeLessThanOrEqual(o.toolbar!.y - 8);
   await waitFor("the warning to disappear after 3 seconds", async () => (await layer(shell)).warn === null, 5000);
@@ -1559,7 +1559,7 @@ test("Double-click inside the box = finish (whatever tool is picked); the empty 
   o = await run(shell, [{ op: "key", key: "C" }, { op: "dblclick", x: 300, y: 300 }]);
   expect(o.open).toBe(false);
   const r = await result(shell);
-  expect(r.shown[0].title).toBe("截图\n已添加到剪贴板");
+  expect(r.shown[0].title).toBe("截图\n已复制到剪贴板");
 });
 
 test("Undo (button or Ctrl+Z): with the note box open it only cancels the box; otherwise it removes the last mark and renumbers; with no marks it clears the overall comment", async ({
@@ -1645,7 +1645,7 @@ test("Compositing: with no notes the image is the selection in physical pixels (
     png: { bytes: expect.any(Number), signature: true, width: 400, height: 300 },
     bitmap: { width: 400, height: 300, format: "Bgr32" },
   });
-  expect(r.shown).toEqual([{ kind: "toast", title: "截图\n已添加到剪贴板", detail: "", path: null, error: null }]); // just one line, no second line
+  expect(r.shown).toEqual([{ kind: "toast", title: "截图\n已复制到剪贴板", detail: "", path: null, error: null }]); // just one line, no second line
   // Marks are drawn into it: with the notes area turned off the image is still just the selection, and the rectangle's edge has the mark color
   await shell.ask("setCaptureSettings", { notesInImage: false });
   await open(shell);
@@ -1678,7 +1678,7 @@ test("Compositing: with notes a notes area is added below the image (padded with
   expect(r.image!.height).toBeGreaterThan(240);
   expect(r.clipboard!.formats).toEqual(["Bitmap", "PNG"]);
   expect(r.clipboard!.text).toBeNull();
-  expect(r.shown[0]).toMatchObject({ kind: "toast", title: "批注图片\n已添加到剪贴板", detail: "" });
+  expect(r.shown[0]).toMatchObject({ kind: "toast", title: "批注图片\n已复制到剪贴板", detail: "" });
   expect(r.saved && existsSync(r.saved)).toBe(true);
 });
 
@@ -1728,7 +1728,7 @@ test("With \"Include notes in the image\" off: no notes area in the image, and t
     ].join("\r\n"),
   );
   expect(r.shown[0]).toMatchObject({
-    title: "截图\n已添加到剪贴板", // the notes aren't drawn into the image: the title says only the screenshot, and the second line where the notes went
+    title: "截图\n已复制到剪贴板", // the notes aren't drawn into the image: the title says only the screenshot, and the second line where the notes went
     detail: "批注未附在图片中（「在图片中附加批注」已关闭），Codex、Claude Code 粘贴时仅接收图片，批注可能丢失",
   });
 });
@@ -1742,7 +1742,7 @@ test("Only an overall comment with notes left out of the image: the toast says o
   await select(shell);
   await run(shell, [{ op: "key", key: "N" }, { op: "type", text: "整体偏暗" }, { op: "key", key: "Enter" }, { op: "key", key: "Enter" }]);
   const r = await result(shell);
-  expect(r.shown[0].title).toBe("截图\n已添加到剪贴板");
+  expect(r.shown[0].title).toBe("截图\n已复制到剪贴板");
   expect(r.clipboard!.text!.split("\r\n")).toEqual(["请参照这张截图，按以下整体意见处理：", "整体意见 · 修改：整体偏暗", "", `截图文件：${r.saved}（400×300）`]);
 });
 
@@ -1887,9 +1887,9 @@ test("The finish toast window can't be created: only logged, the image on the cl
   await closed(shell);
   const r = await result(shell);
   expect(r.clipboard?.png?.signature).toBe(true);
-  expect(r.shown.map((s) => `${s.kind}:${s.title}`)).toEqual(["toast:截图\n已添加到剪贴板"]);
+  expect(r.shown.map((s) => `${s.kind}:${s.title}`)).toEqual(["toast:截图\n已复制到剪贴板"]);
   expect(r.windows).toEqual([]);
-  await waitFor("the log line", () => shell.log().some((l) => l.includes("Screen Capture: the notice could not be shown (截图 已添加到剪贴板: ")));
+  await waitFor("the log line", () => shell.log().some((l) => l.includes("Screen Capture: the notice could not be shown (截图 已复制到剪贴板: ")));
   expect(shell.log().some((l) => l.includes("Test hook: toast window failed"))).toBe(true);
 });
 

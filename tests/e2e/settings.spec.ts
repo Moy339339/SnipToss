@@ -26,7 +26,7 @@ test("Restore Defaults asks for confirmation first and says exactly what it cove
   await app.page.getByRole("button", { name: "恢复默认" }).click();
   const dialog = app.page.getByRole("alertdialog");
   await expect(dialog).toContainText("恢复默认设置？");
-  await expect(dialog).toContainText("截图批注、托盘与开机启动、系统集成、素材列表和窗口位置不受影响");
+  await expect(dialog).toContainText("截图批注、托盘与开机启动、系统集成、素材列表和窗口位置不变");
   await app.page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(app.page.locator(".settings")).toBeVisible();
@@ -71,7 +71,7 @@ test("skipped folders: names that differ only in case count as duplicates, and n
   await input.press("Enter");
   await input.fill("assets/old");
   await input.press("Enter");
-  await expect(toast(app)).toContainText("请只填写文件夹名称");
+  await expect(toast(app)).toContainText("只填文件夹名称");
   await input.fill("out");
   await input.press("Enter");
   await expect
@@ -114,7 +114,7 @@ test("when the default capture shortcut types a character in the keyboard layout
   await toast(app).getByRole("button", { name: "打开设置" }).click();
   await expect(app.page.locator(".settings-tab.is-on")).toHaveText("截图批注");
   // The replacement doesn't type anything: the settings page shows the usual description
-  await expect(app.page.locator(".set-row", { hasText: "快捷键" }).first()).toContainText("全局快捷键");
+  await expect(app.page.locator(".set-row", { hasText: "快捷键" }).first()).toContainText("在任何程序中都可用");
 });
 
 test("when the fallback shortcuts are all taken too, a notice says the capture shortcut is disabled and to set one in Settings", async ({ app }) => {
@@ -151,7 +151,7 @@ test("both startup notices must be seen: the settings file was corrupt + the fir
   await expect(toast(app)).toContainText("已复制");
   await expect(toast(app)).toContainText("设置文件坏了", { timeout: 10_000 });
   await toast(app).getByRole("button", { name: "知道了" }).click();
-  await expect(toast(app)).toContainText("技术名称已改为 SnipToss");
+  await expect(toast(app)).toContainText("批注文件夹已改名为 .sniptoss");
   await expect(toast(app)).not.toContainText("pizhu");
   await toast(app).getByRole("button", { name: "知道了" }).click();
   await expect(toast(app)).toHaveCount(0);

@@ -23,7 +23,7 @@ test("the open item is deleted: a toast says its notes are kept; the notes panel
   await expect(app.page).toHaveTitle("hero.png");
   rmSync(join(app.project, "assets", "hero.png"));
   await expect(toast(app)).toContainText("找不到「hero.png」");
-  await expect(toast(app)).toContainText("其 1 条待处理批注仍保留");
+  await expect(toast(app)).toContainText("它的 1 条待处理批注列在批注栏末尾");
   await expect(app.page.locator(".lib-row", { hasText: "hero.png" })).toHaveCount(0);
   await expect(missingGroup(app, "hero.png")).toContainText("找不到素材");
   await expect(card(app, "k3f9a2")).toBeVisible();
@@ -57,10 +57,10 @@ test("the item's folder is renamed: the notes do not disappear; deleting the who
   await expect(app.page).toHaveTitle("超级批注");
   // Edit: explains that the mark position can't be changed
   await card(app, "k3f9a2").dblclick();
-  await expect(toast(app)).toContainText("找不到素材，无法修改标记位置");
+  await expect(toast(app)).toContainText("找不到素材，标记不能移动");
   // Delete the whole group
   await missingGroup(app, "hero.png").locator(".act").click();
-  await app.page.getByRole("menuitem", { name: "删除这些批注…" }).click();
+  await app.page.getByRole("menuitem", { name: "删除批注…" }).click();
   const dialog = app.page.getByRole("alertdialog");
   await expect(dialog).toContainText("删除此素材的 2 条批注？");
   await expect(dialog).toContainText("assets/hero.png");

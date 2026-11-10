@@ -36,7 +36,7 @@ test("an image that cannot be opened (corrupt file): the canvas explains why, an
   writeFileSync(broken, "不是图片");
   await app.open();
   await app.page.locator(".lib-row", { hasText: "broken.png" }).click();
-  await expect(app.page.getByRole("alert")).toContainText("无法打开这张图片");
+  await expect(app.page.getByRole("alert")).toContainText("无法打开此图片");
   await expect(app.page.getByRole("button", { name: "在资源管理器中显示" })).toBeVisible();
   copyFileSync(join(app.project, "assets", "hero.png"), broken);
   await expect
@@ -49,7 +49,7 @@ test("a video that cannot be played (corrupt file, unsupported codec): the canva
   writeFileSync(join(app.project, "video", "broken.mp4"), "不是视频");
   await app.open();
   await app.page.locator(".lib-row", { hasText: "broken.mp4" }).click();
-  await expect(app.page.getByRole("alert")).toContainText("无法播放这个视频");
+  await expect(app.page.getByRole("alert")).toContainText("无法播放此视频");
 });
 
 test("editing a note after the item's folder was moved away: explains why and does not recreate the folder in its old place", async ({ app }) => {

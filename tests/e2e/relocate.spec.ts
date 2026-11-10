@@ -42,7 +42,7 @@ test("adding the new location after a move is recognized as the same entry and r
   await app.open();
   app.host.nextPickFolder = to;
   await app.page.keyboard.press("Control+Shift+O");
-  await expect(toast(app)).toContainText(`已识别：「project」已移动到 ${to}`);
+  await expect(toast(app)).toContainText(`「project」已移动到 ${to}，列表已更新`);
   expect(app.host.entries).toEqual([{ path: to, pinned: true }]);
   await expect(row(app, "hero.png")).toBeVisible();
 });

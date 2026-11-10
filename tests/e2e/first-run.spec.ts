@@ -10,7 +10,7 @@ test("With an empty list, the middle of the canvas explains the three steps and 
   const welcome = app.page.locator(".welcome");
   await expect(welcome).toBeVisible();
   await expect(welcome.locator(".welcome-steps li")).toHaveCount(3);
-  await expect(welcome).toContainText("交由 AI");
+  await expect(welcome).toContainText("交给 AI");
   // The Screen Capture shortcut is written into the text (it follows changes made in Settings)
   await expect(welcome).toContainText("Ctrl Alt A");
   // The library only talks about the list itself and does not repeat the "drag it in" hint

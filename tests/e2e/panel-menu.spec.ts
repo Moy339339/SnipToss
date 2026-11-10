@@ -77,7 +77,7 @@ test("Delete All Notes… asks first (stating how many will be deleted and how m
   await menuItem(app, /^删除全部批注…/).click();
   const dialog = app.page.getByRole("alertdialog");
   await expect(dialog).toContainText("删除批注栏中列出的全部 3 条批注？");
-  await expect(dialog).toContainText("这 3 条批注将被删除。");
+  await expect(dialog).toContainText("3 条批注将被删除。");
   // done01 is done and the notes panel doesn't show resolved notes: it isn't deleted, and the dialog says so
   await expect(dialog).toContainText("另有 1 条未列出");
   await dialog.getByRole("button", { name: "删除" }).click();

@@ -165,7 +165,7 @@ test("Folder that can't be written to (no write permission): the file shows as u
     await open(shell, root, file);
     await drawRect(shell, "只读文件夹里的意见");
     // Plain language that names the folder (it used to be the system's original text: on English Windows just "Access to the path … is denied")
-    await expect(shell.page.locator(".toast")).toContainText(`保存失败，最近的更改未保存：无法写入「${root}」：没有写入权限`);
+    await expect(shell.page.locator(".toast")).toContainText(`保存失败，最近的更改未保存：无法写入「${root}」：没有权限或磁盘只读`);
     await expect(shell.page.locator(".composer-text")).toHaveValue("只读文件夹里的意见");
     expect(savedFiles(root)).toEqual([]);
   } finally {
@@ -191,7 +191,7 @@ test("A file that may not be read (no read permission): the canvas says so and w
     shell.setLibrary([root]);
     await shell.launch({ args: [file] });
     const alert = shell.page.getByRole("alert");
-    await expect(alert).toContainText("没有权限读取这个文件", { timeout: 15_000 });
+    await expect(alert).toContainText("没有权限读取此文件", { timeout: 15_000 });
     await expect(alert).toContainText("「属性 → 安全」");
     await expect(alert).not.toContainText("损坏");
   } finally {
@@ -217,7 +217,7 @@ test("A folder in the library that may not be read: its row says so instead of s
     const row = shell.page.locator(".lib-row.is-project", { hasText: "nolist" });
     await expect(row.locator(".lib-sub")).toHaveText("没有权限读取", { timeout: 15_000 });
     await row.click();
-    await expect(shell.page.getByRole("alert")).toContainText("没有权限读取这个文件夹");
+    await expect(shell.page.getByRole("alert")).toContainText("没有权限读取此文件夹");
   } finally {
     spawnSync("icacls", [root, "/remove:d", user]);
   }
@@ -388,7 +388,7 @@ for (const c of [
           }),
         { timeout: 20_000 },
       )
-      .toMatch(/^plays$|不支持的编码/);
+      .toMatch(/^plays$|编码可能不受支持/);
     // Record in the report which of the two it actually is here (HEVC depends on the system HEVC extension and GPU decoding)
     const how = await shell.page.evaluate(() => (document.querySelector('.stage [role="alert"]') ? "says the codec is unsupported" : "plays"));
     test.info().annotations.push({ type: "result", description: how });

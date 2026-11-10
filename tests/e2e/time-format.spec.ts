@@ -104,5 +104,5 @@ test("a video whose frame rate varies stays in seconds even when frames are chos
   await seek(app, 0.5);
   await expect(readout(app)).toHaveText(/^00:00\.500 \/ 00:0\d\.\d{3}$/);
   await expect(app.page.locator(".transport button.timecode")).toHaveCount(0);
-  await expect(readout(app)).toHaveAttribute("title", "按秒显示：这个视频的帧率不固定，或无法从文件读取");
+  await expect(readout(app)).toHaveAttribute("title", "按秒显示：此视频的帧率不固定或无法读取");
 });

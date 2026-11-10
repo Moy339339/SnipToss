@@ -95,8 +95,8 @@ test("Settings → General → Language: Follow system names the language it res
   await expect(picker).toHaveText("English");
   await expect.poll(() => app.host.prefs?.language).toBe("en");
   await picker.click();
-  await app.page.getByRole("menuitemradio", { name: "Follow system (English)" }).click();
-  await expect(picker).toHaveText("Follow system (English)");
+  await app.page.getByRole("menuitemradio", { name: "System default (English)" }).click();
+  await expect(picker).toHaveText("System default (English)");
   await expect.poll(() => app.host.prefs?.language).toBeUndefined();
 });
 

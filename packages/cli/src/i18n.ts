@@ -34,7 +34,7 @@ export function translator(locale: Locale): Translate {
  * Whether the language has translated all the message groups meant for AI (the ones REVIEW.md uses): an incomplete language is not used for
  * writing, to avoid half-English output
  */
-const AI_PREFIXES = ["ai.", "category.", "kind.", "app.kind.this", "markColor.name"];
+const AI_PREFIXES = ["ai.", "category.", "kind.", "markColor.name"];
 function readyForAi(locale: Locale): boolean {
   if (locale === SOURCE_LOCALE || locale === "en") return true;
   const own = load(locale);

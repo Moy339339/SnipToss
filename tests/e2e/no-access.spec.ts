@@ -27,7 +27,7 @@ test("an image the app may not read: the canvas says there is no permission and 
   await app.open();
   await app.page.locator(".lib-row", { hasText: "hero.png" }).click();
   const alert = app.page.getByRole("alert");
-  await expect(alert).toContainText("没有权限读取这个文件");
+  await expect(alert).toContainText("没有权限读取此文件");
   await expect(alert).toContainText("请在文件的「属性 → 安全」中为当前 Windows 账户添加读取权限");
   await expect(alert).not.toContainText("损坏");
   await expect(alert.getByRole("button", { name: "打开系统设置" })).toHaveCount(0);
@@ -40,7 +40,7 @@ test("an image the app may not read: the canvas says there is no permission and 
   const before = asked();
   await comeBack(app);
   await expect.poll(asked).toBe(before + 1);
-  await expect(alert).toContainText("没有权限读取这个文件");
+  await expect(alert).toContainText("没有权限读取此文件");
 
   app.host.unreadable = [];
   await comeBack(app);
@@ -55,9 +55,9 @@ test("on the Mac a privacy refusal (the shell gives reason privacy, or none) poi
   await app.open();
   await app.page.locator(".lib-row", { hasText: "hero.png" }).click();
   const alert = app.page.getByRole("alert");
-  await expect(alert).toContainText("没有权限读取这个文件");
+  await expect(alert).toContainText("没有权限读取此文件");
   await expect(alert).toContainText(
-    "macOS 没有允许超级批注访问这个文件所在的文件夹。单击「打开系统设置」，在「文件与文件夹」中展开超级批注，打开对应文件夹的开关",
+    "macOS 没有允许超级批注访问此文件所在的文件夹。单击「打开系统设置」，在「文件与文件夹」中展开超级批注，打开对应文件夹的开关",
   );
   await expect(alert.getByRole("button", { name: "在访达中显示" })).toBeVisible();
   await alert.getByRole("button", { name: "打开系统设置" }).click();
@@ -70,7 +70,7 @@ test("a video the app may not read gets the same page, not the unsupported-codec
   await app.page.locator(".lib-row", { hasText: "video" }).click();
   await app.page.locator(".lib-row", { hasText: "clip.mp4" }).click();
   const alert = app.page.getByRole("alert");
-  await expect(alert).toContainText("没有权限读取这个文件");
+  await expect(alert).toContainText("没有权限读取此文件");
   await expect(alert).not.toContainText("HEVC");
 });
 
@@ -93,7 +93,7 @@ test("a folder in the library the app may not read: its row says so instead of '
   await expect(row.locator(".lib-sub")).toHaveText("没有权限读取");
   await row.click();
   const alert = app.page.getByRole("alert");
-  await expect(alert).toContainText("没有权限读取这个文件夹");
+  await expect(alert).toContainText("没有权限读取此文件夹");
   await expect(alert).toContainText("请在文件夹的「属性 → 安全」中为当前 Windows 账户添加读取权限");
   await expect(app.page.locator(".hdr-meta")).toHaveText("未选择素材");
   await alert.getByRole("button", { name: "在资源管理器中显示" }).click();
@@ -116,7 +116,7 @@ test("a folder added on its own inside a project (an entry row) is marked the sa
   const row = app.page.locator(".lib-row:not(.is-project)", { hasText: "video" });
   await expect(row.locator(".lib-sub")).toHaveText("没有权限读取");
   await row.click();
-  await expect(app.page.getByRole("alert")).toContainText("没有权限读取这个文件夹");
+  await expect(app.page.getByRole("alert")).toContainText("没有权限读取此文件夹");
 });
 
 test("on the Mac a folder it may not read points to Files & Folders, with the button to open it", async ({ app }) => {
@@ -125,8 +125,8 @@ test("on the Mac a folder it may not read points to Files & Folders, with the bu
   await app.open();
   await app.page.locator(".lib-row.is-project", { hasText: "locked" }).click();
   const alert = app.page.getByRole("alert");
-  await expect(alert).toContainText("没有权限读取这个文件夹");
-  await expect(alert).toContainText("macOS 没有允许超级批注访问这个文件夹。单击「打开系统设置」，在「文件与文件夹」中展开超级批注");
+  await expect(alert).toContainText("没有权限读取此文件夹");
+  await expect(alert).toContainText("macOS 没有允许超级批注访问此文件夹。单击「打开系统设置」，在「文件与文件夹」中展开超级批注");
   await alert.getByRole("button", { name: "打开系统设置" }).click();
   await expect.poll(() => app.host.filesAccessOpened).toBe(1);
 });
@@ -141,13 +141,13 @@ test("on the Mac a refusal by the file system's own permissions (reason permissi
   await app.open();
   await app.page.locator(".lib-row", { hasText: "hero.png" }).first().click();
   const alert = app.page.getByRole("alert");
-  await expect(alert).toContainText("没有权限读取这个文件");
-  await expect(alert).toContainText("当前 macOS 账户没有读取这个文件的权限。请在访达中选中它，选择「文件 → 显示简介」");
+  await expect(alert).toContainText("没有权限读取此文件");
+  await expect(alert).toContainText("当前 macOS 账户没有读取此文件的权限。请在访达中选中它，选择「文件 → 显示简介」");
   await expect(alert.getByRole("button", { name: "打开系统设置" })).toHaveCount(0);
   await expect(alert.getByRole("button", { name: "在访达中显示" })).toBeVisible();
 
   await app.page.locator(".lib-row.is-project", { hasText: "locked" }).click();
-  await expect(alert).toContainText("当前 macOS 账户没有读取这个文件夹的权限");
+  await expect(alert).toContainText("当前 macOS 账户没有读取此文件夹的权限");
   await expect(alert.getByRole("button", { name: "打开系统设置" })).toHaveCount(0);
   await alert.getByRole("button", { name: "在访达中显示" }).click();
   expect(app.host.revealed).toEqual([locked]);
@@ -157,7 +157,7 @@ test("clicking an item after the folder page leaves the page", async ({ app }) =
   lockedFolder(app);
   await app.open();
   await app.page.locator(".lib-row.is-project", { hasText: "locked" }).click();
-  await expect(app.page.getByRole("alert")).toContainText("没有权限读取这个文件夹");
+  await expect(app.page.getByRole("alert")).toContainText("没有权限读取此文件夹");
   await app.page.locator(".lib-row", { hasText: "poster.jpg" }).click();
   await expect(app.page.getByRole("alert")).toHaveCount(0);
   await expect(app.page.locator(".hdr-name")).toHaveText("poster.jpg");

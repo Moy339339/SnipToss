@@ -6,6 +6,18 @@ The annotation data format has its own version (`"schema": "sniptoss/5"`); its h
 
 ## [Unreleased]
 
+## [1.3.1] — 2026-11-10
+
+### Changed
+
+- Shorter wording throughout the interface, in all 11 languages: tooltips give what a control does and its shortcut, the descriptions under settings are down to a line or two, and the Keyboard Shortcuts list drops its long asides.
+- Each of the 11 languages was reviewed for wording that read like a translation and now follows the conventions of software in that language. For example, the switch above the notes panel reads the way the same control does in other apps in that language (German “Aktuelles Bild”, French “Image actuelle”, Chinese “当前图片”), and in English the language option “Follow system” is now “System default”.
+
+### Fixed
+
+- Welcome page: at some window widths the three steps wrapped into two in a row with the third left alone below. They now stay together: three columns in one row, or one column when the window is narrow.
+- Keyboard Shortcuts: the Screen Capture row for the drawing tools still said that a mark without a note is dropped when you click elsewhere. Since 1.3.0 it stays as a drawing.
+
 ## [1.3.0] — 2026-11-08
 
 ### Added
@@ -138,6 +150,7 @@ First public release.
 - Portable version: with a `data` folder next to the app, all data stays in it and the registry is never touched.
 - Command-line tool `sniptoss` (list, review, resolve, wontfix); its messages follow the system display language.
 
+[1.3.1]: https://github.com/Moy339339/SnipToss/releases/tag/v1.3.1
 [1.3.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.3.0
 [1.2.3]: https://github.com/Moy339339/SnipToss/releases/tag/v1.2.3
 [1.2.2]: https://github.com/Moy339339/SnipToss/releases/tag/v1.2.2

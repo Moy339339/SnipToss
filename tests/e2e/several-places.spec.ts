@@ -143,8 +143,8 @@ test("right-clicking one place of the note being written: Remove This Mark remov
   // Right-click the pin of the middle place
   const pin = (await draftBadges(app).nth(1).boundingBox())!;
   await app.page.mouse.click(pin.x + pin.width / 2, pin.y + pin.height / 2, { button: "right" });
-  await expect(menuRow(app, "移除这处标记")).toHaveAttribute("title", "只去掉这一处，批注和其余几处保留");
-  await menuRow(app, "移除这处标记").click();
+  await expect(menuRow(app, "移除此处标记")).toHaveAttribute("title", "仅移除此处，批注和其余标记保留");
+  await menuRow(app, "移除此处标记").click();
   await expect(draftBadges(app)).toHaveCount(2);
   const a = await save(app, "两边的");
   expect(a.anchor.shapes!.map((s) => Math.round(s.x! * 10) / 10)).toEqual([0.2, 0.8]);
@@ -155,8 +155,8 @@ test("right-clicking one place of the note being written: Remove This Mark remov
   await app.page.mouse.click(...at(box, 0.5, 0.3));
   const one = (await draftBadges(app).boundingBox())!;
   await app.page.mouse.click(one.x + one.width / 2, one.y + one.height / 2, { button: "right" });
-  await expect(menuRow(app, "移除这处标记")).toHaveCount(0);
-  await menuRow(app, "放弃这条批注").click();
+  await expect(menuRow(app, "移除此处标记")).toHaveCount(0);
+  await menuRow(app, "放弃此批注").click();
   await expect(composer(app)).toHaveCount(0);
   await expect(draftBadges(app)).toHaveCount(0);
 });
@@ -187,7 +187,7 @@ test("a saved multi-place note: dragging one place moves only that place; right-
   // Right-click the first place: only it is removed
   const b0 = (await badge(app, a.id, 0).boundingBox())!;
   await app.page.mouse.click(b0.x + b0.width / 2, b0.y + b0.height / 2, { button: "right" });
-  await menuRow(app, "移除这处标记").click();
+  await menuRow(app, "移除此处标记").click();
   await expect.poll(() => byBody(app, "两个框")!.anchor.shapes!.length).toBe(1);
   await expect(app.page.locator(`.annot-badge[data-id="${a.id}"]`)).toHaveCount(1);
   await app.page.keyboard.press("Control+z");
@@ -198,7 +198,7 @@ test("a saved multi-place note: dragging one place moves only that place; right-
   const k = (await badge(app, "k3f9a2", 0).boundingBox())!;
   await app.page.mouse.click(k.x + k.width / 2, k.y + k.height / 2, { button: "right" });
   await expect(menuRow(app, "删除批注")).toHaveCount(1);
-  await expect(menuRow(app, "移除这处标记")).toHaveCount(0);
+  await expect(menuRow(app, "移除此处标记")).toHaveCount(0);
 });
 
 test("double-clicking to edit an existing note (read in from an old format): further marks are added to it and keep its own number; it is saved back as shapes without a leftover shape", async ({ app }) => {

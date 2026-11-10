@@ -165,7 +165,7 @@ test("Settings: eight pages, the tray and start-at-login options on General, exp
   await expect(body).not.toContainText("每条批注生成截图");
   await tabs.filter({ hasText: "关于" }).click();
   await expect(body).toContainText("MoyGoldenAge");
-  await expect(body).toContainText("MIT 许可证");
+  await expect(body).toContainText("MIT 开源许可证");
   // The description of Third-party notices also contains the word License: identify this row by its label
   await body
     .locator(".set-row")
@@ -300,7 +300,7 @@ test("deleting hand-picked notes: after checking them, Delete at the bottom or t
   await app.page.locator(".panel-batch").getByRole("button", { name: "删除" }).click();
   const dialog = app.page.getByRole("alertdialog");
   await expect(dialog).toContainText("删除勾选的 2 条批注？");
-  await expect(dialog).toContainText("这 2 条批注（分属 2 份素材）将被删除。");
+  await expect(dialog).toContainText("2 条批注（分属 2 个素材）将被删除。");
   await dialog.getByRole("button", { name: "删除" }).click();
   await expect(toast(app)).toContainText("已删除 2 条批注");
   await expect.poll(() => ids(HERO).includes("k3f9a2")).toBe(false);
@@ -396,7 +396,7 @@ test("files that appear in a folder after it was added to the library are tagged
   await expect.poll(() => (app.host.prefs?.fresh as { seen?: string[] } | undefined)?.seen?.length).toBe(1);
   // Right-click the project and choose Mark All as Seen
   await app.page.locator(".lib-row.is-project").click({ button: "right" });
-  await menuItem(app, /全部标为已看/).click();
+  await menuItem(app, /全部标为已读/).click();
   await expect(app.page.locator(".lib-new")).toHaveCount(0);
 });
 

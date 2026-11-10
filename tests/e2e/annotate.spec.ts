@@ -274,7 +274,7 @@ test("With auto-compose off in Settings, a finished mark leaves a draft card in 
   await drag(app, at(box, 0.2, 0.2), at(box, 0.4, 0.5));
   await expect(composer(app)).toHaveCount(0);
   const draft = app.page.locator(".card-draft");
-  await expect(draft).toContainText("已绘制标记。单击此处或按 Enter 填写批注");
+  await expect(draft).toContainText("标记已画好，单击此处或按 Enter 写批注");
   await app.page.keyboard.press("Enter");
   await expect(composer(app)).toBeVisible();
   await app.page.keyboard.press("Escape");
@@ -834,9 +834,9 @@ test("The blank-canvas context menu: every item has an icon, the right side show
   await expect(menuRow(app, "复制批注成文字").locator(".menu-hint")).toHaveText("1 条");
   await expect(menuRow(app, "复制批注成图片").locator(".menu-hint")).toHaveCount(0);
   await app.page.mouse.move(5, 5); // the item the mouse rests on has its title taken over by the tooltip bubble
-  await expect(menuRow(app, "复制批注成文字")).toHaveAttribute("title", "适用于 Claude Code、Codex 等能读取本机文件的 AI：含每条批注的内容、位置，以及素材和截图在本机的路径");
-  await expect(menuRow(app, "复制批注成图片")).toHaveAttribute("title", "适用于网页版 AI、聊天软件");
-  await expect(menuRow(app, "添加整体意见…")).toHaveAttribute("title", "针对整份素材的批注，不指定位置");
+  await expect(menuRow(app, "复制批注成文字")).toHaveAttribute("title", "用于 Claude Code、Codex 等能读取本机文件的 AI");
+  await expect(menuRow(app, "复制批注成图片")).toHaveAttribute("title", "用于网页版 AI 和聊天软件");
+  await expect(menuRow(app, "添加整体意见…")).toHaveAttribute("title", "针对整个素材，不指定位置");
 });
 
 test("Copying from the blank-canvas context menu copies only this item's open notes, even when the notes panel lists the whole project and other notes are checked (same as right-clicking its library row)", async ({ app }) => {
@@ -928,8 +928,8 @@ test("The mark context menu: the right side shows only a count or shortcut, purp
   await app.page.locator('.annot-badge[data-id="k3f9a2"]').click({ button: "right" });
   await app.page.mouse.move(5, 5);
   await expect(menuRow(app, "复制批注成文字").locator(".menu-hint")).toHaveText("1 条");
-  await expect(menuRow(app, "复制批注成文字")).toHaveAttribute("title", "适用于 Claude Code、Codex 等能读取本机文件的 AI：含每条批注的内容、位置，以及素材和截图在本机的路径");
+  await expect(menuRow(app, "复制批注成文字")).toHaveAttribute("title", "用于 Claude Code、Codex 等能读取本机文件的 AI");
   await expect(menuRow(app, "复制批注成图片").locator(".menu-hint")).toHaveCount(0);
-  await expect(menuRow(app, "复制批注成图片")).toHaveAttribute("title", "适用于网页版 AI、聊天软件");
+  await expect(menuRow(app, "复制批注成图片")).toHaveAttribute("title", "用于网页版 AI 和聊天软件");
   for (const label of ["编辑批注", "标记为已改", "标记为不改", "删除批注"]) await expect(menuRow(app, label).locator(".menu-icon svg")).toHaveCount(1);
 });

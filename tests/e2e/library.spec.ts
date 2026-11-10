@@ -32,7 +32,7 @@ test("An image the scan skipped (inside dist) that is added shows up in the list
   await expect(app.page).toHaveTitle("out.png");
   await expect(fileRows(app, "out.png")).toHaveCount(1);
   await expect(app.page.locator(".lib-row.is-project")).toHaveCount(1); // it sits together with the project's other items
-  await expect(app.page.getByText("该项已在列表中")).toHaveCount(0);
+  await expect(app.page.getByText("已在列表中")).toHaveCount(0);
 });
 
 test("Adding an image the folder scan already finds does not duplicate it; it is selected and the toast explains", async ({ app }) => {
@@ -41,7 +41,7 @@ test("Adding an image the folder scan already finds does not duplicate it; it is
   app.host.nextPickFiles = [join(app.project, "video", "clip.mp4")];
   await app.page.keyboard.press("Control+O");
   await expect(app.page).toHaveTitle("clip.mp4");
-  await expect(app.page.locator(".toast")).toContainText("该项已在列表中，已定位到它");
+  await expect(app.page.locator(".toast")).toContainText("已在列表中，已定位");
   await expect(fileRows(app, "clip.mp4")).toHaveCount(1);
 });
 
@@ -264,7 +264,7 @@ test("Dragging a file from File Explorer into the window shows the \"Drop to add
   });
   await app.page.dispatchEvent(".stage", "dragenter", { dataTransfer: dt });
   await app.page.dispatchEvent(".stage", "dragover", { dataTransfer: dt });
-  await expect(app.page.locator(".drop-overlay")).toContainText("松开以添加到列表");
+  await expect(app.page.locator(".drop-overlay")).toContainText("松开鼠标，添加到列表");
   await app.page.dispatchEvent(".stage", "drop", { dataTransfer: dt });
   await expect(app.page.locator(".drop-overlay")).toHaveCount(0);
   await expect(app.page.locator(".lib-row", { hasText: "dropped.png" })).toBeVisible();

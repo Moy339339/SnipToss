@@ -77,7 +77,7 @@ export function TitleBar(props: {
         <button
           className="titlebar-action"
           onClick={() => capture.start()}
-          title={intl.formatMessage({ id: "titlebar.captureTitle" }, { hide: capture.hide ? "yes" : "no", keys: keys || "none" })}
+          title={intl.formatMessage({ id: "titlebar.captureTitle" }, { keys: keys || "none" })}
         >
           <CaptureIcon />
           {intl.formatMessage({ id: "titlebar.capture" })}

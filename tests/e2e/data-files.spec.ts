@@ -108,7 +108,7 @@ test("A notes file written by a newer version is shown as usual but is read-only
   await card(app, "new001").hover();
   await card(app, "new001").locator('.act[title^="更多"]').click();
   await app.page.getByRole("menuitem", { name: "标记为已改" }).click();
-  await expect(app.page.locator(".toast")).toContainText("由更高版本的超级批注写入");
+  await expect(app.page.locator(".toast")).toContainText("来自更高版本的超级批注");
   await expect(card(app, "new001")).toHaveClass(/status-open/);
   expect(readFileSync(posterFile(app), "utf8")).toBe(text);
   await app.page.locator(".stage").click({ position: { x: 5, y: 5 } });
@@ -146,7 +146,7 @@ test("A notes file name clash (assets__poster.jpg in the project root and assets
   await app.page.locator(".lib-row", { hasText: /^poster\.jpg/ }).click();
   await expect(app.page).toHaveTitle("poster.jpg");
   await drawRect(app, "撞名的这张");
-  await expect(app.page.locator(".toast")).toContainText("已属于「assets__poster.jpg」");
+  await expect(app.page.locator(".toast")).toContainText("已被「assets__poster.jpg」占用");
   await expect(app.page.locator(".composer-text")).toHaveValue("撞名的这张");
   const onDisk = JSON.parse(readFileSync(posterFile(app), "utf8"));
   expect(onDisk.material.path).toBe("assets__poster.jpg");

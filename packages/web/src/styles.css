@@ -1530,12 +1530,18 @@ kbd {
   justify-content: center;
   column-gap: 8px;
 }
-/* The explanation in the middle of the canvas when the list is empty (Welcome.tsx): main sentence → three steps → buttons → small print. The three steps sit in one row and switch to a column automatically when the canvas area is narrow */
+/* The explanation in the middle of the canvas when the list is empty (Welcome.tsx): main sentence → three steps → buttons → small print.
+   The three steps always sit together: three equal columns in one row, or, when the canvas area is too narrow for that, one column with the number to the left of the text.
+   Never two in a row with the third left over */
+.stage-empty.is-welcome {
+  container-type: inline-size;
+}
 .welcome {
   display: flex;
   flex-direction: column;
   align-items: center;
-  max-width: 640px;
+  width: 100%;
+  max-width: 720px;
   padding: 0 24px;
 }
 .welcome-lead,
@@ -1546,7 +1552,7 @@ kbd {
 }
 .welcome-steps {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 24px;
   width: 100%;
   margin: 32px 0;
@@ -1575,6 +1581,28 @@ kbd {
 }
 .welcome-step-title {
   color: var(--text);
+}
+@container (max-width: 640px) {
+  .welcome-steps {
+    grid-template-columns: minmax(0, 320px);
+    justify-content: center;
+    gap: 16px;
+    margin: 24px 0;
+  }
+  .welcome-steps li {
+    display: grid;
+    grid-template-columns: var(--h-sm) minmax(0, 1fr);
+    column-gap: 12px;
+    row-gap: 4px;
+    align-items: center;
+    text-align: start;
+  }
+  .welcome-num {
+    margin-bottom: 0;
+  }
+  .welcome-step-body {
+    grid-column: 2;
+  }
 }
 .welcome-actions {
   display: flex;

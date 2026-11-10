@@ -193,16 +193,15 @@ test("touchpad pinch (which arrives in the page as Ctrl+wheel) zooms the canvas,
   expect(await pageScale(app)).toBe(1);
 });
 
-test("Keyboard Shortcuts: Ctrl+V is in the Global group (works everywhere); it lists Ctrl+Enter to save and Home / End and Space in menus", async ({ app }) => {
+test("Keyboard Shortcuts: Ctrl+V is in the Global group (works everywhere); it lists Ctrl+Enter to save, and the way into the menus from the keyboard", async ({ app }) => {
   await app.open();
   await focusStage(app);
   await app.page.keyboard.press("?");
   const groups = app.page.locator(".sheet-grid section");
   await expect(groups.first()).toContainText("从剪贴板添加");
   await expect(groups.nth(2)).not.toContainText("从剪贴板添加");
-  await expect(app.page.locator(".shortcut-row", { hasText: "保存正在填写的批注" })).toContainText("Ctrl Enter");
-  await expect(app.page.locator(".shortcut-row", { hasText: "打开菜单" })).toContainText("Home");
-  await expect(app.page.locator(".shortcut-row", { hasText: "打开菜单" })).toContainText("空格");
+  await expect(app.page.locator(".shortcut-row", { hasText: "保存批注" })).toContainText("Ctrl Enter");
+  await expect(app.page.locator(".shortcut-row", { hasText: "打开菜单" })).toContainText("也可先按 Alt 或 F10，再按字母");
 });
 
 test("the note box on a video: with focus outside the text box, a lone I / O sets the start / end, and inside the text box Alt+I / Alt+O do; a start later than the end clears the end, an end earlier than the start swaps them, and not moving the video shows a hint", async ({

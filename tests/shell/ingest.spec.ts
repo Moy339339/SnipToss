@@ -145,7 +145,7 @@ test("Opening a moved project from outside while the app runs (a second process 
   await shell.launch();
   await expect(row(shell, "project")).toContainText("找不到");
   expect(await shell.second([to])).toBe(0);
-  await expect(toast(shell)).toContainText(`已识别：「project」已移动到 ${to}`);
+  await expect(toast(shell)).toContainText(`「project」已移动到 ${to}，列表已更新`);
   await expect(row(shell, "hero.png")).toBeVisible();
 });
 

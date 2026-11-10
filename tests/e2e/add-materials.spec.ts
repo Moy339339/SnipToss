@@ -86,7 +86,7 @@ test("Dragging a file back and forth between the canvas and the library keeps th
     return d;
   });
   await app.page.dispatchEvent(".stage", "dragenter", { dataTransfer: dt });
-  await expect(overlay(app)).toContainText("松开以添加到列表");
+  await expect(overlay(app)).toContainText("松开鼠标，添加到列表");
   // Entering the new element comes before leaving the old one (the browser's order): the overlay must not vanish in between
   await app.page.dispatchEvent(".lib-list", "dragenter", { dataTransfer: dt });
   await app.page.dispatchEvent(".stage", "dragleave", { dataTransfer: dt });
@@ -128,7 +128,7 @@ test("Dropping an image that is already in the list adds no row, says it is alre
   await app.open();
   await row(app, "poster.jpg").click();
   await dropFiles(app, [HERO(app)]);
-  await expect(toast(app)).toContainText("该项已在列表中，已定位到它");
+  await expect(toast(app)).toContainText("已在列表中，已定位");
   await expect(app.page).toHaveTitle("hero.png");
   await expect(row(app, "hero.png")).toHaveCount(1);
 });
@@ -245,7 +245,7 @@ test("Opening a moved project from the context menu while the app is running say
   const to = moveProject(app);
   await app.open();
   app.host.openFromOutside([to]);
-  await expect(toast(app)).toContainText(`已识别：「project」已移动到 ${to}`);
+  await expect(toast(app)).toContainText(`「project」已移动到 ${to}，列表已更新`);
   expect(app.host.entries).toEqual([{ path: to, pinned: true }]);
   await expect(row(app, "hero.png")).toBeVisible();
 });
@@ -254,7 +254,7 @@ test("A moved project opened from outside while the UI is still loading (queued 
   const to = moveProject(app);
   app.host.openFromOutside([to], false);
   await app.open();
-  await expect(toast(app)).toContainText(`已识别：「project」已移动到 ${to}`);
+  await expect(toast(app)).toContainText(`「project」已移动到 ${to}，列表已更新`);
   await expect(app.page).toHaveTitle("hero.png");
 });
 

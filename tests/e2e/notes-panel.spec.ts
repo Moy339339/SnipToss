@@ -79,17 +79,17 @@ test("scope: Project by default; the first segment is labeled for this image and
 }) => {
   await app.open();
   await expect(app.page.locator(".scope-switch .seg.is-on")).toHaveText(/整个项目/);
-  await expect(seg(app, "这张图片").locator(".seg-count")).toHaveText("1");
+  await expect(seg(app, "当前图片").locator(".seg-count")).toHaveText("1");
   await expect(seg(app, "整个项目").locator(".seg-count")).toHaveText("2");
   await expect(card(app, "p0c7xe")).toBeVisible();
 
-  await seg(app, "这张图片").click();
-  await expect(seg(app, "这张图片")).toHaveClass(/is-on/);
+  await seg(app, "当前图片").click();
+  await expect(seg(app, "当前图片")).toHaveClass(/is-on/);
   await expect(card(app, "p0c7xe")).toHaveCount(0);
   await expect(card(app, "k3f9a2")).toBeVisible();
   await expect.poll(() => app.host.prefs?.panelScope).toBe("material");
   await app.page.reload();
-  await expect(seg(app, "这张图片")).toHaveClass(/is-on/);
+  await expect(seg(app, "当前图片")).toHaveClass(/is-on/);
   await expect(card(app, "k3f9a2")).toBeVisible();
   await expect(card(app, "p0c7xe")).toHaveCount(0);
 
@@ -105,7 +105,7 @@ test("scope: with an empty library both segments are disabled, and so are the me
   app.host.entries = [];
   await app.page.goto("https://app.sniptoss.example/index.html");
   await expect(seg(app, "整个项目")).toBeDisabled();
-  await expect(seg(app, "这个素材")).toBeDisabled();
+  await expect(seg(app, "当前素材")).toBeDisabled();
   await topMenu(app, "视图");
   await expect(checkItem(app, /批注栏：仅当前素材/)).toBeDisabled();
   await expect(checkItem(app, /批注栏：整个项目/)).toBeDisabled();
@@ -195,7 +195,7 @@ test("several items are listed in groups: the group title is the file name + sub
   await expect(clip).toHaveClass(/is-current/);
   await expect(hero).not.toHaveClass(/is-current/);
 
-  await seg(app, "这个视频").click();
+  await seg(app, "当前视频").click();
   await expect(groups).toHaveCount(0);
   await expect(card(app, "p0c7xe")).toBeVisible();
 });
@@ -216,7 +216,7 @@ test("folder comments are listed first under Project in a group of their own; Th
   await first.locator(".card-check").click();
   await expect(card(app, "fold01").locator(".card-check")).toHaveAttribute("aria-checked", "true");
 
-  await seg(app, "这张图片").click();
+  await seg(app, "当前图片").click();
   await expect(card(app, "fold01")).toHaveCount(0);
   const hint = app.page.locator(".folder-hint");
   await expect(hint).toContainText("所在文件夹的意见 1 条");
@@ -228,7 +228,7 @@ test("folder comments are listed first under Project in a group of their own; Th
   // Once the folder comment is resolved, This image no longer mentions it
   await cardMenu(app, "fold01", "标记为已改");
   await expect.poll(() => status(app, "assets@folder.json", "fold01")).toBe("resolved");
-  await seg(app, "这张图片").click();
+  await seg(app, "当前图片").click();
   await expect(hint).toHaveCount(0);
 });
 
@@ -255,7 +255,7 @@ test("empty states: no notes shows \"No notes yet\" plus how to draw; all resolv
   await open(app, "poster.jpg");
   const empty = app.page.locator(".panel-empty");
   await expect(empty).toContainText("暂无批注");
-  await expect(empty).toContainText("使用上方工具在画面上标记位置，或添加一条整体意见");
+  await expect(empty).toContainText("用上方的工具在画面上标出位置，或添加整体意见");
   await expect(app.page.locator(".panel-dock")).toHaveCount(0);
 
   await open(app, "hero.png");
@@ -298,7 +298,7 @@ test("card: number, category, the Overall section, the Done tag, replies, the vi
   await app.open();
   const k = card(app, "k3f9a2");
   await expect(k.locator(".card-num")).toHaveText("1");
-  await expect(k.locator(".card-num")).toHaveAttribute("title", "批注编号 k3f9a2（批注文件和命令行中用它指代此条）");
+  await expect(k.locator(".card-num")).toHaveAttribute("title", "批注编号 k3f9a2（用于批注文件和命令行）");
   await expect(k.locator(".chip")).toHaveText("修改");
   await expect(k.locator(".tag", { hasText: "整体意见" })).toHaveCount(0);
   // Overall comments form their own section, numbered from 1 with a gray square number; the section title says Overall so the card no longer does (ADR-0008)
@@ -355,13 +355,13 @@ test("right-clicking a card first selects it and switches to its item, then open
 test("the copy button on a card copies only that note and the toast says so; copying again says it was copied before", async ({ app }) => {
   await app.open();
   const k = card(app, "k3f9a2");
-  await clickAct(app, "k3f9a2", "将此条批注复制成文字");
-  await expect(toast(app)).toContainText("已复制此条批注（文字），可粘贴到 Claude Code 或 Codex 的对话中");
+  await clickAct(app, "k3f9a2", "将此批注复制成文字");
+  await expect(toast(app)).toContainText("已复制此条批注（文字），可粘贴到 Claude Code 或 Codex");
   const text = (await app.clipboard())!;
   expect(text).toContain(HERO);
   expect(text).not.toContain(CLIP);
   await expect(k.locator(".card-handed")).toBeVisible();
-  await clickAct(app, "k3f9a2", "将此条批注复制成文字");
+  await clickAct(app, "k3f9a2", "将此批注复制成文字");
   await expect(toast(app)).toContainText("此批注已于");
 });
 
@@ -470,7 +470,7 @@ test("when checks are cleared: on a scope change and on switching items in a sin
   await open(app, "clip.mp4");
   await expect(batchCount(app)).toHaveText("已选 1 条");
   // Scope change: cleared
-  await seg(app, "这个视频").click();
+  await seg(app, "当前视频").click();
   await expect(app.page.locator(".panel-batch")).toHaveCount(0);
   // Switching items in a single-item scope: cleared
   await card(app, "p0c7xe").locator(".card-check").click();
@@ -501,7 +501,7 @@ test("the Copy as Text button is disabled when there is nothing to copy (and so 
   app.host.prefs = { panelResolved: true };
   await app.open();
   const copy = app.page.locator(".dock-copy");
-  await expect(copy).toHaveAttribute("title", /^复制成文字（Ctrl Shift A）：.+。未勾选时复制这 2 个素材的全部 2 条待处理批注，勾选后仅复制勾选的批注$/);
+  await expect(copy).toHaveAttribute("title", "将 2 个素材的 2 条待处理批注复制成文字（Ctrl Shift A）。勾选后只复制勾选的");
   await app.page.locator(".dock-all").click();
   await app.page.locator(".panel-batch").getByRole("button", { name: /已改/ }).first().click();
   await expect.poll(() => status(app, "video__clip.mp4.json", "p0c7xe")).toBe("resolved");
@@ -520,7 +520,7 @@ test("the Copy as Text button is disabled when there is nothing to copy (and so 
 
   await card(app, "done01").locator(".card-check").click();
   await expect(copy).toBeEnabled();
-  await expect(copy).toHaveAttribute("title", /^复制成文字（Ctrl Shift A）：.+。复制勾选的 1 条$/);
+  await expect(copy).toHaveAttribute("title", "将勾选的 1 条批注复制成文字（Ctrl Shift A）");
   const width = (await copy.boundingBox())!.width;
   // After the fake clock is installed time still advances in real time (it can only be fast-forwarded): when the machine is busy a few hundred extra milliseconds pass between steps, so leave enough margin in the fast-forward amounts
   await app.page.clock.install();
@@ -546,7 +546,7 @@ test("what gets copied: with nothing checked, all listed open notes (done ones a
   await expect(card(app, "p0c7xe")).toBeVisible();
   await focusStage(app);
   await app.page.keyboard.press("Control+Shift+a");
-  await expect(toast(app)).toContainText("已复制 2 个素材的 2 条批注（文字），可粘贴到 Claude Code 或 Codex 的对话中");
+  await expect(toast(app)).toContainText("已复制 2 个素材的 2 条批注（文字），可粘贴到 Claude Code 或 Codex");
   let text = (await app.clipboard())!;
   expect(text).toContain(HERO);
   expect(text).toContain(CLIP);
@@ -554,10 +554,10 @@ test("what gets copied: with nothing checked, all listed open notes (done ones a
   // The notes in the fixtures predate the item file's modification time, but the item's content is unchanged (the fingerprint matches): they don't count as written on an earlier version (ADR-0008)
   expect(text).not.toContain("写在旧版本上");
 
-  await seg(app, "这张图片").click();
+  await seg(app, "当前图片").click();
   await focusStage(app);
   await app.page.keyboard.press("Control+Shift+a");
-  await expect(toast(app)).toContainText("已复制这张图片的 1 条批注");
+  await expect(toast(app)).toContainText("已复制当前图片的 1 条批注");
   text = (await app.clipboard())!;
   expect(text).toContain(HERO);
   expect(text).not.toContain(CLIP);
@@ -599,7 +599,7 @@ test("Copy as Text toast: everything listed in the notes panel is resolved", asy
   await expect.poll(() => status(app, "assets__hero.png.json", "k3f9a2")).toBe("resolved");
   await focusStage(app);
   await app.page.keyboard.press("Control+Shift+a");
-  await expect(toast(app)).toContainText("这张图片没有待处理的批注");
+  await expect(toast(app)).toContainText("当前图片没有待处理的批注");
   await seg(app, "整个项目").click();
   await cardMenu(app, "p0c7xe", "标记为已改");
   await expect.poll(() => status(app, "video__clip.mp4.json", "p0c7xe")).toBe("resolved");
@@ -641,7 +641,7 @@ test("[ ] step through the notes visible in the notes panel: the canvas follows 
   await app.page.keyboard.press("[");
   await expect(app.page).toHaveTitle("clip.mp4");
 
-  await seg(app, "这个视频").click();
+  await seg(app, "当前视频").click();
   await open(app, "poster.jpg");
   await topMenu(app, "批注");
   await expect(menuItem(app, /^上一条批注/)).toBeDisabled();
@@ -772,7 +772,7 @@ test("a project without notes yet: the bottom says that notes are saved automati
 test("toasts: only one at a time, a new one replaces the old; a toast without a button disappears after 3.2 seconds", async ({ app }) => {
   await app.open();
   await app.page.clock.install();
-  await clickAct(app, "k3f9a2", "将此条批注复制成文字");
+  await clickAct(app, "k3f9a2", "将此批注复制成文字");
   await expect(toast(app)).toContainText("已复制此条批注");
   await focusStage(app);
   await app.page.keyboard.press("Control+Shift+a");

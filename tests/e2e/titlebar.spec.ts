@@ -72,20 +72,17 @@ test("clicking Capture closes the button's tooltip immediately, and only then as
   expect(await app.page.evaluate(() => (window as unknown as { __tipAtCapture?: string }).__tipAtCapture)).toBe("0");
 });
 
-test("the Capture hover tooltip explains what it does, changes wording with the hide-this-window-while-capturing option, and mentions the shortcut only when there is one", async ({ app }) => {
+test("the Capture hover tooltip explains what it does and gives the shortcut only when there is one", async ({ app }) => {
   await app.open();
   const tip = app.page.locator(".tooltip.is-on");
   await capture(app).hover();
-  await expect(tip).toContainText("截图批注：框选屏幕任意区域，绘制标记并填写批注，完成后图片复制到剪贴板。");
-  await expect(tip).toContainText("截图前先隐藏本窗口（在右侧箭头菜单中更改）");
-  await expect(tip).toContainText("快捷键 Ctrl Alt A，在任何程序中均可使用");
+  await expect(tip).toHaveText("截图批注（Ctrl Alt A）：框选屏幕区域，画标记、写批注，完成后图片复制到剪贴板");
   await app.page.mouse.move(600, 500);
   app.host.capture.hideWindow = false;
   app.host.capture.hotkey = "";
   await app.open();
   await capture(app).hover();
-  await expect(tip).toContainText("截图时不隐藏本窗口（在右侧箭头菜单中更改）");
-  await expect(tip).not.toContainText("快捷键");
+  await expect(tip).toHaveText("截图批注：框选屏幕区域，画标记、写批注，完成后图片复制到剪贴板");
 });
 
 test("the small arrow opens on click and closes on another click or Esc; screen readers know it is a menu button and whether it is open; the menu holds a toggle, a separator and Settings, aligned to the arrow on the right", async ({ app }) => {
@@ -144,14 +141,13 @@ test("drop-down keyboard and focus: Tab to the small arrow and press Enter / Spa
   await expect(more(app)).toBeFocused();
 });
 
-test("Hide This Window While Capturing in the small arrow menu: one click saves it to settings, a toast explains it and the hover tooltip changes wording; when it can't be saved the toast reports why and the check mark doesn't change", async ({ app }) => {
+test("Hide This Window While Capturing in the small arrow menu: one click saves it to settings and a toast explains it; when it can't be saved the toast reports why and the check mark doesn't change", async ({ app }) => {
   await app.open();
   await more(app).click();
   await expect(hideItem(app)).toHaveAttribute("aria-checked", "true");
   await hideItem(app).click();
   await expect.poll(() => app.host.capture.hideWindow).toBe(false);
   await expect(toast(app)).toContainText("从本窗口启动截图批注时，不再隐藏本窗口");
-  await expect(capture(app)).toHaveAttribute("title", /截图时不隐藏本窗口/);
   app.host.failMethods.add("setCaptureSettings");
   await more(app).click();
   await hideItem(app).click();
@@ -428,7 +424,7 @@ test("the title bar in English: buttons, tips, menus and screen reader names are
   await expect(capture(app)).toHaveText("Capture");
   await expect(capture(app)).toHaveAttribute(
     "title",
-    "Screen capture: select any area of the screen, draw marks and write notes; the image is copied to the clipboard when you finish. Hides this window before capturing (change in the arrow menu). Shortcut Ctrl Alt A works in any app",
+    "Screen capture (Ctrl Alt A): select an area of the screen, draw marks and write notes; the image is copied to the clipboard when you finish",
   );
   await expect(more(app)).toHaveAttribute("title", "Capture options");
   await expect(winBtn(app, 0)).toHaveAttribute("aria-label", "Minimize");

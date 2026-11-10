@@ -52,7 +52,7 @@ test("a mark left without a word stays as a drawing: no number, saved under draw
   await expect(ghosts(app)).toHaveCount(1);
   await expect.poll(() => drawings(app).map((d) => d.shape.type)).toEqual(["path"]);
   expect(notesFile(app).annotations).toHaveLength(notes);
-  await expect(app.page.locator(".hint")).toContainText("未填写内容的标记保留为涂鸦");
+  await expect(app.page.locator(".hint")).toContainText("未写批注的标记留作涂鸦");
   await expect.poll(() => app.host.prefs?.onboarding).toContain("hint.drawing");
 
   // Esc (and Cancel) throw the mark away: nothing stays
@@ -83,7 +83,7 @@ test("a click on a drawing pops up the color row next to it: a color changes onl
   expect(notesFile(app).annotations[0].color).toBeUndefined();
 
   await app.page.mouse.click(...at(box, 0.1, 0.62));
-  await colorBar(app).getByRole("button", { name: "删除这个涂鸦" }).click();
+  await colorBar(app).getByRole("button", { name: "删除涂鸦" }).click();
   await expect(ghosts(app)).toHaveCount(0);
   await expect.poll(() => drawings(app)).toEqual([]);
   expect("drawings" in notesFile(app)).toBe(false);
