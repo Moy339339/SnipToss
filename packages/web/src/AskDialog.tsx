@@ -22,7 +22,7 @@ export type Ask =
    * Everything listed in the notes panel (right-click on blank space, Edit menu's "Delete All Notes…"); hidden = how many in scope are
    * not listed and not deleted
    */
-  | { kind: "deleteAll"; items: { a: Annotation; key: string }[]; hidden: number }
+  | { kind: "deleteAll"; items: { a: Annotation; key: string }[]; hidden: number; drawings: { key: string; count: number }[] }
   /** The item is gone (missing): its whole notes file is deleted */
   | { kind: "deleteMissing"; key: string }
   /**
@@ -43,7 +43,7 @@ export function AskDialog(props: {
     discardDraft: () => void;
     deleteMissing: (key: string) => void;
     deleteAnnotation: (a: Annotation, key: string) => void;
-    deleteMany: (items: { a: Annotation; key: string }[]) => void;
+    deleteMany: (items: { a: Annotation; key: string }[], drawingsOf?: string[]) => void;
     clearList: () => void;
     removeEntries: (entries: LibraryEntry[]) => void;
   };
@@ -135,8 +135,13 @@ export function AskDialog(props: {
     }
     if (q.kind === "deleteAll") {
       const materials = new Set(q.items.map((t) => t.key)).size;
+      // Drawings (marks left without a note) on an item that ends up with no notes go too; with no notes listed they are all there is
+      const drawings = q.drawings.reduce((n, d) => n + d.count, 0);
       return {
-        title: intl.formatMessage({ id: "ask.deleteAll.title" }, { count: q.items.length }),
+        title:
+          q.items.length === 0
+            ? intl.formatMessage({ id: "ask.deleteAll.drawingsOnly" }, { count: drawings })
+            : intl.formatMessage({ id: "ask.deleteAll.title" }, { count: q.items.length }),
         body: (
           <>
             {/* When only one is listed, say which one ("These 1 notes will be deleted" reads badly) */}
@@ -146,20 +151,31 @@ export function AskDialog(props: {
                 {intl.formatMessage({ id: "ask.delete.body" })}
               </>
             ) : (
-              intl.formatMessage({ id: "ask.deleteMany.body" }, { count: q.items.length, materials })
+              q.items.length > 1 && intl.formatMessage({ id: "ask.deleteMany.body" }, { count: q.items.length, materials })
+            )}
+            {q.items.length > 0 && drawings > 0 && (
+              <>
+                <br />
+                {intl.formatMessage({ id: "ask.deleteAll.drawings" }, { count: drawings })}
+              </>
             )}
             {q.hidden > 0 && (
               <>
-                <br />
+                {q.items.length > 0 && <br />}
                 {intl.formatMessage({ id: "ask.deleteAll.hidden" }, { count: q.hidden })}
               </>
             )}
-            <br />
+            {(q.items.length > 0 || q.hidden > 0) && <br />}
             {intl.formatMessage({ id: "ask.delete.undo" })}
           </>
         ),
         confirm: intl.formatMessage({ id: "ask.delete.confirm" }),
-        onConfirm: then(() => on.deleteMany(q.items)),
+        onConfirm: then(() =>
+          on.deleteMany(
+            q.items,
+            q.drawings.map((d) => d.key),
+          ),
+        ),
       };
     }
     if (q.kind === "clear") {

@@ -172,11 +172,11 @@ public class BridgePolicyTests
     public void Folder_settings_are_read_empty_when_absent_and_report_whether_REVIEW_exists()
     {
         using var dir = new TempDir();
-        Assert.Equal("{ text = , review = False }", Bridge.ReadProject(dir.Path).ToString());
+        Assert.Equal("{ text = , review = False, exists = False }", Bridge.ReadProject(dir.Path).ToString());
         Directory.CreateDirectory(dir.File(".sniptoss"));
         File.WriteAllText(dir.File(".sniptoss/project.json"), """{ "language": "en" }""");
         File.WriteAllText(dir.File(".sniptoss/REVIEW.md"), "# x");
-        Assert.Equal("""{ text = { "language": "en" }, review = True }""", Bridge.ReadProject(dir.Path).ToString());
+        Assert.Equal("""{ text = { "language": "en" }, review = True, exists = True }""", Bridge.ReadProject(dir.Path).ToString());
     }
 
     [Fact]

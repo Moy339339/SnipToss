@@ -221,7 +221,8 @@ test("the position on the video play bar and the number circle in Copy as Images
   await expect(card(app, "pt0001")).toBeVisible();
   await app.page.keyboard.press("Control+Shift+i");
   await expect.poll(() => app.host.copiedImages.length).toBe(1);
-  const byNumber = Object.fromEntries(app.host.copiedImages[0].filter((it) => it.number > 0).map((it) => [it.number, it.color]));
+  const handed = app.host.copiedImages[0].flatMap((p) => p.notes);
+  const byNumber = Object.fromEntries(handed.filter((it) => it.number > 0).map((it) => [it.number, it.color]));
   expect(byNumber).toEqual({ 1: "#ff6a3d", 2: "#5b8cff" });
 
   await app.page.locator(".lib-row", { hasText: "clip.mp4" }).first().click();

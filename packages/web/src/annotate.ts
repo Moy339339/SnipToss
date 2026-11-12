@@ -76,7 +76,7 @@ export async function renderSnapshot(
  * otherwise a dark icon would be invisible on the dark background of "Copy as Images".
  * The cell size follows the snapshot size, about 1/64 of the long side
  */
-function drawChecker(g: CanvasRenderingContext2D, w: number, h: number) {
+export function drawChecker(g: CanvasRenderingContext2D, w: number, h: number) {
   const cell = Math.max(8, Math.round(Math.max(w, h) / 64));
   g.fillStyle = "#fff";
   g.fillRect(0, 0, w, h);
@@ -133,7 +133,7 @@ export function timeLabelSpot(shapes: readonly Shape[], canvas: Size, label: Siz
  * drawn on a separate canvas, each rectangle is cut out of it, and the result is laid over the image
  * (several holes in one path would be painted dark again where two rectangles overlap, because of the even-odd rule)
  */
-function dimOutside(g: CanvasRenderingContext2D, shapes: readonly Shape[], w: number, h: number) {
+export function dimOutside(g: CanvasRenderingContext2D, shapes: readonly Shape[], w: number, h: number) {
   const rects = shapes.filter((s) => s.type === "rect");
   if (rects.length === 0) return;
   const shade = document.createElement("canvas");
@@ -146,7 +146,7 @@ function dimOutside(g: CanvasRenderingContext2D, shapes: readonly Shape[], w: nu
   g.drawImage(shade, 0, 0);
 }
 
-function drawShape(g: CanvasRenderingContext2D, s: Shape, w: number, h: number, line: number, color: string) {
+export function drawShape(g: CanvasRenderingContext2D, s: Shape, w: number, h: number, line: number, color: string) {
   g.strokeStyle = color;
   g.fillStyle = color;
   g.lineWidth = line;

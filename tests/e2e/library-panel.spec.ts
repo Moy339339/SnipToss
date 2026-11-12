@@ -392,6 +392,25 @@ test("Hover tooltips on project, folder and item rows show the full path", async
   }
 });
 
+test("While a context menu is open, a row outside it shows no tooltip (after a right-click the row's tooltip used to come up on top of the menu)", async ({
+  app,
+}) => {
+  app.host.expanded = [join(app.project, "assets")];
+  await app.open();
+  await row(app, "hero.png").click({ button: "right" });
+  await expect(app.page.locator(".menu")).toBeVisible();
+  const box = (await row(app, "project").boundingBox())!;
+  await app.page.mouse.move(box.x + 30, box.y + box.height / 2);
+  await app.page.mouse.move(box.x + 34, box.y + box.height / 2);
+  await app.page.waitForTimeout(900);
+  await expect(app.page.locator(".tooltip.is-on")).toHaveCount(0);
+  // Menu closed: tooltips work again
+  await app.page.keyboard.press("Escape");
+  await app.page.mouse.move(700, 450);
+  await row(app, "project").hover();
+  await expect(app.page.locator(".tooltip.is-on")).toBeVisible();
+});
+
 // ---------- Click, double-click, multi-select, marquee select ----------
 
 test("Clicking an item row selects only that row and opens it, and the shell records it as the last viewed", async ({ app }) => {

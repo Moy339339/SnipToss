@@ -54,8 +54,14 @@ Codex / Claude Code ◀──── read REVIEW.md and snapshots (the "Copy as T
 - **Two kinds of handoff, by destination** (when a copy holds both image and text, each program picks one: some chat apps take the image, some web-based AI take the text;
   people using web-based AI or chat apps cannot read local paths). Next to every Copy as Text entry there is also **Copy as Images** (`Ctrl+Shift+I`):
   - Copy as Text = plain text, for local Claude Code and Codex (they can read local files; as soon as the clipboard holds an image they take only the image, so no image can be mixed in);
-  - Copy as Images = one image per note (drawn by the shell, `app/HandoffImages.cs`: "project / file" on top + this note's snapshot + a notes area in the same style as Screen Capture, `NotesBlock`;
-    the font size scales with the image width so the text is still readable after an AI shrinks the image). With one image, the clipboard holds the image. With several, they are saved as image files (`%LOCALAPPDATA%\SnipToss\handoff`, kept for 7 days)
+  - Copy as Images = notes on the same frame share one image (an image item is one frame; a video has one frame per moment noted). The UI draws the frame from the item itself
+    with the marks of all its notes and each note's number next to its mark (`handoffFrames.ts`; the numbers never cover each other or another note's pin, `handoffBadges.ts`:
+    numbers that crowd each other are what an AI misreads), and the shell adds "project / file" on top and a notes area below in the same style as Screen Capture, one entry per number
+    (`app/HandoffImages.cs`, `NotesBlock`; the font size scales with the image width so the text is still readable after an AI shrinks the image).
+    Web-based AI takes about 10 images per message, so one copy makes at most 10 (Settings → Copying: 10 / 20 / no limit): with more frames than that, 2, 4, 6 or 9 frames share an image as a grid,
+    and a frame with more than 12 notes is repeated with the rest (`handoffPlan.ts`). Comments without marks are listed without a number on their frame's image (overall comments on the item's first image).
+    Notes written on an earlier version of the item, and notes whose item is gone, keep one image each from their stored snapshot; Settings can also switch everything back to one image per note.
+    With one image, the clipboard holds the image. With several, they are saved as image files (`%LOCALAPPDATA%\SnipToss\handoff`, kept for 7 days)
     and put on the clipboard as files, so a web page receives several at one paste (checked in Edge: the page receives that many `File` objects). Neither mixes in text: a browser drops the text when files are present,
     and when both image and text are present some web-based AI take only the text.
   - No "one big stitched long image": with many video notes the image gets too tall, and the text is unreadable once an AI shrinks it.

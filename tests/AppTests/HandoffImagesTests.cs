@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using SnipToss.App;
+using SnipToss.App.Capture;
 
 namespace AppTests;
 
@@ -29,8 +30,12 @@ public class HandoffImagesTests
         return path;
     }
 
-    static HandoffImages.Item Item(string? shot, string name = "hero.png 第1条", string body = "标题字太细了，换成粗一点的黑体") =>
-        new(shot, "示例项目 / assets/hero.png", 1, "change", "区域 画面左上（横 12%–52%、纵 8%–18%）", body, Orange, name);
+    static NoteEntry Note(int number = 1, string body = "标题字太细了，换成粗一点的黑体", string? group = null) =>
+        new(number, Orange, "change", "区域 画面左上（横 12%–52%、纵 8%–18%）", body, group);
+
+    /// <summary>A page with one note whose picture is a stored snapshot</summary>
+    static HandoffImages.Page Item(string? shot, string name = "hero.png 第1条", string body = "标题字太细了，换成粗一点的黑体") =>
+        new(null, shot, "示例项目 / assets/hero.png", [Note(body: body)], name);
 
     static Color Pixel(BitmapSource image, int x, int y)
     {
@@ -135,6 +140,121 @@ public class HandoffImagesTests
                 HandoffImages.Folder = old;
             }
         });
+    }
+
+    static int NotesHeight(HandoffImages.Page page, int pictureHeight, string? extra = null)
+    {
+        var titled = HandoffImages.Render(page, extra).Image.PixelHeight;
+        var bare = HandoffImages.Render(page with { Title = "" }, extra).Image.PixelHeight;
+        Assert.True(titled > bare, "An empty title still takes a header line");
+        return bare - pictureHeight;
+    }
+
+    [Fact]
+    public void A_picture_from_the_UI_is_used_as_is_and_wins_over_the_snapshot()
+    {
+        CaptureTests.OnSta(() =>
+        {
+            using var dir = new TempDir();
+            var blue = Color.FromRgb(0x20, 0x60, 0xc0);
+            var picture = File.ReadAllBytes(Shot(dir, "frame.png", 1000, 500, blue));
+            var page = new HandoffImages.Page(picture, Shot(dir, "old.png", 1400, 700, Colors.Gray), "示例项目 / assets/hero.png", [Note(1), Note(2)], "hero.png");
+            var (image, _) = HandoffImages.Render(page, null);
+            Assert.Equal(1000, image.PixelWidth);
+            Assert.Equal(blue, Pixel(image, 500, image.PixelHeight - NotesHeight(page, 500) - 250));
+            // Bytes that are not an image fall back to the snapshot
+            var broken = HandoffImages.Render(page with { Picture = [1, 2, 3] }, null).Image;
+            Assert.Equal(1400, broken.PixelWidth);
+        });
+    }
+
+    [Fact]
+    public void Several_notes_share_one_notes_area_and_go_into_two_columns_when_taller_than_the_picture()
+    {
+        CaptureTests.OnSta(() =>
+        {
+            using var dir = new TempDir();
+            var notes = Enumerable.Range(1, 8).Select(n => Note(n)).ToList();
+            HandoffImages.Page Of(int height) => new(File.ReadAllBytes(Shot(dir, $"p{height}.png", 1600, height, Colors.Gray)), null, "示例项目 / a.png", notes, "a.png");
+            var one = NotesHeight(Of(3000), 3000); // the picture is taller than the notes: one column
+            var two = NotesHeight(Of(300), 300);
+            Assert.True(one > NotesHeight(Of(3000) with { Notes = notes.Take(1).ToList() }, 3000) * 4, "Eight notes are not much taller than one");
+            Assert.True(two < one * 0.7, $"Notes beside a short picture ({two}) are as tall as in one column ({one}): not split into two columns");
+        });
+    }
+
+    [Fact]
+    public void Notes_of_several_items_get_the_items_name_as_a_heading_where_it_changes()
+    {
+        CaptureTests.OnSta(() =>
+        {
+            var entries = new[] { Note(1, group: "assets/a.png"), Note(2, group: "assets/a.png"), Note(1, group: "assets/b.png") };
+            var texts = NotesBlock.Build(entries, null, null, null, 1200, 1).Texts().ToList();
+            Assert.Equal(["assets/a.png", "assets/b.png"], texts.Where(t => t.StartsWith("assets/", StringComparison.Ordinal)));
+            Assert.Equal(0, texts.IndexOf("assets/a.png"));
+            Assert.Equal(5, texts.IndexOf("assets/b.png")); // after the two notes of a.png (a head line and a body each)
+            var plain = NotesBlock.Build(entries.Select(e => e with { Group = null }).ToList(), null, null, null, 1200, 1);
+            Assert.True(NotesBlock.Build(entries, null, null, null, 1200, 1).Height > plain.Height);
+            // In two columns, a group that continues in the right column is named again at its top
+            var many = Enumerable.Range(1, 8).Select(n => Note(n, group: "assets/a.png")).ToList();
+            var split = NotesBlock.Build(many, null, null, null, 1200, 1, imageHeight: 100);
+            Assert.True(split.TwoColumns);
+            Assert.Equal(2, split.Texts().Count(t => t == "assets/a.png"));
+        });
+    }
+
+    [Fact]
+    public void The_closing_paragraph_is_written_on_the_last_image_only()
+    {
+        CaptureTests.OnSta(() =>
+        {
+            using var dir = new TempDir();
+            var old = HandoffImages.Folder;
+            HandoffImages.Folder = Path.Combine(dir.Path, "handoff");
+            try
+            {
+                var page = Item(Shot(dir, "a.png", 800, 400, Colors.Gray));
+                const string Extra = "改完重新导出一版";
+                var (data, _) = HandoffImages.Prepare([page, page], Extra);
+                var files = (string[])data.GetData(DataFormats.FileDrop)!;
+                int Height(string file)
+                {
+                    using var fs = File.OpenRead(file);
+                    return BitmapFrame.Create(fs, BitmapCreateOptions.None, BitmapCacheOption.OnLoad).PixelHeight;
+                }
+                Assert.Equal(HandoffImages.Render(page, null).Image.PixelHeight, Height(files[0]));
+                Assert.Equal(HandoffImages.Render(page, Extra).Image.PixelHeight, Height(files[1]));
+                Assert.True(Height(files[1]) > Height(files[0]));
+            }
+            finally
+            {
+                HandoffImages.Folder = old;
+            }
+        });
+    }
+
+    [Fact]
+    public void Stashed_pictures_are_kept_for_one_batch_and_dropped_after_the_copy()
+    {
+        try
+        {
+            var a = HandoffImages.Stash("one", [1]);
+            var b = HandoffImages.Stash("one", [2]);
+            Assert.NotEqual(a, b);
+            Assert.Equal([1], HandoffImages.StashedPicture(a));
+            Assert.Equal([2], HandoffImages.StashedPicture(b));
+            // A new batch drops the pictures of the one before
+            var c = HandoffImages.Stash("two", [3]);
+            Assert.Null(HandoffImages.StashedPicture(a));
+            Assert.Equal([3], HandoffImages.StashedPicture(c));
+            HandoffImages.DropStash();
+            Assert.Null(HandoffImages.StashedPicture(c));
+            Assert.Null(HandoffImages.StashedPicture("unknown"));
+        }
+        finally
+        {
+            HandoffImages.DropStash();
+        }
     }
 
     [Fact]

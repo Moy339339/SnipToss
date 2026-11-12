@@ -498,6 +498,7 @@ export function WorkspaceView(props: {
     commit,
     earlierOf: versions.earlierOf,
     current,
+    byKey: library.byKey,
     grouped,
     openList,
     checkedList,
@@ -808,8 +809,27 @@ export function WorkspaceView(props: {
   };
 
   /** Delete everything the notes panel lists (asks first; items not listed are untouched, and the confirm dialog says how many) */
-  const deleteAllListed = () =>
-    listForNav.length > 0 && setAsk({ kind: "deleteAll", items: listForNav, hidden: allItems.length - listForNav.length });
+  /**
+   * Drawings that Delete All Notes… takes along: those of an item that ends up with no notes at all (of the items the listed notes are
+   * on, and the one on the canvas). A drawing has no number and is not listed, so it would otherwise stay behind after "everything" was deleted
+   */
+  const strayDrawings = () => {
+    const listed = new Map<string, Set<string>>();
+    for (const it of listForNav) listed.set(it.key, (listed.get(it.key) ?? new Set<string>()).add(it.a.id));
+    const keys = new Set(listed.keys());
+    if (current && selectedKey) keys.add(selectedKey);
+    return [...keys].flatMap((key) => {
+      const file = filesRef.current.get(key)?.file;
+      if (!file?.drawings?.length || file.annotations.some((a) => !listed.get(key)?.has(a.id))) return [];
+      return [{ key, count: file.drawings.length }];
+    });
+  };
+  const canDeleteAll = listForNav.length > 0 || strayDrawings().length > 0;
+  const deleteAllListed = () => {
+    const stray = strayDrawings();
+    if (listForNav.length === 0 && stray.length === 0) return;
+    setAsk({ kind: "deleteAll", items: listForNav, hidden: allItems.length - listForNav.length, drawings: stray });
+  };
   /** Right-click on blank space in the notes panel: copy, check, delete all, applying to what the panel lists right now (panelMenu in stageMenu.tsx) */
   const panelMenuItems = () =>
     panelMenu(intl, {
@@ -819,6 +839,7 @@ export function WorkspaceView(props: {
       copy: (mode) => void copyCurrent(mode),
       checkAll: () => setChecked(listForNav.map(itemId)),
       uncheckAll: () => setChecked([]),
+      canDeleteAll,
       deleteAll: deleteAllListed,
     });
   const onPanelContextMenu = (e: React.MouseEvent) => {
@@ -885,7 +906,7 @@ export function WorkspaceView(props: {
     selectedListed: !!selectedItem,
     editSelected: () => (selectedNoteItem ? editItem(selectedNoteItem) : selectedAnnotation && startEdit(selectedAnnotation)),
     deleteSelected: () => removeTargets(statusTargets),
-    listedCount: listForNav.length,
+    canDeleteAll,
     deleteAll: deleteAllListed,
     status: {
       count: statusTargets.length,
@@ -1431,7 +1452,10 @@ export function WorkspaceView(props: {
               discardDraft,
               deleteMissing: deleteMissingNotes,
               deleteAnnotation,
-              deleteMany: (items) => void deleteMany(items),
+              deleteMany: (items, drawingsOf) => {
+                if (drawingsOf?.length) setPicked(undefined);
+                void deleteMany(items, drawingsOf);
+              },
               clearList,
               removeEntries,
             }}

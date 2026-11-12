@@ -321,6 +321,8 @@ export function panelMenu(
     copy: (mode: HandoffMode) => void;
     checkAll: () => void;
     uncheckAll: () => void;
+    /** Something is listed, or the item on the canvas has only drawings left */
+    canDeleteAll: boolean;
     deleteAll: () => void;
   },
 ): (MenuItem | "-")[] {
@@ -358,7 +360,7 @@ export function panelMenu(
       hint: listed > 0 ? t("library.menu.copyCount", { materials: 1, count: listed }) : undefined,
       title: t("menu.edit.deleteAllTitle"),
       onClick: ctx.deleteAll,
-      disabled: listed === 0,
+      disabled: !ctx.canDeleteAll,
       danger: true,
     },
   ];

@@ -38,10 +38,28 @@ final class HandoffImagesTests: SnipTestCase {
         return path
     }
 
-    private func item(_ shot: String?, name: String = "hero.png 第1条", body: String = "标题字太细了，换成粗一点的黑体") -> HandoffImages.Item {
-        HandoffImages.Item(
-            snapshot: shot, title: "示例项目 / assets/hero.png", number: 1, category: "change", whereText: "区域 画面左上（横 12%–52%、纵 8%–18%）",
-            body: body, color: orange, name: name)
+    private func note(_ number: Int = 1, body: String = "标题字太细了，换成粗一点的黑体", group: String? = nil) -> NoteEntry {
+        NoteEntry(number: number, color: orange, category: "change", whereText: "区域 画面左上（横 12%–52%、纵 8%–18%）", body: body, group: group)
+    }
+
+    /// A page with one note whose picture is a stored snapshot
+    private func item(_ shot: String?, name: String = "hero.png 第1条", body: String = "标题字太细了，换成粗一点的黑体") -> HandoffImages.Page {
+        HandoffImages.Page(picture: nil, snapshot: shot, title: "示例项目 / assets/hero.png", notes: [note(body: body)], name: name)
+    }
+
+    /// The PNG bytes of a solid-color picture
+    private func pictureBytes(_ dir: String, _ name: String, _ w: Int, _ h: Int, _ color: MarkColor) throws -> Data {
+        try Data(contentsOf: URL(fileURLWithPath: shot(dir, name, w, h, color)))
+    }
+
+    /// The height of a page's notes area: with the title and without it, so that an empty title is seen to take no header line
+    private func notesHeight(_ page: HandoffImages.Page, pictureHeight: Int, extra: String? = nil) throws -> Int {
+        let titled = try HandoffImages.render(page, extra: extra).image.height
+        var untitled = page
+        untitled.title = ""
+        let bare = try HandoffImages.render(untitled, extra: extra).image.height
+        XCTAssertGreaterThan(titled, bare, "an empty title still takes a header line")
+        return bare - pictureHeight
     }
 
     /// The bytes of a picture, top row first
@@ -151,6 +169,92 @@ final class HandoffImagesTests: SnipTestCase {
         let drawn = try HandoffImages.render(item(nil), extra: nil)
         let rep = try XCTUnwrap(NSBitmapImageRep(data: drawn.png))
         XCTAssertEqual(rep.size, NSSize(width: rep.pixelsWide, height: rep.pixelsHigh))
+    }
+
+    // MARK: Pages of several notes
+
+    func testAPictureFromThePageIsUsedAsIsAndWinsOverTheSnapshot() throws {
+        let dir = makeTempDir()
+        let blue: [UInt8] = [0x20, 0x60, 0xc0]
+        let picture = try pictureBytes(dir, "frame.png", 1000, 500, MarkColor(r: 0x20, g: 0x60, b: 0xc0))
+        var page = HandoffImages.Page(
+            picture: picture, snapshot: shot(dir, "old.png", 1400, 700, MarkColor(hex: 0x808080)), title: "示例项目 / assets/hero.png",
+            notes: [note(1), note(2)], name: "hero.png")
+        let drawn = try HandoffImages.render(page, extra: nil)
+        XCTAssertEqual(drawn.image.width, 1000)
+        let y = try drawn.image.height - notesHeight(page, pictureHeight: 500) - 250
+        XCTAssertTrue(near(pixel(rgba(drawn.image), width: drawn.image.width, 500, y), blue), "the middle of the picture is the page's picture")
+        // Bytes that are not an image fall back to the snapshot
+        page.picture = Data([1, 2, 3])
+        XCTAssertEqual(try HandoffImages.render(page, extra: nil).image.width, 1400)
+    }
+
+    func testSeveralNotesShareOneNotesAreaAndGoIntoTwoColumnsWhenTallerThanThePicture() throws {
+        let dir = makeTempDir()
+        let notes = (1...8).map { note($0) }
+        func page(_ height: Int, _ notes: [NoteEntry]) throws -> HandoffImages.Page {
+            HandoffImages.Page(
+                picture: try pictureBytes(dir, "p\(height).png", 1600, height, MarkColor(hex: 0x808080)), snapshot: nil, title: "示例项目 / a.png",
+                notes: notes, name: "a.png")
+        }
+        // The picture is taller than the notes: one column
+        let one = try notesHeight(page(3000, notes), pictureHeight: 3000)
+        let two = try notesHeight(page(300, notes), pictureHeight: 300)
+        let single = try notesHeight(page(3000, Array(notes.prefix(1))), pictureHeight: 3000)
+        XCTAssertGreaterThan(one, single * 4, "eight notes (\(one)) are not much taller than one (\(single))")
+        XCTAssertLessThan(Double(two), Double(one) * 0.7, "notes beside a short picture (\(two)) are as tall as in one column (\(one)): not split into two columns")
+    }
+
+    func testNotesOfSeveralItemsGetTheItemsNameAsAHeadingWhereItChanges() {
+        let entries = [note(1, group: "assets/a.png"), note(2, group: "assets/a.png"), note(1, group: "assets/b.png")]
+        let grouped = NotesBlock.build(entries: entries, overall: nil, title: nil, extra: nil, imageWidth: 1200, s: 1)
+        let texts = grouped.texts()
+        XCTAssertEqual(texts.filter { $0.hasPrefix("assets/") }, ["assets/a.png", "assets/b.png"])
+        XCTAssertEqual(texts.firstIndex(of: "assets/a.png"), 0)
+        // After the two notes of a.png (a head line and a body each)
+        XCTAssertEqual(texts.firstIndex(of: "assets/b.png"), 5)
+        let plain = NotesBlock.build(
+            entries: entries.map { var e = $0; e.group = nil; return e }, overall: nil, title: nil, extra: nil, imageWidth: 1200, s: 1)
+        XCTAssertGreaterThan(grouped.height, plain.height)
+        // In two columns, a group that continues in the right column is named again at its top
+        let many = (1...8).map { note($0, group: "assets/a.png") }
+        let split = NotesBlock.build(entries: many, overall: nil, title: nil, extra: nil, imageWidth: 1200, s: 1, imageHeight: 100)
+        XCTAssertTrue(split.twoColumns)
+        XCTAssertEqual(split.texts().filter { $0 == "assets/a.png" }.count, 2)
+    }
+
+    func testTheClosingParagraphIsWrittenOnTheLastImageOnly() throws {
+        let dir = makeTempDir()
+        let page = item(shot(dir, "a.png", 800, 400, MarkColor(hex: 0x808080)))
+        let extra = "改完重新导出一版"
+        let prepared = try HandoffImages.prepare([page, page], extra: extra, folder: dir + "/handoff")
+        guard case .files(let files) = prepared.payload else { return XCTFail("two images are files") }
+        let heights = try files.map { try XCTUnwrap(pixelSize(of: Data(contentsOf: URL(fileURLWithPath: $0)))).height }
+        XCTAssertEqual(heights[0], try HandoffImages.render(page, extra: nil).image.height)
+        XCTAssertEqual(heights[1], try HandoffImages.render(page, extra: extra).image.height)
+        XCTAssertGreaterThan(heights[1], heights[0])
+    }
+
+    func testStashedPicturesAreKeptForOneBatchAndDroppedAfterTheCopy() {
+        let stash = HandoffStash()
+        let a = stash.stash(batch: "one", png: Data([1]))
+        let b = stash.stash(batch: "one", png: Data([2]))
+        XCTAssertNotEqual(a, b)
+        XCTAssertEqual(stash.picture(a), Data([1]))
+        XCTAssertEqual(stash.picture(b), Data([2]))
+        // A new batch drops the pictures of the one before
+        let c = stash.stash(batch: "two", png: Data([3]))
+        XCTAssertNil(stash.picture(a))
+        XCTAssertEqual(stash.picture(c), Data([3]))
+        // Done with a batch that is no longer kept: the current one stays
+        stash.drop(batches: ["one"])
+        XCTAssertEqual(stash.picture(c), Data([3]))
+        stash.drop(batches: ["one", "two"])
+        XCTAssertNil(stash.picture(c))
+        XCTAssertNil(stash.picture("unknown"))
+        XCTAssertEqual(HandoffStash.batch(of: "lq3x-ab12/7"), "lq3x-ab12")
+        XCTAssertEqual(HandoffStash.batch(of: "a/b/3"), "a/b")
+        XCTAssertEqual(HandoffStash.batch(of: "plain"), "plain")
     }
 
     func testALongTitleIsCutAtACharacterWithAnEllipsisAndAShortOneIsLeftAlone() {
@@ -289,14 +393,25 @@ final class HandoffImagesTests: SnipTestCase {
         return (home, homes)
     }
 
-    /// One entry of `items` as the page sends it
-    private func entry(_ home: String, snapshot: String? = nil, name: String = "a.png 第1条") -> [String: Any] {
-        var fields: [String: Any] = [
-            "home": home, "title": "项目 / a.png", "number": 1, "category": "change", "where": "区域 左上", "body": "改大一点", "color": "#ff6a3d",
+    /// One note of a page as the page sends it
+    private func noteFields(_ number: Int = 1) -> [String: Any] {
+        ["number": number, "category": "change", "where": "区域 左上", "body": "改大一点", "color": "#ff6a3d"]
+    }
+
+    /// One entry of `pages` as the page sends it
+    private func entry(
+        _ home: String, snapshot: String? = nil, image: String? = nil, name: String = "a.png 第1条", notes: [Any]? = nil
+    ) -> [String: Any] {
+        [
+            "title": "项目 / a.png", "image": image ?? NSNull(), "home": home, "snapshot": snapshot ?? NSNull(), "notes": notes ?? [noteFields()],
             "name": name,
         ]
-        if let snapshot { fields["snapshot"] = snapshot } else { fields["snapshot"] = NSNull() }
-        return fields
+    }
+
+    private func copyReply(_ params: Any?, _ homes: NotesHomes, stash: HandoffStash = HandoffStash(), _ clipboard: HandoffClipboard, folder: String)
+        throws -> [String: Any]
+    {
+        try copyImagesReply(params, homes: homes, stash: stash, clipboard: clipboard, folder: folder)
     }
 
     /// The parameters after the trip through JSON: numbers are NSNumber, null is NSNull
@@ -312,9 +427,9 @@ final class HandoffImagesTests: SnipTestCase {
         let (home, homes) = newHome()
         _ = shot(home + "/.sniptoss/snapshots", "s1.png", 1000, 500, MarkColor(hex: 0x808080))
         let clipboard = RecordingClipboard()
-        let params = try fromPage(["items": [entry(home, snapshot: ".sniptoss/snapshots/s1.png")], "extra": "请用中文回答"])
+        let params = try fromPage(["pages": [entry(home, snapshot: ".sniptoss/snapshots/s1.png")], "extra": "请用中文回答"])
 
-        let reply = try copyImagesReply(params, homes: homes, clipboard: clipboard, folder: makeTempDir() + "/handoff")
+        let reply = try copyReply(params, homes, clipboard, folder: makeTempDir() + "/handoff")
 
         XCTAssertTrue(JSONSerialization.isValidJSONObject(reply))
         XCTAssertEqual(reply["count"] as? Int, 1)
@@ -336,7 +451,7 @@ final class HandoffImagesTests: SnipTestCase {
             entry(home, snapshot: ".sniptoss/../outside.png"), entry(home, snapshot: "outside.png"), entry(home, snapshot: "/etc/hosts"),
             entry(stranger, snapshot: ".sniptoss/snapshots/s1.png"), entry(home, snapshot: ".sniptoss/snapshots/not-there.png"),
         ] {
-            let reply = try copyImagesReply(["items": [note]], homes: homes, clipboard: clipboard, folder: folder)
+            let reply = try copyReply(["pages": [note]], homes, clipboard, folder: folder)
             XCTAssertEqual(reply["count"] as? Int, 1)
         }
 
@@ -344,13 +459,13 @@ final class HandoffImagesTests: SnipTestCase {
         for image in clipboard.images { XCTAssertEqual(try XCTUnwrap(pixelSize(of: image.png)).width, 720) }
     }
 
-    func testSeveralNotesAreSavedUnderTheFolderAndTheReplyCountsThem() throws {
+    func testSeveralPagesAreSavedUnderTheFolderAndTheReplyCountsThem() throws {
         let (home, homes) = newHome()
         let clipboard = RecordingClipboard()
         let folder = makeTempDir() + "/handoff"
-        let params = try fromPage(["items": [entry(home, name: "a 1"), entry(home, name: "a 2"), entry(home, name: "a 3")], "extra": ""])
+        let params = try fromPage(["pages": [entry(home, name: "a 1"), entry(home, name: "a 2"), entry(home, name: "a 3")], "extra": ""])
 
-        let reply = try copyImagesReply(params, homes: homes, clipboard: clipboard, folder: folder)
+        let reply = try copyReply(params, homes, clipboard, folder: folder)
 
         XCTAssertEqual(reply["count"] as? Int, 3)
         XCTAssertEqual(clipboard.files.first?.count, 3)
@@ -359,30 +474,118 @@ final class HandoffImagesTests: SnipTestCase {
 
     func testAColorThatIsNotRRGGBBFallsBackToTheDefaultOrangeAndTheExtraIsOptional() throws {
         let (home, homes) = newHome()
-        var odd = entry(home)
+        var odd = noteFields()
         odd["color"] = "orange"
         let clipboard = RecordingClipboard()
         // No "extra" key at all
-        let reply = try copyImagesReply(["items": [odd]], homes: homes, clipboard: clipboard, folder: makeTempDir() + "/handoff")
+        let reply = try copyReply(["pages": [entry(home, notes: [odd])]], homes, clipboard, folder: makeTempDir() + "/handoff")
         XCTAssertEqual(reply["count"] as? Int, 1)
-        let plain = HandoffImages.Item(
-            snapshot: nil, title: "项目 / a.png", number: 1, category: "change", whereText: "区域 左上", body: "改大一点", color: orange, name: "a.png 第1条")
+        let plain = HandoffImages.Page(
+            picture: nil, snapshot: nil, title: "项目 / a.png",
+            notes: [NoteEntry(number: 1, color: orange, category: "change", whereText: "区域 左上", body: "改大一点")], name: "a.png 第1条")
         XCTAssertEqual(clipboard.images.first?.png, try HandoffImages.render(plain, extra: nil).png, "drawn as with the default orange")
+    }
+
+    func testAStashedPictureIsDrawnOnItsPageAndTheStashIsEmptiedAfterTheCopyWorkedOrNot() throws {
+        let (home, homes) = newHome()
+        _ = shot(home + "/.sniptoss/snapshots", "s1.png", 1400, 700, MarkColor(hex: 0x808080))
+        let stash = HandoffStash()
+        let clipboard = RecordingClipboard()
+        let folder = makeTempDir() + "/handoff"
+        let picture = try pictureBytes(makeTempDir(), "frame.png", 1000, 500, MarkColor(hex: 0x2060c0))
+        func stashed() throws -> String {
+            let reply = try stashImageReply(fromPage(["batch": "b1", "data": picture.base64EncodedString()]), stash: stash)
+            XCTAssertTrue(JSONSerialization.isValidJSONObject(reply))
+            return try XCTUnwrap(reply["id"] as? String)
+        }
+
+        let id = try stashed()
+        let page = entry(home, snapshot: ".sniptoss/snapshots/s1.png", image: id, notes: [noteFields(1), noteFields(2)])
+        let reply = try copyReply(fromPage(["pages": [page], "extra": ""]), homes, stash: stash, clipboard, folder: folder)
+        XCTAssertEqual(reply["count"] as? Int, 1)
+        XCTAssertEqual(try XCTUnwrap(pixelSize(of: XCTUnwrap(clipboard.images.first?.png))).width, 1000, "drawn on the stashed picture, not the snapshot")
+        XCTAssertNil(stash.picture(id), "let go after the copy")
+
+        // An id that is no longer stashed: the page falls back to its snapshot
+        _ = try copyReply(["pages": [page]], homes, stash: stash, clipboard, folder: folder)
+        XCTAssertEqual(try XCTUnwrap(pixelSize(of: XCTUnwrap(clipboard.images.last?.png))).width, 1400)
+
+        // A copy that fails lets go of the pictures too
+        let again = try stashed()
+        clipboard.fails = true
+        XCTAssertThrowsError(try copyReply(["pages": [entry(home, image: again)]], homes, stash: stash, clipboard, folder: folder))
+        XCTAssertNil(stash.picture(again))
+    }
+
+    func testACopyFinishingAfterTheNextOneStashedLeavesThoseNewerPicturesAlone() throws {
+        // Two copies in a row: the second has stashed its pictures before the first one is done
+        let (home, homes) = newHome()
+        let stash = HandoffStash()
+        let clipboard = RecordingClipboard()
+        let folder = makeTempDir() + "/handoff"
+        let picture = try pictureBytes(makeTempDir(), "frame.png", 1000, 500, MarkColor(hex: 0x2060c0))
+        let first = stash.stash(batch: "first", png: picture)
+        let second = stash.stash(batch: "second", png: picture)
+
+        _ = try copyReply(["pages": [entry(home, image: first)]], homes, stash: stash, clipboard, folder: folder)
+        XCTAssertEqual(stash.picture(second), picture, "the second copy still has its picture")
+
+        _ = try copyReply(["pages": [entry(home, image: second)]], homes, stash: stash, clipboard, folder: folder)
+        XCTAssertEqual(try XCTUnwrap(pixelSize(of: XCTUnwrap(clipboard.images.last?.png))).width, 1000, "drawn on its picture")
+        XCTAssertNil(stash.picture(second))
+    }
+
+    func testTheGroupOfANoteComesThroughTheBridge() throws {
+        // A heading above the notes of each item: the image grows by the heading's height
+        let (home, homes) = newHome()
+        let clipboard = RecordingClipboard()
+        let folder = makeTempDir() + "/handoff"
+        var grouped = noteFields(1)
+        grouped["group"] = "assets/a.png"
+        _ = try copyReply(try fromPage(["pages": [entry(home, notes: [noteFields(1)])]]), homes, clipboard, folder: folder)
+        _ = try copyReply(try fromPage(["pages": [entry(home, notes: [grouped])]]), homes, clipboard, folder: folder)
+        let heights = try clipboard.images.map { try XCTUnwrap(pixelSize(of: $0.png)).height }
+        XCTAssertEqual(heights.count, 2)
+        XCTAssertGreaterThan(heights[1], heights[0])
+        // The same page drawn directly with that group: the same picture
+        let direct = HandoffImages.Page(
+            picture: nil, snapshot: nil, title: "项目 / a.png",
+            notes: [NoteEntry(number: 1, color: orange, category: "change", whereText: "区域 左上", body: "改大一点", group: "assets/a.png")],
+            name: "a.png 第1条")
+        XCTAssertEqual(clipboard.images.last?.png, try HandoffImages.render(direct, extra: nil).png)
+    }
+
+    func testStashImageRefusesMissingOrInvalidData() {
+        let stash = HandoffStash()
+        let broken: [Any?] = [nil, ["batch": "b"], ["data": "AAAA"], ["batch": "b", "data": "not base64!"], ["batch": 1, "data": "AAAA"]]
+        for params in broken {
+            XCTAssertThrowsError(try stashImageReply(params, stash: stash), "\(String(describing: params))") { error in
+                XCTAssertNotNil(error as? BridgeError)
+            }
+        }
     }
 
     func testIncompleteParametersAreRefusedAndNothingIsPutOnTheClipboard() throws {
         let (home, homes) = newHome()
         let clipboard = RecordingClipboard()
         let folder = makeTempDir() + "/handoff"
-        var noBody = entry(home)
+        var noBody = noteFields()
         noBody["body"] = nil
-        var noNumber = entry(home)
+        var noNumber = noteFields()
         noNumber["number"] = nil
+        var noNotes = entry(home)
+        noNotes["notes"] = nil
+        var noTitle = entry(home)
+        noTitle["title"] = nil
+        var noName = entry(home)
+        noName["name"] = nil
         let broken: [Any?] = [
-            nil, [String: Any](), ["items": "x"], ["items": [noBody]], ["items": [noNumber]], ["items": ["x"]], ["items": [Any]()],
+            nil, [String: Any](), ["items": [entry(home)]], ["pages": "x"], ["pages": [entry(home, notes: [noBody])]],
+            ["pages": [entry(home, notes: [noNumber])]], ["pages": [entry(home, notes: ["x"])]], ["pages": [noNotes]], ["pages": [noTitle]],
+            ["pages": [noName]], ["pages": ["x"]], ["pages": [Any]()],
         ]
         for params in broken {
-            XCTAssertThrowsError(try copyImagesReply(params, homes: homes, clipboard: clipboard, folder: folder), "\(String(describing: params))") { error in
+            XCTAssertThrowsError(try copyReply(params, homes, clipboard, folder: folder), "\(String(describing: params))") { error in
                 XCTAssertNotNil(error as? BridgeError)
                 XCTAssertNil(code(of: error))
             }
@@ -396,8 +599,8 @@ final class HandoffImagesTests: SnipTestCase {
         let clipboard = RecordingClipboard()
         clipboard.fails = true
         let folder = makeTempDir() + "/handoff"
-        for items in [[entry(home)], [entry(home), entry(home, name: "b")]] {
-            XCTAssertThrowsError(try copyImagesReply(["items": items], homes: homes, clipboard: clipboard, folder: folder)) { error in
+        for pages in [[entry(home)], [entry(home), entry(home, name: "b")]] {
+            XCTAssertThrowsError(try copyReply(["pages": pages], homes, clipboard, folder: folder)) { error in
                 XCTAssertEqual(code(of: error), "clipboardBusy")
             }
         }
@@ -409,7 +612,7 @@ final class HandoffImagesTests: SnipTestCase {
         let blocked = makeTempDir() + "/not-a-folder"
         writeText("x", to: blocked)
         let clipboard = RecordingClipboard()
-        XCTAssertThrowsError(try copyImagesReply(["items": [entry(home), entry(home, name: "b")]], homes: homes, clipboard: clipboard, folder: blocked)) { error in
+        XCTAssertThrowsError(try copyReply(["pages": [entry(home), entry(home, name: "b")]], homes, clipboard, folder: blocked)) { error in
             XCTAssertEqual(code(of: error), "notFound")
         }
         XCTAssertEqual(clipboard.files.count, 0)

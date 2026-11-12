@@ -86,6 +86,9 @@ export function Tooltips() {
 
     const show = () => {
       if (!target?.isConnected) return hide();
+      // A menu is open: nothing outside it gets a tooltip. After a right-click the pointer still rests on what was clicked, and its tooltip
+      // would come up on top of the menu that just opened beside it
+      if (document.querySelector(".menu") && !target.closest(".menu")) return hide();
       const now = target.getAttribute("title");
       if (now !== null) {
         title = now;

@@ -175,7 +175,12 @@ interface Methods {
        * The raw text of .sniptoss/project.json (null if absent) and whether REVIEW.md exists: decides which language REVIEW.md is written
        * in (core's reviewLanguage)
        */
-      project: { text: string | null; review: boolean };
+      project: {
+        text: string | null;
+        review: boolean;
+        /** Whether there is a .sniptoss here at all (shells that don't remove empty ones don't say) */
+        exists?: boolean;
+      };
     }[],
   ];
   /** path is relative to the notes folder and can only fall inside .sniptoss/ */
@@ -197,6 +202,12 @@ interface Methods {
    * many were deleted (Bridge.PruneSnapshots)
    */
   pruneSnapshots: [{ home: string; keep: string[] }, number];
+  /**
+   * Remove this notes folder's .sniptoss if it holds no notes and no drawings (the shell checks the disk itself). Only files the app
+   * wrote are deleted: removed = the folder is gone; left = it holds other files and stays; kept = it holds notes, untouched; nothing =
+   * there was none. The snapshots are set aside and put back by the shell before the next write here (undo)
+   */
+  tidyHome: [{ home: string }, "removed" | "left" | "kept" | "nothing"];
   /**
    * SHA-256 of an item's absolute path (read-only). The shell caches computed values locally by path + size + modification time, so the
    * same file isn't read twice
@@ -223,11 +234,17 @@ interface Methods {
   /** Which of these items no longer exist (deleted, renamed, moved); returns those that are gone */
   missing: [{ paths: string[] }, string[]];
   /**
-   * Copy as Images (for web-based AI and chat apps, app/HandoffImages.cs): one image per note (title + snapshot + caption area), drawn by the
-   * shell and put on the clipboard. One image goes on the clipboard as an image; several are saved as image files and those are put there; no
-   * text is added in either case. snapshot is relative to the notes folder (.sniptoss/snapshots/x.png), or null if there is none
+   * Copy as Images (for web-based AI and chat apps, app/HandoffImages.cs): one image per page (title + picture + notes area), put together
+   * by the shell and put on the clipboard. One image goes on the clipboard as an image; several are saved as image files and those are put
+   * there; no text is added in either case. extra is written at the end of the last image
    */
-  copyImages: [{ items: HandoffImageItem[]; extra: string }, { count: number }];
+  copyImages: [{ pages: HandoffImagePage[]; extra: string }, { count: number }];
+  /**
+   * Hands the shell a picture the UI drew for Copy as Images (base64 PNG) and returns the id a page refers to it by. One call per picture,
+   * so no message carries more than one. The shell keeps the pictures of one batch only: a new batch id drops the earlier ones, and
+   * copyImages drops them once the images are on the clipboard
+   */
+  stashImage: [{ batch: string; data: string }, { id: string }];
   getPrefs: [void, Record<string, unknown> | null];
   setPrefs: [{ prefs: object }, void];
   /**
@@ -364,19 +381,29 @@ export interface AppInfo {
   userName: string;
 }
 
-/**
- * One Copy as Images entry: title is the top line (project / file), where is the position (without the category), name is the file name
- * when saved (without extension)
- */
-export interface HandoffImageItem {
-  home: string;
-  snapshot: string | null;
-  title: string;
+/** One note in the notes area of a Copy as Images page: where is the position (without the category) */
+export interface HandoffImageNote {
+  /** The number in the circle, matching the one on the picture; 0 = no circle (comments without marks, notes on earlier versions) */
   number: number;
   category: string;
   where: string;
   body: string;
   color: string;
+  /** On pages that mix items: which item this note belongs to; the notes area prints it as a heading where it changes */
+  group?: string;
+}
+
+/**
+ * One image of Copy as Images: title is the top line (project / file; empty = none), name is the file name when saved (without extension).
+ * The picture is either one the UI drew and stashed (image, the id from stashImage) or a note's stored snapshot (snapshot, relative to the
+ * notes folder home: .sniptoss/snapshots/x.png); with neither, the image is text only
+ */
+export interface HandoffImagePage {
+  title: string;
+  image: string | null;
+  home: string;
+  snapshot: string | null;
+  notes: HandoffImageNote[];
   name: string;
 }
 

@@ -1,6 +1,14 @@
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { useIntl } from "react-intl";
-import { removeAnnotation, shapesOf, upsertAnnotation, type Annotation, type AnnotationStatus, type Shape } from "@sniptoss/core";
+import {
+  removeAnnotation,
+  shapesOf,
+  upsertAnnotation,
+  withDrawings,
+  type Annotation,
+  type AnnotationStatus,
+  type Shape,
+} from "@sniptoss/core";
 import type { Ask } from "./AskDialog";
 import { folderKey, type AnnotationStore } from "./annotationStore";
 import { normalizePlaceColors, recolorPlace, sameColor, withoutPlaceColors } from "./markColors";
@@ -187,9 +195,13 @@ export function useAnnotationEdits(opts: {
     if (targets.length === 1) remove(targets[0].a, targets[0].key);
     else if (targets.length > 1) opts.ask({ kind: "deleteMany", items: targets });
   };
-  /** Delete several at once: written per notes file and combined into one undo step */
-  const deleteMany = async (targets: Target[]) => {
-    const byKey = new Map<string, string[]>();
+  /**
+   * Delete several at once: written per notes file and combined into one undo step. drawingsOf: items whose drawings go as well
+   * (Delete All Notes… clears an item that is left with no notes, so nothing unnumbered stays behind on it)
+   */
+  const deleteMany = async (targets: Target[], drawingsOf: string[] = []) => {
+    const byKey = new Map<string, string[]>(drawingsOf.map((key) => [key, []]));
+    const drawn = drawingsOf.reduce((n, key) => n + (filesRef.current.get(key)?.file.drawings?.length ?? 0), 0);
     for (const t of targets) byKey.set(t.key, [...(byKey.get(t.key) ?? []), t.a.id]);
     const saved = await Promise.all(
       [...byKey].map(([key, ids]) => {
@@ -197,17 +209,22 @@ export function useAnnotationEdits(opts: {
         if (!stored) return false;
         let next = stored.file;
         for (const id of ids) next = removeAnnotation(next, id);
+        if (drawingsOf.includes(key)) next = withDrawings(next, []);
         return commit(stored.home, next, { base: stored.file, record: false });
       }),
     );
     const op = recordTogether(saved);
     if (!op) return;
     const gone = new Set(targets.map((t) => `${t.key}|${t.a.id}`));
-    if (selectedKey && selectedId && gone.has(`${selectedKey}|${selectedId}`)) setSelectedId(undefined);
+    if (selectedKey && selectedId && (gone.has(`${selectedKey}|${selectedId}`) || drawingsOf.includes(selectedKey)))
+      setSelectedId(undefined);
     if (selectedNote && gone.has(selectedNote)) setSelectedNote(undefined);
     closeDraftOf(gone);
     opts.setChecked([]);
-    onNotify(intl.formatMessage({ id: "app.deleted.many" }, { count: targets.length }), {
+    const done = targets.length
+      ? intl.formatMessage({ id: "app.deleted.many" }, { count: targets.length })
+      : intl.formatMessage({ id: "app.deleted.drawings" }, { count: drawn });
+    onNotify(done, {
       label: intl.formatMessage({ id: "app.undo.action" }),
       run: () => void undo(op),
     });

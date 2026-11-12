@@ -692,6 +692,30 @@ function Ai() {
           placeholder={t("settings.ai.extraPlaceholder")}
         />
       </Row>
+      <Row label={t("settings.ai.images")} desc={t("settings.ai.imagesDesc")}>
+        <Choice
+          value={prefs.copyImages}
+          options={[
+            { value: "merged", label: t("settings.ai.images.merged") },
+            { value: "each", label: t("settings.ai.images.each") },
+          ]}
+          onChange={(v) => setPrefs({ copyImages: v })}
+        />
+      </Row>
+      {/* The limit only matters when frames can share an image */}
+      {prefs.copyImages === "merged" && (
+        <Row label={t("settings.ai.imagesMax")} desc={t("settings.ai.imagesMaxDesc")}>
+          <Choice
+            value={prefs.copyImagesMax}
+            options={[
+              { value: 10, label: "10" },
+              { value: 20, label: "20" },
+              { value: 0, label: t("settings.ai.imagesMax.none") },
+            ]}
+            onChange={(v) => setPrefs({ copyImagesMax: v })}
+          />
+        </Row>
+      )}
     </>
   );
 }

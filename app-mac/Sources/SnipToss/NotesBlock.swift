@@ -1,12 +1,15 @@
 import AppKit
 
-/// One note in the notes area: number (0 = no number circle, used for the overall comment), circle color, category, position, original text
+/// One note in the notes area: number (0 = no number circle, used for the overall comment), circle color, category, position, original text.
+/// `group`: which item the note belongs to, on an image that shows several items (Copy as Images); printed as a heading above the first
+/// note of each run of the same group
 struct NoteEntry {
     let number: Int
     let color: MarkColor
     let category: String
     let whereText: String
     let body: String
+    var group: String? = nil
 }
 
 /// The notes area below a screenshot: number circle + a "category · position" line (the category in its color) + the original text, wrapped
@@ -22,6 +25,8 @@ final class NotesBlock {
         let bodyHeight: CGFloat
         /// The width the text wraps at
         let width: CGFloat
+        /// The heading of the note's group (the item's name), above it; nil when the note does not start a run of its group
+        let group: Para?
     }
 
     private struct Para {
@@ -34,6 +39,8 @@ final class NotesBlock {
     static let minWidth = 420
     /// The gap between two columns
     private static let gutter: CGFloat = 24
+    /// The space between a group's heading and its first note
+    private static let groupGap: CGFloat = 6
 
     private let items: [Item]
     private let overall: Item?
@@ -68,6 +75,7 @@ final class NotesBlock {
         var all: [String] = []
         if let title { all.append(title.text.string) }
         for i in items + (overall.map { [$0] } ?? []) {
+            if let group = i.group { all.append(group.text.string) }
             all.append(i.head.string)
             all.append(i.body.string)
         }
@@ -125,12 +133,27 @@ final class NotesBlock {
             text.addAttributes([.foregroundColor: Categories.color(category).nsColor, .font: OverlayStyle.font(12 * s, weight: .semibold)], range: labelRange)
             return laid(text, textWidth, 12)
         }
-        func item(_ e: NoteEntry, _ columnWidth: CGFloat) -> Item {
+        // The heading of a group: the item's name, as wide as the column
+        func groupHead(_ group: String, _ columnWidth: CGFloat) -> Para {
+            laid(
+                NSAttributedString(
+                    string: KeepWords.of(group), attributes: [.font: OverlayStyle.font(12 * s, weight: .semibold), .foregroundColor: light]),
+                columnWidth, 12)
+        }
+        func item(_ e: NoteEntry, _ columnWidth: CGFloat, heading: Bool = false) -> Item {
             let h = head(e.category, e.whereText, columnWidth - 28 * s)
             let b = para(e.body, columnWidth - 28 * s, light, 14)
-            return Item(number: e.number, color: e.color, head: h.text, headHeight: h.height, body: b.text, bodyHeight: b.height, width: h.width)
+            return Item(
+                number: e.number, color: e.color, head: h.text, headHeight: h.height, body: b.text, bodyHeight: b.height, width: h.width,
+                group: heading ? e.group.map { groupHead($0, columnWidth) } : nil)
         }
-        func itemHeight(_ i: Item) -> CGFloat { i.headHeight + 2 * s + i.bodyHeight + 12 * s }
+        // A heading goes above the first note of each run of the same group
+        func items(_ columnWidth: CGFloat) -> [Item] {
+            entries.enumerated().map { i, e in item(e, columnWidth, heading: i == 0 || entries[i - 1].group != e.group) }
+        }
+        func itemHeight(_ i: Item) -> CGFloat {
+            (i.group.map { $0.height + groupGap * s } ?? 0) + i.headHeight + 2 * s + i.bodyHeight + 12 * s
+        }
 
         let headPara = title.map { para(KeepWords.of($0), CGFloat(width) - pad * 2, muted, 12) }
         let tail = extra.flatMap { $0.trimmedBothEnds.isEmpty ? nil : para($0.trimmedBothEnds, CGFloat(width) - pad * 2, light, 14) }
@@ -139,16 +162,16 @@ final class NotesBlock {
         // One column first; when that is taller than the screenshot, the picture fits two columns (each a bit over half the narrowest notes
         // area) and there is more than one note: two columns as even in height as they can be
         let one = CGFloat(width) - pad * 2
-        var list = entries.map { item($0, one) }
+        var list = items(one)
         var over = overall.map { item($0, one) }
         var total = fixedHeight + list.reduce(0) { $0 + itemHeight($1) } + (over.map(itemHeight) ?? 0)
         var split = list.count
         var columnWidth = one
         let half = (one - gutter * s) / 2
         if total > CGFloat(imageHeight) && list.count > 1 && half >= CGFloat(minWidth) * s * 0.6 {
-            list = entries.map { item($0, half) }
+            list = items(half)
             over = overall.map { item($0, one) }
-            let heights = list.map(itemHeight)
+            var heights = list.map(itemHeight)
             let sum = heights.reduce(0, +)
             // Fill the left column until it passes half (numbers read down the left column, then the right)
             var left: CGFloat = 0
@@ -158,6 +181,11 @@ final class NotesBlock {
                 split += 1
             }
             split = max(1, split)
+            // A group that continues at the top of the right column gets its heading again
+            if list[split].group == nil && entries[split].group != nil {
+                list[split] = item(entries[split], half, heading: true)
+                heights[split] = itemHeight(list[split])
+            }
             let columns = max(heights[..<split].reduce(0, +), heights[split...].reduce(0, +))
             total = fixedHeight + columns + (over.map(itemHeight) ?? 0)
             columnWidth = half
@@ -187,6 +215,10 @@ final class NotesBlock {
             // Two columns: the right one starts at `split`, back at the top
             if i == split && twoColumns { y = top }
             let x = i < split ? pad : pad + columnWidth + NotesBlock.gutter * s
+            if let group = item.group {
+                draw(group.text, at: CGPoint(x: x, y: y), width: group.width, height: group.height, in: context)
+                y += group.height + NotesBlock.groupGap * s
+            }
             if item.number > 0 {
                 MarkPainter.drawBadge(item.number, color: item.color, center: CGPoint(x: x + 10 * s, y: y + item.headHeight / 2), radius: 10 * s, in: context)
             }

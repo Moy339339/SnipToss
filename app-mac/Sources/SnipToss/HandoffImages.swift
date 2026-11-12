@@ -2,25 +2,25 @@ import AppKit
 import ImageIO
 
 /// The main app's "Copy as Images" (for people using web-based AI or chat apps: those can't read local paths, they need images).
-/// One image per note: a header line "project / file" on top, the note's snapshot in the middle (the one in .sniptoss/snapshots, marks
-/// already drawn), and below it a notes area in the same style as Screen Capture (`NotesBlock`). Items without a snapshot (folder comments,
-/// snapshot not generated) have only the two text blocks. The same layout as the Windows shell's (app/HandoffImages.cs)
+/// One image per page: a header line "project / file" on top, the picture in the middle, and below it a notes area in the same style as
+/// Screen Capture (`NotesBlock`), one entry per note. The picture is drawn by the page (the frame with the marks of all its notes and their
+/// numbers, or several frames in a grid; stashed before the copy, see `HandoffStash`), or it is a note's stored snapshot (the one in
+/// .sniptoss/snapshots, marks already drawn). Pages without a picture (folder comments, snapshot not generated) have only the two text
+/// blocks. The same layout as the Windows shell's (app/HandoffImages.cs)
 ///
 /// Clipboard: one image goes on as an image (PNG and TIFF), so pasting anywhere gives that image; several are saved as image files and put
 /// on the clipboard as a list of files (as if several files were copied in Finder), so a browser can take several at once, and chat apps
 /// accept files too. Neither carries text: when both image and text are present, each program picks one on its own (some web-based AI
 /// pages pick the text and the image is lost; browsers simply drop the text when files are present)
 enum HandoffImages {
-    /// One note. `snapshot` is the full path of the snapshot (nil if none); `name` is the file name when saved as a file (no extension)
-    struct Item {
-        let snapshot: String?
-        let title: String
-        let number: Int
-        let category: String
-        let whereText: String
-        let body: String
-        let color: MarkColor
-        let name: String
+    /// One image. `picture` is the PNG of a stashed picture (nil if none); `snapshot` the full path of a stored snapshot (nil if none; used
+    /// when there is no picture); `title` is the header line (empty = none); `name` is the file name when saved as a file (no extension)
+    struct Page {
+        var picture: Data?
+        var snapshot: String?
+        var title: String
+        var notes: [NoteEntry]
+        var name: String
     }
 
     /// A drawn image: as pixels, and as the PNG that is put on the clipboard or saved
@@ -59,8 +59,8 @@ enum HandoffImages {
 
     /// Draws the images and puts them on the clipboard; returns how many.
     /// - Parameter folder: where several images are saved (the files in it are what goes on the clipboard); tests pass a temporary one
-    static func copy(_ items: [Item], extra: String?, clipboard: HandoffClipboard, folder: String, now: Date = Date()) throws -> Int {
-        let (payload, count) = try prepare(items, extra: extra, folder: folder, now: now)
+    static func copy(_ pages: [Page], extra: String?, clipboard: HandoffClipboard, folder: String, now: Date = Date()) throws -> Int {
+        let (payload, count) = try prepare(pages, extra: extra, folder: folder, now: now)
         switch payload {
         case .image(let png, let tiff): try clipboard.putImage(png: png, tiff: tiff)
         case .files(let paths): try clipboard.putFiles(paths)
@@ -68,11 +68,12 @@ enum HandoffImages {
         return count
     }
 
-    /// What goes on the clipboard. Split out so tests can look at it without a clipboard
-    static func prepare(_ items: [Item], extra: String?, folder: String, now: Date = Date()) throws -> (payload: Payload, count: Int) {
-        if items.isEmpty { throw Failure.nothingToCopy }
-        if items.count == 1 {
-            let one = try render(items[0], extra: extra)
+    /// What goes on the clipboard. Split out so tests can look at it without a clipboard. The closing paragraph ("Extra instructions") is
+    /// said once, at the end of the last image
+    static func prepare(_ pages: [Page], extra: String?, folder: String, now: Date = Date()) throws -> (payload: Payload, count: Int) {
+        if pages.isEmpty { throw Failure.nothingToCopy }
+        if pages.count == 1 {
+            let one = try render(pages[0], extra: extra)
             let rep = NSBitmapImageRep(cgImage: one.image)
             // One pixel a point, as the PNG says: pasted, the image is laid out at its pixel size
             rep.size = NSSize(width: one.image.width, height: one.image.height)
@@ -82,10 +83,10 @@ enum HandoffImages {
         let dir = try freshFolder(in: folder, now: now)
         var paths: [String] = []
         do {
-            // One image at a time, written at once: dozens of notes are never all in memory
-            for (k, item) in items.enumerated() {
-                let drawn = try render(item, extra: extra)
-                let path = dir + "/" + fileName(k + 1, item.name)
+            // One image at a time, written at once: dozens of images are never all in memory
+            for (k, page) in pages.enumerated() {
+                let drawn = try render(page, extra: k == pages.count - 1 ? extra : nil)
+                let path = dir + "/" + fileName(k + 1, page.name)
                 try AtomicFile.write(path, drawn.png)
                 paths.append(path)
             }
@@ -93,23 +94,24 @@ enum HandoffImages {
             try? FileManager.default.removeItem(atPath: dir)
             throw error
         }
-        return (.files(paths), items.count)
+        return (.files(paths), pages.count)
     }
 
-    /// One image: title, snapshot, notes area. Font sizes scale with the image width (1x up to 800 wide, at most 2.5x): AI shrinks large
-    /// images, and small text becomes unreadable
-    static func render(_ item: Item, extra: String?) throws -> Rendered {
-        let shot = loadSnapshot(item.snapshot)
+    /// One image: title, picture, notes area. Font sizes scale with the image width (1x up to 800 wide, at most 2.5x): AI shrinks large
+    /// images, and small text becomes unreadable. When the notes in one column are taller than the picture and the image is wide enough,
+    /// they are laid out in two columns (several notes on one image must not make it endlessly tall)
+    static func render(_ page: Page, extra: String?) throws -> Rendered {
+        let shot = decode(page.picture) ?? loadSnapshot(page.snapshot)
         var width = max(shot?.width ?? 0, minWidth)
         let s = min(max(CGFloat(width) / 800, 1), 2.5)
-        let entry = NoteEntry(number: item.number, color: item.color, category: item.category, whereText: item.whereText, body: item.body)
-        let notes = NotesBlock.build(entries: [entry], overall: nil, title: nil, extra: extra, imageWidth: width, s: s)
+        let shotHeight = shot?.height ?? 0
+        let notes = NotesBlock.build(
+            entries: page.notes, overall: nil, title: nil, extra: extra, imageWidth: width, s: s, imageHeight: shot == nil ? .max : shotHeight)
         width = max(width, notes.width)
 
         let pad = 14 * s
-        let title = titleLine(item.title, size: 13 * s, maxWidth: max(40, CGFloat(width) - pad * 2))
-        let headHeight = Int(ceil(title.size().height + pad * 2))
-        let shotHeight = shot?.height ?? 0
+        let title = page.title.isEmpty ? nil : titleLine(page.title, size: 13 * s, maxWidth: max(40, CGFloat(width) - pad * 2))
+        let headHeight = title.map { Int(ceil($0.size().height + pad * 2)) } ?? 0
         let height = headHeight + shotHeight + notes.height
 
         guard
@@ -122,8 +124,8 @@ enum HandoffImages {
         context.scaleBy(x: 1, y: -1)
         context.setFillColor(background.cgColor)
         context.fill(CGRect(x: 0, y: 0, width: width, height: height))
-        MarkPainter.withAppKit(context) { title.draw(at: CGPoint(x: pad, y: pad)) }
-        // The snapshot by pixels (the resolution recorded in the file is not used), centered
+        if let title { MarkPainter.withAppKit(context) { title.draw(at: CGPoint(x: pad, y: pad)) } }
+        // The picture by pixels (the resolution recorded in the file is not used), centered
         if let shot {
             MarkPainter.drawPicture(
                 shot, in: CGRect(x: (width - shot.width) / 2, y: headHeight, width: shot.width, height: shot.height), context: context)
@@ -155,7 +157,20 @@ enum HandoffImages {
         return made(String(chars[..<low]).trimmedEnd + "…")
     }
 
-    /// Reads the snapshot; absent or unreadable counts as none (this item is text only). The file is read whole, so an agent writing in
+    /// The picture the page drew (PNG bytes); nil if there is none or it cannot be decoded (the page then falls back to its snapshot, or to
+    /// text only)
+    private static func decode(_ png: Data?) -> CGImage? {
+        guard let png else { return nil }
+        guard let source = CGImageSourceCreateWithData(png as CFData, nil), CGImageSourceGetCount(source) > 0,
+            let image = CGImageSourceCreateImageAtIndex(source, 0, nil), image.width > 0, image.height > 0
+        else {
+            Log.info("Copy as images: the picture from the UI cannot be decoded")
+            return nil
+        }
+        return image
+    }
+
+    /// Reads the snapshot; absent or unreadable counts as none (this page is text only). The file is read whole, so an agent writing in
     /// .sniptoss at the same time cannot make the picture come out torn
     private static func loadSnapshot(_ path: String?) -> CGImage? {
         guard let path, FileManager.default.fileExists(atPath: path) else { return nil }
@@ -220,6 +235,51 @@ enum HandoffImages {
             else { continue }
             try? FileManager.default.removeItem(atPath: path)
         }
+    }
+}
+
+/// The pictures the page handed over for the Copy as Images in progress (`stashImage`; one picture a call, so no message carries more than
+/// one). One batch at a time: a new batch id drops the earlier pictures, and `copyImages` drops the batch its pages name when it is done,
+/// whether it worked or not (a retry stashes them again). Only that batch: when a second copy has already stashed its own pictures, the
+/// first one finishing must not take them away. Safe from any thread: bridge methods run on a concurrent queue
+final class HandoffStash {
+    private let lock = NSLock()
+    private var pictures: [String: Data] = [:]
+    private var batch: String?
+
+    /// Keeps a picture until the copy that uses it; returns the id a page refers to it by
+    func stash(batch: String, png: Data) -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        if self.batch != batch {
+            pictures.removeAll()
+            self.batch = batch
+        }
+        let id = "\(batch)/\(pictures.count + 1)"
+        pictures[id] = png
+        return id
+    }
+
+    /// The stashed picture with this id; nil when it is unknown (dropped by a newer batch, or after the copy)
+    func picture(_ id: String) -> Data? {
+        lock.lock()
+        defer { lock.unlock() }
+        return pictures[id]
+    }
+
+    /// A copy is done (or failed for good): let go of the pictures, if they are of one of these batches
+    func drop(batches: Set<String>) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let batch, batches.contains(batch) else { return }
+        pictures.removeAll()
+        self.batch = nil
+    }
+
+    /// The batch a picture id belongs to: what comes before its last "/" (ids are "<batch>/<n>")
+    static func batch(of id: String) -> String {
+        guard let slash = id.lastIndex(of: "/") else { return id }
+        return String(id[..<slash])
     }
 }
 

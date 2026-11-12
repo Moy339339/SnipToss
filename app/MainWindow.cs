@@ -98,6 +98,7 @@ sealed partial class MainWindow : Window
         };
         // Moved to another screen, or scaling changed: the minimum size follows that screen (so that maximize and full screen don't extend past a screen smaller than it)
         DpiChanged += (_, _) => WindowPlacement.FitMinSize(this);
+        HomeTidy.DropStashes(); // what a run that didn't close normally left behind
         Loaded += async (_, _) => await InitWebViewAsync();
         Closing += (_, e) =>
         {

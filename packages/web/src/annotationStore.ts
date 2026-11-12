@@ -277,7 +277,7 @@ export function useAnnotationStore(opts: {
   // ---------- Reading notes: the notes folders used by the library, each read when it first appears ----------
   const loadedHomes = useRef(new Set<string>());
   /** The raw project.json of each notes folder and whether REVIEW.md exists (read in by readHomes): decides which language REVIEW.md is written in */
-  const projects = useRef(new Map<string, { text: string | null; review: boolean }>());
+  const projects = useRef(new Map<string, { text: string | null; review: boolean; exists?: boolean }>());
   /**
    * Notes folders that finished reading (failed reads count too: nobody waits for them); homesRead goes up by one per finished batch
    * (locating "the first item with open notes" has to wait for the notes to be read in)
@@ -315,7 +315,12 @@ export function useAnnotationStore(opts: {
         filesRef.current = next;
         setFiles(next);
         markRead(fresh);
-        for (const { home } of results) pruneSnapshots(home);
+        for (const { home, project } of results) {
+          // Read in and holding nothing (emptied by an earlier version, or by hand): the folder goes; otherwise only unused snapshots do
+          if (project.exists && homeIsEmpty(home))
+            void writeReview(home).catch((e: unknown) => logError("removing an empty notes folder", e, "warn"));
+          else pruneSnapshots(home);
+        }
       })
       .catch((e: Error) => {
         // Record it as "not read" so it is read again when the list changes next (F5 refresh); a single failed read used to mean the
@@ -366,8 +371,40 @@ export function useAnnotationStore(opts: {
     return translatorFor(language);
   };
 
+  /** Nothing left in this notes folder: no notes, no drawings, no unreadable file (whose content is unknown). Only once it has been read in */
+  const homeIsEmpty = (home: string) =>
+    readHomes.current.has(keyOf(home)) &&
+    !badFiles.current.get(keyOf(home))?.size &&
+    homeFiles(home).every((f) => f.annotations.length === 0 && !f.drawings?.length);
+
+  /**
+   * The last note of a notes folder is gone: instead of leaving an empty REVIEW.md and empty notes files behind, the shell removes its
+   * .sniptoss (only what the app wrote; it checks the disk itself). Undo still works: the shell sets the snapshots aside and puts them
+   * back before the next write here. Returns false if the shell can't do it (an older shell): REVIEW.md is then written as before
+   */
+  const tidyHome = async (home: string) => {
+    const known = [...filesRef.current]
+      .filter(([, s]) => keyOf(s.home) === keyOf(home))
+      .map(([key]) => [key, onDisk.current.get(key)] as const);
+    let result: "removed" | "left" | "kept" | "nothing";
+    try {
+      result = await call("tidyHome", { home });
+    } catch (e) {
+      logError("removing an empty notes folder", e, "warn");
+      return false;
+    }
+    if (result === "removed" || result === "left") {
+      // What the folder recorded is gone with it: the REVIEW.md language is decided anew next time, and the notes files no longer exist
+      // (unless a write got in meanwhile and already says otherwise)
+      projects.current.set(keyOf(home), { text: null, review: false, exists: result === "left" });
+      for (const [key, text] of known) if (text && onDisk.current.get(key) === text) knowDisk(key, null);
+    }
+    return true;
+  };
+
   // REVIEW.md is the entry point handed to AI (the text from "Copy for AI" points at it) and is rewritten on every note change
   const writeReviewNow = async (home: string) => {
+    if (homeIsEmpty(home) && (await tidyHome(home))) return;
     const all = homeFiles(home).filter((f) => f.annotations.length > 0);
     const t = await reviewTranslator(home);
     const bad = [...(badFiles.current.get(keyOf(home)) ?? [])].map(([name, error]) => ({

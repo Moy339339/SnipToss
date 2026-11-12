@@ -10,9 +10,13 @@ typealias PendingOpensProvider = () -> (focus: String?, skipped: [String], reloc
 /// The bridge methods for settings and the library (docs/host-api.md, "Library" and "Settings, window, miscellaneous").
 /// `addDropped` is in DropWebView.swift and `pasteClipboard` in ClipboardMethods.swift; both reply with `addReply`. The item being viewed
 /// (`librarySelect`) is what ChangeWatch.swift checks every second. `scan`, `missing`, `sha256` and `fileUrl` are in ScanMethods.swift
+/// - Parameter homes: the notes folders scans have handed out; `libraryRemove` tidies only those (`tidyLeaving`)
+/// - Parameter tidy: removes empty notes folders (`HomeTidy`; the same one the notes methods use). nil: entries leaving the library are not
+///   looked at
 func installLibraryMethods(
     into bridge: BridgeHost, settings: Settings,
-    pending: @escaping PendingOpensProvider = { (focus: nil, skipped: [], relocated: []) }, prefsChanged: @escaping () -> Void = {}
+    pending: @escaping PendingOpensProvider = { (focus: nil, skipped: [], relocated: []) }, prefsChanged: @escaping () -> Void = {},
+    homes: NotesHomes = NotesHomes(), tidy: HomeTidy? = nil
 ) {
     let environment = ProcessInfo.processInfo.environment
     let startupNotice = OnceFlag()
@@ -50,7 +54,14 @@ func installLibraryMethods(
 
     bridge.register("libraryRemove") { params in
         let isRemoved = Library.contains(stringList(params, "paths"))
-        return Library.remove(settings, where: { isRemoved($0.path) })
+        let leaving = settings.library.map { $0.path }.filter(isRemoved)
+        let removed = Library.remove(settings, where: { isRemoved($0.path) })
+        // An item leaving the library shouldn't leave an empty .sniptoss behind where it lives. In the background: the item may be on a
+        // disconnected network volume, where a look takes the system's timeout, and the page is not kept waiting for it
+        if let tidy, !leaving.isEmpty {
+            DispatchQueue.global(qos: .utility).async { _ = tidyLeaving(leaving, homes: homes, tidy: tidy) }
+        }
+        return removed
     }
 
     bridge.register("libraryRelocate") { params in
@@ -274,4 +285,19 @@ private func libraryState(settings: Settings, pending: (focus: String?, skipped:
         "skipped": pending.skipped,
         "relocated": pending.relocated.map { ["from": $0.from, "to": $0.to] },
     ]
+}
+
+/// The notes folders of entries that left the library, tidied (`HomeTidy`) when a scan handed them out: a folder entry's is the notes folder
+/// found at or above it (itself when there is none), a file's is an existing .sniptoss above it. Each notes folder once; a folder that holds
+/// notes is not touched. Returns what was done, by notes folder
+@discardableResult
+func tidyLeaving(_ paths: [String], homes: NotesHomes, tidy: HomeTidy) -> [String: HomeTidy.Result] {
+    let finder = HomeFinder()
+    var done: [String: HomeTidy.Result] = [:]
+    for path in paths {
+        let home = Library.isDirectory(path) ? finder.folderHome(of: path, outer: path) : finder.existingHome(of: path)
+        guard let home, homes.contains(home), done[home] == nil else { continue }
+        done[home] = tidy.tidy(home: home)
+    }
+    return done
 }

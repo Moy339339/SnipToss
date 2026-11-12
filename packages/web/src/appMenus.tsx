@@ -39,8 +39,8 @@ export interface MenuContext {
   selectedListed: boolean;
   editSelected: () => void;
   deleteSelected: () => void;
-  /** How many notes the notes panel lists; Delete All Notes… (asks first) */
-  listedCount: number;
+  /** The notes panel lists something, or the item on the canvas has only drawings left; Delete All Notes… (asks first) */
+  canDeleteAll: boolean;
   deleteAll: () => void;
   /**
    * Which notes a status change applies to (checked ones if any are checked, otherwise the selected note): how many, whether it goes by
@@ -249,7 +249,7 @@ export function buildMenus(c: MenuContext): TopMenu[] {
           label: t("menu.edit.deleteAll"),
           title: t("menu.edit.deleteAllTitle"),
           onClick: c.deleteAll,
-          disabled: c.listedCount === 0,
+          disabled: !c.canDeleteAll,
           danger: true,
         },
       ],

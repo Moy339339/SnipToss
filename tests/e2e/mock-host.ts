@@ -122,7 +122,18 @@ export class MockHost {
   /** URLs the UI asked the shell to open in the browser (openExternal), in order */
   opened: string[] = [];
   /** The notes handed to the shell by each Copy as Images (the real shell's HandoffImages draws the images and puts them on the clipboard; this only records them) */
-  copiedImages: { home: string; snapshot: string | null; title: string; number: number; category: string; where: string; body: string; color: string; name: string }[][] = [];
+  copiedImages: {
+    title: string;
+    /** The id of a stashed picture (see stashed), or null */
+    image: string | null;
+    home: string;
+    snapshot: string | null;
+    notes: { number: number; category: string; where: string; body: string; color: string; group?: string }[];
+    name: string;
+  }[][] = [];
+  /** The pictures the UI drew for Copy as Images, by id (PNG bytes). Like the shell, only the latest batch is kept; they stay after the copy so a test can look at them */
+  stashed = new Map<string, Buffer>();
+  private stashBatch = "";
   /** What checkUpdates returns: by default no newer version; change it to test "new version" and "can't check" */
   updateResult: { newer: { version: string; url: string; prerelease: boolean } | null; error: string | null } = { newer: null, error: null };
   /** The shell found a new version by itself (same as the updateAvailable event sent by MainWindow.UpdateFound) */
@@ -379,6 +390,11 @@ export class MockHost {
         if (this.selected && paths.some((p) => same(p, this.selected!) || inside(this.selected!, p))) this.selected = null;
         // Same as MaterialWatcher: forget the fingerprints of entries no longer in the library; adding them back is a "first sighting", which is recorded but not pushed
         for (const k of this.materialSigs.keys()) if (paths.some((p) => same(p, k))) this.materialSigs.delete(k);
+        // Same as Bridge.RemoveFromLibrary: an item leaving the library doesn't leave an empty .sniptoss behind
+        for (const p of paths) {
+          const home = this.existingHome(existsSync(p) && statSync(p).isDirectory() ? p : path.dirname(p));
+          if (home && this.homes.has(home.toLowerCase())) this.tidyHome(home);
+        }
         return before - this.entries.length;
       }
       case "libraryPin": {
@@ -419,6 +435,7 @@ export class MockHost {
         return this.write(this.home(a), str("path"), Buffer.from(str("data"), "base64"));
       case "writeAnnotation": {
         const full = this.inDataDir(this.home(a), str("path"));
+        this.restoreSnapshots(this.home(a));
         this.beforeWriteAnnotation?.(full);
         // Same as Bridge.WriteIfUnchangedAsync: the comparison and the write happen under the same lock (command-line write-backs take the same one, ADR-0005 item 7)
         // seq: the sequence number taken under the lock (same as Bridge.WriteIfUnchangedAsync, ADR-0005 item 8)
@@ -460,6 +477,8 @@ export class MockHost {
         }
         return deleted;
       }
+      case "tidyHome":
+        return this.tidyHome(this.home(a));
       case "sha256":
         return createHash("sha256").update(readFileSync(this.allowed(str("path")))).digest("hex");
       case "readable": {
@@ -528,11 +547,22 @@ export class MockHost {
         this.revealed.push(p);
         return null;
       }
+      case "stashImage": {
+        // Same as HandoffImages.Stash: a new batch id drops the pictures of the batch before
+        const batch = str("batch");
+        if (batch !== this.stashBatch) {
+          this.stashed.clear();
+          this.stashBatch = batch;
+        }
+        const id = `${batch}/${this.stashed.size + 1}`;
+        this.stashed.set(id, Buffer.from(str("data"), "base64"));
+        return { id };
+      }
       case "copyImages": {
-        const items = a.items as MockHost["copiedImages"][number];
-        if (!Array.isArray(items) || items.length === 0) throw new Error("Nothing to copy");
-        this.copiedImages.push(items);
-        return { count: items.length };
+        const pages = a.pages as MockHost["copiedImages"][number];
+        if (!Array.isArray(pages) || pages.length === 0) throw new Error("Nothing to copy");
+        this.copiedImages.push(pages);
+        return { count: pages.length };
       }
       case "exportDiagnostics": {
         // Same as Bridge.ExportDiagnostics: the path chosen in the Save dialog is set by nextExportPath (null = cancelled); records the diagnostic info handed over
@@ -896,7 +926,63 @@ export class MockHost {
     return p;
   }
 
+  /** Snapshots set aside when an empty .sniptoss was removed (same as HomeTidy: kept while the app runs, put back before the next write there, since undo needs them) */
+  private setAside = new Map<string, Map<string, Buffer>>();
+
+  /** Same as HomeTidy.TidyAsync: removes .sniptoss when no notes file holds notes or drawings; only files the app wrote are deleted, anything else (and then the folder) stays */
+  private tidyHome(home: string): "removed" | "left" | "kept" | "nothing" {
+    const dir = path.join(home, DATA_DIR);
+    if (!existsSync(dir)) return "nothing";
+    const notes = path.join(dir, "annotations");
+    const shots = path.join(dir, "snapshots");
+    const files = existsSync(notes) ? readdirSync(notes).map((n) => path.join(notes, n)) : [];
+    const empty = (f: string) => {
+      try {
+        const v = JSON.parse(readFileSync(f, "utf8").replace(/^\uFEFF/, "")) as { schema?: unknown; annotations?: unknown; drawings?: unknown };
+        const none = (x: unknown) => Array.isArray(x) && x.length === 0;
+        const ours = typeof v.schema === "string" && /^(sniptoss|pizhu)\//.test(v.schema);
+        const known = Object.keys(v).every((k) => ["schema", "material", "annotations", "drawings"].includes(k));
+        return ours && known && none(v.annotations) && (v.drawings === undefined || none(v.drawings));
+      } catch {
+        return false;
+      }
+    };
+    if (files.some((f) => !f.toLowerCase().endsWith(".json") || !empty(f))) return "kept";
+    for (const f of files) rmSync(f);
+    rmSync(path.join(dir, "REVIEW.md"), { force: true });
+    rmSync(path.join(dir, "project.json"), { force: true });
+    const ignore = path.join(dir, ".gitignore");
+    if (existsSync(ignore) && readFileSync(ignore, "utf8") === GIT_IGNORE) rmSync(ignore);
+    if (existsSync(shots))
+      for (const name of readdirSync(shots)) {
+        if (!/^[a-z0-9]{6}\.(png|jpg)$/.test(name)) continue;
+        const kept = this.setAside.get(home.toLowerCase()) ?? new Map<string, Buffer>();
+        this.setAside.set(home.toLowerCase(), kept.set(name, readFileSync(path.join(shots, name))));
+        rmSync(path.join(shots, name));
+      }
+    const removeIfEmpty = (d: string) => {
+      if (!existsSync(d)) return true;
+      if (readdirSync(d).length > 0) return false;
+      rmSync(d, { recursive: true });
+      return true;
+    };
+    const a = removeIfEmpty(notes);
+    const b = removeIfEmpty(shots);
+    return a && b && removeIfEmpty(dir) ? "removed" : "left";
+  }
+
+  /** Same as HomeTidy.Restore */
+  private restoreSnapshots(home: string) {
+    const kept = this.setAside.get(home.toLowerCase());
+    if (!kept) return;
+    this.setAside.delete(home.toLowerCase());
+    const shots = path.join(home, DATA_DIR, "snapshots");
+    mkdirSync(shots, { recursive: true });
+    for (const [name, bytes] of kept) if (!existsSync(path.join(shots, name))) writeFileSync(path.join(shots, name), bytes);
+  }
+
   private write(home: string, rel: string, bytes: Buffer) {
+    this.restoreSnapshots(home);
     this.atomicWrite(this.inDataDir(home, rel), bytes);
     this.watch(home);
     this.ensureGitIgnore(home);
@@ -932,7 +1018,7 @@ export class MockHost {
   readProject(home: string) {
     const dir = this.activeDataDir(home);
     const file = path.join(dir, "project.json");
-    return { text: existsSync(file) ? readFileSync(file, "utf8") : null, review: existsSync(path.join(dir, "REVIEW.md")) };
+    return { text: existsSync(file) ? readFileSync(file, "utf8") : null, review: existsSync(path.join(dir, "REVIEW.md")), exists: existsSync(dir) };
   }
 
   readAnnotations(home: string) {

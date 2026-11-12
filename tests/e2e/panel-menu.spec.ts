@@ -62,7 +62,7 @@ test("right-clicking blank space: Copy as Text / Images, Check All / Uncheck All
   await blankMenu(app);
   await menuItem(app, /^复制批注成图片/).click();
   await expect.poll(() => app.host.copiedImages.length).toBe(1);
-  expect(app.host.copiedImages[0]).toHaveLength(3);
+  expect(app.host.copiedImages[0].flatMap((p) => p.notes)).toHaveLength(3);
 
   // Right-click on a card: that note's menu, without Delete All
   await card(app, "pt0001").click({ button: "right" });

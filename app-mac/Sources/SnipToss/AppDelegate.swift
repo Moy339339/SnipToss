@@ -51,6 +51,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     private var settingsOpener: SettingsOpener!
     /// Says at startup that the capture shortcut couldn't be enabled
     private let hotkeyNotice = HotKeyNotice()
+    /// Removes empty notes folders and keeps their snapshots for undo while the app runs (HomeTidy)
+    private let tidy = HomeTidy()
     /// The screen capture; in the capture smoke runs its pictures are a made-up pattern, never the real screen, except in the timing one,
     /// which only opens and closes the layers
     private lazy var captureSession: CaptureSession = {
@@ -102,6 +104,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             return
         }
         let homes = NotesHomes()
+        // Snapshots set aside by a run that did not close normally: nothing can undo into them any more
+        tidy.dropStashes()
         // Notes and items changed from outside (an agent wrote notes back, edited an item) reach the page as events
         let watch = ChangeWatch(settings: settings, emit: bridge.emit)
         changeWatch = watch
@@ -119,7 +123,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             runOnMain { updates.pageReady() }
         })
         // What is opened from outside before the page has read the library waits in `pendingOpens` for that first read
-        installLibraryMethods(into: bridge, settings: settings, pending: pendingOpens.take, prefsChanged: { runOnMain { updates.prefsChanged() } })
+        installLibraryMethods(
+            into: bridge, settings: settings, pending: pendingOpens.take, prefsChanged: { runOnMain { updates.prefsChanged() } }, homes: homes,
+            tidy: tidy)
         let dropped = DroppedPaths()
         installDropMethods(into: bridge, settings: settings, dropped: dropped)
         installClipboardMethods(into: bridge, settings: settings)
@@ -147,7 +153,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         installRecentColorMethods(into: bridge, settings: settings)
         installScanMethods(into: bridge, settings: settings, homes: homes)
         installNotesMethods(
-            into: bridge, settings: settings, homes: homes, startWatching: watch.startWatching, didWrite: watch.wrote)
+            into: bridge, settings: settings, homes: homes, startWatching: watch.startWatching, didWrite: watch.wrote, tidy: tidy)
         installSystemMethods(into: bridge, settings: settings, homes: homes)
         opens = OutsideOpens(
             pending: pendingOpens, add: { Library.add(settings, paths: $0) }, emit: bridge.emit,
@@ -271,6 +277,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         hotkeyNotice.show(title: ShellText.t("shell.tray.hotkeyFailed"), body: HotKeyNotice.body(reason: reason)) {
             [weak self] in self?.openSettingsPage(section: "capture")
         }
+    }
+
+    /// The undo history ends with the app, so the snapshots set aside for it go too
+    func applicationWillTerminate(_ notification: Notification) {
+        tidy.dropStashes()
     }
 
     /// With "keep running in the menu bar" on, closing the last window leaves the app running (the window is hidden, see `windowWillClose`)

@@ -854,7 +854,7 @@ test("Copying from the blank-canvas context menu copies only this item's open no
   await app.page.mouse.click(...at(box, 0.8, 0.85), { button: "right" });
   await menuRow(app, "复制批注成图片").click();
   await expect.poll(() => app.host.copiedImages.length).toBe(1);
-  expect(app.host.copiedImages[0].map((x) => x.body)).toEqual(["标题字太细了，换成粗一点的黑体"]);
+  expect(app.host.copiedImages[0].flatMap((p) => p.notes.map((x) => x.body))).toEqual(["标题字太细了，换成粗一点的黑体"]);
   // This item has no open notes: both items are grayed out and say so
   await app.page.locator(".lib-row", { hasText: "poster.jpg" }).click();
   await expect(app.page).toHaveTitle("poster.jpg");

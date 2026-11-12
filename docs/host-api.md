@@ -75,7 +75,7 @@ The fields of the parameters and return values are as in `Methods` in `host.ts`.
 | `addDropped` | Same as above, with the paths coming from the `File` objects sent with the message |
 | `pasteClipboard` | Ctrl+V: if the clipboard holds files copied in File Explorer → same as dropping them in; if it holds an image → saved as PNG into the "Pasted Images" folder (`appInfo.pastedDir`) and added to the library, with `pasted` being that file; neither → `empty = true` |
 | `pickFiles` / `pickFolder` | The system open-file / open-folder dialog; returns the chosen paths (cancel gives empty / null) |
-| `libraryRemove` | Take out of the library (files are not deleted); returns how many entries were removed; if the one being viewed is among them, "last selected" is cleared |
+| `libraryRemove` | Take out of the library (files are not deleted); returns how many entries were removed; if the one being viewed is among them, "last selected" is cleared. If the `.sniptoss` of a removed entry holds no notes it is removed as `tidyHome` does (in the background) |
 | `libraryRelocate` | Point an entry that cannot be found at a new location: swapped in place, with pinned state, position, expanded / collapsed and last selected carried over |
 | `libraryPin` | Pin to top / unpin (all the entries of one project are sent together) |
 | `libraryExpanded` / `libraryCollapsed` / `librarySelect` | Record the expanded folders, the collapsed projects and the last selected |
@@ -90,12 +90,14 @@ The fields of the parameters and return values are as in `Methods` in `host.ts`.
 
 | Method | What it does |
 |---|---|
-| `readHomes` | Read all the notes files in these notes homes (only those that a scan has handed to the UI are accepted) and start watching them; on first open, an old-named `.pizhu` is moved to `.sniptoss`. Each home also carries `project`: the raw text of `.sniptoss/project.json` (null if there is none) and whether `REVIEW.md` exists, from which the UI decides which language REVIEW.md uses (`docs/annotation-format.md`, "Notes folder settings") |
+| `readHomes` | Read all the notes files in these notes homes (only those that a scan has handed to the UI are accepted) and start watching them; on first open, an old-named `.pizhu` is moved to `.sniptoss`. Each home also carries `project`: the raw text of `.sniptoss/project.json` (null if there is none) and whether `REVIEW.md` exists, from which the UI decides which language REVIEW.md uses (`docs/annotation-format.md`, "Notes folder settings"), and `exists`: whether there is a `.sniptoss` at all. On Windows an existing `.sniptoss` is marked hidden here and after every write |
 | `writeAnnotation` | Write a notes file with a precondition (see hard rule 3); returns `{ written, current, seq }` (for `seq` see hard rule 3a) |
 | `writeText` / `writeBase64` | Write text (REVIEW.md) / binary (snapshots) inside `.sniptoss/` |
 | `deleteFile` | Delete one file inside `.sniptoss/` |
 | `pruneSnapshots` | Delete old snapshots in `.sniptoss/snapshots` other than those in `keep`, that were named by this program and are more than 10 minutes old; returns how many were deleted |
-| `copyImages` | Copy as Images: the shell draws one image per note (title + snapshot + notes area, `HandoffImages`); a single image goes onto the clipboard directly, and several are saved as files and put on the clipboard; returns the number of images |
+| `tidyHome` | Remove the `.sniptoss` of this notes home if it holds no notes and no drawings. The UI asks instead of writing REVIEW.md once the last note is gone, and for a home it read in and found empty; the shell checks the disk itself (under the write lock) and touches nothing if any notes file holds something, is unreadable or is being written. Only files the app wrote are deleted: notes files with nothing in them, `REVIEW.md`, `project.json`, the `.gitignore` it placed, snapshots it named. Returns `removed` (the folder is gone), `left` (other files are in it, so it stays), `kept` (not empty, untouched) or `nothing` (there was none). The snapshots are set aside for as long as the app runs and put back before the next write into this home, because undo brings back notes that refer to them |
+| `stashImage` | Copy as Images: keeps a picture the UI drew (base64 PNG: a frame with the marks and numbers of its notes, or several frames in a grid) and returns its id. One call per picture, so no message carries more than one. Only the pictures of the latest `batch` are kept, and `copyImages` drops them when it is done |
+| `copyImages` | Copy as Images: the shell puts each page together (title + picture + notes area with one entry per note, `HandoffImages`); the picture is a stashed one (`image`, the id from `stashImage`) or a note's stored snapshot (`snapshot`, inside `.sniptoss/`), and a page with neither is text only. A single image goes onto the clipboard directly, and several are saved as files and put on the clipboard; `extra` is written at the end of the last image; returns the number of images |
 
 ### Settings, window, miscellaneous
 

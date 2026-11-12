@@ -1,6 +1,6 @@
 // Handing notes to AI and "where the notes are stored" (the location must be visible and openable; editing only the text does not redraw the snapshot)
 
-import { existsSync, rmSync, statSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, type App } from "./harness";
 
@@ -71,30 +71,60 @@ test("Editing only a note's text without moving it does not redraw the snapshot 
 });
 
 // ---------- Copy as Images ----------
-// For web-based AI and chat apps. The shell's HandoffImages draws the images and puts them on the clipboard;
-// here we check which notes are handed to the shell and with what content.
+// For web-based AI and chat apps. Notes on the same frame share an image: the UI draws the frame with their marks and numbers and stashes
+// it with the shell, and the shell's HandoffImages adds the title and the notes area and puts the images on the clipboard;
+// here we check which pages are handed to the shell and with what content (how numbers are kept apart is in handoff-badges.test.ts).
 
-test("Copy as Images at the bottom of the notes panel: with nothing checked it covers all listed open notes, each with project / file, location, original text and snapshot; the toast says how many images", async ({ app }) => {
+type Page = App["host"]["copiedImages"][number][number];
+/** The picture the UI drew for a page: PNG bytes, with its width and height */
+function picture(app: App, page: Page) {
+  const png = app.host.stashed.get(page.image!)!;
+  expect(png.subarray(1, 4).toString()).toBe("PNG");
+  return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
+}
+
+/** Replaces the clip's notes with one pinned note at each of these moments (written before the UI opens) */
+function clipNotesAt(app: App, times: number[]) {
+  const path = join(app.project, ".sniptoss", "annotations", "video__clip.mp4.json");
+  const file = JSON.parse(readFileSync(path, "utf8")) as { schema: string; annotations: unknown[] };
+  file.schema = "sniptoss/5";
+  file.annotations = times.map((t, i) => ({
+    id: `t${String(i).padStart(5, "0")}`,
+    status: "open",
+    category: "change",
+    body: `第 ${i + 1} 处`,
+    anchor: { time: { start: t }, shapes: [{ type: "point", x: 0.2 + (i % 7) * 0.1, y: 0.3 + (i % 3) * 0.2 }] },
+    author: "user",
+    created_at: "2026-11-12T00:00:00Z",
+    updated_at: "2026-11-12T00:00:00Z",
+    replies: [],
+  }));
+  writeFileSync(path, `${JSON.stringify(file, null, 2)}\n`);
+}
+
+test("Copy as Images at the bottom of the notes panel: with nothing checked it covers all listed open notes; notes on the same frame share one image, drawn from the item, with project / file, location and original text; the toast says how many images", async ({ app }) => {
   await app.open();
   await drawRect(app, "标题换粗体");
   await expect.poll(() => notes(app, "assets__hero.png.json").find((n) => n.body === "标题换粗体")?.snapshot).toBeTruthy();
-  const mine = notes(app, "assets__hero.png.json").find((n) => n.body === "标题换粗体")!;
   await app.page.getByRole("button", { name: "复制成图片" }).click();
-  await expect(toast(app)).toContainText("（3 张图片），可粘贴到网页版 AI 或聊天软件");
-  const items = app.host.copiedImages.at(-1)!;
-  // The default scope is the whole project: hero's two open notes (the existing one and the one just drawn) plus the video's;
-  // the done note done01 is not handed over
-  expect(items.map((i) => i.body)).toEqual(["标题字太细了，换成粗一点的黑体", "标题换粗体", "这段水印去掉"]);
-  const drawn = items[1];
-  expect(drawn.title).toBe("project / assets/hero.png");
-  expect(drawn.snapshot).toBe(`.sniptoss/${mine.snapshot}`);
-  expect(drawn.where).toMatch(/^区域 画面/);
-  // The number matches the notes panel: the 2nd on the canvas (the done overall comment is numbered separately, ADR-0008)
-  expect(drawn.name).toBe("hero.png 第 2 条");
-  expect(items[2]).toMatchObject({
-    title: "project / video/clip.mp4",
-    where: expect.stringMatching(/^00:01\.500–00:02\.500 · 位置 画面右下/),
-  });
+  await expect(toast(app)).toContainText("（2 张图片），可粘贴到网页版 AI 或聊天软件");
+  const pages = app.host.copiedImages.at(-1)!;
+  // The default scope is the whole project: hero's two open notes (the existing one and the one just drawn) on one image, the video's on
+  // another; the done note done01 is not handed over
+  expect(pages.map((p) => p.notes.map((n) => n.body))).toEqual([["标题字太细了，换成粗一点的黑体", "标题换粗体"], ["这段水印去掉"]]);
+  const hero = pages[0];
+  expect(hero.title).toBe("project / assets/hero.png");
+  // The numbers match the notes panel and the marks on the picture (the done overall comment is numbered separately, ADR-0008)
+  expect(hero.notes.map((n) => n.number)).toEqual([1, 2]);
+  expect(hero.notes[1].where).toMatch(/^区域 画面/);
+  expect(hero.name).toBe("hero.png");
+  // The picture is drawn now from the item, not taken from a note's snapshot
+  expect(hero.snapshot).toBeNull();
+  expect(picture(app, hero).width).toBeGreaterThanOrEqual(320);
+  // The video's frame is read off screen at the note's moment; an image with a single note is named after it
+  expect(pages[1]).toMatchObject({ title: "project / video/clip.mp4", name: "clip.mp4 第 1 条", snapshot: null });
+  expect(pages[1].notes[0].where).toMatch(/^00:01\.500–00:02\.500 · 位置 画面右下/);
+  expect(picture(app, pages[1]).width).toBeGreaterThanOrEqual(320);
   // The text on the clipboard is untouched (Copy as Images does not touch what Copy as Text put there)
   expect(await app.clipboard()).toBeNull();
 });
@@ -103,8 +133,10 @@ test("Copy as Images from a note's context menu copies only that note; Ctrl+Shif
   await app.open();
   await card(app, "k3f9a2").click({ button: "right" });
   await app.page.getByRole("menuitem", { name: /复制批注成图片/ }).click();
-  expect(app.host.copiedImages.at(-1)!.map((i) => i.body)).toEqual(["标题字太细了，换成粗一点的黑体"]);
   await expect(toast(app)).toContainText("已复制此条批注（1 张图片）");
+  const only = app.host.copiedImages.at(-1)!;
+  expect(only.map((p) => p.notes.map((n) => n.body))).toEqual([["标题字太细了，换成粗一点的黑体"]]);
+  expect(only[0].name).toBe("hero.png 第 1 条");
   await focusStage(app);
   await app.page.keyboard.press("Control+Shift+I");
   await expect.poll(() => app.host.copiedImages.length).toBe(2);
@@ -118,6 +150,69 @@ test("Copy as Images from a project's context menu in the library copies all ope
   await expect
     .poll(() => app.host.copiedImages.at(-1)?.map((i) => i.title))
     .toEqual(["project / assets/hero.png", "project / video/clip.mp4"]);
+});
+
+test("Copy as Images set to one image per note hands over each note with its own stored snapshot", async ({ app }) => {
+  app.host.prefs = { copyImages: "each" };
+  await app.open();
+  await drawRect(app, "标题换粗体");
+  await expect.poll(() => notes(app, "assets__hero.png.json").find((n) => n.body === "标题换粗体")?.snapshot).toBeTruthy();
+  const mine = notes(app, "assets__hero.png.json").find((n) => n.body === "标题换粗体")!;
+  await app.page.getByRole("button", { name: "复制成图片" }).click();
+  await expect(toast(app)).toContainText("（3 张图片）");
+  const pages = app.host.copiedImages.at(-1)!;
+  expect(pages.map((p) => p.notes.map((n) => n.body))).toEqual([["标题字太细了，换成粗一点的黑体"], ["标题换粗体"], ["这段水印去掉"]]);
+  expect(pages[1]).toMatchObject({ image: null, snapshot: `.sniptoss/${mine.snapshot}`, name: "hero.png 第 2 条" });
+  expect(app.host.stashed.size).toBe(0);
+});
+
+test("Copy as Images with more frames than the limit puts several frames on one image", async ({ app }) => {
+  // 12 moments: more than 10 images, so two frames share each image
+  clipNotesAt(
+    app,
+    Array.from({ length: 12 }, (_, i) => 0.1 + i * 0.2),
+  );
+  await app.open();
+  await app.page.locator(".lib-row", { hasText: /^video/ }).first().click({ button: "right" }); // the folder holds only the clip
+  await app.page.getByRole("menuitem", { name: /复制批注成图片/ }).click();
+  await expect(toast(app)).toContainText("（6 张图片）");
+  await expect(toast(app)).not.toContainText("图片超过");
+  const pages = app.host.copiedImages.at(-1)!;
+  expect(pages.map((p) => p.notes.length)).toEqual([2, 2, 2, 2, 2, 2]);
+  expect(pages.every((p) => p.title === "project / video/clip.mp4" && p.name === "clip.mp4")).toBe(true);
+  // Two frames side by side: about twice as wide as the clip (320) plus the gap
+  expect(picture(app, pages[0]).width).toBeGreaterThan(640);
+});
+
+test("Copy as Images says when there are more images than most AI accepts, and the limit can be lifted in Settings", async ({ app }) => {
+  // 91 moments: even nine frames per image make 11 images
+  clipNotesAt(
+    app,
+    Array.from({ length: 91 }, (_, i) => Math.round((0.02 + i * 0.03) * 1000) / 1000),
+  );
+  await app.open();
+  const copy = async () => {
+    await app.page.locator(".lib-row", { hasText: /^video/ }).first().click({ button: "right" }); // the folder holds only the clip
+    await app.page.getByRole("menuitem", { name: /复制批注成图片/ }).click();
+  };
+  await copy();
+  await expect(toast(app)).toContainText("（11 张图片）", { timeout: 60_000 });
+  await expect(toast(app)).toContainText("图片超过 10 张，多数网页版 AI 无法一次接收");
+  expect(app.host.copiedImages.at(-1)!.map((p) => p.notes.length)).toEqual([...Array<number>(10).fill(9), 1]);
+
+  // Settings → Copying: the limit (shown only when notes are combined), then "No limit" = one image per frame
+  await focusStage(app);
+  await app.page.keyboard.press("Control+,");
+  await app.page.locator(".settings-tab", { hasText: "复制批注" }).click();
+  const limit = app.page.locator(".set-row", { hasText: "图片数量上限" });
+  await app.page.locator(".set-row", { hasText: "复制成图片" }).first().getByRole("button", { name: "每条一张" }).click();
+  await expect(limit).toHaveCount(0);
+  await app.page.locator(".set-row", { hasText: "复制成图片" }).first().getByRole("button", { name: "合成一张" }).click();
+  await limit.getByRole("button", { name: "不限" }).click();
+  await expect.poll(() => app.host.prefs).toMatchObject({ copyImagesMax: 0 });
+  await app.page.keyboard.press("Escape");
+  await copy();
+  await expect.poll(() => app.host.copiedImages.at(-1)?.length, { timeout: 60_000 }).toBe(91);
 });
 
 test("When the clipboard cannot be written during Copy as Text (the window is in the background), the toast explains it in plain words, stays, and Retry copies again", async ({ app }) => {

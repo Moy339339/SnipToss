@@ -18,6 +18,7 @@ sealed partial class MainWindow
         annotationWatch?.Dispose();
         // The short junctions for long paths exist only while the app is open: if another tool deletes %LOCALAPPDATA%\SnipToss and happens to follow a junction, it would delete the user's items
         LongPaths.Clean();
+        HomeTidy.DropStashes();
     }
 
     /// <summary>Shutdown or logoff: no more hiding to the tray, really close (see SessionEnding in Program)</summary>

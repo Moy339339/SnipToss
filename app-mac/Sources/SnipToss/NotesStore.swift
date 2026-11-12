@@ -47,11 +47,12 @@ enum NotesStore {
     }
 
     /// The home's own settings: the raw text of `.sniptoss/project.json` (null if absent) and whether `REVIEW.md` exists. The page decides
-    /// from them which language REVIEW.md is written in
+    /// from them which language REVIEW.md is written in. `exists`: whether there is a .sniptoss at all (one that is there but holds no notes
+    /// is what the page asks `tidyHome` to remove)
     static func readProject(home: String) throws -> [String: Any] {
         let dir = Library.join(home, DataDir.name)
         let text = try readIfExists(Library.join(dir, "project.json"))
-        return ["text": jsonOrNull(text), "review": Library.isFile(Library.join(dir, "REVIEW.md"))]
+        return ["text": jsonOrNull(text), "review": Library.isFile(Library.join(dir, "REVIEW.md")), "exists": Library.isDirectory(dir)]
     }
 
     /// The text of a file, nil when it does not exist

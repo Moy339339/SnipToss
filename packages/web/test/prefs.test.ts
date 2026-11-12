@@ -140,6 +140,8 @@ describe("default values", () => {
       fresh: { since: {}, seen: [] },
       onboarding: [],
       promptExtra: "",
+      copyImages: "merged",
+      copyImagesMax: 10,
     });
   });
 

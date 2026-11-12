@@ -3,8 +3,11 @@ using System.Windows.Media;
 
 namespace SnipToss.App.Capture;
 
-/// <summary>One note in the notes area: number (0 = no number circle, used for the overall comment), circle color, category, position, and the original text</summary>
-sealed record NoteEntry(int Number, Color Color, string Category, string Where, string Body);
+/// <summary>
+/// One note in the notes area: number (0 = no number circle, used for the overall comment), circle color, category, position, and the original text.
+/// Group: which item the note belongs to, on an image that shows several items (Copy as Images); printed as a heading above the first note of each run of the same group
+/// </summary>
+sealed record NoteEntry(int Number, Color Color, string Category, string Where, string Body, string? Group = null);
 
 /// <summary>
 /// The notes area below the image: number circle + a "category · position" line (the category in its category color) + the original text, wrapped to the image width; a closing paragraph can follow (the "Extra instructions" setting).
@@ -13,7 +16,7 @@ sealed record NoteEntry(int Number, Color Color, string Category, string Where, 
 /// </summary>
 sealed class NotesBlock
 {
-    sealed record Item(int Number, Color Color, FormattedText Head, FormattedText Body);
+    sealed record Item(int Number, Color Color, FormattedText Head, FormattedText Body, FormattedText? Group = null);
 
     readonly List<Item> items;
     readonly Item? overall;
@@ -51,6 +54,7 @@ sealed class NotesBlock
         if (title is not null) yield return title.Text;
         foreach (var i in overall is null ? items : items.Append(overall))
         {
+            if (i.Group is not null) yield return i.Group.Text;
             yield return i.Head.Text;
             yield return i.Body.Text;
         }
@@ -106,8 +110,19 @@ sealed class NotesBlock
             t.SetFontWeight(FontWeights.SemiBold, 0, label.Length);
             return t;
         }
-        Item ItemOf(NoteEntry e, double columnWidth) =>
-            new(e.Number, e.Color, Head(e.Category, e.Where, columnWidth - 28 * s), Para(e.Body, columnWidth - 28 * s, light, 14));
+        // The heading of a group: the item's name, as wide as the column
+        FormattedText GroupHead(string group, double columnWidth)
+        {
+            var t = Para(KeepWords.Of(group), columnWidth, light, 12);
+            t.SetFontWeight(FontWeights.SemiBold);
+            return t;
+        }
+        Item ItemOf(NoteEntry e, double columnWidth, bool heading = false) =>
+            new(e.Number, e.Color, Head(e.Category, e.Where, columnWidth - 28 * s), Para(e.Body, columnWidth - 28 * s, light, 14),
+                heading && e.Group is not null ? GroupHead(e.Group, columnWidth) : null);
+        // A heading goes above the first note of each run of the same group
+        List<Item> Items(double columnWidth) =>
+            entries.Select((e, i) => ItemOf(e, columnWidth, i == 0 || entries[i - 1].Group != e.Group)).ToList();
 
         var head = title is null ? null : Para(KeepWords.Of(title), width - pad * 2, muted, 12);
         var tail = string.IsNullOrWhiteSpace(extra) ? null : Para(extra.Trim(), width - pad * 2, light, 14);
@@ -115,7 +130,7 @@ sealed class NotesBlock
 
         // Lay out in one column first; if that is taller than the screenshot, the width fits two columns (each at least a bit over half of MinWidth) and there is more than one note: re-lay out in two columns, keeping their heights as even as possible
         var one = width - pad * 2;
-        var list = entries.Select(e => ItemOf(e, one)).ToList();
+        var list = Items(one);
         var over = overall is null ? null : ItemOf(overall, one);
         var height = fixedHeight + list.Sum(i => ItemHeight(i, s)) + (over is null ? 0 : ItemHeight(over, s));
         var split = list.Count;
@@ -123,7 +138,7 @@ sealed class NotesBlock
         var half = (one - Gutter * s) / 2;
         if (height > imageHeight && list.Count > 1 && half >= MinWidth * s * 0.6)
         {
-            list = entries.Select(e => ItemOf(e, half)).ToList();
+            list = Items(half);
             over = overall is null ? null : ItemOf(overall, one);
             var heights = list.Select(i => ItemHeight(i, s)).ToList();
             var total = heights.Sum();
@@ -132,6 +147,12 @@ sealed class NotesBlock
             split = 0;
             while (split < list.Count - 1 && left + heights[split] / 2 < total / 2) left += heights[split++];
             split = Math.Max(1, split);
+            // A group that continues at the top of the right column gets its heading again
+            if (list[split].Group is null && entries[split].Group is not null)
+            {
+                list[split] = ItemOf(entries[split], half, heading: true);
+                heights[split] = ItemHeight(list[split], s);
+            }
             var columns = Math.Max(heights.Take(split).Sum(), heights.Skip(split).Sum());
             height = fixedHeight + columns + (over is null ? 0 : ItemHeight(over, s));
             columnWidth = half;
@@ -158,6 +179,11 @@ sealed class NotesBlock
             if (i == split && TwoColumns) y = top;
             var x = i < split ? pad : pad + columnWidth + Gutter * s;
             var item = items[i];
+            if (item.Group is not null)
+            {
+                dc.DrawText(item.Group, new Point(x, y));
+                y += item.Group.Height + GroupGap * s;
+            }
             if (item.Number > 0) MarkPainter.DrawBadge(dc, item.Number, item.Color, new Point(x + 10 * s, y + item.Head.Height / 2), 1, 10 * s);
             y = DrawItem(dc, item, x + 28 * s, y);
             bottom = Math.Max(bottom, y);
@@ -175,5 +201,9 @@ sealed class NotesBlock
         return y + item.Body.Height + 12 * s;
     }
 
-    static double ItemHeight(Item item, double s) => item.Head.Height + 2 * s + item.Body.Height + 12 * s;
+    /// <summary>Space between a group's heading and its first note</summary>
+    const double GroupGap = 6;
+
+    static double ItemHeight(Item item, double s) =>
+        (item.Group is null ? 0 : item.Group.Height + GroupGap * s) + item.Head.Height + 2 * s + item.Body.Height + 12 * s;
 }

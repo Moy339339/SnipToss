@@ -86,6 +86,7 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
                 "writeBase64" => await WriteAsync(Home(args), Str(args, "path"), Convert.FromBase64String(Str(args, "data"))),
                 "deleteFile" => DeleteInDataDir(Home(args), Str(args, "path")),
                 "pruneSnapshots" => PruneSnapshots(Home(args), StrList(args, "keep"), TimeSpan.FromMinutes(10)),
+                "tidyHome" => await TidyHomeAsync(Home(args)),
                 "sha256" => await HashCache.Sha256Async(Allowed(Str(args, "path"), LibraryRoots())),
                 "readable" => await ReadableAsync(Allowed(Str(args, "path"), LibraryRoots())),
                 "fileUrl" => window.UrlOf(InDataDir(Home(args), Str(args, "path"))),
@@ -96,7 +97,8 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
                 "appInfo" => AppInfo(),
                 "recentColors" => settings.RecentColorList,
                 "addRecentColor" => settings.AddRecentColor(Str(args, "color")),
-                "copyImages" => new { count = HandoffImages.Copy(HandoffItems(args), args.TryGetProperty("extra", out var extra) ? extra.GetString() : null) },
+                "stashImage" => new { id = HandoffImages.Stash(Str(args, "batch"), Convert.FromBase64String(Str(args, "data"))) },
+                "copyImages" => new { count = CopyImages(args) },
                 "reveal" => await RevealAsync(Allowed(Special(Str(args, "path")), RevealRoots())),
                 "openExternal" => Run(() => Shell.OpenUrl(Str(args, "url"))),
                 "exportDiagnostics" => ExportDiagnostics(Str(args, "text")),
@@ -179,7 +181,28 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
     int RemoveFromLibrary(List<string> paths)
     {
         var remove = Library.Contains(paths);
-        return Library.Remove(settings, e => remove(e.Path));
+        var leaving = settings.Library.Where(e => remove(e.Path)).Select(e => e.Path).ToList();
+        var removed = Library.Remove(settings, e => remove(e.Path));
+        // An item leaving the library shouldn't leave an empty .sniptoss behind where it lives. Off the UI thread: the item may be on a
+        // disconnected network drive, where a look takes the system's timeout. A folder that holds notes is not touched (HomeTidy)
+        var known = homes.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _ = Task.Run(async () =>
+        {
+            var finder = new HomeFinder();
+            foreach (var path in leaving)
+            {
+                try
+                {
+                    var home = Directory.Exists(path) ? finder.FolderHome(path, path) : finder.ExistingHome(path);
+                    if (home is not null && known.Contains(home)) await HomeTidy.TidyAsync(home);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    Log.Warn($"Could not look for an empty notes folder: {path}", ex);
+                }
+            }
+        });
+        return removed;
     }
 
     IEnumerable<string> LibraryRoots() => settings.Library.Select(e => e.Path);
@@ -609,6 +632,7 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
             if (!homes.Contains(home)) continue;
             // When a project is opened, rename the old .pizhu to .sniptoss (docs/adr/0007-rename.md); this must happen before watching starts, since watching holds the directory
             DataDir.Migrate(home);
+            HomeTidy.Hide(home); // folders made before they were hidden, or cloned from elsewhere
             // Start watching before reading (this records how the directory looks now): if an agent writes during the read, the difference shows up a second later and a notification goes out.
             // Before, watching began after the read, the recorded state already included the write, and that change was never announced
             window.Watch(home);
@@ -633,8 +657,21 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
         catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
         {
         }
-        return new { text, review = File.Exists(Path.Combine(dir, "REVIEW.md")) };
+        return new { text, review = File.Exists(Path.Combine(dir, "REVIEW.md")), exists = Directory.Exists(dir) };
     }
+
+    /// <summary>
+    /// Removes this notes folder's .sniptoss if it holds no notes (HomeTidy): the UI asks after the last note was deleted, and for a folder it read in and found empty.
+    /// The shell checks the disk itself, so a folder that does hold notes is never touched whatever the UI believes
+    /// </summary>
+    static async Task<string> TidyHomeAsync(string home) =>
+        await HomeTidy.TidyAsync(home) switch
+        {
+            HomeTidy.Result.Removed => "removed",
+            HomeTidy.Result.Left => "left",
+            HomeTidy.Result.Kept => "kept",
+            _ => "nothing",
+        };
 
     /// <summary>
     /// Ordering of the notes content that was read / written (ADR-0005 item 8): notifications and reads of a notes folder take their number **before** reading; a write takes its number **inside the lock** once it is done, or after reading the current state when it is refused.
@@ -735,10 +772,15 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
     async Task<object?> WriteAsync(string home, string rel, byte[] bytes)
     {
         var full = InDataDir(home, rel);
-        // Unique temp file → flush → replace: a crash halfway leaves no half-written JSON, and writing at the same time as an agent's write-back command doesn't clobber it (ADR-0005)
-        await AtomicFile.WriteAsync(full, bytes);
+        using (await HomeTidy.EnterAsync(home))
+        {
+            HomeTidy.Restore(home);
+            // Unique temp file → flush → replace: a crash halfway leaves no half-written JSON, and writing at the same time as an agent's write-back command doesn't clobber it (ADR-0005)
+            await AtomicFile.WriteAsync(full, bytes);
+        }
         window.Watch(home); // the annotations directory only appears after the first note is written; start watching now
         DataDir.EnsureGitIgnore(home);
+        HomeTidy.Hide(home);
         return null;
     }
 
@@ -752,10 +794,18 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
         var full = InDataDir(home, rel);
         JsonElement expect = default;
         var check = args.ValueKind == JsonValueKind.Object && args.TryGetProperty("expectSha256", out expect);
-        var (written, current, seq) = await WriteIfUnchangedAsync(full, text, check, expect.ValueKind == JsonValueKind.String ? expect.GetString() : null);
+        bool written;
+        string? current;
+        long seq;
+        using (await HomeTidy.EnterAsync(home))
+        {
+            HomeTidy.Restore(home);
+            (written, current, seq) = await WriteIfUnchangedAsync(full, text, check, expect.ValueKind == JsonValueKind.String ? expect.GetString() : null);
+        }
         if (!written) return new { written, current, seq };
         window.Watch(home);
         DataDir.EnsureGitIgnore(home);
+        HomeTidy.Hide(home);
         return new { written, current = (string?)null, seq };
     }
 
@@ -778,14 +828,29 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
         }
     }
 
-    /// <summary>
-    /// Each item of Copy as Images: the snapshot is accepted only from the notes folder .sniptoss (InDataDir); if the notes folder isn't known or the item's folder is gone, the item is treated as having no snapshot (text only)
-    /// </summary>
-    List<HandoffImages.Item> HandoffItems(JsonElement args) =>
-        args.GetProperty("items").EnumerateArray().Select(it =>
+    /// <summary>Copy as Images: puts the pages together and onto the clipboard; the pictures stashed for this copy are let go afterwards, whether it worked or not (a retry stashes them again)</summary>
+    int CopyImages(JsonElement args)
+    {
+        try
         {
+            return HandoffImages.Copy(HandoffPages(args), args.TryGetProperty("extra", out var extra) ? extra.GetString() : null);
+        }
+        finally
+        {
+            HandoffImages.DropStash();
+        }
+    }
+
+    /// <summary>
+    /// Each page of Copy as Images. The picture is one the UI stashed (image = its id), or a stored snapshot, accepted only from the notes folder .sniptoss (InDataDir);
+    /// if the notes folder isn't known or the item's folder is gone, the page is treated as having no snapshot (text only)
+    /// </summary>
+    List<HandoffImages.Page> HandoffPages(JsonElement args) =>
+        args.GetProperty("pages").EnumerateArray().Select(it =>
+        {
+            var picture = it.TryGetProperty("image", out var id) && id.ValueKind == JsonValueKind.String ? HandoffImages.StashedPicture(id.GetString()!) : null;
             string? shot = null;
-            if (it.TryGetProperty("snapshot", out var rel) && rel.ValueKind == JsonValueKind.String)
+            if (picture is null && it.TryGetProperty("snapshot", out var rel) && rel.ValueKind == JsonValueKind.String)
             {
                 try
                 {
@@ -796,9 +861,11 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
                     Log.Info($"Copy as images: snapshot skipped ({ex.Message})");
                 }
             }
-            return new HandoffImages.Item(shot, Str(it, "title"), it.GetProperty("number").GetInt32(), Str(it, "category"), Str(it, "where"), Str(it, "body"), MarkColor(Str(it, "color")), Str(it, "name"));
+            var notes = it.GetProperty("notes").EnumerateArray().Select(n => new Capture.NoteEntry(
+                n.GetProperty("number").GetInt32(), MarkColor(Str(n, "color")), Str(n, "category"), Str(n, "where"), Str(n, "body"),
+                n.TryGetProperty("group", out var group) && group.ValueKind == JsonValueKind.String ? group.GetString() : null)).ToList();
+            return new HandoffImages.Page(picture, shot, Str(it, "title"), notes, Str(it, "name"));
         }).ToList();
-
     /// <summary>Mark color (#rrggbb from the settings); falls back to the default orange if malformed</summary>
     static System.Windows.Media.Color MarkColor(string hex)
     {

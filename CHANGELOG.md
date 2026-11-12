@@ -4,7 +4,18 @@ All notable changes to SnipToss Desktop are listed here: SnipToss for Windows an
 
 The annotation data format has its own version (`"schema": "sniptoss/5"`); its history is in [docs/annotation-format.md](docs/annotation-format.md).
 
-## [Unreleased]
+## [1.4.0] — 2026-11-12
+
+### Changed
+
+- Copy as Images now puts all notes on the same frame into one image: the picture is drawn from the item with every note's mark and its number, and the notes are listed below by number. An image item gives one image; a video gives one per moment noted. The numbers never cover each other. Before, every note became an image of its own.
+- The `.sniptoss` folder that holds the notes no longer clutters the place the item is in. On Windows it is now a hidden folder, so it does not show on the desktop or in Explorer by default. On both platforms it is removed once its last note is deleted; undo brings it back with the note. Files in it that SnipToss did not write are left alone. An item taken out of the library does not leave an empty folder behind either.
+- Delete All Notes… also deletes the drawings (marks left without a note) on an item that ends up with no notes, and says so before deleting. It is available when drawings are all that is left on the item. Before, drawings stayed behind because the notes panel does not list them.
+- One copy makes at most 10 images, which is about what web-based AI accepts per message. With more frames than that, several frames share an image as a grid, and the toast says so when even that is not enough.
+
+### Added
+
+- Settings → Copying: choose between combined images and one image per note (the earlier behavior), and set the image limit to 10, 20 or none.
 
 ## [1.3.1] — 2026-11-10
 
@@ -150,6 +161,7 @@ First public release.
 - Portable version: with a `data` folder next to the app, all data stays in it and the registry is never touched.
 - Command-line tool `sniptoss` (list, review, resolve, wontfix); its messages follow the system display language.
 
+[1.4.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.4.0
 [1.3.1]: https://github.com/Moy339339/SnipToss/releases/tag/v1.3.1
 [1.3.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.3.0
 [1.2.3]: https://github.com/Moy339339/SnipToss/releases/tag/v1.2.3

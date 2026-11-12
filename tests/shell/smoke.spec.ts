@@ -504,3 +504,36 @@ test("Opening a new window from the UI (window.open, a target=_blank link): neve
   expect(shell.windows()).toHaveLength(1);
   await expect(shell.page.locator(".lib-row", { hasText: "hero.png" })).toBeVisible();
 });
+
+test("The notes folder is hidden in File Explorer, is removed once every notes file in it is empty, and comes back hidden with the next note", async ({
+  shell,
+}) => {
+  const data = join(shell.project, ".sniptoss");
+  const hidden = () => /^.{0,12}H/.test(spawnSync("attrib", [data], { encoding: "utf8" }).stdout);
+  await shell.launch();
+  await expect(card(shell, "k3f9a2")).toBeVisible();
+  expect(hidden()).toBe(true);
+
+  // Still holds notes: asking changes nothing
+  await shell.callHost("tidyHome", { home: shell.project });
+  await new Promise((r) => setTimeout(r, 500));
+  expect(existsSync(join(data, "annotations", "assets__hero.png.json"))).toBe(true);
+
+  // Every notes file emptied (as deleting the last note leaves them): the UI syncs, and the folder goes when asked
+  for (const name of ["assets__hero.png.json", "video__clip.mp4.json"]) {
+    const file = join(data, "annotations", name);
+    writeFileSync(file, JSON.stringify({ ...JSON.parse(readFileSync(file, "utf8")), annotations: [] }, null, 2) + "\n");
+  }
+  await expect(card(shell, "k3f9a2")).toHaveCount(0);
+  await shell.callHost("tidyHome", { home: shell.project });
+  await waitFor("the empty notes folder to be removed", () => !existsSync(data));
+
+  // An agent writes notes again: the folder is watched as before, and the next write from the UI hides it again
+  // (with a changed text: content identical to what was on disk seconds ago is taken for a late notification and skipped)
+  const hero = readFileSync(join(ROOT, "tests", "e2e", "fixtures", "project", ".sniptoss", "annotations", "assets__hero.png.json"), "utf8");
+  mkdirSync(join(data, "annotations"), { recursive: true });
+  writeFileSync(join(data, "annotations", "assets__hero.png.json"), hero.replace("标题字太细了", "标题字还是太细"));
+  await expect(card(shell, "k3f9a2")).toBeVisible();
+  await cardMenu(shell, "k3f9a2", "标记为已改");
+  await waitFor("the notes folder to be hidden after a write", () => hidden());
+});

@@ -1,7 +1,8 @@
 import Foundation
 
 /// The bridge methods that read and write notes (docs/host-api.md, "Notes"): `readHomes`, `writeAnnotation`, `writeText`, `writeBase64`,
-/// `deleteFile`, `pruneSnapshots`, and `copyImages` (Copy as Images, which reads the snapshots of notes and writes no notes). Writing is only
+/// `deleteFile`, `pruneSnapshots`, `tidyHome` (removes a .sniptoss that holds no notes, `HomeTidy`), and `stashImage` / `copyImages` (Copy
+/// as Images, which takes the pictures the page drew and reads the snapshots of notes, and writes no notes). Writing is only
 /// allowed inside `.sniptoss/` of a notes folder a scan handed out (hard rule 1); a notes file is written with a precondition (hard rule 3)
 /// and every reply of notes content carries an ordering number (hard rule 3a).
 ///
@@ -13,26 +14,28 @@ import Foundation
 /// - Parameter settings: not read by these methods; accepted so the call looks like the one of `installScanMethods`
 /// - Parameter handoffClipboard: where `copyImages` puts its images; the system's unless a test says otherwise
 /// - Parameter handoffFolder: where `copyImages` saves the files when it copies several images (`AppPaths.handoffDir`)
+/// - Parameter tidy: removes empty notes folders and keeps their snapshots for undo; the writes put those back first. One for the whole app
+///   (`libraryRemove` tidies with the same one)
 func installNotesMethods(
     into bridge: BridgeHost, settings: Settings, homes: NotesHomes, lockWait: TimeInterval = FileLock.defaultWait,
     startWatching: @escaping (String) -> Void = { _ in }, didWrite: @escaping (String, String) -> Void = { _, _ in },
-    handoffClipboard: HandoffClipboard = SystemHandoffClipboard(), handoffFolder: String = AppPaths.handoffDir
+    handoffClipboard: HandoffClipboard = SystemHandoffClipboard(), handoffFolder: String = AppPaths.handoffDir, tidy: HomeTidy = HomeTidy()
 ) {
     bridge.register("readHomes") { params in
         try readHomesReply(stringList(params, "homes"), homes: homes, startWatching: startWatching)
     }
 
     bridge.register("writeAnnotation") { params in
-        try writeAnnotationReply(params, homes: homes, lockWait: lockWait, startWatching: startWatching, didWrite: didWrite)
+        try writeAnnotationReply(params, homes: homes, lockWait: lockWait, startWatching: startWatching, didWrite: didWrite, tidy: tidy)
     }
 
     bridge.register("writeText") { params in
-        try writeTextReply(params, homes: homes, startWatching: startWatching)
+        try writeTextReply(params, homes: homes, startWatching: startWatching, tidy: tidy)
         return nil
     }
 
     bridge.register("writeBase64") { params in
-        try writeBase64Reply(params, homes: homes, startWatching: startWatching)
+        try writeBase64Reply(params, homes: homes, startWatching: startWatching, tidy: tidy)
         return nil
     }
 
@@ -45,8 +48,17 @@ func installNotesMethods(
         try pruneSnapshotsReply(params, homes: homes)
     }
 
+    bridge.register("tidyHome") { params in
+        try tidyHomeReply(params, homes: homes, tidy: tidy)
+    }
+
+    let stash = HandoffStash()
+    bridge.register("stashImage") { params in
+        try stashImageReply(params, stash: stash)
+    }
+
     bridge.register("copyImages") { params in
-        try copyImagesReply(params, homes: homes, clipboard: handoffClipboard, folder: handoffFolder)
+        try copyImagesReply(params, homes: homes, stash: stash, clipboard: handoffClipboard, folder: handoffFolder)
     }
 }
 
@@ -71,7 +83,7 @@ func readHomesReply(_ raw: [String], homes: NotesHomes, startWatching: (String) 
         if there { startWatching(home) }
         let seq = NotesStore.observe()
         var annotations: [[String: Any]] = []
-        var project: [String: Any] = ["text": NSNull(), "review": false]
+        var project: [String: Any] = ["text": NSNull(), "review": false, "exists": false]
         if there {
             annotations = try mapped { try NotesStore.readAnnotations(home: home) }
             project = try mapped { try NotesStore.readProject(home: home) }
@@ -89,7 +101,7 @@ func readHomesReply(_ raw: [String], homes: NotesHomes, startWatching: (String) 
 /// and write again. `didWrite(home, file)` is called only for a write that happened
 func writeAnnotationReply(
     _ params: Any?, homes: NotesHomes, lockWait: TimeInterval = FileLock.defaultWait, startWatching: (String) -> Void,
-    didWrite: (String, String) -> Void = { _, _ in }
+    didWrite: (String, String) -> Void = { _, _ in }, tidy: HomeTidy? = nil
 ) throws -> [String: Any] {
     let home = try homes.require(requiredString(params, "home"))
     let rel = try requiredString(params, "path")
@@ -98,35 +110,47 @@ func writeAnnotationReply(
     let fields = params as? [String: Any]
     let check = fields?.keys.contains("expectSha256") ?? false
     let expect = fields?["expectSha256"] as? String
-    let outcome = try mapped {
-        try NotesStore.writeIfUnchanged(
-            full, text: text, check: check, expectSha256: expect, lockWait: lockWait, afterWrite: { didWrite(home, full) })
+    return try inTurn(tidy, home) { () throws -> [String: Any] in
+        let outcome = try mapped {
+            try NotesStore.writeIfUnchanged(
+                full, text: text, check: check, expectSha256: expect, lockWait: lockWait, afterWrite: { didWrite(home, full) })
+        }
+        if !outcome.written {
+            return ["written": false, "current": jsonOrNull(outcome.current), "seq": outcome.seq]
+        }
+        startWatching(home)
+        DataDir.ensureGitIgnore(home: home)
+        return ["written": true, "current": NSNull(), "seq": outcome.seq]
     }
-    if !outcome.written {
-        return ["written": false, "current": jsonOrNull(outcome.current), "seq": outcome.seq]
-    }
-    startWatching(home)
-    DataDir.ensureGitIgnore(home: home)
-    return ["written": true, "current": NSNull(), "seq": outcome.seq]
 }
 
 /// `writeText`: text (REVIEW.md, project.json) inside `.sniptoss/`, as UTF-8 without a byte order mark
-func writeTextReply(_ params: Any?, homes: NotesHomes, startWatching: (String) -> Void) throws {
+func writeTextReply(_ params: Any?, homes: NotesHomes, startWatching: (String) -> Void, tidy: HomeTidy? = nil) throws {
     let home = try homes.require(requiredString(params, "home"))
     let rel = try requiredString(params, "path")
     let text = try requiredString(params, "text")
     let full = try PathPolicy.inDataDir(home: home, rel: rel)
-    try store(Data(text.utf8), at: full, home: home, startWatching: startWatching)
+    try inTurn(tidy, home) { try store(Data(text.utf8), at: full, home: home, startWatching: startWatching) }
 }
 
 /// `writeBase64`: a binary file (a snapshot) inside `.sniptoss/`
-func writeBase64Reply(_ params: Any?, homes: NotesHomes, startWatching: (String) -> Void) throws {
+func writeBase64Reply(_ params: Any?, homes: NotesHomes, startWatching: (String) -> Void, tidy: HomeTidy? = nil) throws {
     let home = try homes.require(requiredString(params, "home"))
     let rel = try requiredString(params, "path")
     let encoded = try requiredString(params, "data")
     let full = try PathPolicy.inDataDir(home: home, rel: rel)
     guard let bytes = Data(base64Encoded: encoded) else { throw BridgeError("Invalid base64 data") }
-    try store(bytes, at: full, home: home, startWatching: startWatching)
+    try inTurn(tidy, home) { try store(bytes, at: full, home: home, startWatching: startWatching) }
+}
+
+/// A write into a notes folder, in that folder's turn (`HomeTidy.withHome`: never while the folder is being removed), once the snapshots
+/// set aside when the folder was emptied are back (this write may be undo bringing their notes back)
+private func inTurn<T>(_ tidy: HomeTidy?, _ home: String, _ write: () throws -> T) rethrows -> T {
+    guard let tidy else { return try write() }
+    return try tidy.withHome(home) { key in
+        tidy.restore(home: home, key: key)
+        return try write()
+    }
 }
 
 /// Unique temp file, flush, replace (hard rule 4). No lock: nothing else reads these files and then writes them back
@@ -151,44 +175,70 @@ func pruneSnapshotsReply(_ params: Any?, homes: NotesHomes, minAge: TimeInterval
     return try mapped { try NotesStore.pruneSnapshots(home: home, keep: keep, minAge: minAge) }
 }
 
+/// `tidyHome`: removes the .sniptoss of a notes folder a scan handed out if it holds no notes and no drawings (`HomeTidy`). The page asks
+/// once the last note is gone, and for a folder it read in and found empty; the shell checks the disk itself, so a folder that does hold
+/// notes is never touched whatever the page believes. Answers `removed`, `left`, `kept` or `nothing`
+func tidyHomeReply(_ params: Any?, homes: NotesHomes, tidy: HomeTidy) throws -> String {
+    let home = try homes.require(requiredString(params, "home"))
+    return tidy.tidy(home: home).rawValue
+}
+
 // MARK: - copyImages
 
-/// `copyImages`: one image per note (title, snapshot, notes area) on the clipboard; returns how many. The snapshot of a note is taken only
-/// from `.sniptoss/` of a notes folder a scan handed out (the same rule as for `fileUrl`); a note whose folder is not known, is gone, or
-/// names a path outside `.sniptoss/` is drawn without its snapshot (text only). `extra` is the closing paragraph of the notes area.
+/// `stashImage`: keeps a picture the page drew (`data`, base64 PNG) for the copy of `batch`; returns `{id}`, which a page of `copyImages`
+/// names as its `image`
+func stashImageReply(_ params: Any?, stash: HandoffStash) throws -> [String: Any] {
+    let batch = try requiredString(params, "batch")
+    guard let png = Data(base64Encoded: try requiredString(params, "data")) else { throw BridgeError("Invalid base64 data") }
+    return ["id": stash.stash(batch: batch, png: png)]
+}
+
+/// `copyImages`: one image per page (title, picture, notes area) on the clipboard; returns how many. A page's picture is the one stashed
+/// under its `image` id; without one, the stored snapshot it names, taken only from `.sniptoss/` of a notes folder a scan handed out (the
+/// same rule as for `fileUrl`); a snapshot whose folder is not known, is gone, or that names a path outside `.sniptoss/` is left out (the
+/// page is text only). `extra` is the closing paragraph, at the end of the last image. The stashed pictures of the batch its pages name are
+/// let go afterwards, whether the copy worked or not (a later copy that has already stashed its own keeps them).
 /// Errors: nothing to copy, a folder that cannot be written (the usual disk classes), the clipboard held by another program (`clipboardBusy`)
 func copyImagesReply(
-    _ params: Any?, homes: NotesHomes, clipboard: HandoffClipboard, folder: String, now: Date = Date()
+    _ params: Any?, homes: NotesHomes, stash: HandoffStash, clipboard: HandoffClipboard, folder: String, now: Date = Date()
 ) throws -> [String: Any] {
-    guard let fields = params as? [String: Any], let list = fields["items"] as? [Any] else { throw BridgeError("Missing argument: items") }
-    let items = try list.map { try handoffItem($0, homes: homes) }
+    guard let fields = params as? [String: Any], let list = fields["pages"] as? [Any] else { throw BridgeError("Missing argument: pages") }
+    defer { stash.drop(batches: Set(list.compactMap { (($0 as? [String: Any])?["image"] as? String).map(HandoffStash.batch(of:)) })) }
+    let pages = try list.map { try handoffPage($0, homes: homes, stash: stash) }
     let extra = fields["extra"] as? String
-    let count = try mapped { try HandoffImages.copy(items, extra: extra, clipboard: clipboard, folder: folder, now: now) }
+    let count = try mapped { try HandoffImages.copy(pages, extra: extra, clipboard: clipboard, folder: folder, now: now) }
     return ["count": count]
 }
 
-/// One entry of `items`: `title`, `category`, `where`, `body`, `color` (`#rrggbb`; the default orange when it is not), `name` and `number`
-/// are required, `snapshot` (a path relative to the notes folder `home`) is not
-private func handoffItem(_ raw: Any, homes: NotesHomes) throws -> HandoffImages.Item {
-    guard let fields = raw as? [String: Any] else { throw BridgeError("Invalid argument: items") }
-    guard let number = fields["number"] as? Int else { throw BridgeError("Missing argument: number") }
+/// One entry of `pages`: `title`, `name` and `notes` are required; `image` (a stashed picture's id) and `snapshot` (a path relative to the
+/// notes folder `home`) are not
+private func handoffPage(_ raw: Any, homes: NotesHomes, stash: HandoffStash) throws -> HandoffImages.Page {
+    guard let fields = raw as? [String: Any] else { throw BridgeError("Invalid argument: pages") }
+    let picture = (fields["image"] as? String).flatMap { stash.picture($0) }
     var snapshot: String?
-    if let rel = fields["snapshot"] as? String {
+    if picture == nil, let rel = fields["snapshot"] as? String {
         do {
             snapshot = try PathPolicy.inDataDir(home: homes.require(requiredString(fields, "home")), rel: rel)
         } catch let refused as BridgeError {
             Log.info("Copy as images: snapshot skipped (\(refused.message))")
         }
     }
-    let title = try requiredString(fields, "title")
+    guard let list = fields["notes"] as? [Any] else { throw BridgeError("Missing argument: notes") }
+    let notes = try list.map(handoffNote)
+    return HandoffImages.Page(
+        picture: picture, snapshot: snapshot, title: try requiredString(fields, "title"), notes: notes, name: try requiredString(fields, "name"))
+}
+
+/// One note of a page: `number`, `category`, `where`, `body` and `color` (`#rrggbb`; the default orange when it is not) are required,
+/// `group` (the item's name, on a page that mixes items) is not
+private func handoffNote(_ raw: Any) throws -> NoteEntry {
+    guard let fields = raw as? [String: Any] else { throw BridgeError("Invalid argument: notes") }
+    guard let number = fields["number"] as? Int else { throw BridgeError("Missing argument: number") }
     let category = try requiredString(fields, "category")
     let whereText = try requiredString(fields, "where")
     let body = try requiredString(fields, "body")
-    let colorText = try requiredString(fields, "color")
-    let color = MarkColor(hexText: colorText) ?? MarkColor(hex: 0xff6a3d)
-    let name = try requiredString(fields, "name")
-    return HandoffImages.Item(
-        snapshot: snapshot, title: title, number: number, category: category, whereText: whereText, body: body, color: color, name: name)
+    let color = MarkColor(hexText: try requiredString(fields, "color")) ?? MarkColor(hex: 0xff6a3d)
+    return NoteEntry(number: number, color: color, category: category, whereText: whereText, body: body, group: fields["group"] as? String)
 }
 
 // MARK: - Helpers

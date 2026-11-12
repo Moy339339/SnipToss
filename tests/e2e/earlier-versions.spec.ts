@@ -79,10 +79,13 @@ test("When an item is overwritten, Copy as Text gets a section of its own that s
 
   await app.page.keyboard.press("Control+Shift+i");
   await expect.poll(() => app.host.copiedImages.length).toBe(1);
+  // A note on an earlier version keeps an image of its own, with its stored snapshot: the current picture no longer shows what it was about
   const [item] = app.host.copiedImages[0];
-  expect(item.number).toBe(0);
+  expect(item.notes.map((n) => n.number)).toEqual([0]);
   expect(item.name).toBe("hero.png 旧版本 第 1 条");
-  expect(item.where).toContain("（写在旧版本上，位置以截图为准）");
+  expect(item.notes[0].where).toContain("（写在旧版本上，位置以截图为准）");
+  // The fixture's note has no stored snapshot: text only, and nothing is drawn from the current picture
+  expect(item.image).toBeNull();
 });
 
 test("When an item is overwritten while the app is open, marks leave the canvas and the notes move to the earlier-version section; notes drawn afterwards are numbered from 1 and record the new fingerprint", async ({ app }) => {
@@ -180,11 +183,9 @@ test("Overall comments get their own \"Overall comment\" section, are numbered f
 
   await app.page.keyboard.press("Control+Shift+i");
   await expect.poll(() => app.host.copiedImages.length).toBe(1);
+  // One image for the item: the note on the canvas with its number, the overall comment listed below without one
   const items = app.host.copiedImages[0];
-  expect(items.map((i) => [i.number, i.name])).toEqual([
-    [1, "hero.png 第 1 条"],
-    [0, "hero.png 整体意见 2"],
-  ]);
+  expect(items.map((i) => [i.name, i.notes.map((n) => n.number)])).toEqual([["hero.png", [1, 0]]]);
 });
 
 test("Project scope: each item has its own sections; the whole-folder comment group has no sections and uses gray numbers", async ({ app }) => {

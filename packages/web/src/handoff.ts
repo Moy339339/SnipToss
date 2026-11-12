@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { useIntl } from "react-intl";
-import { DATA_DIR, describeWhere, renderHandoff, type HandoffMaterial, type MaterialFile, type Translate } from "@sniptoss/core";
+import { renderHandoff, type HandoffMaterial, type MaterialFile, type Translate } from "@sniptoss/core";
 import { blockedReason, fileKey, type Stored } from "./annotationStore";
-import { baseName, call, keyOf, logError, type HandoffImageItem, type MaterialEntry } from "./host";
+import { buildPages } from "./handoffPages";
+import type { PlanNote } from "./handoffPlan";
+import { baseName, call, keyOf, logError, type MaterialEntry } from "./host";
 import { relInside, type FolderTarget } from "./library";
-import { placeColorOf } from "./markColors";
 import { itemId, numbered, type Item } from "./panelScope";
 import type { Prefs } from "./prefs";
 import type { Notify, Report } from "./report";
@@ -23,7 +24,7 @@ import { shortWhen } from "./shortWhen";
 
 /**
  * The two kinds of handoff: text = text for a local AI (Claude Code and Codex can read local files);
- * images = one image per note (for people using web-based AI or chat apps: they cannot read local paths and need images)
+ * images = images with the notes written on them (for people using web-based AI or chat apps: they cannot read local paths and need images)
  */
 export type HandoffMode = "text" | "images";
 
@@ -95,10 +96,12 @@ export function useHandoff(opts: {
    */
   earlierOf: (key: string) => ReadonlySet<string>;
   current: MaterialEntry | undefined;
+  /** The library's items by key: Copy as Images draws the frames from the items themselves */
+  byKey: ReadonlyMap<string, MaterialEntry>;
   grouped: boolean;
   openList: Item[];
   checkedList: Item[];
-  prefs: Pick<Prefs, "promptExtra" | "markColor">;
+  prefs: Pick<Prefs, "promptExtra" | "markColor" | "snapshotMax" | "copyImages" | "copyImagesMax">;
   onNotify: Notify;
   report: Pick<Report, "notifyError" | "copyReason">;
 }) {
@@ -131,13 +134,28 @@ export function useHandoff(opts: {
       const drawn = filesRef.current.get(key)?.file.drawings?.some((d) => !earlier.has(d.id));
       return drawn ? { ...g, drawings: true } : g;
     });
+  const imageCopies = useRef<Promise<unknown>>(Promise.resolve());
   const handOff = async (list: HandoffMaterial[], done: (count: number) => string, mode: HandoffMode = "text") => {
     const n = list.reduce((s, g) => s + g.items.length, 0);
     try {
       let text: string;
       if (mode === "images") {
-        const { count } = await call("copyImages", { items: imageItems(list), extra: prefs.promptExtra });
+        // One copy at a time: the shell keeps only the pictures of the latest batch, so a second copy started while the first is still
+        // drawing would take the first one's pictures away (and the first, finishing, would drop the second's)
+        const run = async () => {
+          const made = await imagePages(list);
+          return { ...made, ...(await call("copyImages", { pages: made.pages, extra: prefs.promptExtra })) };
+        };
+        const turn = imageCopies.current.then(run, run);
+        imageCopies.current = turn.catch(() => {});
+        const { count, over } = await turn;
         text = intl.formatMessage({ id: "app.copy.images.hint" }, { done: done(n), images: count });
+        // More frames than even the largest grid holds: say so, since most web-based AI takes only so many images per message
+        if (over)
+          text = intl.formatMessage(
+            { id: "app.copy.withNote" },
+            { text, note: intl.formatMessage({ id: "app.copy.images.over" }, { max: prefs.copyImagesMax }) },
+          );
       } else {
         await navigator.clipboard.writeText(renderHandoff(withDrawings(list), translate, { extra: prefs.promptExtra }));
         text = intl.formatMessage({ id: "app.copy.done.hint" }, { done: done(n) });
@@ -188,34 +206,32 @@ export function useHandoff(opts: {
     }
   };
   /**
-   * Each entry of Copy as Images (drawn by the shell's HandoffImages): "project / file" on top, the note's own snapshot, and a caption area
-   * with the category, the position and the text. People using web-based AI or chat apps cannot see local paths, so the image has to say
-   * which file it is
+   * The images of Copy as Images (handoffPages.ts): notes on the same frame share an image, "project / file" on top, the frame with the
+   * marks and their numbers, and a notes area with the category, the position and the text of each note. People using web-based AI or
+   * chat apps cannot see local paths, so the image has to say which file it is
    */
-  const imageItems = (list: HandoffMaterial[]): HandoffImageItem[] =>
-    list.flatMap((g) => {
-      const m = g.material;
-      const project = baseName(g.root) || g.root;
-      const title =
-        m.kind !== "folder"
+  const imagePages = (list: HandoffMaterial[]) =>
+    buildPages(list, {
+      entryOf: (key) => opts.byKey.get(key),
+      fileOf: (key) => filesRef.current.get(key)?.file,
+      earlierOf,
+      prefs,
+      translate,
+      titleOf: (g) => {
+        const m = g.material;
+        const project = baseName(g.root) || g.root;
+        return m.kind !== "folder"
           ? intl.formatMessage({ id: "app.images.title.file" }, { project, path: m.path })
           : m.path === "."
             ? intl.formatMessage({ id: "app.images.title.root" }, { project })
             : intl.formatMessage({ id: "app.images.title.folder" }, { project, path: m.path });
-      const file = m.kind === "folder" ? baseName(m.path === "." ? g.root : m.path) : baseName(m.path);
-      // Only notes on the canvas get a numbered circle (matching the marks in the snapshot and the orange numbers in the notes panel);
-      // timestamped comments, overall comments and notes on earlier versions get no circle, and the file name says which section and
-      // which number it is (ADR-0008)
-      return g.items.map(({ annotation: a, index, section }) => ({
-        home: g.root,
-        snapshot: a.snapshot ? `${DATA_DIR}/${a.snapshot}` : null,
-        title,
-        number: section === "marked" ? index : 0,
-        category: a.category,
-        where: describeWhere(a, m, translate) + (section === "earlier" ? translate("ai.earlier") : ""),
-        body: a.body,
-        color: placeColorOf(a, 0, prefs.markColor),
-        name: intl.formatMessage(
+      },
+      // An image with a single note is named after it: only notes on the canvas have a number that matches the marks; timestamped comments,
+      // overall comments and notes on earlier versions say which section and which number they are (ADR-0008)
+      nameOf: (g, { index, section }: PlanNote) => {
+        const m = g.material;
+        const file = m.kind === "folder" ? baseName(m.path === "." ? g.root : m.path) : baseName(m.path);
+        return intl.formatMessage(
           {
             id:
               section === "timed"
@@ -227,8 +243,8 @@ export function useHandoff(opts: {
                     : "app.images.name",
           },
           { file, number: index },
-        ),
-      }));
+        );
+      },
     });
   /** The open notes of one notes file, with numbering and sections matching the notes panel */
   const openOf = (key: string, s: Stored): HandoffMaterial["items"] =>

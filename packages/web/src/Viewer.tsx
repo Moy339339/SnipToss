@@ -160,7 +160,7 @@ export function Viewer(props: {
 }
 
 /** The beginning of an SVG (including the root element's opening tag): used to get the original size. Empty when it cannot be read, in which case the browser's size is used */
-async function svgHead(url: string): Promise<string> {
+export async function svgHead(url: string): Promise<string> {
   try {
     const res = await fetch(url, { headers: { Range: "bytes=0-65535" } });
     return new TextDecoder().decode((await res.arrayBuffer()).slice(0, 65536));

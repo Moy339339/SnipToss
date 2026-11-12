@@ -213,7 +213,7 @@ test("The count beside the two Copy items reads \"1 note\" for one item and \"2 
   await row(app, "project").click({ button: "right" });
   await expect(menuItem(app, "复制批注成文字").locator(".menu-hint")).toHaveText("2 个素材 3 条 · Ctrl C");
   await menuItem(app, "复制批注成图片").click();
-  await expect.poll(() => app.host.copiedImages.at(-1)?.length).toBe(3);
+  await expect.poll(() => app.host.copiedImages.at(-1)?.flatMap((p) => p.notes).length).toBe(3);
 });
 
 test("Add Folder Comment… opens the composer titled with that folder and saves into that folder's notes file", async ({ app }) => {

@@ -43,6 +43,8 @@ Notes travel with the item. They live in `.sniptoss/` under the root folder of t
 
 Whether the notes themselves are committed to git is up to the user; the app does not ignore them on the user's behalf.
 
+**`.sniptoss/` exists only while there is something in it** (from 1.4.0). The app removes the folder once it holds no notes and no drawings: when the last note is deleted, or when it reads a folder and finds it empty. Only files the app wrote are deleted (notes files with nothing in them, `REVIEW.md`, `project.json`, the `.gitignore` it placed, snapshots it named); if anything else is in the folder, that and the folder stay. A missing `.sniptoss/` therefore means "no notes here", not an error. On Windows the app also marks the folder hidden, so it does not show in Explorer or on the desktop by default; reading and writing by path work as before.
+
 - Paths are always forward-slash paths **relative to the folder that contains `.sniptoss/`**, such as `assets/hero.png`.
 - `REVIEW.md` and `snapshots/` can both be regenerated from `annotations/*.json`; **the real data lives only in the JSON**.
 - **The file name is only a human-friendly label; which item a file belongs to is determined by `material.path` inside the file.** Do not derive the path from the file name when reading.
