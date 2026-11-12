@@ -5,7 +5,21 @@
 import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
-import { NOTES, PROJECT, PROJECT2, PROJECTS, Recorder, dismissToast, drawNote, ellipse, launch, pageShot, sleep, wait } from "./common.mjs";
+import {
+  CLIP,
+  NOTES,
+  PROJECT,
+  PROJECT2,
+  PROJECTS,
+  Recorder,
+  dismissToast,
+  drawNote,
+  ellipse,
+  launch,
+  pageShot,
+  sleep,
+  wait,
+} from "./common.mjs";
 import { renderClip, renderLanding, renderPoster, renderScreen } from "./sample.mjs";
 
 export const OFF = -20000;
@@ -21,7 +35,7 @@ export async function prepareProject(work) {
   await renderLanding(sample);
   copyFileSync(join(sample, "hero.png"), join(PROJECT, "assets", "hero.png"));
   copyFileSync(join(sample, "banner.png"), join(PROJECT, "assets", "banner.png"));
-  await renderClip(join(PROJECT, "video", "pour.mp4"));
+  await renderClip(join(PROJECT, "video", CLIP));
   await renderScreen(join(sample, "screen.png"));
   seedBanner();
   // The second sample project: an event poster and a wide flyer (the poster carries the resolved note, the flyer is the one that gets annotated)
@@ -90,9 +104,13 @@ export const open = async (page, name) => {
 // Marks on hero.png, as fractions of the picture
 export const TITLE = { tool: "r", marks: [{ from: [0.055, 0.235], to: [0.54, 0.44] }] };
 export const BUTTON = { tool: "a", marks: [{ from: [0.3, 0.86], to: [0.2, 0.735] }] };
-const WATERMARK = { tool: "c", marks: [{ from: [0.88, 0.17] }], category: 2 };
-// The coffee stream: one note, two places (the stream and the glass it falls into)
-const HIGHLIGHTS = { tool: "b", marks: [{ points: ellipse(0.775, 0.4, 0.04, 0.2) }, { points: ellipse(0.75, 0.66, 0.1, 0.085) }] };
+const WATERMARK = { tool: "c", marks: [{ from: [0.885, 0.17] }], category: 2 };
+// The two grapefruit slices: one note, two places (the lower one first: the note box opens below it and would cover it)
+const HIGHLIGHTS = {
+  tool: "b",
+  marks: [{ points: ellipse(0.866, 0.65, 0.105, 0.155) }, { points: ellipse(0.603, 0.27, 0.085, 0.135) }],
+  category: 1,
+};
 
 async function threeNotes(page, locale, pace) {
   const n = NOTES[locale === "zh-CN" ? "zh-CN" : "en"];
@@ -226,7 +244,7 @@ export async function video(ctx, locale) {
   const inst = await start(ctx, locale, "video");
   try {
     const { page } = inst;
-    await open(page, "pour.mp4");
+    await open(page, CLIP);
     await page.locator("video").waitFor();
     await sleep(800);
     // The time in the playback bar as frame numbers (a click goes from seconds to timecode, another to frames)
@@ -234,7 +252,7 @@ export async function video(ctx, locale) {
       await page.locator(".transport .timecode").click();
       await sleep(400);
     }
-    await page.locator(".lib-row", { hasText: "pour.mp4" }).click();
+    await page.locator(".lib-row", { hasText: CLIP }).click();
     await page.mouse.move(700, 420);
     await sleep(600);
     const rec = new Recorder(page, dir);
@@ -249,7 +267,7 @@ export async function video(ctx, locale) {
     const rail = await page.locator(".track").boundingBox();
     await page.mouse.click(rail.x + 1, rail.y + rail.height / 2, { delay: 60 });
     await sleep(500);
-    await page.locator(".lib-row", { hasText: "pour.mp4" }).click();
+    await page.locator(".lib-row", { hasText: CLIP }).click();
     await sleep(300);
     for (let i = 0; i < 2; i++) {
       await page.keyboard.press("Shift+ArrowRight");
@@ -267,11 +285,11 @@ export async function video(ctx, locale) {
     await sleep(300);
     await page.keyboard.press("Enter");
     await sleep(900);
-    // Jump to about 4.2 s by clicking the track, and mark the steam
+    // Jump to 7.5 s (the ride downhill) by clicking the track, and mark the foot
     const track = await page.locator(".track").boundingBox();
-    await page.mouse.click(track.x + track.width * 0.7, track.y + track.height / 2, { delay: 60 });
+    await page.mouse.click(track.x + track.width * 0.375, track.y + track.height / 2, { delay: 60 });
     await sleep(700);
-    await drawNote(page, { tool: "r", target: "video", marks: [{ from: [0.62, 0.42], to: [0.9, 0.86] }], text: n.steam, pace: SLOW });
+    await drawNote(page, { tool: "r", target: "video", marks: [{ from: [0.28, 0.61], to: [0.44, 0.83] }], text: n.steam, pace: SLOW });
     await page.keyboard.press("v");
     await sleep(500);
     await page.mouse.move(10, 790);
@@ -309,8 +327,10 @@ export async function capture(ctx, locale) {
 
     // Pull out a region around the answer (pointer positions are in the overlay's own coordinates)
     const { reply, questions } = JSON.parse(readFileSync(join(ctx.work, "sample", "screen.png.json"), "utf8"));
-    const lerp = (p, q, n) =>
-      Array.from({ length: n }, (_, i) => [p[0] + ((q[0] - p[0]) * (i + 1)) / n, p[1] + ((q[1] - p[1]) * (i + 1)) / n].map(Math.round));
+    const lerp = (p, q, steps) =>
+      Array.from({ length: steps }, (_, i) =>
+        [p[0] + ((q[0] - p[0]) * (i + 1)) / steps, p[1] + ((q[1] - p[1]) * (i + 1)) / steps].map(Math.round),
+      );
     const from = [reply.x - 30, reply.y - 44];
     const to = [reply.x + reply.width + 30, reply.y + reply.height + 24];
     await snap(1100, [{ op: "move", x: from[0], y: from[1] }]);

@@ -8,7 +8,7 @@
 
 import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { NOTES, Recorder, dismissToast, drawNote, ellipse, sleep, stroke, wait } from "./common.mjs";
+import { CLIP, NOTES, Recorder, dismissToast, drawNote, ellipse, sleep, stroke, wait } from "./common.mjs";
 import { FAST, OFF, TITLE, freshNotes, open, start } from "./scenes.mjs";
 
 function stillsDir(ctx, locale) {
@@ -79,7 +79,7 @@ async function timedNote(page, text) {
 }
 
 async function openClip(page) {
-  await open(page, "pour.mp4");
+  await open(page, CLIP);
   await page.locator("video").waitFor();
   await wait("the clip", () => page.evaluate(() => (document.querySelector("video")?.readyState ?? 0) >= 2));
   await sleep(600);

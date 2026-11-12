@@ -6,6 +6,7 @@
 //   node scripts/readme-shots.mjs [SnipToss.exe] [--only hero,marking,stills,video,capture,languages] [--locales en,zh-CN] [--work <folder>]
 //   node scripts/readme-shots.mjs --only colors,delete,movebox,capture-toolbar,colors-still --work <folder>     the 1.1 what's-new pictures (not part of the default run)
 //   node scripts/readme-shots.mjs --only frames,badges,drawings,capture-drawings --work <folder>                 the 1.3 what's-new pictures (readme-shots/whatsnew13.mjs)
+//   node scripts/readme-shots.mjs --only results --locales en --work <folder>                                    the images Copy as Images makes (readme-shots/results.mjs)
 //
 // README scenes (the default run): hero = the main window with the second sample (a poster) at 2×; marking = animation frames of the four tools and one note on several places;
 // stills = the main window at 2×, REVIEW.md, the images "Copy as Images" makes; video = animation frames of a note on a moment and another on a mark;
@@ -23,6 +24,7 @@ import { ROOT, PROJECTS } from "./readme-shots/common.mjs";
 import { capture, hero, languages, marking, prepareProject, stills, video } from "./readme-shots/scenes.mjs";
 import { captureToolbar, colors, colorsStill, deletePlace, movebox } from "./readme-shots/whatsnew.mjs";
 import { badges, captureDrawings, drawings, frames } from "./readme-shots/whatsnew13.mjs";
+import { results } from "./readme-shots/results.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name) => {
@@ -30,7 +32,7 @@ const flag = (name) => {
   return i < 0 ? undefined : args.splice(i, 2)[1];
 };
 const only = flag("only")?.split(",") ?? ["hero", "marking", "stills", "video", "capture", "languages"];
-const locales = flag("locales")?.split(",") ?? ["en", "zh-CN"];
+const locales = flag("locales")?.split(",") ?? ["en"];
 const work = flag("work") ?? join(tmpdir(), "sniptoss-readme-footage");
 const exe = args[0] ?? join(ROOT, "tests", "shell", ".app", "SnipToss.exe");
 if (!existsSync(exe)) {
@@ -59,6 +61,7 @@ try {
     badges,
     drawings,
     "capture-drawings": captureDrawings,
+    results,
   };
   for (const name of only) {
     if (name === "languages") await languages(ctx);

@@ -13,9 +13,11 @@ export const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /** The sample project lives under %TEMP%\Projects: the library shows the containing folder ("…\Temp\Projects"), so no other path is exposed */
 export const PROJECTS = join(tmpdir(), "Projects");
-export const PROJECT = join(PROJECTS, "slow-pour-site");
+export const PROJECT = join(PROJECTS, "ruby-pop-launch");
+/** The video of the first sample project (video/<CLIP>) */
+export const CLIP = "teaser.mp4";
 /** The second sample project (a poster), for pictures that must not repeat the first */
-export const PROJECT2 = join(PROJECTS, "late-night-jazz");
+export const PROJECT2 = join(PROJECTS, "sunburst-festival");
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 export async function wait(what, fn, ms = 30_000) {
@@ -29,21 +31,21 @@ export async function wait(what, fn, ms = 30_000) {
 /** The notes written in the scenes, per UI language. The first three are the ones every still uses; the pen note is only drawn in the marking scene */
 export const NOTES = {
   en: {
-    title: "Title is too thin and gets lost on the background. Use a bold weight.",
-    button: "Button color doesn't match the brand. Use the coffee brown #6B3F25.",
-    mark: "Remove the stock watermark.",
-    pen: "The stream is too thin. Make it thicker and slower.",
-    steam: "The push-in is too fast here. Slow it down.",
-    late: "The title fades in too late. Show it from the first frame.",
+    title: "Headline is too thin and gets lost on the background. Make it bold.",
+    button: "Button is too dull. Use the coral from the can, #FF5A5F.",
+    mark: "Remove this sticker.",
+    pen: "These two slices look pasted on. Tuck them into the splash.",
+    steam: "Her foot is floating next to the pedal. Put it on.",
+    late: "Start closer on the girl and the cat.",
     screen: "Headline is too thin. Use a bold weight.",
     screenButton: "Button color doesn't match the brand.",
     // Replies to the three questions of the sample AI answer (the capture scene)
-    reply1: "Keep the headline.",
-    reply2: "Coffee brown, #6B3F25.",
-    reply3: "Generate a new one without a watermark.",
+    reply1: "B, warm like the can.",
+    reply2: "Bold.",
+    reply3: "A. Keep the splash.",
     posterTitle: "Title is too small for a poster. Make it twice as large.",
-    posterDate: "Date and time are hard to read. Add more contrast.",
-    posterPin: "Add the venue address next to the date.",
+    posterDate: "The date is hard to read. Add more contrast.",
+    posterPin: "Add the opening time next to the date.",
     // The 1.1 scenes (scripts/readme-shots/whatsnew.mjs)
     glass: "Fill the glass a little higher.",
     sameStyle: "Give these two the same button style.",

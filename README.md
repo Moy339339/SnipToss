@@ -2,9 +2,9 @@
 
 [![Latest release](https://img.shields.io/github/v/release/Moy339339/SnipToss)](https://github.com/Moy339339/SnipToss/releases/latest) [![CI](https://github.com/Moy339339/SnipToss/actions/workflows/ci.yml/badge.svg)](https://github.com/Moy339339/SnipToss/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/github/license/Moy339339/SnipToss)](LICENSE) ![Windows 11](https://img.shields.io/badge/Windows-11-0078D4) ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000)
 
-Telling your AI what to fix shouldn't be a writing test. Mark it on the image or on the exact video frame, and your AI gets the spot, a snapshot and your note.
+Telling your AI what to fix shouldn't be a writing test. Mark it on the image or on the exact video frame, then paste one picture: your AI gets the spot, a snapshot and your note.
 
-![The headline "Telling your AI what to fix shouldn't be a writing test", with "a writing test" marked the way SnipToss marks things; below it, the SnipToss window with three numbered marks on a sample coffee landing page and the matching notes next to it.](docs/images/hero.png)
+![The headline "Telling your AI what to fix shouldn't be a writing test". Below it, on the left a chat box with a long typed description of three things to change in an illustration; on the right the same three things as one picture: the illustration with three numbered marks and the three notes underneath.](docs/images/hero.png)
 
 **[Download for Windows](https://github.com/Moy339339/SnipToss/releases/latest)** · Windows 11 · **[Download for Mac](https://github.com/Moy339339/SnipToss/releases/latest)** · macOS 14 or later · [Install notes](#install) · [Release notes](https://github.com/Moy339339/SnipToss/releases/latest)
 
@@ -18,32 +18,46 @@ Telling your AI what to fix shouldn't be a writing test. Mark it on the image or
 
 In SnipToss you draw on the spot and write a short note, as many as you need. Each note is saved in the project's `.sniptoss/` folder with its position, its time and a snapshot. Paste them into Claude Code, Codex or any chat app in one go. It doesn't matter which tool made the file or which AI fixes it.
 
-## What you can do with it
+## What your AI gets
 
-### Draw on the part you mean
+### Point at the exact frame of a video
 
-![Animation: a rectangle, an arrow, a pin and a pen stroke drawn on a sample coffee landing page, each with a note in the panel on the right.](docs/images/feature-marking.webp)
+![What SnipToss copies for a video: four shots of a sample animated teaser in one picture, each with its time and a numbered mark, and the four notes listed underneath with their frame numbers.](docs/images/result-video.png)
 
-Pins, rectangles, a freehand pen and arrows, in eight colors or any color you pick. One note can point at several places. A mark you leave without a note stays on the image as a plain drawing. Each note has a category (Change, Remove, Add or Question), so the AI knows what kind of answer you want.
-
-### Comment on an exact frame of a video
-
-![Animation: a sample video stepped frame by frame, with a note on one frame and a rectangle on another; the playback bar shows frame numbers and each note's number stands above it.](docs/images/feature-video.webp)
-
-A note belongs to a moment or to a time range. Step through the video frame by frame, show the time as seconds, timecode or frame numbers, and click a number above the playback bar to go to its note. Press `T` to comment on the current frame without drawing anything.
+A note belongs to a moment or to a time range, down to the frame. **Copy as Images** gives one picture per moment, each with its time and its notes; when there are more moments than one message can hold, several share a picture.
 
 ### Answer a long reply point by point
 
+![What SnipToss copies for a screen capture: an AI's long answer with a numbered box on each of its three questions, and the three replies listed underneath.](docs/images/result-reply.png)
+
+Press `Ctrl+Alt+A` (`⌃⌥⌘A` on the Mac) and drag over the AI's answer. Put a number on each question, write your reply next to it, and paste the result back as one image. It works on anything on the screen: a running app, a web page, an error dialog.
+
+### Your AI fixes exactly what you marked
+
+![A festival flyer with three numbered marks and their notes, and next to it the flyer after the changes: a larger title, a readable date and the opening time.](docs/images/result-fixed.png)
+
+- **Copy as Images** (`Ctrl+Shift+I`) is for web-based AI and chat apps: one image per picture or video moment, with every mark numbered on it and the notes listed underneath. One copy makes at most 10 images, about what a chat accepts in one message; you can change that in Settings.
+- **Copy as Text** (`Ctrl+Shift+A`) is for agents that read local files, such as Claude Code and Codex. Paste it and the agent gets every note, with where to find the file and each snapshot.
+
+## How it works
+
+### Draw on the part you mean
+
+![Animation: a rectangle, an arrow, a pin and a pen stroke drawn on a sample landing page, each with a note in the panel on the right.](docs/images/feature-marking.webp)
+
+Pins, rectangles, a freehand pen and arrows, in eight colors or any color you pick. One note can point at several places. A mark you leave without a note stays on the image as a plain drawing. Each note has a category (Change, Remove, Add or Question), so the AI knows what kind of answer you want.
+
+### Step through a video frame by frame
+
+![Animation: a sample video stepped frame by frame, with a note on one frame and a rectangle on another; the playback bar shows frame numbers and each note's number stands above it.](docs/images/feature-video.webp)
+
+Show the time as seconds, timecode or frame numbers, and click a number above the playback bar to go to its note. Press `T` to comment on the current frame without drawing anything.
+
+### Capture anything on the screen
+
 ![Animation: the capture overlay over an AI's long answer: a region dragged around it, a numbered box on each of its three questions with a reply written next to it, then the finished image with the replies underneath.](docs/images/feature-capture.webp)
 
-Press `Ctrl+Alt+A` (`⌃⌥⌘A` on the Mac) and drag over anything on the screen: a running app, a web page, or the AI's own answer. Put a number on each point, write your reply next to it, and paste the result back as one image. The overlay also has an ellipse, text, and a pixelate tool for anything you'd rather not show.
-
-### Give the notes to your AI
-
-![A sample coffee landing page with three notes on it, the text of the notes as an agent reads it in REVIEW.md, and the page after the changes.](docs/images/feature-handoff.png)
-
-- **Copy as Text** (`Ctrl+Shift+A`) is for agents that read local files, such as Claude Code and Codex. Paste it and the agent gets every note, with where to find the file and each snapshot.
-- **Copy as Images** (`Ctrl+Shift+I`) is for web-based AI and chat apps: one image per picture or video moment, with every mark numbered on it and the notes listed underneath. One copy makes at most 10 images, about what a chat accepts in one message; you can change that in Settings.
+Besides rectangles, arrows and pins, the capture overlay has an ellipse, text, and a pixelate tool for anything you'd rather not show.
 
 ### Also
 
@@ -116,6 +130,8 @@ The app is signed with the project's own certificate but not notarized by Apple,
 1. Open the asset's folder in SnipToss and annotate. Notes are saved as you go.
 2. Press **Copy as Text** (`Ctrl+Shift+A`) and paste it into Claude Code or Codex. The agent opens the snapshots and changes the files. It can also read every open note from `.sniptoss/REVIEW.md` on its own.
 3. Check the result in SnipToss, which reloads files that changed, and mark the notes Done.
+
+![A sample landing page with three notes on it, the text of the notes as an agent reads it in REVIEW.md, and the page after the changes.](docs/images/feature-handoff.png)
 
 What gets copied: the notes you checked; if none are checked, every open note listed in the notes panel. Right-click a note, the image, or a row in the library to copy just that.
 
