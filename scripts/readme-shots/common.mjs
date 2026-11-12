@@ -37,6 +37,10 @@ export const NOTES = {
     late: "The title fades in too late. Show it from the first frame.",
     screen: "Headline is too thin. Use a bold weight.",
     screenButton: "Button color doesn't match the brand.",
+    // Replies to the three questions of the sample AI answer (the capture scene)
+    reply1: "Keep the headline.",
+    reply2: "Coffee brown, #6B3F25.",
+    reply3: "Generate a new one without a watermark.",
     posterTitle: "Title is too small for a poster. Make it twice as large.",
     posterDate: "Date and time are hard to read. Add more contrast.",
     posterPin: "Add the venue address next to the date.",

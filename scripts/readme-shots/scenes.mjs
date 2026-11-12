@@ -89,7 +89,7 @@ export const open = async (page, name) => {
 
 // Marks on hero.png, as fractions of the picture
 export const TITLE = { tool: "r", marks: [{ from: [0.055, 0.235], to: [0.54, 0.44] }] };
-export const BUTTON = { tool: "a", marks: [{ from: [0.36, 0.8], to: [0.25, 0.68] }] };
+export const BUTTON = { tool: "a", marks: [{ from: [0.3, 0.86], to: [0.2, 0.735] }] };
 const WATERMARK = { tool: "c", marks: [{ from: [0.88, 0.17] }], category: 2 };
 // The coffee stream: one note, two places (the stream and the glass it falls into)
 const HIGHLIGHTS = { tool: "b", marks: [{ points: ellipse(0.775, 0.4, 0.04, 0.2) }, { points: ellipse(0.75, 0.66, 0.1, 0.085) }] };
@@ -207,6 +207,12 @@ export async function stills(ctx, locale) {
       );
       await page.keyboard.press("x");
     }
+    // With nothing checked, Copy as Images takes every open note: the three notes of this picture come out as one image
+    await sleep(1500);
+    await page.locator(".card").first().click();
+    await page.keyboard.press("Control+Shift+I");
+    await sleep(2500);
+    await ask("debugClipboardPng", { path: join(dir, "copied-all.png") }).catch((e) => console.log(`No image for all notes: ${e.message}`));
     console.log(`Stills: ${dir}`);
   } finally {
     await inst.close();
@@ -223,6 +229,14 @@ export async function video(ctx, locale) {
     await open(page, "pour.mp4");
     await page.locator("video").waitFor();
     await sleep(800);
+    // The time in the playback bar as frame numbers (a click goes from seconds to timecode, another to frames)
+    for (let i = 0; i < 2; i++) {
+      await page.locator(".transport .timecode").click();
+      await sleep(400);
+    }
+    await page.locator(".lib-row", { hasText: "pour.mp4" }).click();
+    await page.mouse.move(700, 420);
+    await sleep(600);
     const rec = new Recorder(page, dir);
     await rec.start();
     await sleep(900);
@@ -268,7 +282,7 @@ export async function video(ctx, locale) {
   }
 }
 
-/** Scene 4: the capture overlay over a picture of a screen, drawn to PNG through the test hooks (the fake monitor sits off screen, nothing real is captured) */
+/** Scene 4: the capture overlay over a picture of a screen (a chat with a long answer; each of its questions gets a reply), drawn to PNG through the test hooks (the fake monitor sits off screen, nothing real is captured) */
 export async function capture(ctx, locale) {
   const dir = join(ctx.work, locale, "capture");
   rmSync(dir, { recursive: true, force: true });
@@ -293,49 +307,35 @@ export async function capture(ctx, locale) {
     await ask("debugHotkey");
     await wait("the capture overlay", async () => (await ask("debugCaptureState")).open);
 
-    // Pull out a region (pointer positions are in the overlay's own coordinates)
-    await snap(1100, [{ op: "move", x: 40, y: 90 }]);
-    await run([{ op: "down", x: 40, y: 90 }]);
-    for (const [x, y, ms] of [
-      [250, 200, 90],
-      [520, 340, 90],
-      [760, 470, 90],
-      [900, 590, 700],
-    ])
-      await snap(ms, [{ op: "move", x, y }]);
+    // Pull out a region around the answer (pointer positions are in the overlay's own coordinates)
+    const { reply, questions } = JSON.parse(readFileSync(join(ctx.work, "sample", "screen.png.json"), "utf8"));
+    const lerp = (p, q, n) =>
+      Array.from({ length: n }, (_, i) => [p[0] + ((q[0] - p[0]) * (i + 1)) / n, p[1] + ((q[1] - p[1]) * (i + 1)) / n].map(Math.round));
+    const from = [reply.x - 30, reply.y - 44];
+    const to = [reply.x + reply.width + 30, reply.y + reply.height + 24];
+    await snap(1100, [{ op: "move", x: from[0], y: from[1] }]);
+    await run([{ op: "down", x: from[0], y: from[1] }]);
+    const way = lerp(from, to, 5);
+    for (const [i, [x, y]] of way.entries()) await snap(i === way.length - 1 ? 700 : 90, [{ op: "move", x, y }]);
     await snap(900, [{ op: "up" }]);
-    // A rectangle on the headline, with a note
-    await run([
-      { op: "key", key: "R" },
-      { op: "move", x: 70, y: 196 },
-      { op: "down", x: 70, y: 196 },
-    ]);
-    for (const [x, y, ms] of [
-      [300, 260, 90],
-      [690, 355, 500],
-    ])
-      await snap(ms, [{ op: "move", x, y }]);
-    await run([{ op: "up" }]);
-    await snap(900);
-    await snap(1500, [{ op: "type", text: n.screen }]);
-    await run([{ op: "key", key: "Enter" }]);
-    await snap(900);
-    // An arrow at the button, with a note
-    await run([
-      { op: "key", key: "A" },
-      { op: "move", x: 430, y: 470 },
-      { op: "down", x: 430, y: 470 },
-    ]);
-    for (const [x, y, ms] of [
-      [350, 500, 90],
-      [262, 528, 500],
-    ])
-      await snap(ms, [{ op: "move", x, y }]);
-    await run([{ op: "up" }]);
-    await snap(900);
-    await snap(1400, [{ op: "type", text: n.screenButton }]);
-    await run([{ op: "key", key: "Enter" }]);
-    await snap(1100);
+    // A rectangle on each of the three questions, with the reply to it
+    const replies = [n.reply1, n.reply2, n.reply3].map((t, i) => t ?? NOTES.en[`reply${i + 1}`]);
+    for (const [i, q] of questions.entries()) {
+      const p = [q.x + 3, q.y + 3];
+      const r = [q.x + q.width - 3, q.y + q.height - 3];
+      await run([
+        { op: "key", key: "R" },
+        { op: "move", x: p[0], y: p[1] },
+        { op: "down", x: p[0], y: p[1] },
+      ]);
+      const path = lerp(p, r, 3);
+      for (const [k, [x, y]] of path.entries()) await snap(k === path.length - 1 ? 500 : 90, [{ op: "move", x, y }]);
+      await run([{ op: "up" }]);
+      await snap(800);
+      await snap(1400, [{ op: "type", text: replies[i] }]);
+      await run([{ op: "key", key: "Enter" }]);
+      await snap(i === questions.length - 1 ? 1300 : 800);
+    }
     // Finish: the image with the notes under it goes to the clipboard and a toast says so
     await run([{ op: "key", key: "Enter" }]);
     await sleep(500);

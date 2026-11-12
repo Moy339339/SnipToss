@@ -4,7 +4,7 @@
 // so they are real pictures and a real video file, not drawings of an interface.
 
 import { spawnSync } from "node:child_process";
-import { readFileSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { readFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -115,11 +115,79 @@ export async function renderLanding(dir) {
   await browser.close();
 }
 
-/** The page as a 1280 × 720 screen picture (what the fake monitor of the capture scene shows) */
+/**
+ * A chat with an AI agent as a 1280 × 720 screen: a long answer that ends with three questions (headline, button color, watermarked photo).
+ * A made-up, generic chat window: it is not the interface of any product
+ */
+const chatHtml = `<!doctype html><html><head><style>
+  * { margin: 0; box-sizing: border-box; }
+  body { width: 1280px; height: 720px; overflow: hidden; display: flex; font-family: "Segoe UI Variable Text", "Segoe UI", sans-serif; color: #1f2328; background: #ffffff; }
+  aside { width: 236px; background: #f5f6f8; border-right: 1px solid #e3e5e9; padding: 18px 14px; font-size: 14px; color: #57606a; }
+  aside .new { border: 1px solid #d5d9df; border-radius: 10px; padding: 9px 12px; background: #ffffff; color: #1f2328; font-weight: 600; margin-bottom: 22px; }
+  aside .cap { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #8b949e; margin: 0 8px 8px; }
+  aside .item { padding: 8px 10px; border-radius: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  aside .item.on { background: #e6e9ee; color: #1f2328; font-weight: 600; }
+  main { flex: 1; position: relative; }
+  .col { width: 760px; margin: 0 auto; padding-top: 24px; }
+  .me { margin-left: auto; width: fit-content; max-width: 520px; background: #eef0f3; border-radius: 18px 18px 4px 18px; padding: 11px 16px; font-size: 16px; line-height: 1.45; }
+  .who { display: flex; align-items: center; gap: 10px; margin: 18px 0 10px; font-size: 14px; font-weight: 600; color: #57606a; }
+  .who i { width: 24px; height: 24px; border-radius: 7px; background: linear-gradient(135deg, #2f3640, #6b7684); }
+  .ai { font-size: 18px; line-height: 1.55; }
+  .ai p { margin-bottom: 12px; }
+  .ai ul { margin: 0 0 12px 22px; }
+  .ai li { padding-left: 4px; }
+  .ai code { font-family: "Cascadia Mono", Consolas, monospace; font-size: 15px; background: #eef0f3; border-radius: 5px; padding: 2px 6px; }
+  .ai .q { padding: 9px 12px; margin: 0 -12px 6px; }
+  .ai b { font-weight: 700; }
+  .box { position: absolute; left: 0; right: 0; bottom: 22px; }
+  .box div { width: 760px; margin: 0 auto; border: 1px solid #d5d9df; border-radius: 16px; background: #fff; padding: 15px 18px; font-size: 16px; color: #8b949e;
+             display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(20, 30, 50, 0.06); }
+  .box span { width: 30px; height: 30px; border-radius: 50%; background: #1f2328; color: #fff; display: grid; place-items: center; font-size: 16px; }
+</style></head><body>
+  <aside>
+    <div class="new">+ New chat</div>
+    <div class="cap">Today</div>
+    <div class="item on">Slow Pour landing page</div>
+    <div class="item">Brew guide illustrations</div>
+    <div class="cap" style="margin-top: 18px">Earlier</div>
+    <div class="item">Newsletter template</div>
+    <div class="item">Menu board for the shop</div>
+    <div class="item">Subscription pricing table</div>
+  </aside>
+  <main>
+    <div class="col">
+      <div class="me">Build the landing page from the brief. Ask me if anything is unclear.</div>
+      <div class="who"><i></i>Agent</div>
+      <div class="ai" id="reply">
+        <p>The first version of the landing page is ready in <code>slow-pour-site/index.html</code>. What is in it:</p>
+        <ul><li>A hero with the photo you gave me and a one-line headline</li><li>The subscribe button and a link to this week's beans</li><li>A layout that holds down to a 360 px phone screen</li></ul>
+        <p>Before I go on, three things are yours to decide:</p>
+        <div class="q"><b>1. Headline.</b> I went with “Coffee, brewed slowly.” Keep it, or should I write a few alternatives?</div>
+        <div class="q"><b>2. Button color.</b> It is pink (#E0338A) for now. Stay with pink, or switch to the brand's coffee brown?</div>
+        <div class="q"><b>3. Hero photo.</b> The stock photo still has a watermark. Buy the license, or should I generate a new one?</div>
+      </div>
+    </div>
+    <div class="box"><div>Reply…<span>↑</span></div></div>
+  </main>
+</body></html>`;
+
+/**
+ * The chat as a 1280 × 720 screen picture (what the fake monitor of the capture scene shows).
+ * Next to it, <file>.json: where the answer and its three questions are on that screen ({ reply, questions: [{ x, y, width, height }] }), for the scene to mark
+ */
 export async function renderScreen(file) {
   const browser = await chromium.launch({ channel: "msedge" });
-  const page = await browser.newPage({ viewport: { width: 1600, height: 900 }, deviceScaleFactor: 0.8 });
-  await page.setContent(landingHtml());
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  await page.setContent(chatHtml);
+  await page.evaluate(() => document.fonts.ready);
+  const boxes = await page.evaluate(() => {
+    const box = (el) => {
+      const r = el.getBoundingClientRect();
+      return { x: Math.round(r.x), y: Math.round(r.y), width: Math.round(r.width), height: Math.round(r.height) };
+    };
+    return { reply: box(document.getElementById("reply")), questions: [...document.querySelectorAll(".q")].map(box) };
+  });
+  writeFileSync(`${file}.json`, JSON.stringify(boxes));
   await page.screenshot({ path: file });
   await browser.close();
 }

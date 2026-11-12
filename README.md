@@ -1,112 +1,121 @@
 # SnipToss
 
-**English** · [简体中文](README.zh-CN.md)
-
 [![Latest release](https://img.shields.io/github/v/release/Moy339339/SnipToss)](https://github.com/Moy339339/SnipToss/releases/latest) [![CI](https://github.com/Moy339339/SnipToss/actions/workflows/ci.yml/badge.svg)](https://github.com/Moy339339/SnipToss/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/github/license/Moy339339/SnipToss)](LICENSE) ![Windows 11](https://img.shields.io/badge/Windows-11-0078D4) ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000)
 
-Annotate the images and videos your coding agent made — then hand the notes straight back to it.
+Telling your AI what to fix shouldn't be a writing test. Mark it on the image or on the exact video frame, and your AI gets the spot, a snapshot and your note.
 
-![Animation: three notes marked on a sample landing page in SnipToss, copied as text into Claude Code, which edits the page; SnipToss then shows the new version.](docs/images/demo.webp)
+![The headline "Telling your AI what to fix shouldn't be a writing test", with "a writing test" marked the way SnipToss marks things; below it, the SnipToss window with three numbered marks on a sample coffee landing page and the matching notes next to it.](docs/images/hero.png)
 
-**[Download SnipToss for Windows](https://github.com/Moy339339/SnipToss/releases/latest)** · 64-bit Windows 11 · **[Download SnipToss for Mac](https://github.com/Moy339339/SnipToss/releases/latest)** · macOS 14 or later · [Install notes](#install)
+**[Download for Windows](https://github.com/Moy339339/SnipToss/releases/latest)** · Windows 11 · **[Download for Mac](https://github.com/Moy339339/SnipToss/releases/latest)** · macOS 14 or later · [Install notes](#install) · [Release notes](https://github.com/Moy339339/SnipToss/releases/latest)
 
-> **New in 1.3: frame numbers, note numbers on the playback bar, and drawings.** Videos can be reviewed frame by frame, each note's number stands on the playback bar, and a mark left without a word stays as a drawing. [See what's new](#whats-new-in-13) · [Release notes](https://github.com/Moy339339/SnipToss/releases/latest) · [Changelog](CHANGELOG.md)
+## You've probably been here
 
-SnipToss is a desktop app for Windows and Mac for reviewing AI-generated assets. Mark what needs to change with a pin, rectangle, pen or arrow, write the change you want, and SnipToss saves the note — its text, position, time and a cropped snapshot — as plain files in the project's `.sniptoss/` folder. Claude Code, Codex and other agents that can read local files pick the notes up from there and fix the assets.
+- You take a screenshot, write a paragraph about which part you mean, and the AI still changes the wrong thing.
+- Five things are wrong, so you explain them one at a time, over five rounds.
+- The markup tool inside one AI app only talks to that app. Your notes don't follow the file to another agent, and next week they are gone.
+- For a video you type "around the third second" and hope.
+- The AI sends a long answer with five questions in it. You select a passage, add it to the chat, type, select the next one…
+
+In SnipToss you draw on the spot and write a short note, as many as you need. Each note is saved in the project's `.sniptoss/` folder with its position, its time and a snapshot. Paste them into Claude Code, Codex or any chat app in one go. It doesn't matter which tool made the file or which AI fixes it.
+
+## What you can do with it
+
+### Draw on the part you mean
+
+![Animation: a rectangle, an arrow, a pin and a pen stroke drawn on a sample coffee landing page, each with a note in the panel on the right.](docs/images/feature-marking.webp)
+
+Pins, rectangles, a freehand pen and arrows, in eight colors or any color you pick. One note can point at several places. A mark you leave without a note stays on the image as a plain drawing. Each note has a category (Change, Remove, Add or Question), so the AI knows what kind of answer you want.
+
+### Comment on an exact frame of a video
+
+![Animation: a sample video stepped frame by frame, with a note on one frame and a rectangle on another; the playback bar shows frame numbers and each note's number stands above it.](docs/images/feature-video.webp)
+
+A note belongs to a moment or to a time range. Step through the video frame by frame, show the time as seconds, timecode or frame numbers, and click a number above the playback bar to go to its note. Press `T` to comment on the current frame without drawing anything.
+
+### Answer a long reply point by point
+
+![Animation: the capture overlay over an AI's long answer: a region dragged around it, a numbered box on each of its three questions with a reply written next to it, then the finished image with the replies underneath.](docs/images/feature-capture.webp)
+
+Press `Ctrl+Alt+A` (`⌃⌥⌘A` on the Mac) and drag over anything on the screen: a running app, a web page, or the AI's own answer. Put a number on each point, write your reply next to it, and paste the result back as one image. The overlay also has an ellipse, text, and a pixelate tool for anything you'd rather not show.
+
+### Give the notes to your AI
+
+![A sample coffee landing page with three notes on it, the text of the notes as an agent reads it in REVIEW.md, and the page after the changes.](docs/images/feature-handoff.png)
+
+- **Copy as Text** (`Ctrl+Shift+A`) is for agents that read local files, such as Claude Code and Codex. Paste it and the agent gets every note, with where to find the file and each snapshot.
+- **Copy as Images** (`Ctrl+Shift+I`) is for web-based AI and chat apps: one image per picture or video moment, with every mark numbered on it and the notes listed underneath. One copy makes at most 10 images, about what a chat accepts in one message; you can change that in Settings.
+
+### Also
+
+- **Formats**: PNG, JPEG, WebP, GIF, SVG, BMP, AVIF; MP4, WebM, MOV, M4V. Settings → Advanced → More formats adds TIFF, HEIC, ICO, APNG, JFIF and MKV (on Windows, HEIC needs the HEIF Image Extension and HEVC Video Extensions from the Microsoft Store).
+- **Library**: add files or folders by drag and drop, `Ctrl+O`, the File Explorer context menu or paste. Items are grouped by project, and the library shows when an agent has re-exported a file you annotated.
+- **More kinds of notes**: an overall note about the whole image or video, and a folder comment that applies to every item in a folder.
+- **New versions of a file**: when a file is overwritten, the notes written on the earlier version move to a section of their own and keep the snapshot from that time.
+- **Status**: mark a note Done or Won't Fix (`D` / `Shift+D`). Everything can be undone. `Shift+H` hides the marks to show the original.
+- **Keyboard and mouse**: every command is in the menu bar and has a shortcut; press `?` for the list.
+- **11 languages**: English, 简体中文, 繁體中文, 日本語, 한국어, Français, Deutsch, Español, Italiano, Português (Brasil), Русский.
+- **Private**: no telemetry and no account. The only network request is the daily update check, which you can turn off in Settings → General.
+- **An open format**: `.sniptoss/REVIEW.md` lists the open notes in plain text, `.sniptoss/annotations/*.json` holds the data and `.sniptoss/snapshots/` the pictures. The folder is hidden on Windows and goes away when its last note is deleted. See [docs/annotation-format.md](docs/annotation-format.md).
 
 Web pages, PDF and slides are planned.
 
-![The SnipToss window with an AI-generated event flyer open: three numbered marks on the flyer and the matching notes in the panel on the right.](docs/images/hero.png)
-
-## Features
-
-![Animation: a rectangle, an arrow, a pin and two pen strokes drawn on an AI-generated sample landing page, each with a note in the panel at the right.](docs/images/feature-marking.webp)
-
-![Animation: a video in SnipToss with a note on one moment and a rectangle at another; the playback bar shows a marker for each timed note.](docs/images/feature-video.webp)
-
-![Animation: the capture overlay over a web page: a dragged region, a rectangle and an arrow with notes, then the finished image with the notes underneath.](docs/images/feature-capture.webp)
-
-![Three panels: an AI-generated sample landing page with notes on it, the REVIEW.md text an agent reads, and the page after the changes.](docs/images/feature-handoff.png)
-
-![Three images made by Copy as Images, each a screenshot with one note underneath.](docs/images/feature-copy-images.png)
-
-![The notes panel in Japanese, German and Russian, with the names of the 11 interface languages.](docs/images/feature-languages.png)
-
-- **Images and videos**: PNG, JPEG, WebP, GIF, SVG, BMP, AVIF; MP4, WebM, MOV, M4V. Turn on Settings → Advanced → More formats for TIFF, HEIC, ICO, APNG, JFIF and MKV in folders and the context menu (a file opened on its own works either way). HEIC needs the HEIF Image Extension and HEVC Video Extensions from the Microsoft Store. Notes on a video are tied to a moment or a time range, and you can step frame by frame.
-- **Marks**: pins, rectangles, freehand pen and arrows in eight preset colors, or any color from the color picker (the last four custom colors stay one click away). One note can mark several places, and each place can be recolored or deleted on its own.
-- **Notes agents can read**: `.sniptoss/REVIEW.md` lists every open note in plain text (positions in pixels, times as `mm:ss.mmm`), `.sniptoss/annotations/*.json` holds the structured data, `.sniptoss/snapshots/` has one snapshot per note. The format is documented and versioned: [docs/annotation-format.md](docs/annotation-format.md).
-- **Two ways to hand off**:
-  - **Copy as Text** (`Ctrl+Shift+A`) — for agents that can read local files (Claude Code, Codex): each note's text, plus where the item and the snapshot are in the project.
-  - **Copy as Images** (`Ctrl+Shift+I`) — for web-based AI and chat apps: one image per note, with the snapshot and the note underneath.
-- **Screen capture with notes** (`Ctrl+Alt+A`, configurable): capture any part of the screen, mark it up, write notes, and copy the result as one image.
-- **Library**: add files or folders (drag and drop, `Ctrl+O`, the File Explorer context menu, or paste from the clipboard). Items are grouped by project, and the library notices when an agent re-exports a file after you annotated it.
-- **Status is yours**: mark notes Done or Won't Fix (`D` / `Shift+D`), with undo and redo for everything.
-- **Keyboard first, mouse friendly**: every command is in the menu bar and has a shortcut; press `?` for the full list.
-- **11 languages**: English, 简体中文, 繁體中文, 日本語, 한국어, Français, Deutsch, Español, Italiano, Português (Brasil), Русский. Follows the Windows display language by default.
-- **Private**: no telemetry, no account. The only network request is the update check (it asks GitHub for the latest version once a day; you can turn it off in Settings → General). Notes stay on your computer.
-
-## What's new in 1.3
-
-![SnipToss Desktop 1.3: frame numbers and timecode; note numbers on the playback bar; marks without a note stay as drawings; drawings in screen capture.](docs/images/whatsnew-1.3.png)
-
-<details>
-<summary>See each one in action</summary>
-
-![Animation: on a sample video, a click on the time in the playback bar switches from seconds to timecode to frame numbers; the arrow key steps one frame, and a comment on that frame shows the frame number.](docs/images/whatsnew-1.3-frames.webp)
-
-![Animation: the playback bar of a sample video with a number for each note; a click on a number goes to its note, and a click on a stack of three lists the notes in it.](docs/images/whatsnew-1.3-badges.webp)
-
-![Animation: on a sample coffee landing page, an arrow and a pen circle are left without a note and stay as drawings; the circle's color is changed, and a double-click on the arrow writes a note for it, which gives it a number.](docs/images/whatsnew-1.3-drawings.webp)
-
-![Animation: the screen-capture overlay over a web page: an arrow and an ellipse stay as drawings; a click on the ellipse opens its colors and Delete right next to it, and a double-click on the arrow writes its note.](docs/images/whatsnew-1.3-capture-drawings.webp)
-
-</details>
-
-SnipToss for Mac arrived in 1.2: the same app on macOS 14 or later (Apple silicon and Intel), screen capture included. Notes are the same files on both systems, so a project can be reviewed on either one.
-
 ## Install
 
-Only need a quick screenshot in the browser? [SnipToss for Chrome](https://chromewebstore.google.com/detail/lbkkhgiifipdikligofiiofdccgcgdgd), the browser extension, captures part of a web page or your screen, lets you mark it up and copies it as one image to paste into an AI chat.
+Only need a quick screenshot in the browser? [SnipToss for Chrome](https://chromewebstore.google.com/detail/lbkkhgiifipdikligofiiofdccgcgdgd) captures part of a web page or your screen, lets you mark it up and copies it as one image to paste into an AI chat.
 
 ### Windows
 
-Requirements: 64-bit Windows 11. The release builds include the .NET runtime; the Microsoft Edge WebView2 Runtime comes with Windows 11 (if it's missing, SnipToss shows a download link).
+Needs 64-bit Windows 11. Download from [Releases](https://github.com/Moy339339/SnipToss/releases):
 
-Download from [Releases](https://github.com/Moy339339/SnipToss/releases):
+- **Installer** (`SnipToss-<version>-win-x64-setup.exe`): installs for your account without administrator rights, or for all users if you choose so in the first step.
+- **Portable** (`SnipToss-<version>-win-x64-portable.zip`): unzip anywhere and run `SnipToss.exe`.
 
-- **Portable** (`SnipToss-<version>-win-x64-portable.zip`): unzip anywhere and run `SnipToss.exe`. Settings, logs and captures are kept in the `data` folder next to it, and nothing is written to the registry — so the context menu and start-at-sign-in options are unavailable. To update, unzip the new version and move the `data` folder into it. Delete the folder to remove it completely.
-- **Installer** (`SnipToss-<version>-win-x64-setup.exe`): installs for your account without administrator rights (or for all users, if you choose so in the first step), adds a Start menu entry and, unless you untick it, "Open with SnipToss" to the File Explorer context menu. To update, run the newer installer; it closes SnipToss if it's running. Uninstall from Settings → Apps → Installed apps.
-
-Or install the portable build with [Scoop](https://scoop.sh) (settings and captures are kept across `scoop update`):
+Or with [Scoop](https://scoop.sh):
 
 ```powershell
 scoop bucket add moygoldenage https://github.com/Moy339339/scoop-bucket
 scoop install moygoldenage/sniptoss
 ```
 
-The builds are not code-signed. Windows SmartScreen may say "Windows protected your PC": choose **More info → Run anyway** (it asks again for each new version). Each release lists the SHA256 of its files in `SHA256SUMS.txt`, so you can check a download with `Get-FileHash <file>` in PowerShell.
+The builds are not code-signed. If Windows SmartScreen says "Windows protected your PC", choose **More info → Run anyway**.
 
-If **Smart App Control** is on (Windows Security → App & browser control → Smart App Control settings), Windows blocks unsigned apps, SnipToss included, and there is no way to allow a single app. Using SnipToss then means turning Smart App Control off. Since the April 2026 update, Windows 11 can turn it back on later without reinstalling, but SnipToss won't start while it's on.
+<details>
+<summary>More about installing on Windows</summary>
+
+- The release builds include the .NET runtime. The Microsoft Edge WebView2 Runtime comes with Windows 11; if it's missing, SnipToss shows a download link.
+- The installer adds a Start menu entry and, unless you untick it, "Open with SnipToss" to the File Explorer context menu. To update, run the newer installer; it closes SnipToss if it's running. Uninstall from Settings → Apps → Installed apps.
+- The portable build keeps settings, logs and captures in the `data` folder next to it and writes nothing to the registry, so the context menu and start-at-sign-in options are unavailable. To update, unzip the new version and move the `data` folder into it. Delete the folder to remove it completely.
+- Scoop keeps settings and captures across `scoop update`.
+- SmartScreen asks again for each new version. Each release lists the SHA256 of its files in `SHA256SUMS.txt`; check a download with `Get-FileHash <file>` in PowerShell.
+- If **Smart App Control** is on (Windows Security → App & browser control → Smart App Control settings), Windows blocks unsigned apps, SnipToss included, and there is no way to allow a single app. Using SnipToss then means turning Smart App Control off. Since the April 2026 update, Windows 11 can turn it back on later without reinstalling, but SnipToss won't start while it's on.
+
+</details>
 
 ### Mac
 
-Requirements: macOS 14 or later, on a Mac with Apple silicon or an Intel processor.
+Needs macOS 14 or later, on Apple silicon or Intel. Download `SnipToss-<version>-mac-universal.dmg` from [Releases](https://github.com/Moy339339/SnipToss/releases), open it and drag SnipToss onto Applications. Always open it from Applications.
 
-Download `SnipToss-<version>-mac-universal.dmg` from [Releases](https://github.com/Moy339339/SnipToss/releases), open it and drag SnipToss onto Applications. Always open it from Applications: opened from the disk image or from Downloads, macOS treats it as being in a new place each time and keeps asking about screen capture (SnipToss reminds you).
+The app is signed with the project's own certificate but not notarized by Apple, so macOS blocks it the first time: open it, click **Done**, then in **System Settings → Privacy & Security** click **Open Anyway** and enter your login password. Each new version needs this once.
 
-The app is signed with the project's own certificate but not notarized by Apple, so macOS blocks it the first time: open it, click **Done**, then in **System Settings → Privacy & Security** click **Open Anyway** next to "“SnipToss” was blocked to protect your Mac." and enter your login password; SnipToss then opens (if macOS asks once more, click **Open Anyway**). Each new version needs this once.
+<details>
+<summary>More about installing on the Mac</summary>
 
-Screen Capture (`⌃⌥⌘A`, or Capture in the title bar) needs permission to record the screen: the first capture leads you to **System Settings → Privacy & Security → Screen & System Audio Recording** (Screen Recording on macOS 14); turn SnipToss on (macOS asks for your login password) and choose **Quit & Reopen**. A new version keeps the permission. From macOS 15 on, macOS asks from time to time whether SnipToss may keep recording the screen; click **Allow**.
+- Opened from the disk image or from Downloads, macOS treats SnipToss as being in a new place each time and keeps asking about screen capture (SnipToss reminds you).
+- **Open Anyway** is next to "“SnipToss” was blocked to protect your Mac." If macOS asks once more after you enter your password, click **Open Anyway** again.
+- Screen Capture (`⌃⌥⌘A`, or Capture in the title bar) needs permission to record the screen: the first capture leads you to **System Settings → Privacy & Security → Screen & System Audio Recording** (Screen Recording on macOS 14); turn SnipToss on (macOS asks for your login password) and choose **Quit & Reopen**. A new version keeps the permission. From macOS 15 on, macOS asks from time to time whether SnipToss may keep recording the screen; click **Allow**.
+- If macOS asks whether “SnipToss” may access files in your Desktop, Documents or Downloads folder, click **Allow**. If you clicked **Don't Allow**, go to **System Settings → Privacy & Security → Files & Folders** and turn on the switch for that folder under SnipToss.
+- Each release lists the SHA256 of its files in `SHA256SUMS.txt`; check a download with `shasum -a 256 <file>` in Terminal.
+- To uninstall, move SnipToss from Applications to the Trash; its settings are in `~/Library/Application Support/SnipToss` and its logs in `~/Library/Logs/SnipToss`.
 
-If macOS asks whether “SnipToss” may access files in your Desktop, Documents or Downloads folder, click **Allow**. If you clicked **Don't Allow**, go to **System Settings → Privacy & Security → Files & Folders** and turn on the switch for that folder under SnipToss.
-
-Each release lists the SHA256 of its files in `SHA256SUMS.txt`; check a download with `shasum -a 256 <file>` in Terminal. To uninstall, move SnipToss from Applications to the Trash; its settings are in `~/Library/Application Support/SnipToss` and its logs in `~/Library/Logs/SnipToss`.
+</details>
 
 ## Hand notes to your agent
 
-1. Open the asset's folder in SnipToss, annotate, and the notes are saved as you go.
-2. Press **Copy as Text** (`Ctrl+Shift+A`) and paste it into Claude Code or Codex. The pasted text has each note, its position and the path of its snapshot; the agent opens the snapshots and changes the files. Agents can also read every open note from `.sniptoss/REVIEW.md` on their own.
-3. Check the result in SnipToss — it reloads files that changed — and mark the notes Done.
+![Animation: three notes marked on a sample landing page in SnipToss, copied as text into Claude Code, which edits the page; SnipToss then shows the new version.](docs/images/demo.webp)
+
+1. Open the asset's folder in SnipToss and annotate. Notes are saved as you go.
+2. Press **Copy as Text** (`Ctrl+Shift+A`) and paste it into Claude Code or Codex. The agent opens the snapshots and changes the files. It can also read every open note from `.sniptoss/REVIEW.md` on its own.
+3. Check the result in SnipToss, which reloads files that changed, and mark the notes Done.
 
 What gets copied: the notes you checked; if none are checked, every open note listed in the notes panel. Right-click a note, the image, or a row in the library to copy just that.
 
@@ -121,8 +130,8 @@ SnipToss reviews the **files** your agent produced — images and videos on disk
 | What you annotate | Images and videos on disk; any part of the screen | Elements of a running web page | Videos the agent made (Rushes also images) | Screenshots |
 | Notes at a video frame or time range | Yes | No | Yes | No |
 | What the agent gets | Files in the project (`.sniptoss/`), copied text, CLI | Copied Markdown, MCP or project files, depending on the tool; with DOM selectors and, in some, source locations | Project files, MCP (Rushes also a CLI) | An image |
-| For web-based AI and chat apps | Copy as Images (one image per note) | Copy the text | Not documented | Copy the image |
-| Runs as | Windows desktop app, offline | Browser extension, or a package inside your app | Local server, used in the browser (Node.js) | Desktop app |
+| For web-based AI and chat apps | Copy as Images (marks numbered on the picture, notes underneath) | Copy the text | Not documented | Copy the image |
+| Runs as | Desktop app for Windows and Mac, offline | Browser extension, or a package inside your app | Local server, used in the browser (Node.js) | Desktop app |
 | MCP server | Not yet | Agentation, Vibe Annotations | Yes | — |
 | License | MIT | PolyForm Shield (Agentation, Vibe Annotations); source-available, no redistribution (Drawbridge) | MIT | GPL-3.0 (ShareX); commercial |
 
@@ -131,6 +140,10 @@ SnipToss reviews the **files** your agent produced — images and videos on disk
 - **Cloud review** such as [Frame.io](https://frame.io/) needs an account and uploads the media (its MCP server for agents is in public beta). SnipToss keeps everything on your computer.
 
 Compared as of October 2026; these tools change quickly — corrections are welcome.
+
+## Why I made this
+
+I use AI coding agents every day, and the part that kept slowing me down was the simplest one: showing them what to change. The review tools built into the apps I used always had one problem or another: sometimes they were slow, sometimes they were just awkward to use. Everywhere else I was writing paragraphs about a screenshot. I got tired of waiting for someone to fix that, so I built SnipToss.
 
 ## Build from source
 
