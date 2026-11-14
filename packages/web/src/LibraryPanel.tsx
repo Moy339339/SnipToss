@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import type { MaterialKind } from "@sniptoss/core";
 import type { AppInfo, LibraryEntry, MaterialEntry } from "./host";
-import { KeepPunctuation } from "./KeepPunctuation";
 import { CloseIcon, FilePlusIcon, FilterIcon, FolderPlusIcon, SearchIcon } from "./icons";
 import { usePrefs } from "./prefs";
 import { prevProjectPinned, type FolderTarget, type Library, type Project } from "./library";
@@ -69,8 +68,8 @@ export function LibraryPanel(props: {
    * exactly the selected ones, so both sides hand over the same)
    */
   onCopyListed: (mode: "text" | "images") => void;
-  /** The open notes the notes panel lists: how many, spread over how many items (shown in the context menu on a multi-selection) */
-  listed: { count: number; materials: number };
+  /** The open notes the notes panel lists: how many (what the context menu on a multi-selection copies; none = its Copy items are gray) */
+  listed: { count: number };
   /** How many open folder comments there are: without rel = all in this notes folder; deep = false counts only this folder itself, not subfolders */
   folderCount: (home: string, rel?: string, deep?: boolean) => number;
   /**
@@ -180,7 +179,6 @@ export function LibraryPanel(props: {
     offsets,
     listPad,
     revealRow,
-    openCount,
     listed: props.listed,
     hasNotes: props.hasNotes,
     on: {
@@ -212,7 +210,7 @@ export function LibraryPanel(props: {
     // row (libraryMenu.tsx)
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <aside className="sidebar" inert={props.collapsed} onContextMenu={onAsideContextMenu}>
-      <div className="ws-header lib-header" title={intl.formatMessage({ id: "library.headerTitle" })}>
+      <div className="ws-header lib-header">
         <div className="ws-title brand">
           <Wordmark size="header" />
         </div>
@@ -303,15 +301,7 @@ export function LibraryPanel(props: {
           );
         })}
         <div className="lib-spacer" style={{ height: offsets[rows.length] - offsets[last] }} />
-        {library.loaded && library.entries.length === 0 && (
-          // How to use it is written in the middle of the canvas (Welcome); this only describes the list itself and doesn't repeat "drag files in"
-          <div className="lib-empty">
-            <KeepPunctuation>
-              <div className="lib-empty-title">{intl.formatMessage({ id: "library.empty.title" })}</div>
-              <p className="muted">{intl.formatMessage({ id: "library.empty.body" })}</p>
-            </KeepPunctuation>
-          </div>
-        )}
+        {/* An empty list says nothing: the canvas beside it is the welcome page, with what to do */}
         {rows.length === 0 && (query || (pendingOnly && library.entries.length > 0)) && (
           <div className="list-empty">
             {intl.formatMessage({ id: query ? "library.search.none" : "library.pending.none" })}
@@ -338,7 +328,7 @@ export function LibraryPanel(props: {
                     intl.formatMessage({ id: "library.stats.kind" }, { kind: k, count: counts[k] }),
                   ),
                 ].join(" · ")
-              : intl.formatMessage({ id: "library.stats.empty" })}
+              : null}
         </span>
         <VersionTag info={props.appInfo} />
       </div>

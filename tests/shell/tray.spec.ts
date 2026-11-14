@@ -160,18 +160,41 @@ test("The first time the window is hidden to the tray: the tray says it is still
   expect((await tray(shell)).said).toEqual(first);
 });
 
-test("Capture hotkey fails to register (here a malformed hotkey): the tray pops up a balloon with the reason, and clicking it opens the window and Settings → Screen Capture", async ({
+test("Capture hotkey that worked last time fails to register (here a malformed hotkey) at a start into the tray: the tray pops up a balloon with the reason, once, and clicking it opens the window and Settings → Screen Capture", async ({
   shell,
 }) => {
   const file = join(shell.temp, "settings.json");
   const s = JSON.parse(readFileSync(file, "utf8"));
-  writeFileSync(file, JSON.stringify({ ...s, Capture: { ...s.Capture, Hotkey: "Ctrl+Alt+NoSuchKey", HotkeyCustom: true } }, null, 2));
-  await shell.launch();
+  writeFileSync(file, JSON.stringify({ ...s, Capture: { ...s.Capture, Hotkey: "Ctrl+Alt+NoSuchKey", HotkeyCustom: true, HotkeyWorked: true } }, null, 2));
+  await shell.launch({ tray: true });
+  // Remembered as not working: the next start says nothing (the Capture button keeps a dot instead)
+  await waitFor("the failure to be recorded", () => JSON.parse(readFileSync(file, "utf8")).Capture.HotkeyWorked === false);
+  expect(shell.windowShown()).toBe(false);
+  // The UI loads only when the window is first shown, and the tray is read through it: bring the window up from outside, then connect
+  expect(await shell.second([])).toBe(0);
+  await shell.connect();
   const t = await tray(shell);
   expect(t.said).toMatchObject({ title: "截图快捷键未能启用" });
   expect(t.said!.text).toContain("无法识别的快捷键");
+  // Said once: the balloon took it, so the window showing up doesn't say it again
+  await new Promise((r) => setTimeout(r, 1000));
+  await expect(shell.page.locator(".toast")).toHaveCount(0);
+  // Hide the window again (as when the balloon came) and click the balloon: the window comes back on Settings → Screen Capture
+  shell.windows(true);
+  await waitFor("the window to hide", () => !shell.windowShown());
   await act(shell, "balloon");
+  await waitFor("the window to appear", () => shell.windowShown());
   await expect(shell.page.locator(".settings-tab.is-on")).toHaveText("截图批注");
+});
+
+test("Capture hotkey fails to register while the window is shown: no balloon on top of the window (the UI says it, once, only when it worked last time)", async ({ shell }) => {
+  const file = join(shell.temp, "settings.json");
+  const s = JSON.parse(readFileSync(file, "utf8"));
+  writeFileSync(file, JSON.stringify({ ...s, Capture: { ...s.Capture, Hotkey: "Ctrl+Alt+NoSuchKey", HotkeyCustom: true, HotkeyWorked: true } }, null, 2));
+  await shell.launch();
+  await expect(shell.page.locator(".toast")).toContainText("截图快捷键未能注册");
+  await expect(shell.page.locator(".titlebar-action.has-problem")).toBeVisible();
+  expect((await tray(shell)).said ?? null).toBeNull();
 });
 
 test("A new version: a dot on the tray icon, the version in the hover text, Download and Skip This Version at the top of the menu, and the title bar pill; skipping clears them all and is remembered, a newer version is announced again", async ({

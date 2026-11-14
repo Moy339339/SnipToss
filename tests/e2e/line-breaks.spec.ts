@@ -18,7 +18,8 @@ const S9 = [
   ".stage-empty",
   ".panel-empty",
   ".tooltip.is-on",
-  ".tour-body",
+  ".firstrun-body",
+  ".guide-body",
   ".hint-text",
   ".sheet-intro .welcome",
   ".confirm-body",
@@ -57,13 +58,17 @@ function badBreaks(app: App, screen: string) {
         while (e && getComputedStyle(e).display.startsWith("inline")) e = e.parentElement;
         return e!;
       };
-      /** The box's characters in order, with its spaces and <br>; the text in buttons and keys left out */
+      /**
+       * The box's characters in order, with its spaces and <br>; the text in buttons and keys left out, and so is what is hidden from screen
+       * readers: not prose but pictures (the animations of Demo.tsx) and tokens set side by side (the row of format names under the welcome
+       * title, each name a box of its own with a gap after it; its sentence is the row's aria-label), as overflow.spec and pseudo.spec skip it
+       */
       const charsOf = (el: HTMLElement) => {
         const chars: (Char | Gap)[] = [];
         const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
         for (let node = walk.nextNode(); node; node = walk.nextNode()) {
           if (node instanceof HTMLBRElement) chars.push("br");
-          if (!(node instanceof Text) || node.parentElement?.closest("button, kbd, svg")) continue;
+          if (!(node instanceof Text) || node.parentElement?.closest("button, kbd, svg, [aria-hidden='true']")) continue;
           const block = blockOf(node);
           for (let at = 0; at < node.length; at++) chars.push(breakingSpace(node.data[at]) ? "space" : { node, at, block });
         }
@@ -384,19 +389,22 @@ for (const locale of ["zh-CN", "zh-TW", "ja"]) {
     await expect(app.page.locator("html")).toHaveAttribute("lang", locale);
     const problems: string[] = [];
     let tooltips = 0;
+    // Tooltips with full-width marks in them: Overall comment's on the main screen (its description after a colon) and, on the welcome page
+    // the walk ends on, the long list of formats. (The skip button of the tutorial has one with a quoted menu path, but tooltips are off
+    // while the tutorial is on)
+    const withTips: Record<string, string> = { 主界面: ".hdr-tools .tool-whole", 截图批注的提示: ".welcome-formats" };
     await walkScreens(app, async (screen) => {
       problems.push(...(await badBreaks(app, screen)), ...(await unkept(app, screen)));
-      // The skip button of the tour has a long tooltip with a quoted menu path
-      const skip = app.page.locator(".tour-skip");
-      if (screen.startsWith("引导") && (await skip.isVisible())) {
-        await skip.hover();
+      const target = withTips[screen] && app.page.locator(withTips[screen]);
+      if (target && (await target.isVisible())) {
+        await target.hover();
         await expect(app.page.locator(".tooltip.is-on")).toBeVisible();
         problems.push(...(await badBreaks(app, `${screen}, tooltip`)), ...(await unkept(app, `${screen}, tooltip`)));
         tooltips++;
         await app.page.mouse.move(0, 0);
       }
     });
-    expect(tooltips).toBeGreaterThan(0);
+    expect(tooltips).toBe(2);
     expect(problems, problems.join("\n")).toEqual([]);
   });
 
@@ -410,14 +418,18 @@ for (const locale of ["zh-CN", "zh-TW", "ja"]) {
 }
 
 for (const locale of ["zh-CN", "zh-TW", "ja"]) {
-  test(`${locale}: on the About page the privacy paragraph keeps the folder name .sniptoss whole (WebKit breaks after its dot)`, async ({ app }) => {
+  test(`${locale}: on the General page the paragraph on where notes are saved keeps the folder name .sniptoss whole (WebKit breaks after its dot)`, async ({ app }) => {
     prepare(app, locale);
     await app.page.setViewportSize({ width: 960, height: 600 });
     await app.open();
     await app.page.locator(".stage").click({ position: { x: 5, y: 5 } });
     await app.page.keyboard.press("Control+,");
+    // The About page's privacy paragraph, which used to name the folder, is now one short sentence without it
     await app.page.locator(".settings-tab").last().click();
+    await expect(app.page.locator(".settings-body .set-desc").first()).toBeVisible();
+    await expect(app.page.locator(".settings-body .set-desc", { hasText: ".sniptoss" })).toHaveCount(0);
+    await app.page.locator(".settings-tab").first().click();
     await expect(app.page.locator(".set-desc", { hasText: ".sniptoss" }).first()).toBeVisible();
-    expect(await badBreaks(app, "About")).toEqual([]);
+    expect(await badBreaks(app, "General")).toEqual([]);
   });
 }

@@ -23,7 +23,7 @@ export function useMarquee(opts: {
   const { list, rows, picked, setPicked, anchor, layout, listPad, openFirstOf } = opts;
   const marquee = useRef<HTMLDivElement>(null);
   const onListPointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0 || (e.target as HTMLElement).closest(".lib-twisty, button, input, .lib-empty")) return;
+    if (e.button !== 0 || (e.target as HTMLElement).closest(".lib-twisty, button, input")) return;
     const el = list.current!;
     const box = marquee.current!;
     // The mouse position is in screen pixels, while sizes, scrolling and the box position inside the list are pre-zoom: convert to list

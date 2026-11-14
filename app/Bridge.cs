@@ -71,6 +71,7 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
                 "libraryAdd" => AfterAdd(await Library.AddAsync(settings, StrList(args, "paths"))),
                 "addDropped" => AfterAdd(await Library.AddAsync(settings, files)),
                 "pasteClipboard" => await PasteFromClipboardAsync(),
+                "addSample" => await AddSampleAsync(),
                 "pickFiles" => PickFiles(),
                 "pickFolder" => PickFolder(args.ValueKind == JsonValueKind.Object && args.TryGetProperty("title", out var title) ? title.GetString() : null),
                 "libraryRemove" => RemoveFromLibrary(StrList(args, "paths")),
@@ -417,6 +418,38 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
         return AfterAdd(await Library.AddAsync(settings, [dir]) with { Focus = file }, pasted: file);
     }
 
+    /// <summary>The sample picture's file name, in the UI folder (ui/sample) and in the Sample folder</summary>
+    const string SampleName = "landing-page.jpg";
+
+    /// <summary>
+    /// "Try a Sample": copies the sample picture that ships with the UI into the app's Sample folder (AppPaths.SampleDir), adds that folder to the library and locates the picture.
+    /// It is the tutorial's picture, and the tutorial starts on a clean one: notes left on it last time (the folder is the app's own) are removed first
+    /// </summary>
+    async Task<object> AddSampleAsync()
+    {
+        var dir = AppPaths.SampleDir;
+        var file = Path.Combine(dir, SampleName);
+        var notes = Path.Combine(dir, DataDir.Name);
+        if (Directory.Exists(notes))
+        {
+            try
+            {
+                Directory.Delete(notes, recursive: true);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                Log.Warn("Could not clear the sample's notes", e);
+            }
+        }
+        if (!File.Exists(file))
+        {
+            Directory.CreateDirectory(dir);
+            File.Copy(Path.Combine(AppContext.BaseDirectory, "ui", "sample", SampleName), file);
+            Log.Info($"Added the sample picture: {file}");
+        }
+        return AfterAdd(await Library.AddAsync(settings, [dir]) with { Focus = file });
+    }
+
     /// <summary>Encodes the clipboard image as PNG: if the source put a PNG there, use it as is (browsers and chat apps usually do, with transparency); re-encode when only a bitmap is available</summary>
     static byte[]? ClipboardPng()
     {
@@ -446,6 +479,7 @@ sealed class Bridge(CoreWebView2 core, MainWindow window, Action onReady)
         logDir = Log.Dir,
         // Where images pasted with Ctrl+V go (shown in the library as "Pasted Images")
         pastedDir = AppPaths.PastedDir,
+        sampleDir = AppPaths.SampleDir,
         // Portable build (a data folder next to the exe): the settings switches that write to the registry (context menu, start at login) are greyed out
         portable = AppPaths.IsPortable,
         // Windows display language: used when the UI setting is "follow system" (docs/adr/0001-i18n.md)

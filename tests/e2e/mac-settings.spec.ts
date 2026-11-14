@@ -27,8 +27,11 @@ test("on the Mac, the settings pages speak of macOS, Finder, the Dock and the me
   }
   await openTab(app, "常规");
   await expect(body).toContainText("关闭窗口时保留在菜单栏");
+  await expect(body).toContainText("按 ⌘Q 退出");
   await expect(body).toContainText("登录时打开");
-  await expect(body).toContainText("macOS 的首选语言");
+  await expect(body).toContainText("登录后只显示在菜单栏");
+  // The language row no longer explains what Follow System follows (on the Mac it used to name macOS's preferred language)
+  await expect(body).not.toContainText("首选语言");
 });
 
 test("on the Mac, System Integration lists Open With in Finder and the Dock icon, with no switch and no error", async ({ app }) => {

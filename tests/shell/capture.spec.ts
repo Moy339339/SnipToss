@@ -617,13 +617,13 @@ test("Toolbar: right-aligned under the selection, above it when there's no room 
     ["arrow", "箭头（A）"],
     ["pen", "画笔（B）"],
     ["mosaic", "马赛克（M）"],
-    ["text", "文字：在图片上添加文字（T）"],
-    ["note", "图钉：单击放置标记并填写批注（C）"],
-    ["overall", "整体意见：不指定位置（N）"],
+    ["text", "文字（T）"],
+    ["note", "图钉（C）"],
+    ["overall", "整体意见（N）"],
     ["undo", "撤销（Ctrl Z）"],
-    ["delete", "删除选中的标记（Delete）"],
+    ["delete", "删除标记（Delete）"],
     ["cancel", "取消截图（Esc）"],
-    ["done", "完成并复制到剪贴板（Enter 或双击选区）"],
+    ["done", "完成"],
   ]);
   // Against the bottom of the screen: placed above
   o = await run(shell, [{ op: "right" }, { op: "drag", from: [300, 400], to: [700, 700] }]);
@@ -910,7 +910,7 @@ test("Overall comment: opened by N or the button, titled Overall Comment, leaves
   await open(shell);
   await select(shell);
   let o = await run(shell, [{ op: "key", key: "N" }]);
-  expect(o.note).toMatchObject({ title: "整体意见（不指定位置）", overall: true });
+  expect(o.note).toMatchObject({ title: "整体意见", overall: true });
   expect(o.buttons.find((b) => b.id === "overall")!.on).toBe(true);
   o = await run(shell, [{ op: "type", text: "整体偏暗" }, { op: "key", key: "D4", alt: true }, { op: "key", key: "Enter" }]);
   expect([o.overall, o.overallCategory, o.locked, o.marks.length]).toEqual(["整体偏暗", "question", true, 0]);
@@ -1077,7 +1077,7 @@ test("Delete (toolbar button, Delete / Backspace): grayed out until a mark is pi
     { op: "key", key: "Enter" },
   ]);
   expect(o.marks.map((m) => m.number)).toEqual([1, 1, 1]);
-  expect(del(o)).toMatchObject({ name: "删除选中的标记（Delete）", enabled: false });
+  expect(del(o)).toMatchObject({ name: "删除标记（Delete）", enabled: false });
   // Nothing picked: the grayed-out button and the keys do nothing (the keys go back to the system)
   o = await run(shell, [{ op: "click", id: "delete" }, { op: "key", key: "Delete" }]);
   expect([o.marks.length, o.results[1]]).toEqual([3, { handled: false, by: "none" }]);
@@ -1219,7 +1219,7 @@ test("Drawings: a click picks one and its colors pop up just below it, ending wi
   expect(o.subbar!.y).toBeGreaterThan(300);
   expect(o.subbar!.y).toBeLessThan(330);
   expect(Math.abs(o.subbar!.x - 250)).toBeLessThan(10);
-  expect(o.buttons.find((b) => b.id === "picked-delete")?.name).toBe("删除选中的标记（Delete）");
+  expect(o.buttons.find((b) => b.id === "picked-delete")?.name).toBe("删除标记（Delete）");
   // A color in that row changes only the picked box
   const other = o.buttons.find((b) => b.id.startsWith("color-") && b.id !== `color-${drawn}` && b.id !== "color-custom")!.id.slice(6);
   o = await run(shell, [{ op: "click", id: `color-${other}` }]);
@@ -1281,7 +1281,7 @@ test("Drawings, first time: a hint just below the first mark left as a drawing, 
     { op: "up" },
     { op: "shot", path: test.info().outputPath("drawing-hint.png") },
   ]);
-  expect(o.drawingHint!.text).toBe("未写批注的标记留作涂鸦：不编号，但会出现在截图中。单击可换色或删除，双击可补写批注。");
+  expect(o.drawingHint!.text).toBe("未写批注的标记留作涂鸦，保留在截图中。单击可换色或删除，双击可补写批注。");
   const box = o.drawingHint!.box;
   expect(box.y).toBeGreaterThan(300);
   expect(box.y).toBeLessThan(330);
@@ -1756,7 +1756,7 @@ test("UI language is English: the capture overlay's buttons and note box, the te
   await select(shell);
   let o = await run(shell, [{ op: "key", key: "R" }]);
   const name = (id: string) => o.buttons.find((b) => b.id === id)?.name;
-  expect([name("rect"), name("undo"), name("done")]).toEqual(["Rectangle (R)", "Undo (Ctrl Z)", "Finish and copy to the clipboard (Enter, or double-click the selection)"]);
+  expect([name("rect"), name("undo"), name("done")]).toEqual(["Rectangle (R)", "Undo (Ctrl Z)", "Finish"]);
   o = await run(shell, [{ op: "drag", from: [250, 250], to: [350, 300] }]); // the default selection is (200, 200)–(600, 500)
   expect(o.note).toMatchObject({ title: "Note 1", placeholder: true });
   expect(name("category-question")).toBe("Question"); // the category buttons are in the note box
@@ -1940,7 +1940,7 @@ test("Clicking Overall comment with the note box open saves the note being writt
   await select(shell);
   let o = await run(shell, [{ op: "key", key: "R" }, { op: "drag", from: [250, 250], to: [350, 350] }, { op: "type", text: "没保存的字" }, { op: "click", id: "overall" }]);
   expect(o.marks[0]).toMatchObject({ note: "没保存的字", number: 1, pending: 0 });
-  expect(o.note).toMatchObject({ overall: true, title: "整体意见（不指定位置）" });
+  expect(o.note).toMatchObject({ overall: true, title: "整体意见" });
   // A newly drawn box with nothing written, then Overall comment: the box stays as a drawing without a number, and its preview number goes
   o = await run(shell, [{ op: "key", key: "Escape" }, { op: "drag", from: [400, 250], to: [500, 350] }, { op: "click", id: "overall" }]);
   expect([o.marks.map((m) => [m.number, m.pending]), o.note!.overall]).toEqual([

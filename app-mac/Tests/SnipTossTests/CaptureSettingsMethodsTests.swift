@@ -36,7 +36,25 @@ final class CaptureSettingsMethodsTests: SnipTestCase {
         XCTAssertEqual(reply["folder"] as? String, "", "no folder chosen: the page shows the default")
         XCTAssertEqual(reply["defaultFolder"] as? String, defaultFolder)
         XCTAssertEqual(reply["autostart"] as? Bool, false)
-        XCTAssertEqual(reply.count, 10, "exactly the fields of CaptureSettings in host.ts")
+        XCTAssertEqual(reply["hotkeyLost"] as? Bool, false)
+        XCTAssertEqual(reply.count, 11, "exactly the fields of CaptureSettings in host.ts")
+    }
+
+    /// `hotkeyLost` is what the page says out loud once (windowControls.ts); the reply carries what it is given
+    func testTheReplyCarriesThatTheShortcutStoppedWorking() {
+        let reply = captureSettingsReply(CaptureSettings(), defaultFolder: defaultFolder, hotkeyError: "taken", hotkeyLost: true)
+        XCTAssertEqual(reply["hotkeyLost"] as? Bool, true)
+        XCTAssertEqual(reply["hotkeyError"] as? String, "taken")
+    }
+
+    /// A shortcut recorded in Settings is stored only once it registered: it works now, so losing it later is said once
+    func testARecordedShortcutCountsAsWorking() throws {
+        let (settings, path) = newSettings()
+        XCTAssertNil(settings.capture.hotkeyWorked)
+        _ = try set("{\"keepInTray\":false}", settings)
+        XCTAssertNil(settings.capture.hotkeyWorked, "only a new shortcut says it works")
+        _ = try set("{\"hotkey\":\"Control+Ctrl+K\"}", settings)
+        XCTAssertEqual(Settings.load(from: path).capture.hotkeyWorked, true)
     }
 
     func testTheReplyCanBeSentToThePage() {
@@ -49,7 +67,7 @@ final class CaptureSettingsMethodsTests: SnipTestCase {
         for allowed in [true, false] {
             let reply = captureSettingsReply(CaptureSettings(), defaultFolder: defaultFolder, screenAccess: allowed)
             XCTAssertEqual(reply["screenAccess"] as? Bool, allowed)
-            XCTAssertEqual(reply.count, 11)
+            XCTAssertEqual(reply.count, 12)
             let (settings, _) = newSettings()
             let patched = setCaptureSettingsReply(
                 CaptureSettingsPatch(try params("{\"hideWindow\":false}")), settings: settings, screenAccess: allowed)

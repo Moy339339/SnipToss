@@ -225,4 +225,41 @@ final class GlobalHotKeyTests: SnipTestCase {
         XCTAssertEqual(reply["hotkey"] as? String, "Ctrl+Alt+K")
         XCTAssertTrue(reply["hotkeyError"] is NSNull)
     }
+
+    // MARK: Said only when it changed
+
+    /// Said only when it worked at the previous start and does not now; what is stored changes only when the answer does
+    func testItIsSaidOnlyWhenTheShortcutWorkedLastTimeAndDoesNotNow() {
+        typealias Case = (before: Bool?, works: Bool, lost: Bool, store: Bool?)
+        let cases: [Case] = [
+            (nil, true, false, true),  // the first start: nothing to say
+            (nil, false, false, false),  // a new install whose key is taken: the button's mark says why, no message on the tutorial
+            (true, true, false, nil),
+            (true, false, true, false),  // it stopped working
+            (false, false, false, nil),  // still not working: not said again at every start
+            (false, true, false, true),
+        ]
+        for c in cases {
+            let result = HotKeyChange.compare(before: c.before, works: c.works)
+            XCTAssertEqual(result.lost, c.lost, "\(c)")
+            XCTAssertEqual(result.store, c.store, "\(c)")
+        }
+    }
+
+    /// Recorded at startup and handed out once: a page that loads again (a new disk plugged in) does not say it twice
+    func testThatItStoppedWorkingIsHandedOutOnce() {
+        let path = makeTempDir() + "/settings.json"
+        let settings = Settings.load(from: path)
+        settings.update { $0.capture.hotkeyWorked = true }
+        let change = HotKeyChange()
+        change.startup(settings: settings, works: false)
+        XCTAssertEqual(Settings.load(from: path).capture.hotkeyWorked, false)
+        XCTAssertTrue(change.take())
+        XCTAssertFalse(change.take())
+
+        // The next start: still not working, nothing more to say
+        let next = HotKeyChange()
+        next.startup(settings: Settings.load(from: path), works: false)
+        XCTAssertFalse(next.take())
+    }
 }

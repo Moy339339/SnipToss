@@ -99,8 +99,8 @@ export function useComposer(opts: {
    * on an earlier version doesn't retake its snapshot from the current canvas
    */
   versions: Pick<ReturnType<typeof useMaterialVersions>, "currentSha" | "rememberSha" | "earlierOf">;
-  /** A new note was saved (not an edit of an old one): the first time, hints where the copy button is (onboarding.ts) */
-  onSavedNew?: () => void;
+  /** A new note was saved (not an edit of an old one), with its id: the guide moves on, the first time the hint about copying comes (onboarding.ts) */
+  onSavedNew?: (id: string) => void;
 }) {
   const { prefs, current, currentPath, mediaRef, stageRef, setSelectedId, setSelectedNote } = opts;
   const { draft, setDraft, draftDirty, unlessDirty, discardDraft } = opts.drafts;
@@ -308,7 +308,7 @@ export function useComposer(opts: {
     }
     if (!existing) {
       lastCategory.current.set(key, v.category);
-      opts.onSavedNew?.();
+      opts.onSavedNew?.(annotation.id);
     }
     // It must be visible in the notes panel once written: if the notes panel lists it now, leave it; otherwise switch to "Entire Project",
     // and if it is a folder of another project, move the canvas into that folder
@@ -451,7 +451,7 @@ export function useComposer(opts: {
     }
     if (!existing) {
       lastCategory.current.set(materialKey, v.category);
-      opts.onSavedNew?.();
+      opts.onSavedNew?.(annotation.id);
     }
     if (shotError) snapshotFailed(shotError, home);
   };

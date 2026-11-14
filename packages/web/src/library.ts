@@ -563,6 +563,12 @@ export function useLibrary() {
       const paths = await call("pickFiles");
       return paths.length ? afterAdd(await call("libraryAdd", { paths })) : undefined;
     }, [afterAdd]),
+    /** The sample picture that ships with the app (the shell copies it into its Sample folder); that folder may already be in the library */
+    addSample: useCallback(async () => {
+      const r = await call("addSample");
+      if (!r.reloading && r.added.length === 0 && r.focus) await refreshEntries([dirName(r.focus)]);
+      return afterAdd(r);
+    }, [afterAdd, refreshEntries]),
     pickFolder: useCallback(async () => {
       const path = await call("pickFolder", {});
       return path ? afterAdd(await call("libraryAdd", { paths: [path] })) : undefined;

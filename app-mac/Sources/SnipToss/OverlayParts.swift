@@ -470,7 +470,7 @@ final class OverlayTextView: NSTextView {
 }
 
 /// The small note box (the words for the AI), looking like the main app's composer: title, category (Change / Remove / Add / Question,
-/// ⌥1–4), the input box, and Cancel and Save below. The button says Save, not Finish: the toolbar already has a Finish (the whole capture)
+/// ⌥1–4), the input box, and Cancel and Save (with its ↩ keycap) below. The button says Save, not Finish: the toolbar already has a Finish (the whole capture)
 final class OverlayNoteBox: OverlayPanelView, NSTextViewDelegate {
     /// Inside width: the box is 360 wide, the same as the main window's composer; the four categories in Italian, German, Russian and
     /// Portuguese need a bit over 320
@@ -486,7 +486,6 @@ final class OverlayNoteBox: OverlayPanelView, NSTextViewDelegate {
     // TextKit 1 from the start: the box is laid out with its layout manager (asking a TextKit 2 view for one switches it over midway)
     let textView = OverlayTextView(usingTextLayoutManager: false)
     let placeholder = OverlayText(size: 13, color: OverlayStyle.muted)
-    private let hint = OverlayText(size: 12, color: OverlayStyle.muted)
     private(set) var cancel: OverlayButton!
     private(set) var save: OverlayButton!
 
@@ -535,10 +534,8 @@ final class OverlayNoteBox: OverlayPanelView, NSTextViewDelegate {
         placeholder.width = OverlayNoteBox.inner - 18
         field.addSubview(placeholder)
 
-        hint.text = KeepWords.of(ShellText.t("composer.keys"))
-        // Wraps to two lines when it does not fit: cut short, the second half of the sentence was lost in some languages
-        hint.width = 100
-        addSubview(hint)
+        // Cancel and Save at the right, as in the main window's composer. No line of text about the keys: Save carries the key that
+        // presses it as a keycap, and Cancel's tooltip gives Esc
         let cancelLabel = ShellText.t("capture.note.cancel")
         let saveLabel = ShellText.t("capture.note.save")
         cancel = OverlayButton(
@@ -547,12 +544,23 @@ final class OverlayNoteBox: OverlayPanelView, NSTextViewDelegate {
             OverlayButton.fillBackground(b, b.hovered ? OverlayStyle.hover : nil)
             OverlayButton.drawLabel(cancelLabel, size: 13, color: b.hovered ? OverlayStyle.text : OverlayStyle.text2, in: b.bounds)
         }
-        save = OverlayButton(id: "note-save", name: saveLabel, size: Self.footSize(saveLabel), action: saveAction) { [weak self] b, context in
+        let saveText = NSAttributedString(string: saveLabel, attributes: [.font: OverlayStyle.font(13), .foregroundColor: NSColor.white])
+        let capText = NSAttributedString(string: Self.saveKey, attributes: [.font: OverlayStyle.font(12), .foregroundColor: NSColor.white])
+        let capWidth = max(20, ceil(capText.size().width) + 12)
+        // 12, the label, 8, the keycap, 10 (the main window's .composer-foot .btn-primary kbd: 20 high, 4 rounded, white at 18%)
+        let saveSize = CGSize(width: 12 + ceil(saveText.size().width) + 8 + capWidth + 10, height: 28)
+        save = OverlayButton(id: "note-save", name: saveLabel, size: saveSize, action: saveAction) { [weak self] b, context in
             let empty = self?.isEmpty ?? true
             context.saveGState()
             if empty { context.setAlpha(0.4) }
             OverlayButton.fillBackground(b, !empty && b.hovered ? OverlayStyle.accentFillHover : OverlayStyle.accentFill)
-            OverlayButton.drawLabel(saveLabel, size: 13, color: .white, in: b.bounds)
+            let s = saveText.size()
+            saveText.draw(at: CGPoint(x: 12, y: b.bounds.midY - s.height / 2))
+            let cap = CGRect(x: b.bounds.maxX - 10 - capWidth, y: b.bounds.midY - 10, width: capWidth, height: 20)
+            NSColor.white.withAlphaComponent(0.18).setFill()
+            NSBezierPath(roundedRect: cap, xRadius: 4, yRadius: 4).fill()
+            let c = capText.size()
+            capText.draw(at: CGPoint(x: cap.midX - c.width / 2, y: cap.midY - c.height / 2))
             context.restoreGState()
         }
         save.enabled = { [weak self] in !(self?.isEmpty ?? true) }
@@ -562,6 +570,10 @@ final class OverlayNoteBox: OverlayPanelView, NSTextViewDelegate {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("not used") }
+
+    /// The key that saves, drawn on Save as a keycap, the way the Mac writes it: the main window's composer shows the same (keycaps in
+    /// hotkey.ts, ↩ on the Mac in every language)
+    static let saveKey = "↩"
 
     private static func footSize(_ label: String) -> CGSize {
         CGSize(width: ceil(OverlayText(label, size: 13, color: .white).fitting.width) + 24, height: 28)
@@ -646,13 +658,9 @@ final class OverlayNoteBox: OverlayPanelView, NSTextViewDelegate {
         let footTop = field.frame.maxY + 12
         let saveX = 12 + inner - save.frame.width
         let cancelX = saveX - 8 - cancel.frame.width
-        hint.width = max(40, cancelX - 12 - 8)
-        hint.fit(at: CGPoint(x: 12, y: footTop))
-        let footHeight = max(28, hint.frame.height)
-        hint.frame.origin.y = footTop + (footHeight - hint.frame.height) / 2
-        cancel.frame.origin = CGPoint(x: cancelX, y: footTop + (footHeight - 28) / 2)
-        save.frame.origin = CGPoint(x: saveX, y: footTop + (footHeight - 28) / 2)
-        setFrameSize(CGSize(width: inner + 24, height: footTop + footHeight + 12))
+        cancel.frame.origin = CGPoint(x: cancelX, y: footTop)
+        save.frame.origin = CGPoint(x: saveX, y: footTop)
+        setFrameSize(CGSize(width: inner + 24, height: footTop + 28 + 12))
         needsDisplay = true
     }
 
@@ -691,7 +699,8 @@ final class OverlayNoteBox: OverlayPanelView, NSTextViewDelegate {
 }
 
 /// The note box's title row ("Note 1 · 2 marks"): a grip of six dots at its right end, a light background while the pointer is on it.
-/// Pressing anywhere on it and dragging moves the whole box, for when it covers what still needs marking (the overlay moves it, `onDrag`)
+/// Pressing anywhere on it and dragging moves the whole box, for when it covers what still needs marking (the overlay moves it, `onDrag`).
+/// It has no tooltip: the grip and the move pointer say it moves, as on the main window's composer
 final class OverlayNoteHandle: NSView {
     enum Phase { case began, moved, ended }
 

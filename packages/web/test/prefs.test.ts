@@ -115,6 +115,7 @@ describe("default values", () => {
       uiScale: 1,
       backdrop: "blur",
       updateCheck: true,
+      beginner: true,
       defaultCategory: "change",
       autoCompose: true,
       pauseOnAnnotate: true,

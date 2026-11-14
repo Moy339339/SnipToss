@@ -212,6 +212,41 @@ final class GlobalHotKey: HotKeyControl {
     }
 }
 
+/// What changed about the capture shortcut since the last start, said once (`CaptureSettings.hotkeyWorked`, as the Windows shell's
+/// TellHotkeyChange). A shortcut that stopped working is said once: by the page when the window is up (`hotkeyLost` in the first
+/// `captureSettings` reply), by the notice at the top right when the app started at login without a window. On the first start nothing is
+/// said, and one that has not worked for a while is not announced again at every start: the Capture button keeps a mark and says why.
+/// Note that macOS accepts a shortcut another app already holds: both get the press, or only the other app when it registered the shortcut
+/// as exclusive (Spotlight's ⌘Space), and the registration succeeds either way. So a clash is not seen on the Mac; what fails is a stored
+/// shortcut that cannot be read
+final class HotKeyChange {
+    private let lock = NSLock()
+    private var lost = false
+
+    /// Whether it stopped working since the last start, and the value to store for next time (nil: the stored one stays)
+    static func compare(before: Bool?, works: Bool) -> (lost: Bool, store: Bool?) {
+        (before == true && !works, before == works ? nil : works)
+    }
+
+    /// At startup, once the stored shortcut has been registered (or not): records whether it works now
+    func startup(settings: Settings, works: Bool) {
+        let result = HotKeyChange.compare(before: settings.capture.hotkeyWorked, works: works)
+        if let store = result.store { settings.update { $0.capture.hotkeyWorked = store } }
+        lock.lock()
+        lost = result.lost
+        lock.unlock()
+    }
+
+    /// Whether it stopped working since the last start, and that has not been said yet; once true, false from then on
+    func take() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        let was = lost
+        lost = false
+        return was
+    }
+}
+
 /// Carbon's `RegisterEventHotKey`: needs no permission, works while the app is in the background. Main thread only
 final class CarbonHotKeyBackend: HotKeyBackend {
     var onPressed: (() -> Void)?

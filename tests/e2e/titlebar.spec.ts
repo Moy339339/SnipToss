@@ -72,17 +72,53 @@ test("clicking Capture closes the button's tooltip immediately, and only then as
   expect(await app.page.evaluate(() => (window as unknown as { __tipAtCapture?: string }).__tipAtCapture)).toBe("0");
 });
 
-test("the Capture hover tooltip explains what it does and gives the shortcut only when there is one", async ({ app }) => {
+test("the Capture hover tooltip is only its shortcut (the button already shows its name), and there is none without a shortcut; screen readers get the name with the shortcut", async ({
+  app,
+}) => {
   await app.open();
   const tip = app.page.locator(".tooltip.is-on");
+  await expect(capture(app)).toHaveAttribute("title", "截图批注（Ctrl Alt A）");
   await capture(app).hover();
-  await expect(tip).toHaveText("截图批注（Ctrl Alt A）：框选屏幕区域，画标记、写批注，完成后图片复制到剪贴板");
+  await expect(tip).toHaveText("Ctrl Alt A");
+  await expect(tip.locator(".tooltip-key")).toHaveText("Ctrl Alt A");
   await app.page.mouse.move(600, 500);
   app.host.capture.hideWindow = false;
   app.host.capture.hotkey = "";
   await app.open();
+  await expect(capture(app)).toHaveAttribute("title", "截图批注");
   await capture(app).hover();
-  await expect(tip).toHaveText("截图批注：框选屏幕区域，画标记、写批注，完成后图片复制到剪贴板");
+  await app.page.waitForTimeout(800);
+  await expect(tip).toHaveCount(0);
+});
+
+test("while the capture shortcut doesn't work the Capture button carries a dot and its tooltip says why instead of the shortcut; once a shortcut that works is set in Settings the dot goes and the tooltip shows the new keys", async ({
+  app,
+}) => {
+  // A new install whose default shortcut another program holds: nothing pops up, the dot is how it is told
+  app.host.hotkeyWorked = null;
+  app.host.hotkeyTaken.add("Ctrl+Alt+A");
+  await app.open();
+  const tip = app.page.locator(".tooltip.is-on");
+  await expect(capture(app)).toHaveClass(/has-problem/);
+  const dot = () => capture(app).locator(".titlebar-capture-icon").evaluate((el) => getComputedStyle(el, "::after").content);
+  expect(await dot()).not.toBe("none");
+  await capture(app).hover();
+  await expect(tip).toHaveText("Ctrl Alt A 已被其他程序占用，请更换快捷键");
+  await expect(toast(app)).toHaveCount(0);
+
+  await app.page.mouse.move(600, 500);
+  await app.page.locator(".stage").click({ position: { x: 5, y: 5 } });
+  await app.page.keyboard.press("Control+,");
+  await app.page.locator(".settings-tab", { hasText: /^截图批注$/ }).click();
+  await app.page.locator(".hotkey-input").click();
+  await app.page.keyboard.press("Control+Alt+KeyK");
+  await expect.poll(() => app.host.capture.hotkey).toBe("Ctrl+Alt+K");
+  await app.page.keyboard.press("Escape");
+  await expect(app.page.locator(".settings")).toHaveCount(0);
+  await expect(capture(app)).not.toHaveClass(/has-problem/);
+  expect(await dot()).toBe("none");
+  await capture(app).hover();
+  await expect(tip).toHaveText("Ctrl Alt K");
 });
 
 test("the small arrow opens on click and closes on another click or Esc; screen readers know it is a menu button and whether it is open; the menu holds a toggle, a separator and Settings, aligned to the arrow on the right", async ({ app }) => {
@@ -422,10 +458,7 @@ test("the title bar in English: buttons, tips, menus and screen reader names are
   await app.page.setViewportSize({ width: 960, height: 700 });
   await app.open();
   await expect(capture(app)).toHaveText("Capture");
-  await expect(capture(app)).toHaveAttribute(
-    "title",
-    "Screen capture (Ctrl Alt A): select an area of the screen, draw marks and write notes; the image is copied to the clipboard when you finish",
-  );
+  await expect(capture(app)).toHaveAttribute("title", "Screen capture (Ctrl Alt A)");
   await expect(more(app)).toHaveAttribute("title", "Capture options");
   await expect(winBtn(app, 0)).toHaveAttribute("aria-label", "Minimize");
   await expect(winBtn(app, 1)).toHaveAttribute("aria-label", "Maximize");

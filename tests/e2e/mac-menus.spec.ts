@@ -141,20 +141,26 @@ test("a dialog open: the menus are sent as modal, and again when it is closed", 
   expect(find(app, (i) => i.shortcut?.key === "h" && i.shortcut.shift).checked).toBe(was);
 });
 
-test("on every screen of the walkthrough the menus are modal exactly while a dialog is on screen", async ({ app }) => {
+test("on every screen of the walkthrough the menus are modal exactly while a dialog is on screen or the guide keeps the user on its path", async ({
+  app,
+}) => {
   // The walkthrough (screens.ts) opens every dialog of the UI; a dialog is any element that says it is modal. A new dialog that the menus
-  // do not know about (one that is not an .overlay or .tour) would leave the Mac's menus enabled behind it
+  // do not know about (one that is not an .overlay) would leave the Mac's menus enabled behind it. The guide is not a dialog, but while it
+  // dims the window (html[data-guided]) the menus are off as on Windows, where the menus in the title bar are
   prepare(app, "en");
   await asMacWithMenus(app);
   await app.open();
-  const seen = { dialog: 0, plain: 0 };
+  const seen = { dialog: 0, guided: 0, plain: 0 };
   await walkScreens(app, async (screen) => {
     const dialog = (await app.page.locator('[aria-modal="true"]').count()) > 0;
-    await expect.poll(() => app.host.menusSent[app.host.menusSent.length - 1]?.modal, { message: screen }).toBe(dialog);
-    seen[dialog ? "dialog" : "plain"]++;
+    const guided = await app.page.evaluate(() => document.documentElement.hasAttribute("data-guided"));
+    await expect.poll(() => app.host.menusSent[app.host.menusSent.length - 1]?.modal, { message: screen }).toBe(dialog || guided);
+    seen[dialog ? "dialog" : guided ? "guided" : "plain"]++;
   });
-  // Settings pages, the confirm dialog, the shortcut list and the tour are dialogs; the main screen, the note box, the context menus are not
+  // Settings pages, the confirm dialog, the shortcut list and the first-run dialog are dialogs; the guide's steps dim the window; the main
+  // screen, the note box, the context menus are neither
   expect(seen.dialog).toBeGreaterThan(8);
+  expect(seen.guided).toBeGreaterThan(3);
   expect(seen.plain).toBeGreaterThan(2);
 });
 

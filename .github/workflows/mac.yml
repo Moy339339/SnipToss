@@ -190,6 +190,10 @@ jobs:
           export SNIPTOSS_SMOKE_READY=capture
           mkdir -p "$RUNNER_TEMP/data-capture"
           echo '{ "Prefs": { "language": "zh-CN" } }' > "$SNIPTOSS_SETTINGS"
+          # The stand-in for the system's question about recording the screen, for the last round (it must be named as the real one's process)
+          mkdir -p "$RUNNER_TEMP/smoke-dialog"
+          swiftc -O app-mac/scripts/smoke-dialog.swift -o "$RUNNER_TEMP/smoke-dialog/UserNotificationCenter"
+          export SNIPTOSS_SMOKE_DIALOG="$RUNNER_TEMP/smoke-dialog/UserNotificationCenter"
           app-mac/.build/release/SnipToss
 
       # Level 1000 is NSWindow.Level.screenSaver; 262481 is canJoinAllSpaces | stationary | ignoresCycle | fullScreenAuxiliary |
@@ -299,6 +303,28 @@ jobs:
             if ((out.notices || []).length !== 1 || out.notices[0].kind !== "toast") problems.push("notices: " + JSON.stringify(out.notices));
             if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
             console.log("capture main line ok", JSON.stringify(res), JSON.stringify(out));
+          '
+
+      # The last round: a stand-in for the system's question about recording the screen (the UserNotificationCenter process, modal panel
+      # level 8) comes up in front while a capture is open. The layers must step below it so it can be answered, then come back on top
+      # (1000) with the keyboard and the selection kept once it has gone
+      - name: Check the layers under a system dialog
+        if: ${{ !cancelled() }}
+        run: |
+          node -e '
+            const r = require(process.env.RUNNER_TEMP + "/smoke/capture/result.json");
+            const d = (r.capture || {}).dialog;
+            const problems = [];
+            if (!d) problems.push("no dialog round (SNIPTOSS_SMOKE_DIALOG)");
+            else {
+              if (!d.opened) problems.push("the capture did not open: " + JSON.stringify(d));
+              if (!d.steppedBelow || d.heldUnder !== 7) problems.push("the layers did not step below the dialog: " + JSON.stringify(d));
+              if (!(d.levelsDuring || []).length || d.levelsDuring.some((l) => l >= 8)) problems.push("levels while the dialog is up: " + JSON.stringify(d.levelsDuring));
+              if (!d.backWithKeyboard || (d.levelsAfter || []).some((l) => l !== 1000)) problems.push("not back on top with the keyboard: " + JSON.stringify(d));
+              if (!d.selectionKept || !d.stillOpen) problems.push("the capture was not kept: " + JSON.stringify(d));
+            }
+            if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }
+            console.log("layers under a system dialog ok", JSON.stringify(d));
           '
 
       # The annotate run (CaptureSmoke.annotate), the one meant for trying a build on a Mac nobody may touch: one capture through the whole

@@ -127,7 +127,6 @@ export function markColorRow(
   const recent = recentRow(getRecentColors(), opts.current);
   return {
     label: opts.label,
-    title: intl.formatMessage({ id: "markColor.title" }),
     disabled: opts.disabled,
     // The row itself is not a button; the swatches are what get clicked
     onClick: () => {},

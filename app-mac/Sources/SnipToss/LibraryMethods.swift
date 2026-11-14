@@ -13,10 +13,12 @@ typealias PendingOpensProvider = () -> (focus: String?, skipped: [String], reloc
 /// - Parameter homes: the notes folders scans have handed out; `libraryRemove` tidies only those (`tidyLeaving`)
 /// - Parameter tidy: removes empty notes folders (`HomeTidy`; the same one the notes methods use). nil: entries leaving the library are not
 ///   looked at
+/// - Parameter sampleDir: `appInfo.sampleDir`, where `addSample` puts the tutorial's picture; nil when the picture does not ship with the
+///   UI, and then the UI offers no tutorial on it
 func installLibraryMethods(
     into bridge: BridgeHost, settings: Settings,
     pending: @escaping PendingOpensProvider = { (focus: nil, skipped: [], relocated: []) }, prefsChanged: @escaping () -> Void = {},
-    homes: NotesHomes = NotesHomes(), tidy: HomeTidy? = nil
+    homes: NotesHomes = NotesHomes(), tidy: HomeTidy? = nil, sampleDir: String? = nil
 ) {
     let environment = ProcessInfo.processInfo.environment
     let startupNotice = OnceFlag()
@@ -171,6 +173,7 @@ func installLibraryMethods(
         ]
         // The build number of the package: the About page writes the version the Mac way, "1.0.0 (44)"
         if let build = bundle?["CFBundleVersion"] as? String { info["build"] = build }
+        if let sampleDir { info["sampleDir"] = sampleDir }
         return info
     }
 }

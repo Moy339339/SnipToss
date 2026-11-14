@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useState } from "react";
 import { useIntl } from "react-intl";
-import { call, logError, type WindowAction, type WindowState } from "./host";
+import { call, logError, type CaptureSettings, type WindowAction, type WindowState } from "./host";
 import { keycaps, prettyKeys } from "./hotkey";
 import { dismissTooltip } from "./Tooltip";
 
@@ -45,34 +45,35 @@ export function useCaptureControls(opts: {
   const intl = useIntl();
   const tk = (id: string) => intl.formatMessage({ id });
   const [captureHotkey, setCaptureHotkey] = useState("");
+  /** Why the shortcut does not work (another program holds it): the Capture button keeps a quiet mark and says why on hover, at every launch */
+  const [captureProblem, setCaptureProblem] = useState<string>();
   /** Hide this window first when capturing from within it (Settings → Screen Capture; also switchable in the small arrow next to the title bar button) */
   const [captureHide, setCaptureHide] = useState(true);
-  // The shortcut could not be registered at startup (taken by another app): say so and offer "Go to Settings". Otherwise it would show only on the Settings page, and a press that does nothing would leave people wondering why
-  // The default combination would type a character on the current keyboard layout and the shell replaced it (AltGr): say so as well
+  // Said out loud only when something changed since the last launch (the shell decides, CaptureSettings.HotkeyWorked): the shortcut stopped working (another program took it),
+  // or the shell replaced the default one the user had been using (it would type a character). Not at every launch, and never on the first one (it would land on the tutorial;
+  // the Capture button's mark says why)
   const tellProblem = useEffectEvent((text: string) =>
     opts.onNotify(text, { label: intl.formatMessage({ id: "app.capture.openSettings" }), run: opts.onSettings }),
   );
-  const problemText = useEffectEvent(
-    (c: { hotkeyError: string | null; hotkeyMoved: { from: string; to: string; typed: string } | null }) => {
-      const moved = c.hotkeyMoved;
-      if (moved)
-        return intl.formatMessage(
-          { id: moved.to ? "app.capture.hotkeyMoved" : "app.capture.hotkeyOff" },
-          { from: keycaps(prettyKeys(moved.from), tk), to: keycaps(prettyKeys(moved.to), tk), typed: moved.typed },
-        );
-      return c.hotkeyError ? intl.formatMessage({ id: "app.capture.hotkeyFailed" }, { reason: c.hotkeyError }) : undefined;
-    },
-  );
+  const changeText = useEffectEvent((c: CaptureSettings) => {
+    const moved = c.hotkeyMoved;
+    if (moved)
+      return intl.formatMessage(
+        { id: moved.to ? "app.capture.hotkeyMoved" : "app.capture.hotkeyOff" },
+        { from: keycaps(prettyKeys(moved.from), tk), to: keycaps(prettyKeys(moved.to), tk), typed: moved.typed },
+      );
+    return c.hotkeyLost && c.hotkeyError ? intl.formatMessage({ id: "app.capture.hotkeyFailed" }, { reason: c.hotkeyError }) : undefined;
+  });
   useEffect(() => {
-    let first = true;
     const load = () =>
       void call("captureSettings")
         .then((c) => {
           setCaptureHotkey(c.hotkeyError ? "" : c.hotkey);
+          setCaptureProblem(c.hotkeyError ?? undefined);
           setCaptureHide(c.hideWindow);
-          const text = problemText(c);
-          if (first && text) tellProblem(text);
-          first = false;
+          // The shell hands a change out only once, so this fires once even when the page reloads
+          const text = changeText(c);
+          if (text) tellProblem(text);
         })
         .catch(() => {});
     load();
@@ -93,5 +94,5 @@ export function useCaptureControls(opts: {
         opts.onNotify(intl.formatMessage({ id: c.hideWindow ? "app.capture.hideOn" : "app.capture.hideOff" }));
       })
       .catch((e: Error) => opts.onNotify(e.message));
-  return { captureHotkey, captureHide, startCapture, setCaptureHideAlways };
+  return { captureHotkey, captureProblem, captureHide, startCapture, setCaptureHideAlways };
 }

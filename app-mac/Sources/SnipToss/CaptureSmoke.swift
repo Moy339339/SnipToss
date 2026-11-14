@@ -98,7 +98,10 @@ enum CaptureSmoke {
                             report["otherAppInFront"] = inFront
                             Self.mainLineRound(session, outDir: outDir) { line in
                                 report["mainLine"] = line
-                                done(report)
+                                Self.dialogRound(session) { dialog in
+                                    if let dialog { report["dialog"] = dialog }
+                                    done(report)
+                                }
                             }
                         }
                     }
@@ -146,6 +149,60 @@ enum CaptureSmoke {
                     report["closedByEsc"] = closed
                     done(report)
                 }
+            }
+        }
+    }
+
+    /// The last capture, when SNIPTOSS_SMOKE_DIALOG names the stand-in for the system's question about recording the screen
+    /// (app-mac/scripts/smoke-dialog.swift, built as UserNotificationCenter): a selection is made, the stand-in comes up in front, the
+    /// layers must step below it; it is terminated, the layers must come back on top with the keyboard and the selection kept. nil when
+    /// there is no stand-in
+    private static func dialogRound(_ session: CaptureSession, done: @escaping ([String: Any]?) -> Void) {
+        guard let path = ProcessInfo.processInfo.environment["SNIPTOSS_SMOKE_DIALOG"], !path.isEmpty else { return done(nil) }
+        var report: [String: Any] = [:]
+        let levels = { session.overlayPanels.map { $0.level.rawValue } }
+        session.start()
+        Self.wait(tries: 50, until: { session.isOpen && session.keyboardRoute != nil }) { opened in
+            report["opened"] = opened
+            guard opened, let first = session.overlays.first, let panel = session.overlayPanels.first else {
+                session.close()
+                return done(report)
+            }
+            Self.drag(from: CGPoint(x: first.full.width * 0.2, y: first.full.height * 0.2), to: CGPoint(x: first.full.width * 0.5, y: first.full.height * 0.5), in: panel)
+            // The drag goes through the event queue: the selection is there once it has been handled
+            Self.wait(tries: 30, until: { first.state.sel != nil }) { _ in
+                let selection = first.state.sel
+                report["levelsBefore"] = levels()
+                let stand = Process()
+                stand.executableURL = URL(fileURLWithPath: path)
+                do { try stand.run() } catch {
+                    report["standIn"] = "\(error)"
+                    session.close()
+                    return done(report)
+                }
+                Self.dialogRoundRest(session, stand: stand, first: first, selection: selection, levels: levels, report: report, done: done)
+            }
+        }
+    }
+
+    private static func dialogRoundRest(
+        _ session: CaptureSession, stand: Process, first: CaptureOverlay, selection: CGRect?, levels: @escaping () -> [Int],
+        report: [String: Any], done: @escaping ([String: Any]?) -> Void
+    ) {
+        var report = report
+        Self.wait(tries: 50, until: { session.heldUnder != nil }) { stepped in
+            report["steppedBelow"] = stepped
+            report["heldUnder"] = session.heldUnder ?? NSNull()
+            report["levelsDuring"] = levels()
+            report["appActiveDuring"] = NSApp.isActive
+            stand.terminate()
+            Self.wait(tries: 50, until: { session.heldUnder == nil && session.overlayPanels.contains { $0.isKeyWindow } }) { back in
+                report["backWithKeyboard"] = back
+                report["levelsAfter"] = levels()
+                report["selectionKept"] = selection != nil && first.state.sel == selection
+                report["stillOpen"] = session.isOpen
+                session.close()
+                done(report)
             }
         }
     }
@@ -253,7 +310,8 @@ enum CaptureSmoke {
     }
 
     /// Drag out a selection, move it, make it larger by its bottom-right handle, click Rectangle on the toolbar and draw one, type a note
-    /// and save it with Return, A for the Arrow and draw one, type its note and click Save, a picture of the layer, Finish on the toolbar
+    /// and save it with Return, A for the Arrow and draw one, type its note, a picture of the note box, click Save, a picture of the layer,
+    /// Finish on the toolbar
     static func annotateLine(_ s: Stage) -> Steps {
         let w = s.overlay.full.width
         let h = s.overlay.full.height
@@ -277,6 +335,8 @@ enum CaptureSmoke {
             ("arrowTool", { s.key(0x00, "a") }),
             ("drawArrow", { s.drag(s.inSelection(0.85, 0.15), s.inSelection(0.6, 0.5)) }),
             ("typeArrowNote", { s.type("Point this at the menu") }),
+            // The note box with its text in: Cancel and Save, which carries its ↩ keycap, at the bottom right, and no line of keys
+            ("notePicture", { s.picture("annotate-note.png") }),
             ("saveWithButton", { s.click("note-save") }),
             ("picture", { s.picture("annotate-layer.png") }),
             ("finish", { s.click("done") }),

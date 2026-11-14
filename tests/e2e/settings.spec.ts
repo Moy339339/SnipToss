@@ -97,12 +97,42 @@ test("context menu toggle: when the shell reports success but the registry wasn'
   await expect(app.page.getByRole("switch").first()).toHaveAttribute("aria-checked", "false");
 });
 
-test("when the capture shortcut couldn't be set at startup (held by another program), a notice says so and Open Settings opens that page", async ({ app }) => {
+test("when the capture shortcut that worked at the last launch can't be set at startup (another program took it), a notice says so once, the Capture button keeps a dot, and Open Settings opens that page", async ({
+  app,
+}) => {
   app.host.capture.hotkeyError = "Ctrl Alt A 已经被别的程序占用了，换一个吧";
   await app.open();
-  await expect(toast(app)).toContainText("截图快捷键未能注册");
+  await expect(toast(app)).toContainText("截图快捷键未能注册：Ctrl Alt A 已经被别的程序占用了，换一个吧");
+  await expect(app.page.locator(".titlebar-action").first()).toHaveClass(/has-problem/);
   await toast(app).getByRole("button", { name: "打开设置" }).click();
   await expect(app.page.locator(".settings-tab.is-on")).toHaveText("截图批注");
+  // Said once per launch: reloading the page (a new drive) doesn't say it again, and the dot stays
+  await app.page.reload();
+  await expect(app.page.locator(".lib-row").first()).toBeVisible();
+  await expect(app.page.locator(".titlebar-action").first()).toHaveClass(/has-problem/);
+  await app.page.waitForTimeout(500);
+  await expect(toast(app)).toHaveCount(0);
+});
+
+test("on a new install a capture shortcut held by another program is not announced at startup (it would land on the first-run dialog): only the Capture button's dot says so", async ({
+  app,
+}) => {
+  app.host.hotkeyWorked = null;
+  app.host.hotkeyTaken.add("Ctrl+Alt+A");
+  await app.open();
+  await expect(app.page.locator(".titlebar-action").first()).toHaveClass(/has-problem/);
+  await app.page.waitForTimeout(800);
+  await expect(toast(app)).toHaveCount(0);
+  expect(app.host.hotkeyWorked).toBe(false);
+});
+
+test("a capture shortcut that didn't work at the last launch either is not announced again at every startup: only the dot stays", async ({ app }) => {
+  app.host.hotkeyWorked = false;
+  app.host.capture.hotkeyError = "Ctrl Alt A 已被其他程序占用，请更换快捷键";
+  await app.open();
+  await expect(app.page.locator(".titlebar-action").first()).toHaveClass(/has-problem/);
+  await app.page.waitForTimeout(800);
+  await expect(toast(app)).toHaveCount(0);
 });
 
 test("when the default capture shortcut types a character in the keyboard layout (AltGr) and the shell replaced it, a notice says what it was replaced with and why, and Open Settings opens that page", async ({ app }) => {
@@ -111,10 +141,23 @@ test("when the default capture shortcut types a character in the keyboard layout
   await app.open();
   await expect(toast(app)).toContainText("截图快捷键已改为 Shift PrintScreen：Ctrl Alt A 在本机的键盘布局中用于输入「ą」");
   await expect(app.page.locator(".titlebar-action").first()).toHaveAttribute("title", /Shift PrintScreen/);
+  await expect(app.page.locator(".titlebar-action").first()).not.toHaveClass(/has-problem/);
   await toast(app).getByRole("button", { name: "打开设置" }).click();
   await expect(app.page.locator(".settings-tab.is-on")).toHaveText("截图批注");
-  // The replacement doesn't type anything: the settings page shows the usual description
-  await expect(app.page.locator(".set-row", { hasText: "快捷键" }).first()).toContainText("在任何程序中都可用");
+  // The replacement doesn't type anything: the settings page shows the usual description and no warning
+  const keyRow = app.page.locator(".set-row", { hasText: "快捷键" }).first();
+  await expect(keyRow).toContainText("按 Backspace 清除。");
+  await expect(keyRow.locator(".text-warn")).toHaveCount(0);
+});
+
+test("a replaced default capture shortcut is not announced on a new install (there was nothing to unlearn): the shortcut in effect is simply the new one", async ({ app }) => {
+  app.host.hotkeyWorked = null;
+  app.host.capture.hotkey = "Shift+PrintScreen";
+  app.host.capture.hotkeyMoved = { from: "Ctrl+Alt+A", to: "Shift+PrintScreen", typed: "ą" };
+  await app.open();
+  await expect(app.page.locator(".titlebar-action").first()).toHaveAttribute("title", /Shift PrintScreen/);
+  await app.page.waitForTimeout(800);
+  await expect(toast(app)).toHaveCount(0);
 });
 
 test("when the fallback shortcuts are all taken too, a notice says the capture shortcut is disabled and to set one in Settings", async ({ app }) => {

@@ -195,7 +195,9 @@ test("the first note on a large file (fingerprinting takes seconds): the note bo
   await app.page.mouse.up();
   await app.page.locator(".composer-text").fill("只要一条");
   await app.page.keyboard.press("Control+Enter");
-  await expect(app.page.locator(".composer .btn-primary")).toHaveText("正在保存…");
+  // The label turns into Saving…; the Enter keycap stays on the button
+  await expect(app.page.locator(".composer .btn-primary")).toHaveText(/^正在保存…/);
+  await expect(app.page.locator(".composer .btn-primary kbd")).toHaveText("Enter");
   await expect(app.page.locator(".composer .btn-primary")).toBeDisabled();
   await app.page.keyboard.press("Control+Enter");
   await app.page.locator(".composer .btn-primary").click({ force: true });

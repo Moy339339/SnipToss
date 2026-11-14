@@ -129,12 +129,6 @@
     },
     {
       "locale": "de",
-      "key": "markColor.title",
-      "args": {},
-      "text": "Ändert nur die Farbe der Markierung, nicht die Notiz"
-    },
-    {
-      "locale": "de",
       "key": "markColor.custom",
       "args": {},
       "text": "Eigene Farbe…"
@@ -625,6 +619,28 @@
     },
     {
       "locale": "de",
+      "key": "shell.capture.askBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Um Inhalte auf dem Bildschirm zu annotieren, erstellt <app> zuerst ein Bild davon. Die Berechtigung wird nur beim Aufnehmen verwendet, und es wird nichts hochgeladen."
+    },
+    {
+      "locale": "de",
+      "key": "shell.capture.continue",
+      "args": {},
+      "text": "Weiter"
+    },
+    {
+      "locale": "de",
+      "key": "shell.capture.noAccessToggle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Wenn <app> bereits aktiviert ist, schalten Sie es aus und wieder ein."
+    },
+    {
+      "locale": "de",
       "key": "shell.move.title",
       "args": {
         "app": "<app>"
@@ -903,13 +919,13 @@
       "locale": "de",
       "key": "capture.note.placeholderMarks",
       "args": {},
-      "text": "Notiz schreiben (weitere Markierungen möglich)"
+      "text": "Notiz schreiben"
     },
     {
       "locale": "de",
       "key": "capture.note.overall",
       "args": {},
-      "text": "Gesamtkommentar (ohne Position)"
+      "text": "Gesamtkommentar"
     },
     {
       "locale": "de",
@@ -992,7 +1008,7 @@
       "locale": "de",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "Diese Notiz verwerfen (Esc)"
+      "text": "Esc"
     },
     {
       "locale": "de",
@@ -1016,7 +1032,7 @@
       "locale": "de",
       "key": "capture.drawingHint",
       "args": {},
-      "text": "Eine Markierung ohne Notiz bleibt als Zeichnung erhalten: Sie hat keine Nummer und bleibt im Screenshot. Klicken Sie darauf, um sie umzufärben oder zu löschen; ein Doppelklick fügt eine Notiz hinzu."
+      "text": "Eine Markierung ohne Notiz bleibt als Zeichnung im Screenshot erhalten. Klicken Sie darauf, um sie umzufärben oder zu löschen; ein Doppelklick fügt eine Notiz hinzu."
     },
     {
       "locale": "de",
@@ -1052,19 +1068,19 @@
       "locale": "de",
       "key": "capture.tool.text",
       "args": {},
-      "text": "Text: Text zum Bild hinzufügen (T)"
+      "text": "Text (T)"
     },
     {
       "locale": "de",
       "key": "capture.tool.note",
       "args": {},
-      "text": "Stecknadel: per Klick Markierung setzen und Notiz schreiben (C)"
+      "text": "Stecknadel (C)"
     },
     {
       "locale": "de",
       "key": "capture.tool.overall",
       "args": {},
-      "text": "Gesamtkommentar: ohne Position (N)"
+      "text": "Gesamtkommentar (N)"
     },
     {
       "locale": "de",
@@ -1076,7 +1092,7 @@
       "locale": "de",
       "key": "capture.tool.delete",
       "args": {},
-      "text": "Ausgewählte Markierung löschen (Entf)"
+      "text": "Markierung löschen (Entf)"
     },
     {
       "locale": "de",
@@ -1094,7 +1110,7 @@
       "locale": "de",
       "key": "capture.doneTip",
       "args": {},
-      "text": "Abschließen und in die Zwischenablage kopieren (Eingabe oder Doppelklick auf die Auswahl)"
+      "text": "Eingabe"
     },
     {
       "locale": "de",
@@ -2734,12 +2750,6 @@
     },
     {
       "locale": "en",
-      "key": "markColor.title",
-      "args": {},
-      "text": "Changes only the mark's color, not the note"
-    },
-    {
-      "locale": "en",
       "key": "markColor.custom",
       "args": {},
       "text": "Custom Color…"
@@ -3230,6 +3240,28 @@
     },
     {
       "locale": "en",
+      "key": "shell.capture.askBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "To mark up what's on screen, <app> first takes a picture of it. It uses this permission only when you capture, and nothing is uploaded."
+    },
+    {
+      "locale": "en",
+      "key": "shell.capture.continue",
+      "args": {},
+      "text": "Continue"
+    },
+    {
+      "locale": "en",
+      "key": "shell.capture.noAccessToggle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "If <app> is already turned on, turn it off and on again."
+    },
+    {
+      "locale": "en",
       "key": "shell.move.title",
       "args": {
         "app": "<app>"
@@ -3508,13 +3540,13 @@
       "locale": "en",
       "key": "capture.note.placeholderMarks",
       "args": {},
-      "text": "Write the note (you can add more marks)"
+      "text": "Write the note"
     },
     {
       "locale": "en",
       "key": "capture.note.overall",
       "args": {},
-      "text": "Overall comment (no position)"
+      "text": "Overall comment"
     },
     {
       "locale": "en",
@@ -3597,7 +3629,7 @@
       "locale": "en",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "Cancel this note (Esc)"
+      "text": "Esc"
     },
     {
       "locale": "en",
@@ -3621,7 +3653,7 @@
       "locale": "en",
       "key": "capture.drawingHint",
       "args": {},
-      "text": "A mark left without a note stays as a drawing: no number, and it stays in the screenshot. Click it to recolor or delete it; double-click to add a note."
+      "text": "A mark left without a note stays in the screenshot as a drawing. Click it to recolor or delete it; double-click to add a note."
     },
     {
       "locale": "en",
@@ -3657,19 +3689,19 @@
       "locale": "en",
       "key": "capture.tool.text",
       "args": {},
-      "text": "Text: add text to the image (T)"
+      "text": "Text (T)"
     },
     {
       "locale": "en",
       "key": "capture.tool.note",
       "args": {},
-      "text": "Pin: click to place a mark and write a note (C)"
+      "text": "Pin (C)"
     },
     {
       "locale": "en",
       "key": "capture.tool.overall",
       "args": {},
-      "text": "Overall comment: no position (N)"
+      "text": "Overall comment (N)"
     },
     {
       "locale": "en",
@@ -3681,7 +3713,7 @@
       "locale": "en",
       "key": "capture.tool.delete",
       "args": {},
-      "text": "Delete selected mark (Delete)"
+      "text": "Delete mark (Delete)"
     },
     {
       "locale": "en",
@@ -3699,7 +3731,7 @@
       "locale": "en",
       "key": "capture.doneTip",
       "args": {},
-      "text": "Finish and copy to the clipboard (Enter, or double-click the selection)"
+      "text": "Enter"
     },
     {
       "locale": "en",
@@ -5339,12 +5371,6 @@
     },
     {
       "locale": "es",
-      "key": "markColor.title",
-      "args": {},
-      "text": "Cambia solo el color de la marca, no la nota"
-    },
-    {
-      "locale": "es",
       "key": "markColor.custom",
       "args": {},
       "text": "Color personalizado…"
@@ -5835,6 +5861,28 @@
     },
     {
       "locale": "es",
+      "key": "shell.capture.askBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Para anotar lo que hay en la pantalla, <app> primero captura una imagen de ella. El permiso solo se usa al capturar y no se sube nada."
+    },
+    {
+      "locale": "es",
+      "key": "shell.capture.continue",
+      "args": {},
+      "text": "Continuar"
+    },
+    {
+      "locale": "es",
+      "key": "shell.capture.noAccessToggle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Si <app> ya está activada, desactívala y vuelve a activarla."
+    },
+    {
+      "locale": "es",
       "key": "shell.move.title",
       "args": {
         "app": "<app>"
@@ -6113,13 +6161,13 @@
       "locale": "es",
       "key": "capture.note.placeholderMarks",
       "args": {},
-      "text": "Escribe la nota (puedes agregar más marcas)"
+      "text": "Escribe la nota"
     },
     {
       "locale": "es",
       "key": "capture.note.overall",
       "args": {},
-      "text": "Comentario general (sin posición)"
+      "text": "Comentario general"
     },
     {
       "locale": "es",
@@ -6202,7 +6250,7 @@
       "locale": "es",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "Cancelar esta nota (Esc)"
+      "text": "Esc"
     },
     {
       "locale": "es",
@@ -6226,7 +6274,7 @@
       "locale": "es",
       "key": "capture.drawingHint",
       "args": {},
-      "text": "Una marca sin nota se queda como dibujo: no lleva número y permanece en la captura de pantalla. Haz clic en ella para cambiar el color o eliminarla; doble clic para agregar una nota."
+      "text": "Una marca sin nota se queda como dibujo y permanece en la captura de pantalla. Haz clic en ella para cambiar el color o eliminarla; doble clic para agregar una nota."
     },
     {
       "locale": "es",
@@ -6262,19 +6310,19 @@
       "locale": "es",
       "key": "capture.tool.text",
       "args": {},
-      "text": "Texto: agrega texto a la imagen (T)"
+      "text": "Texto (T)"
     },
     {
       "locale": "es",
       "key": "capture.tool.note",
       "args": {},
-      "text": "Punto: haz clic para colocar una marca y escribir una nota (C)"
+      "text": "Punto (C)"
     },
     {
       "locale": "es",
       "key": "capture.tool.overall",
       "args": {},
-      "text": "Comentario general: sin posición (N)"
+      "text": "Comentario general (N)"
     },
     {
       "locale": "es",
@@ -6286,7 +6334,7 @@
       "locale": "es",
       "key": "capture.tool.delete",
       "args": {},
-      "text": "Eliminar la marca seleccionada (Supr)"
+      "text": "Eliminar marca (Supr)"
     },
     {
       "locale": "es",
@@ -6304,7 +6352,7 @@
       "locale": "es",
       "key": "capture.doneTip",
       "args": {},
-      "text": "Finalizar y copiar en el Portapapeles (Entrar, o doble clic en la selección)"
+      "text": "Entrar"
     },
     {
       "locale": "es",
@@ -7944,12 +7992,6 @@
     },
     {
       "locale": "fr",
-      "key": "markColor.title",
-      "args": {},
-      "text": "Ne modifie que la couleur du repère, pas la note"
-    },
-    {
-      "locale": "fr",
       "key": "markColor.custom",
       "args": {},
       "text": "Couleur personnalisée…"
@@ -8440,6 +8482,28 @@
     },
     {
       "locale": "fr",
+      "key": "shell.capture.askBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Pour annoter ce qui est à l’écran, <app> en prend d’abord une image. L’autorisation n’est utilisée que lors d’une capture, et rien n’est envoyé."
+    },
+    {
+      "locale": "fr",
+      "key": "shell.capture.continue",
+      "args": {},
+      "text": "Continuer"
+    },
+    {
+      "locale": "fr",
+      "key": "shell.capture.noAccessToggle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Si <app> est déjà activée, désactivez-la puis réactivez-la."
+    },
+    {
+      "locale": "fr",
       "key": "shell.move.title",
       "args": {
         "app": "<app>"
@@ -8718,13 +8782,13 @@
       "locale": "fr",
       "key": "capture.note.placeholderMarks",
       "args": {},
-      "text": "Écrivez la note (plusieurs repères possibles)"
+      "text": "Écrivez la note"
     },
     {
       "locale": "fr",
       "key": "capture.note.overall",
       "args": {},
-      "text": "Commentaire général (sans position)"
+      "text": "Commentaire général"
     },
     {
       "locale": "fr",
@@ -8807,7 +8871,7 @@
       "locale": "fr",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "Annuler cette note (Échap)"
+      "text": "Échap"
     },
     {
       "locale": "fr",
@@ -8831,7 +8895,7 @@
       "locale": "fr",
       "key": "capture.drawingHint",
       "args": {},
-      "text": "Un repère laissé sans note reste un dessin : sans numéro, il figure dans la capture d’écran. Cliquez dessus pour changer la couleur ou le supprimer ; double-cliquez pour ajouter une note."
+      "text": "Un repère laissé sans note reste un dessin et figure dans la capture d’écran. Cliquez dessus pour changer la couleur ou le supprimer ; double-cliquez pour ajouter une note."
     },
     {
       "locale": "fr",
@@ -8867,19 +8931,19 @@
       "locale": "fr",
       "key": "capture.tool.text",
       "args": {},
-      "text": "Texte : ajouter du texte à l’image (T)"
+      "text": "Texte (T)"
     },
     {
       "locale": "fr",
       "key": "capture.tool.note",
       "args": {},
-      "text": "Épingle : cliquez pour placer un repère et écrire une note (C)"
+      "text": "Épingle (C)"
     },
     {
       "locale": "fr",
       "key": "capture.tool.overall",
       "args": {},
-      "text": "Commentaire général : sans position (N)"
+      "text": "Commentaire général (N)"
     },
     {
       "locale": "fr",
@@ -8891,7 +8955,7 @@
       "locale": "fr",
       "key": "capture.tool.delete",
       "args": {},
-      "text": "Supprimer le repère sélectionné (Suppr)"
+      "text": "Supprimer le repère (Suppr)"
     },
     {
       "locale": "fr",
@@ -8909,7 +8973,7 @@
       "locale": "fr",
       "key": "capture.doneTip",
       "args": {},
-      "text": "Terminer et copier dans le Presse-papiers (Entrée, ou double-clic sur la sélection)"
+      "text": "Entrée"
     },
     {
       "locale": "fr",
@@ -10549,12 +10613,6 @@
     },
     {
       "locale": "it",
-      "key": "markColor.title",
-      "args": {},
-      "text": "Cambia solo il colore del segno, non la nota"
-    },
-    {
-      "locale": "it",
       "key": "markColor.custom",
       "args": {},
       "text": "Colore personalizzato…"
@@ -11045,6 +11103,28 @@
     },
     {
       "locale": "it",
+      "key": "shell.capture.askBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Per annotare ciò che è sullo schermo, <app> ne acquisisce prima un'immagine. L'autorizzazione viene usata solo durante l'acquisizione e non viene caricato nulla."
+    },
+    {
+      "locale": "it",
+      "key": "shell.capture.continue",
+      "args": {},
+      "text": "Continua"
+    },
+    {
+      "locale": "it",
+      "key": "shell.capture.noAccessToggle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Se <app> è già attiva, disattivala e riattivala."
+    },
+    {
+      "locale": "it",
       "key": "shell.move.title",
       "args": {
         "app": "<app>"
@@ -11323,13 +11403,13 @@
       "locale": "it",
       "key": "capture.note.placeholderMarks",
       "args": {},
-      "text": "Scrivi la nota (puoi aggiungere altri segni)"
+      "text": "Scrivi la nota"
     },
     {
       "locale": "it",
       "key": "capture.note.overall",
       "args": {},
-      "text": "Commento generale (senza posizione)"
+      "text": "Commento generale"
     },
     {
       "locale": "it",
@@ -11412,7 +11492,7 @@
       "locale": "it",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "Annulla questa nota (Esc)"
+      "text": "Esc"
     },
     {
       "locale": "it",
@@ -11436,7 +11516,7 @@
       "locale": "it",
       "key": "capture.drawingHint",
       "args": {},
-      "text": "Un segno lasciato senza nota resta un disegno: non ha numero e rimane nello screenshot. Fai clic per cambiarne il colore o eliminarlo; doppio clic per aggiungere una nota."
+      "text": "Un segno lasciato senza nota resta nello screenshot come disegno. Fai clic per cambiarne il colore o eliminarlo; doppio clic per aggiungere una nota."
     },
     {
       "locale": "it",
@@ -11472,19 +11552,19 @@
       "locale": "it",
       "key": "capture.tool.text",
       "args": {},
-      "text": "Testo: aggiungi testo all'immagine (T)"
+      "text": "Testo (T)"
     },
     {
       "locale": "it",
       "key": "capture.tool.note",
       "args": {},
-      "text": "Puntina: fai clic per inserire un segno e scrivere una nota (C)"
+      "text": "Puntina (C)"
     },
     {
       "locale": "it",
       "key": "capture.tool.overall",
       "args": {},
-      "text": "Commento generale: senza posizione (N)"
+      "text": "Commento generale (N)"
     },
     {
       "locale": "it",
@@ -11496,7 +11576,7 @@
       "locale": "it",
       "key": "capture.tool.delete",
       "args": {},
-      "text": "Elimina il segno selezionato (Canc)"
+      "text": "Elimina segno (Canc)"
     },
     {
       "locale": "it",
@@ -11514,7 +11594,7 @@
       "locale": "it",
       "key": "capture.doneTip",
       "args": {},
-      "text": "Termina e copia negli Appunti (Invio, oppure doppio clic sulla selezione)"
+      "text": "Invio"
     },
     {
       "locale": "it",
@@ -13154,12 +13234,6 @@
     },
     {
       "locale": "ja",
-      "key": "markColor.title",
-      "args": {},
-      "text": "マークの色だけを変更し、メモの内容は変わりません"
-    },
-    {
-      "locale": "ja",
       "key": "markColor.custom",
       "args": {},
       "text": "その他の色…"
@@ -13650,6 +13724,28 @@
     },
     {
       "locale": "ja",
+      "key": "shell.capture.askBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "画面の内容に注釈を付けるため、<app> はまず画面の画像を取得します。この許可はキャプチャ時にのみ使用され、何もアップロードされません。"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.capture.continue",
+      "args": {},
+      "text": "続ける"
+    },
+    {
+      "locale": "ja",
+      "key": "shell.capture.noAccessToggle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app> が既にオンになっている場合は、いったんオフにしてからもう一度オンにしてください。"
+    },
+    {
+      "locale": "ja",
       "key": "shell.move.title",
       "args": {
         "app": "<app>"
@@ -13928,13 +14024,13 @@
       "locale": "ja",
       "key": "capture.note.placeholderMarks",
       "args": {},
-      "text": "メモを入力（続けてほかの箇所もマークできます）"
+      "text": "メモを入力"
     },
     {
       "locale": "ja",
       "key": "capture.note.overall",
       "args": {},
-      "text": "全体コメント（位置なし）"
+      "text": "全体コメント"
     },
     {
       "locale": "ja",
@@ -13963,7 +14059,7 @@
       "locale": "ja",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "このメモをキャンセル（Esc）"
+      "text": "Esc"
     },
     {
       "locale": "ja",
@@ -13987,7 +14083,7 @@
       "locale": "ja",
       "key": "capture.drawingHint",
       "args": {},
-      "text": "メモのないマークは図形として残ります。番号は付かず、スクリーンショットに含まれます。クリックで色の変更や削除、ダブルクリックでメモを追加できます。"
+      "text": "メモのないマークは図形としてスクリーンショットに残ります。クリックで色の変更や削除、ダブルクリックでメモを追加できます。"
     },
     {
       "locale": "ja",
@@ -14023,19 +14119,19 @@
       "locale": "ja",
       "key": "capture.tool.text",
       "args": {},
-      "text": "テキスト：画像にテキストを追加（T）"
+      "text": "テキスト（T）"
     },
     {
       "locale": "ja",
       "key": "capture.tool.note",
       "args": {},
-      "text": "ピン：クリックしてマークを置き、メモを入力（C）"
+      "text": "ピン（C）"
     },
     {
       "locale": "ja",
       "key": "capture.tool.overall",
       "args": {},
-      "text": "全体コメント：位置なし（N）"
+      "text": "全体コメント（N）"
     },
     {
       "locale": "ja",
@@ -14047,7 +14143,7 @@
       "locale": "ja",
       "key": "capture.tool.delete",
       "args": {},
-      "text": "選択したマークを削除（Delete）"
+      "text": "マークを削除（Delete）"
     },
     {
       "locale": "ja",
@@ -14065,7 +14161,7 @@
       "locale": "ja",
       "key": "capture.doneTip",
       "args": {},
-      "text": "完了してクリップボードにコピー（Enter キー、または選択範囲をダブルクリック）"
+      "text": "Enter"
     },
     {
       "locale": "ja",
@@ -15705,12 +15801,6 @@
     },
     {
       "locale": "ko",
-      "key": "markColor.title",
-      "args": {},
-      "text": "마커의 색만 바꾸며 메모에는 영향을 주지 않습니다"
-    },
-    {
-      "locale": "ko",
       "key": "markColor.custom",
       "args": {},
       "text": "사용자 지정 색..."
@@ -16201,6 +16291,28 @@
     },
     {
       "locale": "ko",
+      "key": "shell.capture.askBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "화면의 내용에 메모를 남기려면 <app> 앱이 먼저 화면을 캡처해야 합니다. 이 권한은 캡처할 때만 사용되며 아무것도 업로드되지 않습니다."
+    },
+    {
+      "locale": "ko",
+      "key": "shell.capture.continue",
+      "args": {},
+      "text": "계속"
+    },
+    {
+      "locale": "ko",
+      "key": "shell.capture.noAccessToggle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "<app> 앱이 이미 켜져 있으면 껐다가 다시 켜세요."
+    },
+    {
+      "locale": "ko",
       "key": "shell.move.title",
       "args": {
         "app": "<app>"
@@ -16479,13 +16591,13 @@
       "locale": "ko",
       "key": "capture.note.placeholderMarks",
       "args": {},
-      "text": "메모 입력(마커를 더 추가할 수 있음)"
+      "text": "메모 입력"
     },
     {
       "locale": "ko",
       "key": "capture.note.overall",
       "args": {},
-      "text": "전체 의견(위치 없음)"
+      "text": "전체 의견"
     },
     {
       "locale": "ko",
@@ -16514,7 +16626,7 @@
       "locale": "ko",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "이 메모 취소(Esc)"
+      "text": "Esc"
     },
     {
       "locale": "ko",
@@ -16538,7 +16650,7 @@
       "locale": "ko",
       "key": "capture.drawingHint",
       "args": {},
-      "text": "메모 없이 둔 마커는 그림으로 남습니다. 번호가 붙지 않고 스크린샷에 포함됩니다. 클릭하면 색을 바꾸거나 삭제하고, 두 번 클릭하면 메모를 추가할 수 있습니다."
+      "text": "메모 없이 둔 마커는 그림으로 남아 스크린샷에 포함됩니다. 클릭하면 색을 바꾸거나 삭제하고, 두 번 클릭하면 메모를 추가할 수 있습니다."
     },
     {
       "locale": "ko",
@@ -16574,19 +16686,19 @@
       "locale": "ko",
       "key": "capture.tool.text",
       "args": {},
-      "text": "텍스트: 이미지에 텍스트 추가(T)"
+      "text": "텍스트(T)"
     },
     {
       "locale": "ko",
       "key": "capture.tool.note",
       "args": {},
-      "text": "핀: 클릭하여 마커를 추가하고 메모 작성(C)"
+      "text": "핀(C)"
     },
     {
       "locale": "ko",
       "key": "capture.tool.overall",
       "args": {},
-      "text": "전체 의견: 위치 없음(N)"
+      "text": "전체 의견(N)"
     },
     {
       "locale": "ko",
@@ -16598,7 +16710,7 @@
       "locale": "ko",
       "key": "capture.tool.delete",
       "args": {},
-      "text": "선택한 마커 삭제(Delete)"
+      "text": "마커 삭제(Delete)"
     },
     {
       "locale": "ko",
@@ -16616,7 +16728,7 @@
       "locale": "ko",
       "key": "capture.doneTip",
       "args": {},
-      "text": "마치고 클립보드에 복사(Enter 키 또는 선택 영역 두 번 클릭)"
+      "text": "Enter"
     },
     {
       "locale": "ko",
@@ -18256,12 +18368,6 @@
     },
     {
       "locale": "pt-BR",
-      "key": "markColor.title",
-      "args": {},
-      "text": "Altera apenas a cor da marcação, não a nota"
-    },
-    {
-      "locale": "pt-BR",
       "key": "markColor.custom",
       "args": {},
       "text": "Cor personalizada…"
@@ -18752,6 +18858,28 @@
     },
     {
       "locale": "pt-BR",
+      "key": "shell.capture.askBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Para anotar o que está na tela, o <app> primeiro captura uma imagem dela. Essa permissão é usada somente ao capturar, e nada é enviado."
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.capture.continue",
+      "args": {},
+      "text": "Continuar"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "shell.capture.noAccessToggle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Se o <app> já estiver ativado, desative-o e ative-o novamente."
+    },
+    {
+      "locale": "pt-BR",
       "key": "shell.move.title",
       "args": {
         "app": "<app>"
@@ -19030,13 +19158,13 @@
       "locale": "pt-BR",
       "key": "capture.note.placeholderMarks",
       "args": {},
-      "text": "Escreva a nota (pode adicionar mais marcações)"
+      "text": "Escreva a nota"
     },
     {
       "locale": "pt-BR",
       "key": "capture.note.overall",
       "args": {},
-      "text": "Comentário geral (sem posição)"
+      "text": "Comentário geral"
     },
     {
       "locale": "pt-BR",
@@ -19119,7 +19247,7 @@
       "locale": "pt-BR",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "Cancelar esta nota (Esc)"
+      "text": "Esc"
     },
     {
       "locale": "pt-BR",
@@ -19143,7 +19271,7 @@
       "locale": "pt-BR",
       "key": "capture.drawingHint",
       "args": {},
-      "text": "Uma marcação deixada sem nota fica como desenho: sem número, e aparece na captura de tela. Clique nela para trocar a cor ou excluí-la; clique duas vezes para adicionar uma nota."
+      "text": "Uma marcação deixada sem nota fica na captura de tela como desenho. Clique nela para trocar a cor ou excluí-la; clique duas vezes para adicionar uma nota."
     },
     {
       "locale": "pt-BR",
@@ -19179,19 +19307,19 @@
       "locale": "pt-BR",
       "key": "capture.tool.text",
       "args": {},
-      "text": "Texto: adicionar texto à imagem (T)"
+      "text": "Texto (T)"
     },
     {
       "locale": "pt-BR",
       "key": "capture.tool.note",
       "args": {},
-      "text": "Alfinete: clique para colocar uma marcação e escrever uma nota (C)"
+      "text": "Alfinete (C)"
     },
     {
       "locale": "pt-BR",
       "key": "capture.tool.overall",
       "args": {},
-      "text": "Comentário geral: sem posição (N)"
+      "text": "Comentário geral (N)"
     },
     {
       "locale": "pt-BR",
@@ -19203,7 +19331,7 @@
       "locale": "pt-BR",
       "key": "capture.tool.delete",
       "args": {},
-      "text": "Excluir a marcação selecionada (Delete)"
+      "text": "Excluir marcação (Delete)"
     },
     {
       "locale": "pt-BR",
@@ -19221,7 +19349,7 @@
       "locale": "pt-BR",
       "key": "capture.doneTip",
       "args": {},
-      "text": "Finalizar e copiar para a Área de Transferência (Enter ou clique duplo na seleção)"
+      "text": "Enter"
     },
     {
       "locale": "pt-BR",
@@ -20861,12 +20989,6 @@
     },
     {
       "locale": "ru",
-      "key": "markColor.title",
-      "args": {},
-      "text": "Меняет только цвет метки, а не заметку"
-    },
-    {
-      "locale": "ru",
       "key": "markColor.custom",
       "args": {},
       "text": "Другой цвет…"
@@ -21411,6 +21533,28 @@
     },
     {
       "locale": "ru",
+      "key": "shell.capture.askBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Чтобы добавлять заметки к тому, что на экране, <app> сначала делает снимок экрана. Разрешение используется только при захвате, и ничего не загружается."
+    },
+    {
+      "locale": "ru",
+      "key": "shell.capture.continue",
+      "args": {},
+      "text": "Продолжить"
+    },
+    {
+      "locale": "ru",
+      "key": "shell.capture.noAccessToggle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "Если переключатель <app> уже включён, выключите его и снова включите."
+    },
+    {
+      "locale": "ru",
       "key": "shell.move.title",
       "args": {
         "app": "<app>"
@@ -21689,13 +21833,13 @@
       "locale": "ru",
       "key": "capture.note.placeholderMarks",
       "args": {},
-      "text": "Текст заметки (можно добавить ещё метки)"
+      "text": "Текст заметки"
     },
     {
       "locale": "ru",
       "key": "capture.note.overall",
       "args": {},
-      "text": "Общий комментарий (без привязки к месту)"
+      "text": "Общий комментарий"
     },
     {
       "locale": "ru",
@@ -21778,7 +21922,7 @@
       "locale": "ru",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "Отменить эту заметку (Esc)"
+      "text": "Esc"
     },
     {
       "locale": "ru",
@@ -21802,7 +21946,7 @@
       "locale": "ru",
       "key": "capture.drawingHint",
       "args": {},
-      "text": "Метка без заметки остаётся рисунком: без номера, она попадает в снимок экрана. Щёлкните по ней, чтобы сменить цвет или удалить; двойной щелчок — добавить заметку."
+      "text": "Метка без заметки остаётся рисунком и попадает в снимок экрана. Щёлкните по ней, чтобы сменить цвет или удалить; двойной щелчок — добавить заметку."
     },
     {
       "locale": "ru",
@@ -21838,19 +21982,19 @@
       "locale": "ru",
       "key": "capture.tool.text",
       "args": {},
-      "text": "Текст: добавить текст на изображение (T)"
+      "text": "Текст (T)"
     },
     {
       "locale": "ru",
       "key": "capture.tool.note",
       "args": {},
-      "text": "Булавка: поставить метку щелчком и написать заметку (C)"
+      "text": "Булавка (C)"
     },
     {
       "locale": "ru",
       "key": "capture.tool.overall",
       "args": {},
-      "text": "Общий комментарий: без привязки к месту (N)"
+      "text": "Общий комментарий (N)"
     },
     {
       "locale": "ru",
@@ -21862,7 +22006,7 @@
       "locale": "ru",
       "key": "capture.tool.delete",
       "args": {},
-      "text": "Удалить выбранную метку (Delete)"
+      "text": "Удалить метку (Delete)"
     },
     {
       "locale": "ru",
@@ -21880,7 +22024,7 @@
       "locale": "ru",
       "key": "capture.doneTip",
       "args": {},
-      "text": "Завершить и скопировать в буфер обмена (Enter или двойной щелчок по выделенной области)"
+      "text": "Enter"
     },
     {
       "locale": "ru",
@@ -23520,12 +23664,6 @@
     },
     {
       "locale": "zh-CN",
-      "key": "markColor.title",
-      "args": {},
-      "text": "只改标记的显示颜色，不影响批注内容"
-    },
-    {
-      "locale": "zh-CN",
       "key": "markColor.custom",
       "args": {},
       "text": "自定义颜色…"
@@ -24016,6 +24154,28 @@
     },
     {
       "locale": "zh-CN",
+      "key": "shell.capture.askBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "截图批注需要先截取屏幕画面。<app>仅在截图时使用此权限，不会上传任何内容。"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.capture.continue",
+      "args": {},
+      "text": "继续"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "shell.capture.noAccessToggle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "如果<app>的开关已经打开，请先关闭再重新打开。"
+    },
+    {
+      "locale": "zh-CN",
       "key": "shell.move.title",
       "args": {
         "app": "<app>"
@@ -24294,13 +24454,13 @@
       "locale": "zh-CN",
       "key": "capture.note.placeholderMarks",
       "args": {},
-      "text": "输入批注内容（可继续标记更多位置）"
+      "text": "输入批注内容"
     },
     {
       "locale": "zh-CN",
       "key": "capture.note.overall",
       "args": {},
-      "text": "整体意见（不指定位置）"
+      "text": "整体意见"
     },
     {
       "locale": "zh-CN",
@@ -24329,7 +24489,7 @@
       "locale": "zh-CN",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "取消批注（Esc）"
+      "text": "Esc"
     },
     {
       "locale": "zh-CN",
@@ -24353,7 +24513,7 @@
       "locale": "zh-CN",
       "key": "capture.drawingHint",
       "args": {},
-      "text": "未写批注的标记留作涂鸦：不编号，但会出现在截图中。单击可换色或删除，双击可补写批注。"
+      "text": "未写批注的标记留作涂鸦，保留在截图中。单击可换色或删除，双击可补写批注。"
     },
     {
       "locale": "zh-CN",
@@ -24389,19 +24549,19 @@
       "locale": "zh-CN",
       "key": "capture.tool.text",
       "args": {},
-      "text": "文字：在图片上添加文字（T）"
+      "text": "文字（T）"
     },
     {
       "locale": "zh-CN",
       "key": "capture.tool.note",
       "args": {},
-      "text": "图钉：单击放置标记并填写批注（C）"
+      "text": "图钉（C）"
     },
     {
       "locale": "zh-CN",
       "key": "capture.tool.overall",
       "args": {},
-      "text": "整体意见：不指定位置（N）"
+      "text": "整体意见（N）"
     },
     {
       "locale": "zh-CN",
@@ -24413,7 +24573,7 @@
       "locale": "zh-CN",
       "key": "capture.tool.delete",
       "args": {},
-      "text": "删除选中的标记（Delete）"
+      "text": "删除标记（Delete）"
     },
     {
       "locale": "zh-CN",
@@ -24431,7 +24591,7 @@
       "locale": "zh-CN",
       "key": "capture.doneTip",
       "args": {},
-      "text": "完成并复制到剪贴板（Enter 或双击选区）"
+      "text": "Enter"
     },
     {
       "locale": "zh-CN",
@@ -25561,12 +25721,6 @@
     },
     {
       "locale": "zh-TW",
-      "key": "markColor.title",
-      "args": {},
-      "text": "只變更標記的顯示顏色，不影響批註內容"
-    },
-    {
-      "locale": "zh-TW",
       "key": "markColor.custom",
       "args": {},
       "text": "自訂顏色…"
@@ -26057,6 +26211,28 @@
     },
     {
       "locale": "zh-TW",
+      "key": "shell.capture.askBody",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "截圖批註需要先擷取螢幕畫面。<app>僅在截圖時使用此權限，不會上傳任何內容。"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.capture.continue",
+      "args": {},
+      "text": "繼續"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "shell.capture.noAccessToggle",
+      "args": {
+        "app": "<app>"
+      },
+      "text": "如果<app>的開關已經開啟，請先關閉再重新開啟。"
+    },
+    {
+      "locale": "zh-TW",
       "key": "shell.move.title",
       "args": {
         "app": "<app>"
@@ -26335,13 +26511,13 @@
       "locale": "zh-TW",
       "key": "capture.note.placeholderMarks",
       "args": {},
-      "text": "輸入批註內容（可繼續標記更多位置）"
+      "text": "輸入批註內容"
     },
     {
       "locale": "zh-TW",
       "key": "capture.note.overall",
       "args": {},
-      "text": "整體意見（不指定位置）"
+      "text": "整體意見"
     },
     {
       "locale": "zh-TW",
@@ -26370,7 +26546,7 @@
       "locale": "zh-TW",
       "key": "capture.note.cancelTip",
       "args": {},
-      "text": "取消此批註（Esc）"
+      "text": "Esc"
     },
     {
       "locale": "zh-TW",
@@ -26394,7 +26570,7 @@
       "locale": "zh-TW",
       "key": "capture.drawingHint",
       "args": {},
-      "text": "沒寫內容的標記會留作塗鴉：不編號，但會出現在截圖中。按一下可換色或刪除，按兩下可補寫批註。"
+      "text": "沒寫內容的標記會留作塗鴉，保留在截圖中。按一下可換色或刪除，按兩下可補寫批註。"
     },
     {
       "locale": "zh-TW",
@@ -26430,19 +26606,19 @@
       "locale": "zh-TW",
       "key": "capture.tool.text",
       "args": {},
-      "text": "文字：在圖片上新增文字（T）"
+      "text": "文字（T）"
     },
     {
       "locale": "zh-TW",
       "key": "capture.tool.note",
       "args": {},
-      "text": "圖釘：按一下放置標記並填寫批註（C）"
+      "text": "圖釘（C）"
     },
     {
       "locale": "zh-TW",
       "key": "capture.tool.overall",
       "args": {},
-      "text": "整體意見：不指定位置（N）"
+      "text": "整體意見（N）"
     },
     {
       "locale": "zh-TW",
@@ -26454,7 +26630,7 @@
       "locale": "zh-TW",
       "key": "capture.tool.delete",
       "args": {},
-      "text": "刪除選取的標記（Delete）"
+      "text": "刪除標記（Delete）"
     },
     {
       "locale": "zh-TW",
@@ -26472,7 +26648,7 @@
       "locale": "zh-TW",
       "key": "capture.doneTip",
       "args": {},
-      "text": "完成並複製到剪貼簿（Enter 或在選取範圍上按兩下）"
+      "text": "Enter"
     },
     {
       "locale": "zh-TW",

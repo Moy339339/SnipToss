@@ -120,12 +120,14 @@ sealed partial class Settings
     /// <summary>How many one-time migrations this settings file has been through (Migrate). Newly created settings are already at the latest; settings files from before have no such item, which counts as 0</summary>
     public int Migrations { get; set; }
 
-    internal const int LatestMigration = 1;
+    internal const int LatestMigration = 2;
 
     /// <summary>
     /// At startup, runs migrations that earlier settings files haven't had (each step runs only once and is recorded when done):
     /// 1 (Beta 58): "follow system" can now pick English. Earlier versions always showed a Chinese interface whatever the system language: existing users who never chose a language and whose system isn't Chinese are pinned to Chinese,
     ///   so the interface doesn't suddenly turn English after the upgrade (for example someone whose system language isn't Chinese but who has always used the Chinese interface). Those who want to follow the system pick "Follow system" in Settings
+    /// 2 (1.5.0): the hotkey is announced only when it changes (<see cref="CaptureSettings.HotkeyWorked"/>). Someone upgrading has been using their key, so it counts as having worked:
+    ///   if it is taken now or gets replaced, they are told once (a new install is told nothing at its first start)
     /// </summary>
     public void Migrate(string systemLanguage)
     {
@@ -134,6 +136,7 @@ sealed partial class Settings
         {
             if (s.Migrations < 1 && s.Language is null && Locale.Resolve(null, systemLanguage) != Locale.Source)
                 (s.Prefs ??= [])["language"] = Locale.Source;
+            if (s.Migrations < 2) s.Capture.HotkeyWorked ??= true;
             s.Migrations = LatestMigration;
         });
     }
@@ -346,15 +349,21 @@ sealed class CaptureSettings
 {
     /// <summary>
     /// The global hotkey, such as "Ctrl+Alt+A"; empty = no hotkey. Default Ctrl+Alt+A (in line with the habits of common screenshot tools);
-    /// other combinations easily clash with the shortcuts of input methods, screenshot tools and chat apps
+    /// other combinations easily clash with the shortcuts of input methods, screenshot tools and chat apps. Not Print Screen: many keyboards (most laptops) have no such key
     /// </summary>
     public string Hotkey { get; set; } = "Ctrl+Alt+A";
 
     /// <summary>
     /// The hotkey was recorded by the user in Settings. One never recorded (the default) is replaced automatically at startup if it would type a character in an installed keyboard layout (<see cref="Capture.GlobalHotKey.TypedChars(string)"/>);
-    /// one the user recorded is left alone and the settings page warns about it
+    /// one the user recorded is left alone and the settings page warns about it. A hotkey another program holds is never replaced: the Capture button and the settings page say why it does not work
     /// </summary>
     public bool HotkeyCustom { get; set; }
+
+    /// <summary>
+    /// Whether the hotkey worked (registered, or none was wanted) at the previous start; null = no start recorded yet. The user is told about the hotkey only when this changes
+    /// (it worked last time and does not now, or it was replaced): not at every start, and not on the first start (it would land on the tutorial; the Capture button carries a mark that says why)
+    /// </summary>
+    public bool? HotkeyWorked { get; set; }
 
     /// <summary>Keep running in the tray after the window is closed, so the hotkey keeps working (only "Exit" in the tray menu really quits)</summary>
     public bool KeepInTray { get; set; } = true;

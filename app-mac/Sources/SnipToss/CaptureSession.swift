@@ -1,21 +1,38 @@
 import AppKit
 
-/// What tells the user that the app may not record the screen, and takes them to the place where they allow it
+/// What a capture says when the app may not record the screen. One window for both cases, asked the moment Screen Capture is first used
+/// (the title bar's button, the shortcut, the menu bar item), never at launch:
+/// - `firstTime` (the system has never been asked): why the permission is needed, and Continue, which lets the system ask. The system's
+///   own question comes only after the user chose to go on, so it never appears out of nowhere
+/// - asked before (the user said no, turned it off, or an update of the app made the system forget it): where to allow it, and Open System
+///   Settings. A switch that is on but does not take (a new version signed with the same certificate can need it) is turned off and on again
+/// The app is never restarted for the user, and never starts a capture by itself afterwards: System Settings offers Quit & Reopen, and the
+/// window in front then is System Settings
 protocol PermissionGuiding {
-    func show(openSettings: @escaping () -> Void)
+    /// `proceed` runs when the user chose Continue (first time) or Open System Settings
+    func show(firstTime: Bool, proceed: @escaping () -> Void)
 }
 
 struct PermissionGuide: PermissionGuiding {
-    func show(openSettings: @escaping () -> Void) {
+    /// What the window says: its title, the text under it, and the button that goes on
+    static func content(firstTime: Bool) -> (title: String, body: String, button: String) {
         let app = ["app": ShellText.t("brand.name")]
+        let title = ShellText.t("shell.capture.noAccessTitle", app)
+        if firstTime { return (title, ShellText.t("shell.capture.askBody", app), ShellText.t("shell.capture.continue")) }
+        let body = ShellText.t("shell.capture.noAccessBody", app) + "\n\n" + ShellText.t("shell.capture.noAccessToggle", app)
+        return (title, body, ShellText.t("shell.capture.openSettings"))
+    }
+
+    func show(firstTime: Bool, proceed: @escaping () -> Void) {
+        let content = PermissionGuide.content(firstTime: firstTime)
         let alert = NSAlert()
-        alert.messageText = ShellText.t("shell.capture.noAccessTitle", app)
-        alert.informativeText = ShellText.t("shell.capture.noAccessBody", app)
-        alert.addButton(withTitle: ShellText.t("shell.capture.openSettings"))
+        alert.messageText = content.title
+        alert.informativeText = content.body
+        alert.addButton(withTitle: content.button)
         // Esc goes to the button that is not the default one only when it says Cancel; this one says Not Now
         alert.addButton(withTitle: ShellText.t("shell.capture.notNow")).keyEquivalent = "\u{1B}"
         NSApp.activate(ignoringOtherApps: true)
-        if alert.runModal() == .alertFirstButtonReturn { openSettings() }
+        if alert.runModal() == .alertFirstButtonReturn { proceed() }
     }
 }
 
@@ -70,6 +87,31 @@ extension Settings: CaptureColorStore {
     }
 }
 
+/// What the capture layers do about a dialog of the system (SystemDialogs): while one is up they are held just below it, so it can be read
+/// and answered and nothing of the capture is lost; once it has gone they come back on top and take the keyboard again
+struct DialogWatch: Equatable {
+    /// The level the layers are held under (one below the dialog's), nil when no dialog is up
+    private(set) var under: Int?
+
+    enum Change: Equatable {
+        case none
+        /// Hold the layers at this level
+        case below(Int)
+        /// Back on top
+        case back
+    }
+
+    /// What to do now that the highest dialog on screen is at `dialog` (nil: none)
+    mutating func see(_ dialog: Int?) -> Change {
+        let cap = dialog.map { $0 - 1 }
+        if cap == under { return .none }
+        let had = under != nil
+        under = cap
+        if let cap { return .below(cap) }
+        return had ? .back : .none
+    }
+}
+
 /// One screen capture: the pictures of all screens are taken first, then a layer is put over each screen (CaptureOverlay). The selection can
 /// be on one screen only (`owner`). Finishing collects what was drawn (`CaptureResult`). Main thread only
 final class CaptureSession {
@@ -86,6 +128,10 @@ final class CaptureSession {
     private let drawingHint: () -> Bool
     /// The colors kept between captures (nil: none are kept, as in most tests)
     private let colors: CaptureColorStore?
+    /// The system's dialogs, looked for while the capture is open (DialogWatch)
+    private let dialogs: SystemDialogs
+    private var dialogWatch = DialogWatch()
+    private var dialogTimer: Timer?
     /// The options this capture started with
     private var chosen = CaptureOptions()
     private var panels: [OverlayPanel] = []
@@ -114,7 +160,7 @@ final class CaptureSession {
         source: ScreenSource, access: ScreenAccess = SystemScreenAccess(), guide: PermissionGuiding = PermissionGuide(), defaults: UserDefaults = .standard,
         options: @escaping () -> CaptureOptions = { CaptureOptions() }, clipboard: CaptureClipboard = SystemCaptureClipboard(),
         notices: CaptureNotifying = CaptureNotices(), hintDone: @escaping () -> Void = {}, drawingHint: @escaping () -> Bool = { false },
-        colors: CaptureColorStore? = nil
+        colors: CaptureColorStore? = nil, dialogs: SystemDialogs = SystemDialogWindows()
     ) {
         self.source = source
         self.access = access
@@ -126,6 +172,7 @@ final class CaptureSession {
         self.hintDone = hintDone
         self.drawingHint = drawingHint
         self.colors = colors
+        self.dialogs = dialogs
     }
 
     /// The one-time hint about drawings (a mark left without a word stays without a number): true only the first time ever, recorded at
@@ -208,13 +255,21 @@ final class CaptureSession {
         }
     }
 
-    /// Either the system's question or our guide, never both at once: the first time only the system asks (it asks once only); after that
-    /// it will not ask again, and the guide says where to allow it
+    /// Our window first (PermissionGuiding), then, only if the user goes on, the system's question (it asks once only) or System Settings.
+    /// The two windows are never up together. Not Now leaves everything as it was: the next capture asks the same way again
     private func noAccess() {
-        if !ScreenAccessAsk.firstTime(access, defaults: defaults) {
-            guide.show(openSettings: { [access] in access.openSettings() })
+        let first = !ScreenAccessAsk.asked(defaults)
+        guide.show(firstTime: first) { [access, defaults] in
+            if first {
+                ScreenAccessAsk.ask(access, defaults: defaults)
+            } else {
+                access.openSettings()
+            }
         }
     }
+
+    /// Whether the system lets the app record the screen now: a capture started without it opens no layer, only the window that asks
+    var screenAllowed: Bool { access.allowed }
 
     private func show(_ screens: [FrozenScreen]) {
         chosen = options()
@@ -249,11 +304,50 @@ final class CaptureSession {
         }
         keyboardRoute = nil
         if let keyPanel { takeKeyboard(keyPanel) }
+        watchDialogs()
         // A screen that comes or goes, or changes its size, invalidates the pictures: the capture ends
         screenObserver = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) {
             [weak self] _ in
             Log.info("The screens changed during a capture: it ends")
             self?.close()
+        }
+    }
+
+    // MARK: Dialogs of the system
+
+    /// The level the layers are held under while a dialog of the system is up, nil when none is (the smoke run reads it)
+    var heldUnder: Int? { dialogWatch.under }
+
+    /// Looks for a dialog of the system now, and every 0.15 s while the capture is open: the question about recording the screen comes
+    /// about half a second after the picture was taken, when the layers are already up
+    private func watchDialogs() {
+        dialogTimer?.invalidate()
+        let timer = Timer(timeInterval: 0.15, repeats: true) { [weak self] _ in self?.checkDialogs() }
+        RunLoop.main.add(timer, forMode: .common)
+        dialogTimer = timer
+        checkDialogs()
+    }
+
+    private func checkDialogs() {
+        guard isOpen else { return }
+        switch dialogWatch.see(dialogs.dialogLevel()) {
+        case .none:
+            return
+        case .below(let level):
+            Log.info("A dialog of the system is up: the capture layers step below it (level \(level))")
+            for overlay in overlays { overlay.levelCap = NSWindow.Level(rawValue: level) }
+        case .back:
+            Log.info("The dialog of the system has gone: the capture layers are back on top")
+            for overlay in overlays { overlay.levelCap = nil }
+            // The keyboard back to the layer with the drawings, where it was (a note being typed keeps its caret); the dialog's app was in
+            // front, so the app may have to come to the front first
+            let target = owner ?? overlayUnderPointer() ?? overlays.first
+            target?.activate()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                guard let self, self.isOpen, !self.panels.contains(where: { $0.isKeyWindow }) else { return }
+                NSApp.activate()
+                target?.activate()
+            }
         }
     }
 
@@ -405,6 +499,9 @@ final class CaptureSession {
         guard isOpen else { return }
         isOpen = false
         owner = nil
+        dialogTimer?.invalidate()
+        dialogTimer = nil
+        dialogWatch = DialogWatch()
         saveToolColor()
         if let screenObserver { NotificationCenter.default.removeObserver(screenObserver) }
         screenObserver = nil

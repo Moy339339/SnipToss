@@ -4,6 +4,24 @@ All notable changes to SnipToss Desktop are listed here: SnipToss for Windows an
 
 The annotation data format has its own version (`"schema": "sniptoss/5"`); its history is in [docs/annotation-format.md](docs/annotation-format.md).
 
+## [1.5.0] — 2026-11-14
+
+### Added
+
+- A short tutorial for the first launch. SnipToss offers to go through one round on a sample picture, in about a minute: pick the Rectangle tool, box what to change, write the note, a look at the toolbar, then copy it for AI. Each step lights only what it is done with, and Next does the step for you. The sample leaves the library when the tutorial ends or is skipped. **Help → Tutorial** and the welcome page run it again.
+- Hints with short animations the first time a feature comes up: Screen Capture, the Pin tool (one note can mark several places), changing a mark's color, drawings, and marks on videos (a mark belongs to the frame it was drawn on). Each appears once, next to its control, without blocking it. **Settings → General → Beginner mode** turns the tutorial and the hints off; every hint can turn it off too.
+- The welcome page lists the main supported formats; hover over the line for the full list.
+
+### Changed
+
+- A Screen Capture shortcut that stops working is reported once, when it happens: if the shortcut that worked last time can no longer be registered (another program took it), a notice says so (from the tray when SnipToss started at login without a window), and the Capture button then keeps a small dot whose tooltip gives the reason. Before, the notice came back at every start. A new installation says nothing on its first start.
+- Mac: SnipToss no longer asks for screen recording permission at startup. The first capture without it opens a window that says what it is for; Continue lets macOS ask, and if access was turned down before, the window says where to turn it back on. The capture layer now steps behind the macOS dialog that asks whether to keep allowing screen recording, instead of covering it.
+- Less text where the interface already shows it: tooltips give the name and the shortcut, the welcome page has a single heading, confirmations no longer repeat their title, Settings pages drop introductions that restated their options, and the toast after copying says only what was copied. The Save buttons of the note box and of the Screen Capture note box show their key (Enter, or ↩ on the Mac).
+
+### Fixed
+
+- Copying from the bottom of the notes panel, or with several library rows selected, counted a folder's comments as one more item in the toast. One item with a folder comment now reads “Copied 2 notes”, as it already did when copying from a single library row.
+
 ## [1.4.0] — 2026-11-12
 
 ### Changed
@@ -161,6 +179,7 @@ First public release.
 - Portable version: with a `data` folder next to the app, all data stays in it and the registry is never touched.
 - Command-line tool `sniptoss` (list, review, resolve, wontfix); its messages follow the system display language.
 
+[1.5.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.5.0
 [1.4.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.4.0
 [1.3.1]: https://github.com/Moy339339/SnipToss/releases/tag/v1.3.1
 [1.3.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.3.0

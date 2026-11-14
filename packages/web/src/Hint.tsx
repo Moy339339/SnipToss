@@ -2,10 +2,10 @@ import { useEffect, useEffectEvent, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 import { cssZoom } from "./cssZoom";
+import { Demo, type DemoScene } from "./Demo";
 import { KeepPunctuation } from "./KeepPunctuation";
-import { call, logError } from "./host";
 import { useKeys } from "./keys";
-import { HINT_TARGETS, placeNear, visibleBox, type HintId } from "./onboarding";
+import { HINT_TARGETS, placeNear, visibleBox, type HintId, type Side } from "./onboarding";
 
 /** 8 from the control and 8 from the window edge (scaled with the interface size) */
 const GAP = 8;
@@ -17,19 +17,32 @@ const CARET_INSET = 16;
  * Which side of the control the hint goes on: the copy button is at the very bottom of the notes panel, so above; timestamped comment is
  * in the toolbar, and Capture in the title bar, so below; a drawing's hint goes wherever the canvas leaves room
  */
-const SIDES: Record<HintId, ("below" | "above")[]> = {
+const SIDES: Record<HintId, Side[]> = {
   copy: ["above", "below"],
   video: ["below", "above"],
-  screenAccess: ["below", "above"],
   drawing: ["below", "above"],
+  capture: ["below", "above"],
+  pin: ["below", "above"],
+  // The mark's box runs down and to the right of its badge, and the composer sits on its right: above, else to the left, leaves both in view
+  color: ["above", "left", "below"],
+};
+/** The hints that play an animation of the feature above their words (Demo.tsx) */
+const DEMOS: Partial<Record<HintId, DemoScene>> = {
+  capture: "capture",
+  copy: "kinds",
+  video: "video",
+  drawing: "drawing",
+  pin: "pin",
+  color: "color",
 };
 
 /**
  * A hint shown once next to a feature the first time it is used (onboarding.ts). No dimming, no focus stealing, no blocking:
  * a press elsewhere (which goes through as usual), Esc and "OK" all dismiss it; it also goes away when the control disappears
- * (notes panel collapsed, item switched). The little caret points at the middle of the control. Screen readers announce it (role="status")
+ * (notes panel collapsed, item switched). The little caret points at the middle of the control. Screen readers announce it (role="status").
+ * Whoever has had enough of them turns them all off from any one: "Turn Off Beginner Mode" (onBeginnerOff)
  */
-export function Hint(props: { id: HintId; onClose: () => void }) {
+export function Hint(props: { id: HintId; target?: string; captureKeys?: string; onClose: () => void; onBeginnerOff?: () => void }) {
   const intl = useIntl();
   const el = useRef<HTMLDivElement>(null);
   const close = useEffectEvent(() => props.onClose());
@@ -37,7 +50,7 @@ export function Hint(props: { id: HintId; onClose: () => void }) {
   /** Position it; returns false when the control is gone */
   const place = useEffectEvent(() => {
     const box = el.current;
-    const r = visibleBox(HINT_TARGETS[props.id]);
+    const r = visibleBox(props.target ?? HINT_TARGETS[props.id]);
     if (!box) return true;
     if (!r) return false;
     const z = cssZoom();
@@ -76,28 +89,33 @@ export function Hint(props: { id: HintId; onClose: () => void }) {
   useKeys({ Escape: () => props.onClose() }, { first: true });
 
   return createPortal(
-    <div ref={el} className="hint" role="status" data-hint={props.id} style={{ visibility: "hidden" }}>
+    <div
+      ref={el}
+      className="hint"
+      role="status"
+      data-hint={props.id}
+      data-demo={DEMOS[props.id] ? "" : undefined}
+      style={{ visibility: "hidden" }}
+    >
+      {DEMOS[props.id] && <Demo scene={DEMOS[props.id]!} />}
       <div className="hint-text">
         <KeepPunctuation>
-          {intl.formatMessage({ id: `hint.${props.id}` }, { app: intl.formatMessage({ id: "brand.name" }) })}
+          {intl.formatMessage(
+            { id: props.id === "capture" && !props.captureKeys ? "hint.captureNoKey" : `hint.${props.id}` },
+            // Do not break the shortcut in the middle ("Ctrl Alt" / "A"): non-breaking spaces between key names
+            { app: intl.formatMessage({ id: "brand.name" }), keys: (props.captureKeys ?? "").replaceAll(" ", String.fromCharCode(0xa0)) },
+          )}
         </KeepPunctuation>
       </div>
       <div className="hint-actions">
+        {props.onBeginnerOff && (
+          <button className="btn btn-ghost btn-small hint-off" onClick={props.onBeginnerOff}>
+            {intl.formatMessage({ id: "hint.beginnerOff" })}
+          </button>
+        )}
         <button className="btn btn-secondary btn-small" onClick={props.onClose}>
           {intl.formatMessage({ id: "app.toast.gotIt" })}
         </button>
-        {props.id === "screenAccess" && (
-          // To where macOS lets the app record the screen (the shell lets the system ask the first time, see host-api.md)
-          <button
-            className="btn btn-primary btn-small"
-            onClick={() => {
-              void call("openScreenAccessSettings").catch((e) => logError("openScreenAccessSettings", e));
-              props.onClose();
-            }}
-          >
-            {intl.formatMessage({ id: "settings.capture.openAccess" })}
-          </button>
-        )}
       </div>
     </div>,
     document.body,

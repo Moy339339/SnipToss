@@ -14,6 +14,11 @@ enum ShellText {
                 + " (Screen Recording on macOS 14), then quit \(arg("app")) and open it again. If \(arg("app")) isn't in the list, click + to add it."
         case "shell.capture.openSettings": return "Open System Settings"
         case "shell.capture.notNow": return "Not Now"
+        case "shell.capture.askBody":
+            return "To mark up what's on screen, \(arg("app")) first takes a picture of it. It uses this permission only when you capture,"
+                + " and nothing is uploaded."
+        case "shell.capture.continue": return "Continue"
+        case "shell.capture.noAccessToggle": return "If \(arg("app")) is already turned on, turn it off and on again."
         case "shell.move.title": return "Move \(arg("app")) to the Applications folder"
         case "shell.move.why":
             return arg("where") == "diskImage"

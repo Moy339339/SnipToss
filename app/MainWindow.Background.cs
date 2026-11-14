@@ -34,7 +34,8 @@ sealed partial class MainWindow
     GlobalHotKey? hotkey;
     string? hotkeyError;
     /// <summary>
-    /// At this start the default hotkey that would type a character was replaced: the UI shows a notice once (the replacement is already saved in settings, so the next start doesn't replace or announce it again).
+    /// At this start the default hotkey that would type a character was replaced, and the user had been using it: the UI shows a notice once
+    /// (the replacement is already saved in settings, so the next start doesn't replace or announce it again). Not set when the user had nothing to unlearn (see <see cref="CaptureSettings.HotkeyWorked"/>).
     /// Handed out only once (TakeHotkeyMoved): not repeated when the page reloads (after a new drive is plugged in)
     /// </summary>
     object? hotkeyMoved;
@@ -44,6 +45,16 @@ sealed partial class MainWindow
         var moved = hotkeyMoved;
         hotkeyMoved = null;
         return moved;
+    }
+
+    /// <summary>The hotkey worked at the previous start and does not now (another program took it): the UI says so once. Handed out only once, like <see cref="hotkeyMoved"/></summary>
+    bool hotkeyLost;
+
+    bool TakeHotkeyLost()
+    {
+        var lost = hotkeyLost;
+        hotkeyLost = false;
+        return lost;
     }
     Tray? tray;
     /// <summary>The tray icon (null when absent); read by the shell tests' test hooks</summary>
@@ -61,6 +72,7 @@ sealed partial class MainWindow
         hotkey = new GlobalHotKey(() => StartCapture(fromButton: false));
         AvoidTypingHotkey(hotkey);
         hotkeyError = hotkey.Set(settings.Capture.Hotkey);
+        TellHotkeyChange();
         UpdateTray();
         // When started into the tray at login, the UI isn't loaded (no OnReady): after a few seconds the capture overlay is warmed up too, since pressing the hotkey to capture is exactly the case then
         var warm = new DispatcherTimer(TimeSpan.FromSeconds(5), DispatcherPriority.ApplicationIdle, (s, _) =>
@@ -70,13 +82,29 @@ sealed partial class MainWindow
         }, Dispatcher);
         warm.Start();
         StartUpdateChecks();
-        // The capture hotkey failed to register (usually another program holds it): a tray balloon says so, and clicking it opens Settings → Screen Capture to pick another.
-        // Before, only a red line in the settings page said so, and with autostart and no window open, pressing the hotkey did nothing with no explanation
-        if (hotkeyError is not null)
+        if (hotkeyError is not null) Log.Warn($"Screen Capture hotkey could not be registered: {hotkeyError}");
+        // The hotkey stopped working since the last start and the window is not shown (started into the tray at login): a tray balloon is the only way to say so, and clicking it
+        // opens Settings → Screen Capture to pick another. With the window shown, the UI says it instead (and the Capture button keeps showing why), so no balloon on top
+        if (hotkeyLost && StartedInTray && tray is not null)
         {
-            Log.Warn($"Screen Capture hotkey could not be registered: {hotkeyError}");
-            tray?.Say(Locale.T("shell.tray.hotkeyFailed"), Locale.T("shell.tray.hotkeyFailedBody", ("reason", hotkeyError)), () => OpenSettings("capture"));
+            tray.Say(Locale.T("shell.tray.hotkeyFailed"), Locale.T("shell.tray.hotkeyFailedBody", ("reason", hotkeyError!)), () => OpenSettings("capture"));
+            hotkeyLost = false;
         }
+    }
+
+    /// <summary>
+    /// The user is told about the hotkey only when something changed since the last start (<see cref="CaptureSettings.HotkeyWorked"/>): it was replaced, or it stopped working
+    /// (another program took it; a taken key is never replaced, since the alternatives use Print Screen, which many keyboards lack).
+    /// On the first start nothing is said (it would land on the tutorial; the Capture hint after it shows the key in effect, or that the button is the way in), and a key that has
+    /// not worked for a while is not announced again at every start (the Capture button carries a mark, and it and the settings page say why)
+    /// </summary>
+    void TellHotkeyChange()
+    {
+        var before = settings.Capture.HotkeyWorked;
+        var works = hotkeyError is null;
+        if (before != true) hotkeyMoved = null;
+        hotkeyLost = before == true && !works;
+        if (before != works) settings.Update(s => s.Capture.HotkeyWorked = works);
     }
 
     /// <summary>
@@ -113,8 +141,8 @@ sealed partial class MainWindow
     }
 
     /// <summary>
-    /// A default hotkey that was never recorded would type a character in an installed keyboard layout (AltGr, see <see cref="GlobalHotKey.TypedChars(string)"/>): replace it with one that doesn't clash, and tell the user once.
-    /// A hotkey the user recorded is left alone; the settings page says which character it will block
+    /// A default hotkey that was never recorded would type a character in an installed keyboard layout (AltGr, see <see cref="GlobalHotKey.TypedChars(string)"/>): replace it with one that doesn't clash
+    /// (the user is told once if they had been using it, see <see cref="TellHotkeyChange"/>). A hotkey the user recorded is left alone; the settings page says which character it will block
     /// </summary>
     void AvoidTypingHotkey(GlobalHotKey keys)
     {
@@ -244,6 +272,7 @@ sealed partial class MainWindow
         hotkeyError,
         hotkeyTypes = GlobalHotKey.TypedChars(settings.Capture.Hotkey),
         hotkeyMoved = TakeHotkeyMoved(),
+        hotkeyLost = TakeHotkeyLost(),
         keepInTray = settings.Capture.KeepInTray,
         hideWindow = settings.Capture.HideWindow,
         notesInImage = settings.Capture.NotesInImage,
@@ -266,6 +295,7 @@ sealed partial class MainWindow
             {
                 s.Capture.Hotkey = newKey;
                 s.Capture.HotkeyCustom = true;
+                s.Capture.HotkeyWorked = true;
             }
             if (Bool("keepInTray") is { } tray) s.Capture.KeepInTray = tray;
             if (Bool("hideWindow") is { } hide) s.Capture.HideWindow = hide;

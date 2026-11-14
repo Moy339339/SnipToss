@@ -445,23 +445,13 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
             Child = segRow,
         };
 
-        // Bottom row: hint + Cancel + Save. The hint is the same sentence as in the main app's composer; there used to be an extra "Esc skips the note" that did not fit on one line with the two buttons
-        // and was cut off at "Esc skips…", so it moved into the Cancel button's hover tip.
-        // Cancel / Esc take back the mark that opened the box along with the note (as in the main app)
-        // When it does not fit, it wraps to two lines (like the main app composer's .composer-hint): it used to be cut with an ellipsis, so in German, French, Spanish, Italian, Portuguese and Russian the "Shift Enter for a new line" half was invisible
-        var hint = Txt(KeepWords.Of(Locale.T("composer.keys")), 12, Muted);
-        hint.TextWrapping = TextWrapping.Wrap;
-        hint.Margin = new Thickness(0, 0, 8, 0);
+        // Bottom row: Cancel + Save on the right, as in the main app's composer. No line of text on the keys: Save carries its Enter key
+        // (a keycap, like the main app's), and Cancel's hover tip gives Esc. Cancel / Esc take back the mark that opened the box along with
+        // the note (as in the main app)
         noteCancel = FootButton(Locale.T("capture.note.cancel"), primary: false, state.CancelNote, tip: Locale.T("capture.note.cancelTip"));
-        noteSave = FootButton(Locale.T("capture.note.save"), primary: true, () => state.CommitNote());
-        var foot = new Grid { Margin = new Thickness(0, 12, 0, 0) };
-        foot.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        foot.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        foot.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        Grid.SetColumn(noteCancel, 1);
-        Grid.SetColumn(noteSave, 2);
+        noteSave = FootButton(Locale.T("capture.note.save"), primary: true, () => state.CommitNote(), key: "Enter");
+        var foot = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 12, 0, 0) };
         noteSave.Margin = new Thickness(8, 0, 0, 0);
-        foot.Children.Add(hint);
         foot.Children.Add(noteCancel);
         foot.Children.Add(noteSave);
 
@@ -480,11 +470,31 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
     readonly List<(Border seg, string key)> segs = [];
     Border noteCancel = null!, noteSave = null!;
 
-    Border FootButton(string label, bool primary, Action click, string? tip = null)
+    Border FootButton(string label, bool primary, Action click, string? tip = null, string? key = null)
     {
         // The primary button stands out by its blue background, and its text is regular weight (same as .btn-primary in the main UI)
         var text = Txt(label, 13, primary ? Colors.White : Text2);
-        var b = Named(new Border { Height = 28, Padding = new Thickness(12, 0, 12, 0), CornerRadius = new CornerRadius(6), Child = text, Background = primary ? Solid(AccentFill) : Brushes.Transparent }, primary ? "note-save" : "note-cancel", label);
+        UIElement content = text;
+        if (key is not null)
+        {
+            // The key that presses it, as a keycap after the label (the main app's .composer-foot .btn-primary kbd: 20 high, 4 rounded, white at 18%)
+            var row = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            text.VerticalAlignment = VerticalAlignment.Center;
+            row.Children.Add(text);
+            row.Children.Add(new Border
+            {
+                Height = 20,
+                MinWidth = 20,
+                Padding = new Thickness(6, 0, 6, 0),
+                Margin = new Thickness(8, 0, -2, 0),
+                CornerRadius = new CornerRadius(4),
+                Background = Solid(Color.FromArgb(0x2e, 0xff, 0xff, 0xff)),
+                VerticalAlignment = VerticalAlignment.Center,
+                Child = Txt(key, 12, primary ? Colors.White : Text2),
+            });
+            content = row;
+        }
+        var b = Named(new Border { Height = 28, Padding = new Thickness(12, 0, 12, 0), CornerRadius = new CornerRadius(6), Child = content, Background = primary ? Solid(AccentFill) : Brushes.Transparent }, primary ? "note-save" : "note-cancel", label);
         if (tip is not null) b.ToolTip = Tip(tip);
         b.MouseEnter += (_, _) => PaintNoteButtons();
         b.MouseLeave += (_, _) => PaintNoteButtons();
@@ -582,10 +592,11 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
     Point noteDragFrom;
     Point noteBoxFrom;
 
-    /// <summary>The title row: "Note 1 · 2 marks" + a grip. Pressing anywhere on it and dragging moves the box; the pointer shows a four-way arrow over it</summary>
+    /// <summary>The title row: "Note 1 · 2 marks" + a grip. Pressing anywhere on it and dragging moves the box; the pointer shows a four-way arrow over it,
+    /// which with the grip says it moves (no tooltip, as on the main app's composer)</summary>
     Border BuildNoteHandle()
     {
-        var grip = new Canvas { Width = 16, Height = 16, Background = Brushes.Transparent, ToolTip = Tip(Locale.T("capture.note.dragTip")) };
+        var grip = new Canvas { Width = 16, Height = 16, Background = Brushes.Transparent };
         foreach (var (x, y) in new[] { (6, 4), (10, 4), (6, 8), (10, 8), (6, 12), (10, 12) })
         {
             var dot = new Ellipse { Width = 2.2, Height = 2.2, Fill = Solid(Muted) };
@@ -798,9 +809,10 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
             Height = 16,
             Margin = new Thickness(0, 0, 6, 0),
         });
-        row.Children.Add(Txt(Locale.T("capture.done"), 13, Colors.White)); // regular weight, same as the main UI's primary button
-        var tip = Locale.T("capture.doneTip");
-        var b = Named(new Border { Height = 32, Padding = new Thickness(10, 0, 12, 0), Margin = new Thickness(4, 0, 0, 0), CornerRadius = new CornerRadius(6), Child = row, Background = Solid(AccentFill), ToolTip = Tip(tip) }, "done", tip);
+        var label = Locale.T("capture.done");
+        row.Children.Add(Txt(label, 13, Colors.White)); // regular weight, same as the main UI's primary button
+        // The button says what it does; its tooltip only gives the key (as in the main UI, where a labelled button's tooltip is just its shortcut)
+        var b = Named(new Border { Height = 32, Padding = new Thickness(10, 0, 12, 0), Margin = new Thickness(4, 0, 0, 0), CornerRadius = new CornerRadius(6), Child = row, Background = Solid(AccentFill), ToolTip = Tip(Locale.T("capture.doneTip")) }, "done", label);
         Wire(b, session.Finish);
         toolButtons.Add((b, () => false, true, null));
         return b;

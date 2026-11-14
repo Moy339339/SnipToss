@@ -109,6 +109,26 @@ public class SettingsTests
         Assert.Equal(Settings.LatestMigration, s.Migrations);
     }
 
+    // The capture shortcut is announced only when it changes: an upgraded settings file counts its key as having worked (its user knows it),
+    // a fresh install starts unknown (nothing is said at its first start, which would land on the tutorial)
+    [Fact]
+    public void An_upgraded_settings_file_counts_its_shortcut_as_having_worked_while_a_fresh_install_starts_unknown()
+    {
+        using var dir = new TempDir();
+        var old = dir.File("old.json");
+        File.WriteAllText(old, """{ "Migrations": 1, "Capture": { "Hotkey": "Ctrl+Shift+F9" } }""");
+        var s = Settings.LoadFrom(old);
+        s.Migrate("en-US");
+        Assert.True(s.Capture.HotkeyWorked);
+        Assert.Equal("Ctrl+Shift+F9", s.Capture.Hotkey);
+        Assert.Equal(Settings.LatestMigration, Settings.LoadFrom(old).Migrations);
+
+        var fresh = Settings.LoadFrom(dir.File("fresh.json"));
+        fresh.Migrate("en-US");
+        Assert.Null(fresh.Capture.HotkeyWorked);
+        Assert.Equal("Ctrl+Alt+A", fresh.Capture.Hotkey);
+    }
+
     [Fact]
     public void Neither_an_existing_user_who_chose_a_language_nor_a_fresh_install_is_pinned()
     {

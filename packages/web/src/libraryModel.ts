@@ -38,14 +38,20 @@ export function useRowModel(opts: {
   const { library, rows, openCount } = opts;
   const intl = useIntl();
   /**
-   * A project's name: the folder for images pasted with Ctrl+V (the app's own pasted folder) is shown as "Pasted images", and the others
-   * use the folder name
+   * A project's name: the folder for images pasted with Ctrl+V (the app's own pasted folder) is shown as "Pasted images", the folder of the
+   * sample picture as "Sample", and the others use the folder name
    */
   const pastedKey = opts.appInfo?.pastedDir ? keyOf(opts.appInfo.pastedDir) : undefined;
+  const sampleKey = opts.appInfo?.sampleDir ? keyOf(opts.appInfo.sampleDir) : undefined;
   // useCallback: sameNamePlaces below depends on it, and if it were unstable that would be recomputed on every render
   const nameOf = useCallback(
-    (p: Project) => (pastedKey && keyOf(p.home) === pastedKey ? intl.formatMessage({ id: "library.pasted" }) : projectName(p)),
-    [pastedKey, intl],
+    (p: Project) =>
+      pastedKey && keyOf(p.home) === pastedKey
+        ? intl.formatMessage({ id: "library.pasted" })
+        : sampleKey && keyOf(p.home) === sampleKey
+          ? intl.formatMessage({ id: "library.sample" })
+          : projectName(p),
+    [pastedKey, sampleKey, intl],
   );
 
   const countOf = (materials: MaterialEntry[]) => materials.reduce((n, m) => n + openCount(keyOf(m.path)), 0);

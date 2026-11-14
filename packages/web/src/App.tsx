@@ -66,8 +66,9 @@ export function App() {
    * The page to open while the Settings window is open; at: differs on every request, so an already open Settings also switches (the
    * toast's "Open Settings")
    */
-  const [settings, setSettings] = useState<{ section: Section; at: number } | false>(false);
-  const openSettings = useCallback((section: Section) => setSettings({ section, at: Date.now() + Math.random() }), []);
+  const [settings, setSettings] = useState<{ section: Section; at: number; row?: string } | false>(false);
+  /** row: a setting on that page to scroll to and point out (the hint's "Turn Off Beginner Mode" shows where the switch is) */
+  const openSettings = useCallback((section: Section, row?: string) => setSettings({ section, at: Date.now() + Math.random(), row }), []);
   // The shell asks to open a page of Settings (e.g. a click on the tray balloon "capture shortcut could not be enabled");
   // an unknown section opens General
   useEffect(
@@ -249,7 +250,7 @@ export function App() {
           <WorkspaceView
             appInfo={appInfo}
             onHelp={() => setHelp(true)}
-            onSettings={(section) => openSettings((section as Section | undefined) ?? "general")}
+            onSettings={(section, row) => openSettings((section as Section | undefined) ?? "general", row)}
             onNotify={notify}
             onHome={setHome}
           />
@@ -265,6 +266,7 @@ export function App() {
               home={home}
               initial={settings.section}
               request={settings.at}
+              row={settings.row}
               onClose={() => setSettings(false)}
               onNotify={notify}
             />

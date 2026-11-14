@@ -45,6 +45,10 @@ enum AppPaths {
     /// .sniptoss). The whole folder is one project in the library; it is never cleaned up automatically (these are items, not a screenshot archive)
     static var pastedDir: String { current.localDir + "/Pasted Images" }
 
+    /// The tutorial's picture is copied here from the UI folder (Sample, `addSample`): one project in the library, shown in the UI as
+    /// "Sample". The app's own folder, so the notes left on it can be cleared each time the tutorial starts
+    static var sampleDir: String { current.localDir + "/sample" }
+
     /// Where screenshots are saved when Settings > Screen Capture names no folder
     static var capturesDir: String { current.localDir + "/captures" }
 

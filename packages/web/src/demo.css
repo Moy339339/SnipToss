@@ -1,0 +1,1540 @@
+/* The onboarding animations (Demo.tsx): a miniature of the window, 720 × 450 in its own pixels, scaled into whatever box it is given.
+   It is an illustration, not interface: its sizes are the miniature's own (the design rules' tables are for the real interface, and
+   scripts/check-design.mjs does not read this file). Colors that belong to the interface still come from the tokens, so the miniature
+   follows them; the light "AI" window and the pictures have their own colors, written here */
+
+.demo {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--r-group);
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  pointer-events: none;
+  user-select: none;
+  contain: layout paint;
+}
+.dm-scene {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 720px;
+  height: 450px;
+  transform-origin: 0 0;
+  opacity: 1;
+  transition: opacity 0.4s;
+}
+.demo.is-out .dm-scene {
+  opacity: 0;
+}
+.demo.is-still *,
+.demo.is-still .dm-scene {
+  transition: none !important;
+}
+.dm-scene * {
+  position: absolute;
+  box-sizing: border-box;
+}
+
+/* ---- title bar ---- */
+.dm-tb {
+  left: 0;
+  top: 0;
+  right: 0;
+  height: 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
+}
+.dm-logo {
+  left: 9px;
+  top: 7px;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--mark);
+}
+.dm-menu {
+  top: 10px;
+  width: 20px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+.dm-cap {
+  right: 66px;
+  top: 4px;
+  width: 54px;
+  height: 16px;
+  border-radius: 5px;
+  border: 1px solid var(--border-strong);
+}
+.dm-cap i {
+  left: 6px;
+  top: 3px;
+  width: 8px;
+  height: 8px;
+  border: 1.5px dashed var(--text-2);
+  border-radius: 2px;
+}
+.dm-cap b {
+  left: 19px;
+  top: 5px;
+  width: 26px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+.dm-win {
+  top: 11px;
+  width: 8px;
+  height: 1.5px;
+  background: var(--muted);
+}
+
+/* ---- library ---- */
+.dm-lib {
+  left: 0;
+  top: 24px;
+  width: 132px;
+  bottom: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+.dm-head {
+  left: 12px;
+  top: 13px;
+  width: 46px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border-strong);
+}
+.dm-row {
+  left: 6px;
+  right: 6px;
+  height: 24px;
+  border-radius: 6px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 0.35s,
+    transform 0.35s var(--ease);
+}
+.dm-row.is-folder {
+  top: 34px;
+}
+.dm-row.is-file {
+  top: 60px;
+  background: var(--accent-soft);
+  box-shadow: inset 2px 0 var(--accent);
+}
+.dm-row i {
+  left: 8px;
+  top: 7px;
+  width: 12px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--muted);
+}
+.dm-row.is-file i {
+  left: 18px;
+  top: 5px;
+  width: 20px;
+  height: 14px;
+  background: url(./assets/demo-before.jpg) center / cover;
+}
+.dm-row b {
+  left: 26px;
+  top: 10px;
+  width: 58px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border-strong);
+}
+.dm-row.is-file b {
+  left: 46px;
+  width: 50px;
+  background: var(--muted);
+}
+.demo.is-pic .dm-row {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---- toolbar ---- */
+.dm-tools {
+  left: 132px;
+  top: 24px;
+  width: 416px;
+  height: 30px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.dm-tool {
+  top: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  color: var(--text-2);
+  transition:
+    background 0.16s,
+    color 0.16s;
+}
+.dm-tool svg {
+  left: 4px;
+  top: 4px;
+  width: 14px;
+  height: 14px;
+}
+.dm-tool.is-on {
+  background: var(--accent-fill);
+  color: #fff;
+}
+
+/* ---- canvas ---- */
+.dm-drop {
+  left: 172px;
+  top: 114px;
+  width: 336px;
+  height: 276px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: 10px;
+  color: var(--muted);
+  transition:
+    opacity 0.25s,
+    transform 0.25s var(--ease),
+    border-color 0.25s,
+    background 0.25s,
+    color 0.25s;
+}
+.dm-drop svg {
+  left: 152px;
+  top: 104px;
+  width: 32px;
+  height: 32px;
+}
+.dm-drop b {
+  left: 123px;
+  top: 150px;
+  width: 90px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border-strong);
+}
+.dm-drop.is-over {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.demo.is-pic .dm-drop {
+  opacity: 0;
+  transform: scale(0.96);
+}
+.dm-pic {
+  left: 152px;
+  top: 134px;
+  width: 376px;
+  height: 235px;
+  overflow: hidden;
+  border-radius: 2px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  background: url(./assets/demo-before.jpg) center / cover;
+  opacity: 0;
+  transform: scale(0.3);
+  transition:
+    opacity 0.3s,
+    transform 0.45s var(--ease);
+}
+.demo.is-pic .dm-pic {
+  opacity: 1;
+  transform: none;
+}
+.dm-after {
+  inset: 0;
+  background: url(./assets/demo-after.jpg) center / cover;
+  opacity: 0;
+  transition: opacity 0.7s;
+}
+.demo.is-fixed .dm-after {
+  opacity: 1;
+}
+.dm-glow {
+  left: 152px;
+  top: 134px;
+  width: 376px;
+  height: 235px;
+  border-radius: 2px;
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 0 28px var(--accent);
+  opacity: 0;
+}
+.demo.is-fixed .dm-glow {
+  animation: dm-glow 1.4s ease-out;
+}
+@keyframes dm-glow {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---- marks ---- */
+.dm-rect {
+  border: 2px solid var(--mark);
+  border-radius: 1px;
+  box-shadow:
+    0 0 0 1px var(--casing),
+    inset 0 0 0 1px var(--casing);
+  opacity: 0;
+}
+.dm-badge {
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  background: var(--mark);
+  color: #fff;
+  font-size: 10px;
+  line-height: 16px;
+  font-weight: 700;
+  text-align: center;
+  box-shadow:
+    0 0 0 1px var(--casing),
+    var(--shadow-on-media);
+  transform: scale(0);
+  transition: transform 0.28s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.dm-badge.is-show {
+  transform: scale(1);
+}
+.demo.is-fixed .dm-rect,
+.demo.is-fixed .dm-badge {
+  opacity: 0 !important;
+  transition: opacity 0.5s;
+}
+
+/* ---- the composer ---- */
+.dm-note {
+  width: 156px;
+  height: 60px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-pop);
+  opacity: 0;
+  transform: translateY(-4px) scale(0.96);
+  transform-origin: 20px 0;
+  transition:
+    opacity 0.18s,
+    transform 0.18s var(--ease);
+}
+.dm-note.is-show {
+  opacity: 1;
+  transform: none;
+}
+.dm-cat {
+  left: 10px;
+  top: 9px;
+  width: 30px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--cat-change);
+}
+.is-remove > .dm-cat {
+  background: var(--cat-remove);
+}
+.dm-note .dm-line {
+  left: 10px;
+  height: 5px;
+  width: 0;
+  border-radius: 3px;
+  background: var(--text-2);
+}
+.dm-note .dm-line.is-1 {
+  top: 28px;
+}
+.dm-note .dm-line.is-2 {
+  top: 40px;
+}
+.dm-note.is-typing .dm-line.is-1 {
+  width: 128px;
+  transition: width 0.42s linear;
+}
+.dm-note.is-typing .dm-line.is-2 {
+  width: 74px;
+  transition: width 0.28s linear 0.42s;
+}
+/* The Enter key that saves the note */
+.dm-key {
+  width: 30px;
+  height: 20px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 2px 0 var(--border-strong);
+  color: var(--text);
+  opacity: 0;
+  transition:
+    opacity 0.18s,
+    transform 0.1s,
+    box-shadow 0.1s,
+    background 0.1s;
+}
+.dm-key svg {
+  left: 8px;
+  top: 3px;
+  width: 14px;
+  height: 14px;
+}
+.dm-key.is-show {
+  opacity: 1;
+}
+.dm-key.is-down {
+  transform: translateY(2px);
+  box-shadow: none;
+  background: var(--accent-fill);
+}
+
+/* ---- notes panel ---- */
+.dm-panel {
+  left: 548px;
+  top: 24px;
+  right: 0;
+  bottom: 0;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+}
+.dm-panel > .dm-head {
+  width: 40px;
+}
+.dm-card {
+  left: 8px;
+  right: 8px;
+  height: 52px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.3s,
+    transform 0.3s var(--ease);
+}
+.dm-card.is-show {
+  opacity: 1;
+  transform: none;
+}
+.dm-card.is-c1 {
+  top: 34px;
+}
+.dm-card.is-c2 {
+  top: 92px;
+}
+.dm-card .dm-num {
+  left: 9px;
+  top: 9px;
+}
+.dm-num {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--mark);
+  color: #fff;
+  font-size: 10px;
+  line-height: 16px;
+  font-weight: 700;
+  text-align: center;
+}
+.dm-card .dm-cat {
+  left: 32px;
+  top: 12px;
+}
+.dm-card .dm-line {
+  left: 32px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--muted);
+}
+.dm-card .dm-line.is-1 {
+  top: 29px;
+  width: 112px;
+}
+.dm-card .dm-line.is-2 {
+  top: 39px;
+  width: 66px;
+}
+.dm-dock {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40px;
+  border-top: 1px solid var(--border);
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.3s,
+    transform 0.3s var(--ease);
+}
+.dm-dock.is-show {
+  opacity: 1;
+  transform: none;
+}
+.dm-btn {
+  top: 9px;
+  height: 22px;
+  border-radius: 6px;
+}
+.dm-btn svg {
+  left: 7px;
+  top: 5px;
+  width: 12px;
+  height: 12px;
+}
+.dm-btn b {
+  left: 24px;
+  top: 9px;
+  height: 4px;
+  border-radius: 2px;
+  background: currentColor;
+}
+/* The two copy buttons look alike: neither way is the main one */
+.dm-btn.is-text {
+  left: 84px;
+  width: 78px;
+  border: 1px solid var(--border-strong);
+  color: var(--text-2);
+  transition:
+    transform 0.1s,
+    background 0.2s,
+    color 0.2s;
+}
+.dm-btn.is-text.is-done {
+  border-color: transparent;
+  color: #fff;
+}
+.dm-btn.is-text b {
+  width: 44px;
+}
+.dm-btn.is-img {
+  left: 10px;
+  width: 68px;
+  border: 1px solid var(--border-strong);
+  color: var(--text-2);
+}
+.dm-btn.is-img b {
+  width: 34px;
+}
+.dm-btn.is-down {
+  transform: scale(0.94);
+}
+.dm-btn.is-done {
+  background: #2f9e68;
+}
+.dm-btn .dm-ok,
+.dm-btn.is-done .dm-doc {
+  display: none;
+}
+.dm-btn.is-done .dm-ok {
+  display: block;
+}
+
+/* ---- what is being dragged in ---- */
+.dm-drag {
+  left: 0;
+  top: 0;
+  width: 72px;
+  height: 45px;
+  margin: -22px 0 0 -36px;
+  border-radius: 4px;
+  background: url(./assets/demo-before.jpg) center / cover;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.25);
+  opacity: 0;
+}
+
+/* ---- the AI: another, lighter window that slides over ---- */
+.dm-chat {
+  left: 236px;
+  top: 58px;
+  width: 452px;
+  height: 368px;
+  border-radius: 12px;
+  background: #f6f7f9;
+  color: #1f2328;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transform: translateY(40px) scale(0.96);
+  transition:
+    opacity 0.4s,
+    transform 0.4s var(--ease);
+}
+.dm-chat.is-show {
+  opacity: 1;
+  transform: none;
+}
+.dm-chat-top {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 38px;
+  border-bottom: 1px solid #e3e5e9;
+}
+.dm-spark {
+  left: 14px;
+  top: 9px;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #2f3640, #6b7684);
+  color: #fff;
+}
+.dm-spark svg {
+  left: 4px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+}
+.dm-ai-name {
+  left: 42px;
+  top: 10px;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+}
+.dm-me {
+  right: 18px;
+  top: 56px;
+  width: 232px;
+  height: 128px;
+  border-radius: 14px 14px 4px 14px;
+  background: #e6e9ee;
+  opacity: 0;
+  transform: translateY(14px) scale(0.9);
+  transform-origin: 100% 100%;
+  transition:
+    opacity 0.3s,
+    transform 0.3s var(--ease);
+}
+.dm-me.is-show {
+  opacity: 1;
+  transform: none;
+}
+.dm-shot {
+  left: 12px;
+  top: 12px;
+  width: 128px;
+  height: 80px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: url(./assets/demo-before.jpg) center / cover;
+}
+.dm-shot i {
+  left: 8px;
+  top: 19px;
+  width: 61px;
+  height: 16px;
+  border: 1.5px solid var(--mark);
+}
+.dm-shot b {
+  width: 9px;
+  height: 9px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--mark);
+}
+.dm-me .dm-num {
+  left: 150px;
+  width: 14px;
+  height: 14px;
+  font-size: 9px;
+  line-height: 14px;
+}
+.dm-me .dm-line {
+  left: 170px;
+  width: 46px;
+  height: 5px;
+  border-radius: 3px;
+  background: #8b949e;
+}
+.dm-me .dm-line.is-wide {
+  left: 12px;
+  background: #6b7684;
+}
+.dm-ai {
+  left: 18px;
+  top: 204px;
+  width: 62px;
+  height: 36px;
+  border-radius: 14px 14px 14px 4px;
+  background: #fff;
+  border: 1px solid #e3e5e9;
+  opacity: 0;
+  transition:
+    opacity 0.25s,
+    width 0.3s var(--ease);
+}
+.dm-ai.is-show {
+  opacity: 1;
+}
+.dm-dots {
+  left: 16px;
+  top: 14px;
+  width: 30px;
+  height: 8px;
+}
+.dm-dots i {
+  top: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #8b949e;
+  animation: dm-dot 1s infinite;
+}
+.dm-dots i:nth-child(2) {
+  left: 11px;
+  animation-delay: 0.15s;
+}
+.dm-dots i:nth-child(3) {
+  left: 22px;
+  animation-delay: 0.3s;
+}
+@keyframes dm-dot {
+  0%,
+  60%,
+  100% {
+    transform: none;
+    opacity: 0.5;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+.dm-done {
+  left: 12px;
+  top: 8px;
+  width: 150px;
+  height: 20px;
+  opacity: 0;
+}
+.dm-done svg {
+  left: 0;
+  top: 0;
+  width: 20px;
+  height: 20px;
+  color: #2f9e68;
+}
+.dm-done b {
+  left: 28px;
+  top: 8px;
+  width: 110px;
+  height: 5px;
+  border-radius: 3px;
+  background: #8b949e;
+}
+.dm-ai.is-replied {
+  width: 176px;
+}
+.dm-ai.is-replied .dm-dots {
+  display: none;
+}
+.dm-ai.is-replied .dm-done {
+  opacity: 1;
+  transition: opacity 0.3s 0.15s;
+}
+.dm-input {
+  left: 18px;
+  right: 18px;
+  bottom: 16px;
+  height: 36px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #d5d9df;
+}
+.dm-input b {
+  left: 14px;
+  top: 15px;
+  width: 90px;
+  height: 5px;
+  border-radius: 3px;
+  background: #d5d9df;
+}
+.dm-input i {
+  right: 8px;
+  top: 7px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #1f2328;
+}
+
+/* ---- the pointer ---- */
+.dm-cur {
+  left: 0;
+  top: 0;
+  width: 20px;
+  height: 20px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+  will-change: transform;
+}
+.dm-cur.is-show {
+  opacity: 1;
+}
+.dm-ring {
+  left: 0;
+  top: 0;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  opacity: 0;
+}
+
+/* ---- overall comment: the button after the tools, and its card (no number: it has no place on the picture) ---- */
+.dm-sep {
+  left: 168px;
+  top: 9px;
+  width: 1px;
+  height: 12px;
+  background: var(--border-strong);
+}
+.dm-tool.is-wide {
+  width: 50px;
+}
+.dm-tool.is-wide b {
+  left: 22px;
+  top: 9px;
+  width: 22px;
+  height: 4px;
+  border-radius: 2px;
+  background: currentColor;
+}
+.dm-card.is-whole .dm-num {
+  border-radius: 4px;
+  background: var(--border-strong);
+}
+
+/* ---- Screen Capture: what is on the screen (a page in a browser), the selection that dims the rest, the bar under it ---- */
+.dm-cap {
+  transition:
+    background 0.16s,
+    border-color 0.16s;
+}
+.dm-cap.is-on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.dm-desk {
+  /* Wider than the window: the last view, on the AI's window, reaches past its right edge */
+  left: 0;
+  top: 0;
+  width: 800px;
+  height: 450px;
+  background: linear-gradient(135deg, #1d3b53, #4a3a6a);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.dm-desk.is-show {
+  opacity: 1;
+}
+.dm-desk.is-done .dk-win {
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.dk-win {
+  left: 322px;
+  top: 16px;
+  width: 380px;
+  height: 230px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #f6f7f9;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45);
+}
+.dk-bar {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 22px;
+  background: #fff;
+  border-bottom: 1px solid #e3e5e9;
+}
+.dk-bar i {
+  top: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c9ced6;
+}
+.dk-bar b {
+  left: 60px;
+  top: 6px;
+  width: 180px;
+  height: 10px;
+  border-radius: 5px;
+  background: #e6e9ee;
+}
+.dk-h {
+  left: 16px;
+  top: 34px;
+  width: 96px;
+  height: 7px;
+  border-radius: 3px;
+  background: #1f2328;
+}
+.dk-sub {
+  left: 16px;
+  top: 47px;
+  width: 150px;
+  height: 4px;
+  border-radius: 2px;
+  background: #aab1bb;
+}
+.dk-chart,
+.dk-side {
+  top: 62px;
+  height: 140px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #e3e5e9;
+}
+.dk-chart {
+  left: 16px;
+  width: 204px;
+}
+.dk-chart b {
+  left: 12px;
+  top: 12px;
+  width: 60px;
+  height: 5px;
+  border-radius: 3px;
+  background: #8b949e;
+}
+.dk-chart i {
+  bottom: 14px;
+  width: 22px;
+  border-radius: 3px 3px 0 0;
+  background: #7c93f5;
+}
+.dk-side {
+  left: 232px;
+  width: 132px;
+}
+.dk-side i {
+  left: 35px;
+  top: 14px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 10px solid #7c93f5;
+  border-right-color: #cfd6fb;
+}
+.dk-side b {
+  left: 16px;
+  height: 5px;
+  border-radius: 3px;
+  background: #d5d9df;
+}
+/* The selection: everything around it is dimmed by its shadow (still empty, it dims the whole screen) */
+.dm-sel {
+  border: 1.5px solid var(--accent);
+  box-shadow: 0 0 0 1200px rgba(0, 0, 0, 0.55);
+  opacity: 0;
+}
+.dm-capbar {
+  width: 124px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-pop);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity 0.2s,
+    transform 0.2s var(--ease);
+}
+.dm-capbar.is-show {
+  opacity: 1;
+  transform: none;
+}
+.dm-capbar i {
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--border-strong);
+}
+.dm-capbar i.is-used {
+  background: var(--accent-fill);
+}
+.dk-ok {
+  right: 3px;
+  top: 2px;
+  width: 36px;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--accent-fill);
+  color: #fff;
+  transition: transform 0.1s;
+}
+.dk-ok svg {
+  left: 12px;
+  top: 1px;
+  width: 12px;
+  height: 12px;
+}
+.dk-ok.is-down {
+  transform: scale(0.9);
+}
+/* What Screen Capture pastes to the AI: one picture, the capture with its mark and the note in a strip under it */
+.dm-mecap {
+  right: 18px;
+  top: 56px;
+  width: 176px;
+  height: 136px;
+  border-radius: 14px 14px 4px 14px;
+  background: #e6e9ee;
+  opacity: 0;
+  transform: translateY(14px) scale(0.9);
+  transform-origin: 100% 100%;
+  transition:
+    opacity 0.3s,
+    transform 0.3s var(--ease);
+}
+.dm-mecap.is-show {
+  opacity: 1;
+  transform: none;
+}
+.dk-shot {
+  left: 12px;
+  top: 12px;
+  width: 152px;
+  height: 84px;
+  overflow: hidden;
+  border-radius: 6px 6px 0 0;
+  background: #fff;
+}
+.dk-shot i {
+  bottom: 10px;
+  width: 14px;
+  border-radius: 2px 2px 0 0;
+  background: #7c93f5;
+}
+.dk-shot b {
+  left: 83px;
+  top: 8px;
+  width: 24px;
+  height: 70px;
+  border: 1.5px solid var(--mark);
+}
+.dk-shot span,
+.dk-notes span {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--mark);
+  color: #fff;
+  font-size: 8px;
+  line-height: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+.dk-shot span {
+  left: 78px;
+  top: 3px;
+}
+.dk-notes {
+  left: 12px;
+  top: 96px;
+  width: 152px;
+  height: 28px;
+  border-radius: 0 0 6px 6px;
+  background: #f0f2f5;
+  border-top: 1px solid #e3e5e9;
+}
+.dk-notes span {
+  left: 9px;
+  top: 8px;
+}
+.dk-notes b {
+  left: 27px;
+  top: 11px;
+  width: 84px;
+  height: 5px;
+  border-radius: 3px;
+  background: #6b7684;
+}
+
+/* ---- the first-use hints' animations (pin, color, drawing, kinds, video) ---- */
+.dm-badge {
+  transition:
+    transform 0.28s cubic-bezier(0.3, 1.6, 0.5, 1),
+    background-color 0.2s,
+    color 0.2s,
+    box-shadow 0.2s;
+}
+.dm-rect {
+  transition:
+    border-color 0.2s,
+    opacity 0.25s;
+}
+/* A pin: its tip on the point */
+.dm-badge.is-pin {
+  width: 18px;
+  height: 18px;
+  margin: -18px 0 0 0;
+  border-radius: 9px 9px 9px 2px;
+  line-height: 18px;
+  transform-origin: 0 100%;
+}
+/* The clicked mark: a blue ring outside the white one */
+.dm-badge.is-picked {
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 4px var(--accent);
+}
+.is-recolored {
+  --mark: #ffc233;
+}
+.dm-badge.is-recolored {
+  color: #1f2328;
+}
+.dm-colors {
+  width: 150px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  box-shadow:
+    inset 0 0 0 1px var(--border-strong),
+    var(--shadow-pop);
+  color: var(--text-2);
+  opacity: 0;
+  transform: translateY(4px) scale(0.96);
+  transform-origin: 0 100%;
+  transition:
+    opacity 0.16s,
+    transform 0.16s var(--ease);
+}
+.dm-colors.is-show {
+  opacity: 1;
+  transform: none;
+}
+.dm-colors i {
+  top: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  transition: box-shadow 0.16s;
+}
+.dm-colors i.is-on {
+  box-shadow:
+    0 0 0 1.5px var(--surface-2),
+    0 0 0 3px var(--text);
+}
+.dm-colors b {
+  left: 125px;
+  top: 5px;
+  width: 1px;
+  height: 12px;
+  background: var(--border-strong);
+}
+.dm-colors svg {
+  left: 132px;
+  top: 4px;
+  width: 14px;
+  height: 14px;
+}
+/* A line drawn with the pen */
+.dm-ink {
+  left: 0;
+  top: 0;
+  width: 720px;
+  height: 450px;
+  overflow: visible;
+}
+.dm-ink path {
+  fill: none;
+  stroke: var(--mark);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+}
+/* Copy as images: done like Copy as text */
+.dm-btn.is-img {
+  transition:
+    transform 0.1s,
+    background 0.2s,
+    color 0.2s;
+}
+.dm-btn.is-img.is-done {
+  background: #2f9e68;
+  border-color: transparent;
+  color: #fff;
+}
+/* Where a copy as text goes: a terminal */
+.dm-term,
+.dm-web {
+  left: 316px;
+  top: 172px;
+  width: 222px;
+  height: 226px;
+  overflow: hidden;
+  border-radius: 10px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transform: translateY(24px) scale(0.96);
+  transition:
+    opacity 0.35s,
+    transform 0.35s var(--ease);
+}
+.dm-term.is-show,
+.dm-web.is-show {
+  opacity: 1;
+  transform: none;
+}
+.dm-term {
+  background: #0f1218;
+  border: 1px solid #2a2f3a;
+}
+.tm-bar {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 20px;
+  border-bottom: 1px solid #222733;
+}
+.tm-bar i {
+  top: 7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3a4150;
+}
+.tm-prompt {
+  left: 12px;
+  top: 28px;
+  font:
+    700 14px/14px ui-monospace,
+    Consolas,
+    monospace;
+  color: var(--accent);
+}
+.tm-paste {
+  left: 26px;
+  top: 33px;
+  width: 180px;
+  height: 50px;
+  clip-path: inset(0 0 100% 0);
+  transition: clip-path 0.3s steps(5, end);
+}
+.tm-paste.is-show {
+  clip-path: inset(0);
+}
+.tm-paste b {
+  left: 0;
+  height: 5px;
+  border-radius: 2px;
+  background: #c9d1d9;
+  opacity: 0.75;
+}
+.tm-ai {
+  left: 12px;
+  top: 100px;
+  width: 196px;
+  height: 20px;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.tm-ai.is-show {
+  opacity: 1;
+}
+.tm-dots {
+  left: 14px;
+  top: 6px;
+  width: 30px;
+  height: 8px;
+}
+.tm-dots i {
+  top: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #8b949e;
+  animation: dm-dot 1s infinite;
+}
+.tm-dots i:nth-child(2) {
+  left: 10px;
+  animation-delay: 0.15s;
+}
+.tm-dots i:nth-child(3) {
+  left: 20px;
+  animation-delay: 0.3s;
+}
+.tm-done {
+  left: 0;
+  top: 0;
+  width: 196px;
+  height: 20px;
+  opacity: 0;
+}
+.tm-done svg {
+  left: 0;
+  top: 1px;
+  width: 16px;
+  height: 16px;
+  color: #3fb950;
+}
+.tm-done b {
+  left: 24px;
+  top: 7px;
+  width: 120px;
+  height: 5px;
+  border-radius: 2px;
+  background: #8b949e;
+}
+.tm-ai.is-replied .tm-dots {
+  display: none;
+}
+.tm-ai.is-replied .tm-done {
+  opacity: 1;
+  transition: opacity 0.3s 0.1s;
+}
+/* Where a copy as images goes: a chat in the browser */
+.dm-web {
+  background: #f6f7f9;
+  color: #1f2328;
+}
+.dm-web .dm-chat-top {
+  height: 30px;
+}
+.dm-web .dm-spark {
+  left: 10px;
+  top: 6px;
+  width: 18px;
+  height: 18px;
+}
+.dm-web .dm-spark svg {
+  left: 3px;
+  top: 3px;
+}
+.dm-web .dm-ai-name {
+  left: 34px;
+  top: 6px;
+  font-size: 12px;
+}
+.wb-me {
+  right: 10px;
+  top: 40px;
+  width: 140px;
+  height: 118px;
+  border-radius: 12px 12px 4px 12px;
+  background: #e6e9ee;
+  opacity: 0;
+  transform: translateY(12px) scale(0.9);
+  transform-origin: 100% 100%;
+  transition:
+    opacity 0.3s,
+    transform 0.3s var(--ease);
+}
+.wb-me.is-show {
+  opacity: 1;
+  transform: none;
+}
+.wb-shot {
+  left: 8px;
+  top: 8px;
+  width: 124px;
+  height: 72px;
+  overflow: hidden;
+  border-radius: 5px 5px 0 0;
+  background: url(./assets/demo-before.jpg) center / cover;
+}
+.wb-shot i {
+  left: 6px;
+  top: 16px;
+  width: 39px;
+  height: 16px;
+  border: 1.5px solid var(--mark);
+}
+.wb-shot span,
+.wb-notes span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--mark);
+  color: #fff;
+  font-size: 7px;
+  line-height: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+.wb-shot span {
+  left: 1px;
+  top: 11px;
+}
+.wb-shot b {
+  left: 105px;
+  top: 6px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--mark);
+}
+.wb-notes {
+  left: 8px;
+  top: 80px;
+  width: 124px;
+  height: 32px;
+  border-radius: 0 0 5px 5px;
+  background: #fff;
+  border-top: 1px solid #e3e5e9;
+}
+.wb-notes span {
+  left: 6px;
+  top: 5px;
+}
+.wb-notes b {
+  left: 22px;
+  top: 8px;
+  width: 80px;
+  height: 4px;
+  border-radius: 2px;
+  background: #6b7684;
+}
+.dm-ai.wb-ai {
+  left: 10px;
+  top: 168px;
+}
+/* A video: the picture pans while it plays (Demo.tsx moves background-position), the play bar under it */
+.demo.is-video .dm-pic {
+  background-size: 130% auto;
+}
+.dm-vbar {
+  width: 376px;
+  height: 32px;
+  opacity: 0;
+}
+.demo.is-video .dm-vbar {
+  opacity: 1;
+}
+.vb-play {
+  left: 4px;
+  top: 10px;
+  width: 18px;
+  height: 18px;
+  color: var(--text);
+}
+.vb-play svg {
+  left: 3px;
+  top: 3px;
+  width: 12px;
+  height: 12px;
+}
+.vb-icon-pause,
+.vb-play.is-playing .vb-icon-play {
+  display: none;
+}
+.vb-play.is-playing .vb-icon-pause {
+  display: block;
+}
+.vb-track,
+.vb-fill {
+  top: 18px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+.vb-fill {
+  width: 0;
+  background: var(--accent);
+}
+.vb-knob {
+  top: 15px;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+/* The note's number above its moment on the track */
+.vb-mark {
+  top: 3px;
+  width: 13px;
+  height: 13px;
+  margin-left: -6.5px;
+  border-radius: 50%;
+  background: var(--mark);
+  color: #fff;
+  font-size: 8px;
+  line-height: 13px;
+  font-weight: 700;
+  text-align: center;
+  transform: scale(0);
+  transition: transform 0.28s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.vb-mark.is-show {
+  transform: scale(1);
+}
+.vb-time {
+  left: 326px;
+  top: 16px;
+  width: 40px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border-strong);
+}
+
+/* ---- the end of the guide (Guide.tsx's Finish): a check in a circle, and the confetti that bursts from it (Guide.tsx moves the pieces) ---- */
+.guide-finish {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  margin: 8px auto 0;
+  border-radius: 50%;
+  background: var(--accent-fill);
+  color: #fff;
+}
+.guide-finish > svg {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  width: 24px;
+  height: 24px;
+}
+.guide-confetti {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+}
+.guide-confetti i {
+  position: absolute;
+  left: -2px;
+  top: -4px;
+  width: 4px;
+  height: 8px;
+  border-radius: 1px;
+  opacity: 0;
+}
+.guide-confetti i.is-dot {
+  left: -3px;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}

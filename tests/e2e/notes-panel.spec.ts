@@ -232,12 +232,18 @@ test("folder comments are listed first under Project in a group of their own; Th
   await expect(hint).toHaveCount(0);
 });
 
-test("the summary row at the bottom says how many other items have no open notes; with resolved notes shown it says they have no notes; it says nothing while searching", async ({ app }) => {
+test("other items with nothing to show are simply not listed, with no summary row counting them: neither for open notes, nor with resolved notes shown, nor while searching", async ({ app }) => {
   await app.open();
+  await expect(card(app, "p0c7xe")).toBeVisible();
   const rest = app.page.locator(".group-rest");
-  await expect(rest).toHaveText("另有 1 个素材没有待处理的批注");
+  // poster.jpg has no notes at all: it gets no group and no line saying "1 more item has no open notes"
+  const poster = app.page.locator(".group-head", { hasText: "poster.jpg" });
+  await expect(rest).toHaveCount(0);
+  await expect(poster).toHaveCount(0);
   await toggleResolved(app);
-  await expect(rest).toHaveText("另有 1 个素材暂无批注");
+  await expect(card(app, "done01")).toBeVisible();
+  await expect(rest).toHaveCount(0);
+  await expect(poster).toHaveCount(0);
   await focusStage(app);
   await app.page.keyboard.press("Control+f");
   // Wait for the search box to get focus before typing (when the machine is busy the box isn't there yet and the text would go elsewhere)
@@ -298,7 +304,7 @@ test("card: number, category, the Overall section, the Done tag, replies, the vi
   await app.open();
   const k = card(app, "k3f9a2");
   await expect(k.locator(".card-num")).toHaveText("1");
-  await expect(k.locator(".card-num")).toHaveAttribute("title", "批注编号 k3f9a2（用于批注文件和命令行）");
+  await expect(k.locator(".card-num")).toHaveAttribute("title", "批注编号 k3f9a2");
   await expect(k.locator(".chip")).toHaveText("修改");
   await expect(k.locator(".tag", { hasText: "整体意见" })).toHaveCount(0);
   // Overall comments form their own section, numbered from 1 with a gray square number; the section title says Overall so the card no longer does (ADR-0008)
@@ -356,7 +362,8 @@ test("the copy button on a card copies only that note and the toast says so; cop
   await app.open();
   const k = card(app, "k3f9a2");
   await clickAct(app, "k3f9a2", "将此批注复制成文字");
-  await expect(toast(app)).toContainText("已复制此条批注（文字），可粘贴到 Claude Code 或 Codex");
+  // Only what was copied and as what: no "paste into…" hint every time
+  await expect(toast(app)).toHaveText("已复制此条批注（文字）");
   const text = (await app.clipboard())!;
   expect(text).toContain(HERO);
   expect(text).not.toContain(CLIP);
@@ -501,7 +508,7 @@ test("the Copy as Text button is disabled when there is nothing to copy (and so 
   app.host.prefs = { panelResolved: true };
   await app.open();
   const copy = app.page.locator(".dock-copy");
-  await expect(copy).toHaveAttribute("title", "将 2 个素材的 2 条待处理批注复制成文字（Ctrl Shift A）。勾选后只复制勾选的");
+  await expect(copy).toHaveAttribute("title", "复制成文字（Ctrl Shift A）");
   await app.page.locator(".dock-all").click();
   await app.page.locator(".panel-batch").getByRole("button", { name: /已改/ }).first().click();
   await expect.poll(() => status(app, "video__clip.mp4.json", "p0c7xe")).toBe("resolved");
@@ -512,7 +519,7 @@ test("the Copy as Text button is disabled when there is nothing to copy (and so 
   await expect(app.page.locator(".panel-batch")).toHaveCount(0);
   await expect(copy).toBeDisabled();
   await expect(app.page.locator(".dock-images")).toBeDisabled();
-  await expect(copy).toHaveAttribute("title", "没有待处理的批注；勾选已处理的批注后也可复制");
+  await expect(copy).toHaveAttribute("title", "没有待处理的批注");
   await topMenu(app, "编辑");
   await expect(menuItem(app, /^复制批注成文字/)).toBeDisabled();
   await expect(menuItem(app, /^复制批注成图片/)).toBeDisabled();
@@ -520,7 +527,7 @@ test("the Copy as Text button is disabled when there is nothing to copy (and so 
 
   await card(app, "done01").locator(".card-check").click();
   await expect(copy).toBeEnabled();
-  await expect(copy).toHaveAttribute("title", "将勾选的 1 条批注复制成文字（Ctrl Shift A）");
+  await expect(copy).toHaveAttribute("title", "复制成文字（Ctrl Shift A）");
   const width = (await copy.boundingBox())!.width;
   // After the fake clock is installed time still advances in real time (it can only be fast-forwarded): when the machine is busy a few hundred extra milliseconds pass between steps, so leave enough margin in the fast-forward amounts
   await app.page.clock.install();
@@ -546,7 +553,7 @@ test("what gets copied: with nothing checked, all listed open notes (done ones a
   await expect(card(app, "p0c7xe")).toBeVisible();
   await focusStage(app);
   await app.page.keyboard.press("Control+Shift+a");
-  await expect(toast(app)).toContainText("已复制 2 个素材的 2 条批注（文字），可粘贴到 Claude Code 或 Codex");
+  await expect(toast(app)).toHaveText("已复制 2 个素材的 2 条批注（文字）");
   let text = (await app.clipboard())!;
   expect(text).toContain(HERO);
   expect(text).toContain(CLIP);
@@ -757,16 +764,18 @@ test("the save location at the bottom of the notes panel: with notes it reads Sa
 }) => {
   await app.open();
   const link = app.page.locator(".footer-link");
-  await expect(link).toHaveText("已保存到 project\\.sniptoss");
+  await expect(link).toHaveText("project\\.sniptoss");
   await link.click();
   await expect.poll(() => app.host.revealed.at(-1)).toBe(join(app.project, ".sniptoss"));
 });
 
-test("a project without notes yet: the bottom says that notes are saved automatically", async ({ app }) => {
+test("a project without notes yet: the bottom of the notes panel says nothing (the save location appears once there are notes)", async ({ app }) => {
   rmSync(join(app.project, ".sniptoss"), { recursive: true, force: true });
   await app.open();
-  await expect(app.page.locator(".panel-footer")).toHaveText("批注自动保存到素材所在项目的 .sniptoss 文件夹");
+  await expect(app.page.locator("aside.panel")).toContainText("暂无批注");
+  await expect(app.page.locator(".panel-footer")).toHaveCount(0);
   await expect(app.page.locator(".footer-link")).toHaveCount(0);
+  await expect(app.page.locator("aside.panel")).not.toContainText("批注自动保存");
 });
 
 test("toasts: only one at a time, a new one replaces the old; a toast without a button disappears after 3.2 seconds", async ({ app }) => {
@@ -831,7 +840,8 @@ test("notes panel width: dragging the edge resizes it (240–640) and dragging t
 test("the bottom row fits in the default width of 320: the Select all label isn't squeezed into an ellipsis by the two buttons (the Copy as Text label became 8 px wider after a rename)", async ({ app }) => {
   await app.open();
   await expect(app.page.locator(".dock-copy .dock-copy-label > :not(.is-hidden)")).toHaveText("复制成文字");
-  await expect(app.page.locator(".dock-images")).toHaveText("复制成图片");
+  // The two buttons look alike: each holds its label and a hidden "Copied" that takes its place after copying
+  await expect(app.page.locator(".dock-images .dock-copy-label > :not(.is-hidden)")).toHaveText("复制成图片");
   const text = app.page.locator(".dock-all-text");
   await expect(text).toHaveText("全选");
   expect(await text.evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(true);

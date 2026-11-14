@@ -193,15 +193,20 @@ test("touchpad pinch (which arrives in the page as Ctrl+wheel) zooms the canvas,
   expect(await pageScale(app)).toBe(1);
 });
 
-test("Keyboard Shortcuts: Ctrl+V is in the Global group (works everywhere); it lists Ctrl+Enter to save, and the way into the menus from the keyboard", async ({ app }) => {
+test("Keyboard Shortcuts: Ctrl+V is in the Global group (works everywhere); saving a note and opening the menus from the keyboard are listed by name and keys only, without bracketed extras", async ({ app }) => {
   await app.open();
   await focusStage(app);
   await app.page.keyboard.press("?");
   const groups = app.page.locator(".sheet-grid section");
   await expect(groups.first()).toContainText("从剪贴板添加");
   await expect(groups.nth(2)).not.toContainText("从剪贴板添加");
-  await expect(app.page.locator(".shortcut-row", { hasText: "保存批注" })).toContainText("Ctrl Enter");
-  await expect(app.page.locator(".shortcut-row", { hasText: "打开菜单" })).toContainText("也可先按 Alt 或 F10，再按字母");
+  // A row is its name plus its keys: the extras ("Shift Enter for a new line; Ctrl Enter outside the text box", "or press Alt or F10 first") are gone
+  const save = app.page.locator(".shortcut-row", { hasText: "保存批注" });
+  await expect(save.locator(".shortcut-label")).toHaveText("保存批注");
+  await expect(save.locator(".shortcut-keys kbd")).toHaveText(["Enter"]);
+  const menus = app.page.locator(".shortcut-row", { hasText: "打开菜单" });
+  await expect(menus.locator(".shortcut-label")).toHaveText("打开菜单");
+  await expect(menus.locator(".shortcut-keys kbd")).toHaveText(["Alt", "F / E / V / N / P / W / H"]);
 });
 
 test("the note box on a video: with focus outside the text box, a lone I / O sets the start / end, and inside the text box Alt+I / Alt+O do; a start later than the end clears the end, an end earlier than the start swaps them, and not moving the video shows a hint", async ({

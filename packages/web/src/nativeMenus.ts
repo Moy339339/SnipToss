@@ -5,8 +5,13 @@ import { NativeMenuSync } from "./menuModel";
 
 /** The menus change with the state of the page in bursts (every arrow key moves the selection): they are looked at once things are quiet */
 const QUIET_MS = 50;
-/** A dialog (settings, confirm, shortcut list, tour) covers the whole window, the menu bar included: the menus are greyed out while one is open */
-const DIALOG = ".overlay, .tour";
+/** A dialog (settings, confirm, shortcut list, the first-run dialog) covers the whole window, the menu bar included: the menus are greyed out while one is open */
+const DIALOG = ".overlay";
+/**
+ * The menus are greyed out: a dialog is open, or the guide keeps the user on its path (html[data-guided], Guide.tsx; on Windows the same turns
+ * off the menus in the title bar)
+ */
+const menusOff = () => document.querySelector(DIALOG) !== null || document.documentElement.hasAttribute("data-guided");
 
 /** The caret is in something you can type into: undo and redo are then the text's, not the notes' */
 function inTextBox(): boolean {
@@ -21,7 +26,7 @@ function inTextBox(): boolean {
 export function useNativeMenus(menus: TopMenu[]) {
   const sync = useRef<NativeMenuSync | null>(null);
   const push = useEffectEvent(() => {
-    sync.current?.update(menus, document.querySelector(DIALOG) !== null);
+    sync.current?.update(menus, menusOff());
   });
 
   useEffect(() => {
@@ -48,19 +53,20 @@ export function useNativeMenus(menus: TopMenu[]) {
     return () => window.clearTimeout(timer);
   });
 
-  // A dialog opening or closing is a change of the page, not of anything React hands to this hook: watch for it
+  // A dialog opening or closing, the guide starting or ending, is a change of the page, not of anything React hands to this hook: watch for it
   useEffect(() => {
     if (!nativeMenus) return;
-    let open = document.querySelector(DIALOG) !== null;
+    let open = menusOff();
     let timer = 0;
     const watcher = new MutationObserver(() => {
-      const now = document.querySelector(DIALOG) !== null;
+      const now = menusOff();
       if (now === open) return;
       open = now;
       window.clearTimeout(timer);
       timer = window.setTimeout(push, QUIET_MS);
     });
     watcher.observe(document.body, { childList: true, subtree: true });
+    watcher.observe(document.documentElement, { attributes: true, attributeFilter: ["data-guided"] });
     return () => {
       watcher.disconnect();
       window.clearTimeout(timer);

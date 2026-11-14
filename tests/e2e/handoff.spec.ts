@@ -38,7 +38,7 @@ test("The first note in a project (.sniptoss was just created) shows no toast (i
   await drawRect(app, "标题换粗体");
   const dataDir = join(app.project, ".sniptoss");
   const link = app.page.locator(".footer-link");
-  await expect(link).toContainText("已保存到 project\\.sniptoss");
+  await expect(link).toContainText("project\\.sniptoss");
   await expect(toast(app)).toHaveCount(0);
   await link.click();
   expect(app.host.revealed.at(-1)).toBe(dataDir);
@@ -107,7 +107,9 @@ test("Copy as Images at the bottom of the notes panel: with nothing checked it c
   await drawRect(app, "标题换粗体");
   await expect.poll(() => notes(app, "assets__hero.png.json").find((n) => n.body === "标题换粗体")?.snapshot).toBeTruthy();
   await app.page.getByRole("button", { name: "复制成图片" }).click();
-  await expect(toast(app)).toContainText("（2 张图片），可粘贴到网页版 AI 或聊天软件");
+  // Only how many were copied and into how many images: no "paste into…" hint every time
+  await expect(toast(app)).toHaveText(/已复制 2 个素材的 3 条批注（2 张图片）$/);
+  await expect(toast(app)).not.toContainText("可粘贴到");
   const pages = app.host.copiedImages.at(-1)!;
   // The default scope is the whole project: hero's two open notes (the existing one and the one just drawn) on one image, the video's on
   // another; the done note done01 is not handed over

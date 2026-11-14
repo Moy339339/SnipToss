@@ -3,7 +3,7 @@ import { useIntl } from "react-intl";
 import { DATA_DIR } from "@sniptoss/core";
 import { cssZoom } from "./cssZoom";
 import type { useFreshMarks } from "./freshMarks";
-import { homeJoin, keyOf, type LibraryEntry, type MaterialEntry } from "./host";
+import { homeJoin, type LibraryEntry, type MaterialEntry } from "./host";
 import {
   ChevronIcon,
   ClearListIcon,
@@ -22,10 +22,10 @@ import type { useRowModel } from "./libraryModel";
 import type { useLibrarySelection } from "./librarySelection";
 import type { MenuItem } from "./Menu";
 
-// The library's context menu (split out of LibraryPanel): right-click on a row offers that item's actions plus Clear, and right-click on
-// blank list space offers the whole list's actions; a right-click on one of several selected rows acts on all of them. A menu opened by
-// keyboard (Shift+F10, the menu key) is placed under the cursor row. The gray text on the right of the menu holds only shortcuts and
-// counts, and explanations go in the tooltip (same as the menu bar)
+// The library's context menu (split out of LibraryPanel): right-click on a row offers only that item's actions, and right-click on
+// blank list space offers the whole list's actions (Clear List… among them); a right-click on one of several selected rows acts on all of
+// them. A menu opened by keyboard (Shift+F10, the menu key) is placed under the cursor row. The gray text on the right of the menu holds
+// only shortcuts and counts, and explanations go in the tooltip (same as the menu bar)
 
 export function useLibraryMenu(opts: {
   library: Library;
@@ -34,9 +34,8 @@ export function useLibraryMenu(opts: {
   offsets: Float64Array;
   listPad: () => number;
   revealRow: (id: string | undefined) => void;
-  openCount: (materialKey: string) => number;
-  /** The open notes the notes panel lists: how many, spread over how many items (shown in the context menu on a multi-selection) */
-  listed: { count: number; materials: number };
+  /** The open notes the notes panel lists: how many (what the context menu on a multi-selection copies; none = its Copy items are gray) */
+  listed: { count: number };
   hasNotes: (home: string) => boolean;
   on: {
     addFiles: () => void;
@@ -53,7 +52,7 @@ export function useLibraryMenu(opts: {
   model: ReturnType<typeof useRowModel>;
   fresh: ReturnType<typeof useFreshMarks>;
 }) {
-  const { library, rows, list, openCount, on } = opts;
+  const { library, rows, list, on } = opts;
   const { cursor, setCursor, picked, multi, pickOnly, pickedRows, removableOf, pickAll, copyPicked, removePicked } = opts.selection;
   const { folderOfRow, rowCopyCount, scopeOf, copyRow, canExpand, expandedRow, toggleRow, removeRow } = opts.model;
   const { newIn, markSeen } = opts.fresh;
@@ -95,7 +94,7 @@ export function useLibraryMenu(opts: {
     setMenu({ x: e.clientX, y: e.clientY, keyboard: e.button !== 2 });
   };
 
-  // The whole list's actions: used both by right-click on blank list space and by the last section of a row's right-click
+  // The whole list's actions: right-click on blank list space
   const addItems = (): MenuItem[] => [
     { label: intl.formatMessage({ id: "menu.file.addFiles" }), icon: <FilePlusIcon />, hint: "Ctrl O", onClick: on.addFiles },
     {
@@ -107,7 +106,6 @@ export function useLibraryMenu(opts: {
     {
       label: intl.formatMessage({ id: "menu.file.paste" }),
       hint: "Ctrl V",
-      title: intl.formatMessage({ id: "menu.file.pasteTitle" }),
       onClick: on.paste,
     },
   ];
@@ -127,7 +125,6 @@ export function useLibraryMenu(opts: {
   const clearItem = (): MenuItem => ({
     label: intl.formatMessage({ id: "menu.file.clear" }),
     icon: <ClearListIcon />,
-    title: intl.formatMessage({ id: "menu.file.clearTitle" }),
     onClick: on.clear,
     disabled: library.projects.every((p) => p.pinned),
     danger: true,
@@ -162,26 +159,21 @@ export function useLibraryMenu(opts: {
   ];
 
   /**
-   * The two entries "Copy as Text" (for AI that can read local files) and "Copy as Images" (for web-based AI and chat apps): the right
-   * side says how many notes will be copied, and they are greyed out when there are none
+   * The two entries "Copy as Text" (for AI that can read local files) and "Copy as Images" (for web-based AI and chat apps), alike: no
+   * count on either (each row shows its own), just the shortcut of the first; greyed out when there is nothing to copy, the first saying why
    */
-  const copyItems = (n: number, withNotes: number, run: (mode: "text" | "images") => void): MenuItem[] => {
+  const copyItems = (n: number, run: (mode: "text" | "images") => void): MenuItem[] => {
     return [
       {
         label: intl.formatMessage({ id: "app.copy.toAi" }),
         icon: <SparkIcon />,
-        hint:
-          n === 0
-            ? intl.formatMessage({ id: "library.menu.noOpen" })
-            : `${intl.formatMessage({ id: "library.menu.copyCount" }, { materials: withNotes, count: n })} · Ctrl C`,
-        title: intl.formatMessage({ id: "app.copy.asText.hint" }),
+        hint: n === 0 ? intl.formatMessage({ id: "library.menu.noOpen" }) : "Ctrl C",
         onClick: () => run("text"),
         disabled: n === 0,
       },
       {
         label: intl.formatMessage({ id: "app.copy.asImages" }),
         icon: <KindIcon kind="image" />,
-        title: intl.formatMessage({ id: "app.copy.asImages.hint" }),
         onClick: () => run("images"),
         disabled: n === 0,
       },
@@ -194,7 +186,7 @@ export function useLibraryMenu(opts: {
     if (multi && picked.has(row.id)) {
       const removable = removableOf(pickedRows).length;
       return [
-        ...copyItems(opts.listed.count, opts.listed.materials, copyPicked),
+        ...copyItems(opts.listed.count, copyPicked),
         "-",
         ...(removable
           ? [
@@ -202,13 +194,10 @@ export function useLibraryMenu(opts: {
                 label: intl.formatMessage({ id: "library.menu.removeMany" }, { count: removable }),
                 icon: <CloseIcon />,
                 hint: "Delete",
-                title: intl.formatMessage({ id: "library.menu.removeHint" }),
                 onClick: removePicked,
               },
             ]
           : []),
-        "-",
-        clearItem(),
       ];
     }
     const reveal = (path: string, label = intl.formatMessage({ id: "settings.reveal" })): MenuItem => ({
@@ -217,9 +206,7 @@ export function useLibraryMenu(opts: {
       onClick: () => on.reveal(path),
     });
     const target = folderOfRow(row);
-    const copy = copyItems(rowCopyCount(row), scopeOf(row).materials.filter((m) => openCount(keyOf(m.path)) > 0).length, (mode) =>
-      copyRow(row, mode),
-    );
+    const copy = copyItems(rowCopyCount(row), (mode) => copyRow(row, mode));
     const toggle: MenuItem[] = canExpand(row)
       ? [
           {
@@ -245,7 +232,6 @@ export function useLibraryMenu(opts: {
         {
           label: intl.formatMessage({ id: p.pinned ? "library.menu.unpin" : "library.menu.pin" }),
           icon: <PinIcon />,
-          title: p.pinned ? undefined : intl.formatMessage({ id: "library.menu.pinHint" }),
           onClick: () => on.pin(p, !p.pinned),
         },
         reveal(p.home, intl.formatMessage({ id: "library.menu.openProject" })),
@@ -256,7 +242,6 @@ export function useLibraryMenu(opts: {
           label: intl.formatMessage({ id: "library.menu.removeProject" }),
           icon: <CloseIcon />,
           hint: "Delete",
-          title: intl.formatMessage({ id: "library.menu.removeHint" }),
           onClick: () => removeRow(row),
         },
       ];
@@ -270,7 +255,6 @@ export function useLibraryMenu(opts: {
               {
                 label: intl.formatMessage({ id: "library.relocate" }),
                 icon: <FolderIcon />,
-                title: intl.formatMessage({ id: "library.relocate.hint" }),
                 onClick: () => on.relocate(entry),
               },
               "-",
@@ -289,7 +273,6 @@ export function useLibraryMenu(opts: {
           label: intl.formatMessage({ id: "library.menu.remove" }),
           icon: <CloseIcon />,
           hint: "Delete",
-          title: intl.formatMessage({ id: "library.menu.removeHint" }),
           onClick: () => removeRow(row),
         },
       ];
@@ -298,7 +281,8 @@ export function useLibraryMenu(opts: {
     } else {
       own = [...copy, "-", reveal(row.material.path)];
     }
-    return [...own, "-", clearItem()];
+    // Only what concerns the row: Clear List… is the whole list's, on blank space and in the File menu
+    return own;
   };
 
   return { menu, closeMenu: () => setMenu(undefined), menuItems, openRowMenu, onAsideContextMenu };

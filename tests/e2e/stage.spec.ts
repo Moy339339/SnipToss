@@ -879,7 +879,8 @@ test("numbers too close to tell apart on the play bar merge into a stack: hoveri
   await expect(stack).toHaveCount(1);
   await expect(stack).toHaveText("3");
   await expect(stack).toHaveAttribute("aria-label", "此处有 3 条批注");
-  await expect(stack).toHaveAttribute("data-tip", /^此处有 3 条批注\n1 · 修改 · 00:00\.300  第一处\n2 · 删除 · 00:00\.320–00:00\.600  第二处\n3 · 修改 · 00:00\.340  第三处$/);
+  // The tooltip lists the notes straight away (the number on the stack already says how many)
+  await expect(stack).toHaveAttribute("data-tip", /^1 · 修改 · 00:00\.300  第一处\n2 · 删除 · 00:00\.320–00:00\.600  第二处\n3 · 修改 · 00:00\.340  第三处$/);
 
   await stack.click();
   const items = app.page.locator(".menu [role=menuitem]");
@@ -1045,7 +1046,7 @@ test("an item that can't be opened: Show in File Explorer on the canvas locates 
 
 // ---------- Toolbar ----------
 
-test("the six toolbar tools: clicking a button is the same as pressing its key, the current tool is highlighted, and the hover tip is the description followed by the key", async ({ app }) => {
+test("the six toolbar tools: clicking a button is the same as pressing its key, the current tool is highlighted, and the hover tip is the name followed by the key", async ({ app }) => {
   await app.open();
   const tools: [string, string, string][] = [
     ["矩形", "rect", "R"],
@@ -1060,7 +1061,8 @@ test("the six toolbar tools: clicking a button is the same as pressing its key, 
     await expect(app.page.locator(".stage")).toHaveClass(new RegExp(`tool-${id}\\b`));
     await expect(toolBtn(app, name)).toHaveClass(/is-on/);
     await expect(app.page.locator(".hdr-tools .tool-btn.is-on")).toHaveCount(1);
-    await expect(toolBtn(app, name)).toHaveAttribute("data-tip", new RegExp(`^${name}：.+　${key}$`));
+    // Only the name and the key: what the tool does is for the guide's toolbar step, not repeated on every hover
+    await expect(toolBtn(app, name)).toHaveAttribute("data-tip", `${name}　${key}`);
   }
   await focusStage(app);
   await app.page.keyboard.press("r");

@@ -84,6 +84,7 @@ export const SHORTCUT_GROUPS: { title: string; items: [string[], ShortcutLabel][
       [["↑ ↓ ← →"], "sc.notes.nudge"],
       [["Enter / Delete"], "sc.notes.editDelete"],
       [["Ctrl", "Z"], "sc.notes.undo"],
+      [["Ctrl", "Shift", "Z"], "cmd.redo"],
       [["Esc"], "sc.notes.cancel"],
     ],
   },

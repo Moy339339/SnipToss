@@ -74,8 +74,11 @@ test("Copying from the context menu with several library rows selected copies wh
   await expect(card(app, "fold01")).toBeVisible();
   await row(app, "poster.jpg").click({ button: "right" });
   const copy = app.page.getByRole("menuitem", { name: /复制批注成文字/ });
-  await expect(copy).toContainText("2 条");
+  // The item carries no count (only the shortcut); the toast says how many were handed over
+  await expect(copy.locator(".menu-hint")).toHaveText("Ctrl C");
   await copy.click();
+  // One item and the folder's comment: the folder is not counted as an item (as with right-click copy on a single row)
+  await expect(app.page.locator(".toast")).toHaveText("已复制 2 条批注（文字）");
   await expect.poll(() => app.clipboard()).toContain(FOLDER);
   expect(await app.clipboard()).toContain(HERO);
   expect(await app.clipboard()).not.toContain(CLIP);
@@ -90,8 +93,10 @@ test("The project row in the library counts and copies the group of missing item
 
   await row(app, "project").click({ button: "right" });
   const copy = app.page.getByRole("menuitem", { name: /复制批注成文字/ });
-  await expect(copy).toContainText("2 条");
+  // The item carries no count (only the shortcut); the toast counts the missing item too
+  await expect(copy.locator(".menu-hint")).toHaveText("Ctrl C");
   await copy.click();
+  await expect(app.page.locator(".toast")).toContainText("已复制「project」中 2 个素材的 2 条批注");
   await expect.poll(() => app.clipboard()).toContain(CLIP);
   expect(await app.clipboard()).toContain(HERO);
 

@@ -28,6 +28,10 @@ struct CaptureSettings {
     /// shortcut"). Windows has `Ctrl+Alt+A`; on the Mac ⌥⌘A is taken by other programs (Finder's Deselect All, Word, Pages, Xcode)
     var hotkey = "Control+Ctrl+Alt+A"
     var hotkeyCustom = false
+    /// Whether the shortcut worked (registered, or none was wanted) at the previous start; nil = no start recorded yet. The user is told
+    /// about the shortcut only when this changes (it worked last time and does not now): not at every start, and not on the first one, when
+    /// the Capture hint after the tutorial shows the key in effect. Same key and meaning as the Windows shell's
+    var hotkeyWorked: Bool?
     var keepInTray = true
     var trayHintShown = false
     var selectHintDone = false
@@ -186,6 +190,7 @@ extension SettingsValues {
         var cap = OrderedJSONObject()
         cap.set("Hotkey", capture.hotkey)
         cap.set("HotkeyCustom", capture.hotkeyCustom)
+        cap.set("HotkeyWorked", jsonOrNull(capture.hotkeyWorked))
         cap.set("KeepInTray", capture.keepInTray)
         cap.set("TrayHintShown", capture.trayHintShown)
         cap.set("SelectHintDone", capture.selectHintDone)
@@ -253,6 +258,7 @@ extension SettingsValues {
             let defaults = CaptureSettings()
             values.capture.hotkey = try JSONField.string(cap["Hotkey"], "Capture.Hotkey") ?? defaults.hotkey
             values.capture.hotkeyCustom = try JSONField.bool(cap["HotkeyCustom"], "Capture.HotkeyCustom") ?? defaults.hotkeyCustom
+            values.capture.hotkeyWorked = try JSONField.bool(cap["HotkeyWorked"], "Capture.HotkeyWorked")
             values.capture.keepInTray = try JSONField.bool(cap["KeepInTray"], "Capture.KeepInTray") ?? defaults.keepInTray
             values.capture.trayHintShown = try JSONField.bool(cap["TrayHintShown"], "Capture.TrayHintShown") ?? defaults.trayHintShown
             values.capture.selectHintDone = try JSONField.bool(cap["SelectHintDone"], "Capture.SelectHintDone") ?? defaults.selectHintDone
@@ -346,8 +352,11 @@ private enum JSONField {
 /// the previous file as .bak.
 /// Thread-safe: bridge methods run concurrently, and every change goes through `update`, one at a time
 final class Settings {
-    /// Migrations that exist. The Mac shell has no earlier version, so a file it creates starts here and `migrations` never lags behind
-    static let latestMigration = 1
+    /// Migrations that exist; a newly created file starts at the latest. Numbered as in the Windows shell, whose files the Mac one reads:
+    /// 1 (Windows only: the UI language of earlier Windows versions; nothing to do on the Mac).
+    /// 2 (1.5.0): the shortcut is announced only when it changes (`CaptureSettings.hotkeyWorked`). Someone upgrading has been using their
+    ///   shortcut, so it counts as having worked: if it no longer registers they are told once. A new install starts with nothing to unlearn
+    static let latestMigration = 2
 
     static var location: String { AppPaths.settingsFile }
 
@@ -437,6 +446,16 @@ final class Settings {
 
     static func load() -> Settings {
         load(from: location)
+    }
+
+    /// Runs the one-time migrations this file has not had yet (`latestMigration`), each recorded when done. At startup, before anything
+    /// reads what they change
+    func migrate() {
+        guard migrations < Settings.latestMigration else { return }
+        update { values in
+            if values.migrations < 2, values.capture.hotkeyWorked == nil { values.capture.hotkeyWorked = true }
+            values.migrations = Settings.latestMigration
+        }
     }
 
     static func load(from path: String) -> Settings {

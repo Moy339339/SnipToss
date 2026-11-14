@@ -44,7 +44,7 @@ test("a new version found automatically after startup: the title bar pill shows 
   app.host.announceUpdate({ version: "1.1.0", url: "https://github.com/Moy339339/SnipToss/releases/tag/v1.1.0", prerelease: false });
   const pill = app.page.locator(".titlebar-update");
   await expect(pill).toHaveText("有新版本");
-  await expect(pill).toHaveAttribute("title", "v1.1.0 已发布：单击打开下载页");
+  await expect(pill).toHaveAttribute("title", "下载 v1.1.0");
   await expect(toast(app)).toHaveCount(0);
   await pill.click();
   await expect.poll(() => app.host.opened.at(-1)).toBe("https://github.com/Moy339339/SnipToss/releases/tag/v1.1.0");
@@ -65,10 +65,10 @@ test("Settings → General → Check for updates automatically: on by default, a
   await app.open();
   await app.page.keyboard.press("Control+,");
   const row = app.page.locator(".set-row", { hasText: "自动检查更新" });
-  await expect(row).toContainText("只查询版本号，不发送个人信息");
+  await expect(row).toContainText("每天最多向 GitHub 查询一次版本号，不发送个人信息。");
   await expect(row.getByRole("switch")).toHaveAttribute("aria-checked", "true");
   await row.getByRole("switch").click();
   await expect.poll(() => app.host.prefs?.updateCheck).toBe(false);
   await app.page.locator(".settings-tab", { hasText: /^关于$/ }).click();
-  await expect(app.page.locator(".set-row", { hasText: "隐私" })).toContainText("程序只在检查更新时联网");
+  await expect(app.page.locator(".set-row", { hasText: "隐私" })).toContainText("只在检查更新时联网");
 });

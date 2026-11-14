@@ -44,6 +44,8 @@ export function SettingsDialog(props: {
   initial?: Section;
   /** Differs on every open request: when Settings is already open and asked to open again (the toast's "Open Settings"), switch to the initial page */
   request?: number;
+  /** A setting on the initial page to scroll to and point out for a moment (the name given to its Row) */
+  row?: string;
 }) {
   const [section, setSection] = useState<Section>(props.initial && SECTIONS.includes(props.initial) ? props.initial : "general");
   // Asked to open again (initial / request changed): switch to that page by comparing with the previous render during rendering (the React docs' "adjusting state based on the previous render" pattern, same as panelScope.ts; an effect would render one extra time)
@@ -52,6 +54,25 @@ export function SettingsDialog(props: {
     setSeenAsk({ initial: props.initial, request: props.request });
     if (props.initial && SECTIONS.includes(props.initial)) setSection(props.initial);
   }
+  // Asked for one setting: bring its row into view and flash it (a class on the DOM, gone when the page is left)
+  const body = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    // request: asking again for the same row points it out again
+    if (!props.row || props.request === undefined) return;
+    const row = body.current?.querySelector<HTMLElement>(`[data-row="${CSS.escape(props.row)}"]`);
+    if (!row) return;
+    row.classList.add("is-pointed");
+    // Rows that wait for the shell (tray, launch at startup) come in a moment later and push it down: bring it into view again then
+    const scroll = () => row.scrollIntoView({ block: "center" });
+    scroll();
+    const again = [100, 300, 600].map((ms) => window.setTimeout(scroll, ms));
+    const timer = window.setTimeout(() => row.classList.remove("is-pointed"), 3200);
+    return () => {
+      again.forEach(clearTimeout);
+      clearTimeout(timer);
+      row.classList.remove("is-pointed");
+    };
+  }, [props.row, props.request]);
   // While recording a shortcut, Esc means "cancel recording", not close Settings
   const [recording, setRecording] = useState(false);
   /** The "Restore Defaults" confirm dialog is open: Esc and Enter belong to it */
@@ -90,7 +111,6 @@ export function SettingsDialog(props: {
               {t(`settings.${s}.title`)}
             </button>
           ))}
-          <div className="settings-nav-foot muted">{t("settings.applyNow")}</div>
         </nav>
         {/* × sits on the dialog, not inside the scrolling content area, so it does not move when the content scrolls. No tooltip (everyone knows ×); the name is for screen readers */}
         <button className="dialog-close settings-close" onClick={props.onClose} aria-label={t("settings.close")}>
@@ -102,7 +122,7 @@ export function SettingsDialog(props: {
           <div className="settings-head">
             <h2>{t(`settings.${section}.title`)}</h2>
           </div>
-          <div className="settings-body" key={section}>
+          <div className="settings-body" key={section} ref={body}>
             {section === "general" && <General home={props.home} onNotify={props.onNotify} />}
             {section === "annotate" && <Annotate />}
             {section === "capture" && <Capture onNotify={props.onNotify} onRecording={setRecording} />}
@@ -139,9 +159,10 @@ export function SettingsDialog(props: {
 
 // ---------- Widgets ----------
 
-function Row(props: { label: string; desc?: ReactNode; children: ReactNode; wide?: boolean }) {
+/** name: what the row is called when Settings is asked to point it out (SettingsDialog's row) */
+function Row(props: { label: string; desc?: ReactNode; children: ReactNode; wide?: boolean; name?: string }) {
   return (
-    <div className={`set-row${props.wide ? " is-wide" : ""}`}>
+    <div className={`set-row${props.wide ? " is-wide" : ""}`} data-row={props.name}>
       <div className="set-text">
         <div className="set-label">{props.label}</div>
         {props.desc && (
@@ -178,17 +199,6 @@ function Choice<T extends string | number>(props: { value: T; options: { value: 
           {o.label}
         </button>
       ))}
-    </div>
-  );
-}
-
-/** What a page is for, as the first thing in its content (the page title itself is in the fixed header above the content) */
-function PageDesc(props: { children: ReactNode }) {
-  return (
-    <div className="set-heading">
-      <p className="muted">
-        <KeepPunctuation>{props.children}</KeepPunctuation>
-      </p>
     </div>
   );
 }
@@ -349,14 +359,14 @@ function General(props: { home?: string; onNotify: (t: string) => void }) {
       >
         <LanguagePicker />
       </Row>
-      <Row label={t("settings.general.uiScale")} desc={t("settings.general.uiScaleDesc")}>
+      <Row label={t("settings.general.uiScale")}>
         <Choice
           value={prefs.uiScale}
           options={[0.9, 1, 1.1, 1.25].map((v) => ({ value: v, label: `${Math.round(v * 100)}%` }))}
           onChange={(v) => setPrefs({ uiScale: v })}
         />
       </Row>
-      <Row label={t("settings.general.backdrop")} desc={t("settings.general.backdropDesc")}>
+      <Row label={t("settings.general.backdrop")}>
         <Choice
           value={prefs.backdrop}
           options={[
@@ -396,6 +406,10 @@ function General(props: { home?: string; onNotify: (t: string) => void }) {
           ]}
           onChange={(v) => setPrefs({ initialSelect: v })}
         />
+      </Row>
+      {/* Beginner mode (onboarding.ts): one switch for everything that teaches, so whoever knows the app can turn it all off */}
+      <Row name="beginner" label={t("settings.general.beginner")}>
+        <Switch on={prefs.beginner} onChange={(v) => setPrefs({ beginner: v })} />
       </Row>
       <Row
         label={t("settings.general.storage")}
@@ -443,10 +457,10 @@ function Annotate() {
       <Row label={t("settings.annotate.autoCompose")} desc={t("settings.annotate.autoComposeDesc")}>
         <Switch on={prefs.autoCompose} onChange={(v) => setPrefs({ autoCompose: v })} />
       </Row>
-      <Row label={t("settings.annotate.pause")} desc={t("settings.annotate.pauseDesc")}>
+      <Row label={t("settings.annotate.pause")}>
         <Switch on={prefs.pauseOnAnnotate} onChange={(v) => setPrefs({ pauseOnAnnotate: v })} />
       </Row>
-      <Row label={t("settings.annotate.loop")} desc={t("settings.annotate.loopDesc")}>
+      <Row label={t("settings.annotate.loop")}>
         <Switch on={prefs.loop} onChange={(v) => setPrefs({ loop: v })} />
       </Row>
       <Row label={t("settings.annotate.timeFormat")} desc={t("settings.annotate.timeFormatDesc")}>
@@ -460,10 +474,10 @@ function Annotate() {
           onChange={(v) => setPrefs({ timeFormat: v })}
         />
       </Row>
-      <Row label={t("settings.annotate.showResolved")} desc={t("settings.annotate.showResolvedDesc")}>
+      <Row label={t("settings.annotate.showResolved")}>
         <Switch on={prefs.showResolved} onChange={(v) => setPrefs({ showResolved: v })} />
       </Row>
-      <Row label={t("settings.annotate.color")} desc={t("settings.annotate.colorDesc")}>
+      <Row label={t("settings.annotate.color")}>
         <div className="swatches">
           {MARK_COLORS.map((c) => swatch(c, colorName(intl, c)))}
           {/* After a divider: the recent custom colors and the hue disc that opens the color picker (same as the color rows on the canvas) */}
@@ -527,7 +541,6 @@ function Capture(props: { onNotify: (t: string) => void; onRecording: (on: boole
   };
   return (
     <>
-      <PageDesc>{t("settings.capture.desc")}</PageDesc>
       {/* Mac only: macOS must allow the app to record the screen before any capture starts */}
       {c.screenAccess !== undefined && (
         <Row
@@ -554,9 +567,7 @@ function Capture(props: { onNotify: (t: string) => void; onRecording: (on: boole
               {t("settings.capture.hotkeyTypes", { keys: keycaps(prettyKeys(c.hotkey), t), typed: c.hotkeyTypes })}
             </span>
           ) : (
-            <>
-              {t("settings.capture.hotkeyDesc")} {t("settings.capture.hotkeyConflict")}
-            </>
+            t("settings.capture.hotkeyDesc")
           )
         }
       >
@@ -675,13 +686,7 @@ function Ai() {
   const { prefs, setPrefs } = usePrefs();
   return (
     <>
-      <PageDesc>
-        {t("settings.ai.desc")}
-        <br />
-        {/* There is a single rule for the copy scope, worded the same as in shortcuts.md and design.md */}
-        {t("settings.ai.scope")}
-      </PageDesc>
-      <Row label={t("settings.ai.extra")} wide desc={t("settings.ai.extraDesc")}>
+      <Row label={t("settings.ai.extra")} wide>
         <textarea
           name="prompt-extra"
           className="text-area"
@@ -692,7 +697,7 @@ function Ai() {
           placeholder={t("settings.ai.extraPlaceholder")}
         />
       </Row>
-      <Row label={t("settings.ai.images")} desc={t("settings.ai.imagesDesc")}>
+      <Row label={t("settings.ai.images")}>
         <Choice
           value={prefs.copyImages}
           options={[
@@ -729,7 +734,6 @@ function MacSystem() {
   const t = useT();
   return (
     <>
-      <PageDesc>{t("settings.system.desc")}</PageDesc>
       <Row label={t("settings.system.openWith")} desc={t("settings.system.openWithDesc", { app: t("brand.name") })}>
         <span className="muted">{t("settings.system.dropOn")}</span>
       </Row>
@@ -770,7 +774,6 @@ function WindowsSystem(props: { onNotify: (t: string) => void }) {
   };
   return (
     <>
-      <PageDesc>{t("settings.system.desc")}</PageDesc>
       {loadError ? (
         <LoadError reason={loadError} onRetry={load} />
       ) : (
@@ -783,9 +786,6 @@ function WindowsSystem(props: { onNotify: (t: string) => void }) {
           </Row>
         )
       )}
-      <Row label={t("settings.system.drop")} desc={t("settings.system.dropDesc")}>
-        <span className="muted">{t("settings.system.dropOn")}</span>
-      </Row>
     </>
   );
 }
@@ -794,7 +794,6 @@ function Keys() {
   const t = useT();
   return (
     <>
-      <PageDesc>{t("settings.keys.desc")}</PageDesc>
       <div className="keys-grid">
         {shortcutGroups().map((g) => (
           <section key={g.title}>
@@ -829,7 +828,6 @@ function Advanced(props: { onNotify: (t: string) => void; onReset: () => void })
   };
   return (
     <>
-      <PageDesc>{t("settings.advanced.desc")}</PageDesc>
       {infoError && <LoadError reason={infoError} onRetry={loadInfo} />}
 
       <Group title={t("settings.advanced.notes")} />
@@ -850,7 +848,7 @@ function Advanced(props: { onNotify: (t: string) => void; onReset: () => void })
         <Switch on={prefs.holdTools} onChange={(v) => setPrefs({ holdTools: v })} />
       </Row>
 
-      <Group title={t("settings.advanced.list")} desc={t("settings.advanced.listDesc")} />
+      <Group title={t("settings.advanced.list")} />
       {kinds.map((k) => (
         <Row key={k.kind} label={t(`settings.advanced.kind.${k.kind}`)} desc={k.ext}>
           <Switch on={prefs.kinds[k.kind]} onChange={(v) => setPrefs({ kinds: { ...prefs.kinds, [k.kind]: v } })} />
@@ -1054,7 +1052,7 @@ function About(props: { onNotify: (t: string) => void; onNotices: () => void }) 
       <Row label={t("settings.about.license")} desc={t("settings.about.licenseName", { name: LICENSE_NAME })}>
         <Button onClick={() => void open(LICENSE_URL)}>{t("settings.about.view")}</Button>
       </Row>
-      <Row label={t("settings.about.notices")} desc={t("settings.about.noticesDesc")}>
+      <Row label={t("settings.about.notices")}>
         <Button onClick={props.onNotices}>{t("settings.about.view")}</Button>
       </Row>
       {/* Privacy: nothing is collected, uploaded or sent over the network, stated plainly so users can confidently drag in confidential work files */}

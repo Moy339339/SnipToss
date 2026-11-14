@@ -19,6 +19,7 @@
   --text: #e8e8ea;
   --text-2: #a9a9b0;
   --muted: #92929a; /* G2: on the side panel background 5.6:1, on the hover background 4.6 and on a selected row 4.6 (the earlier #8a8a92 had only 4.1 on hover and selected backgrounds) */
+  --faint: #7e7e86; /* a level below --muted, for a quiet aside: only on --bg, where it is 4.57:1 (G2); on the side panels and anything lighter it would fail */
   --accent: #5b8cff; /* interactive lines and text: progress, focus, the vertical line on the item that is open, the line for dragging a side panel */
   /* Solid interactive fill with white text and white shapes on it: primary button, current tool, checked checkbox, switch that is on.
      One step darker than --accent so white text passes 4.5:1 (G2; on #5b8cff it is only 3.16). Hover and pressed states are above 4.5 too */
@@ -469,12 +470,12 @@ kbd {
   .composer,
   .toast,
   .tooltip,
-  .tour-card,
+  .guide,
   .hint {
     outline: 1px solid CanvasText;
   }
-  /* The tour's highlight box: the outer shadow (dimming, blue ring) is removed and replaced with a box in the accent color */
-  .tour-hole {
+  /* The guide's ring: the shadow is removed and replaced with a box in the accent color */
+  .guide-ring {
     outline: 2px solid Highlight;
   }
   .lib-row.is-selected,
@@ -881,6 +882,22 @@ kbd {
   background: var(--hover);
   color: var(--text);
 }
+/* The capture shortcut does not work (another program holds it): a small dot on the icon's corner, in the warning color; the tooltip says why */
+.titlebar-capture-icon {
+  position: relative;
+  display: flex;
+}
+.titlebar-action.has-problem .titlebar-capture-icon::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warn);
+  box-shadow: 0 0 0 2px var(--bg);
+}
 /* Update available (updates.ts): a block of its own (not a split button), text in the accent color, set slightly apart from "Capture" */
 .titlebar-update {
   margin-right: 4px;
@@ -1269,21 +1286,6 @@ kbd {
   margin: 0 8px 8px; /* the 8 above comes from has-gap on the layer around the project row */
   background: var(--border);
 }
-.lib-empty {
-  padding: 32px 8px;
-  word-break: keep-all;
-  overflow-wrap: anywhere;
-  text-wrap: pretty;
-  text-align: center;
-}
-.lib-empty-title {
-  font-weight: 600;
-}
-.lib-empty p {
-  margin: 8px 0 0;
-  font-size: var(--fs-caption);
-  line-height: var(--lh-note);
-}
 /* Add Files and Add Folder, always present at the top of the library: the icons land on content line 16 (the buttons have 8 of padding of their own, so they shift out by 8) */
 .lib-header-actions {
   display: flex;
@@ -1544,74 +1546,56 @@ kbd {
   max-width: 720px;
   padding: 0 24px;
 }
-.welcome-lead,
-.welcome-step-body,
-.welcome-foot {
-  font-size: var(--fs-caption);
-  line-height: var(--lh-note);
+/* The welcome title is one level up from other empty canvases (S2): above the formats line and the 560 animation it has to lead, at 15 it read
+   like a caption of the animation. The other empty canvases (no access, can't open) keep 15 */
+.welcome .stage-empty-title {
+  margin-bottom: 8px;
+  font-size: var(--fs-heading);
+  line-height: var(--lh-heading);
 }
-.welcome-steps {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
-  width: 100%;
-  margin: 32px 0;
-  padding: 0;
-  list-style: none;
-}
-.welcome-steps li {
+/* Under the title: which formats can be dropped in, faint and small (the full list on hover); on --bg, so the faintest text color passes.
+   An image icon and a video icon, each followed by its formats, the two groups set apart; they wrap as whole groups in a narrow window */
+.welcome-formats {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-/* Step numbers use a neutral gray circle: annotation orange is for the annotations themselves and blue for interaction only (F5) */
-.welcome-num {
-  display: inline-flex;
-  align-items: center;
+  flex-wrap: wrap;
   justify-content: center;
-  width: var(--h-sm);
-  height: var(--h-sm);
-  margin-bottom: 4px;
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 1px var(--border-strong);
-  color: var(--text-2);
+  gap: 4px 20px;
+  max-width: 100%;
+  color: var(--faint);
   font-size: var(--fs-caption);
   line-height: var(--lh-caption);
 }
-.welcome-step-title {
-  color: var(--text);
+.welcome-formats-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
-@container (max-width: 640px) {
-  .welcome-steps {
-    grid-template-columns: minmax(0, 320px);
-    justify-content: center;
-    gap: 16px;
-    margin: 24px 0;
-  }
-  .welcome-steps li {
-    display: grid;
-    grid-template-columns: var(--h-sm) minmax(0, 1fr);
-    column-gap: 12px;
-    row-gap: 4px;
-    align-items: center;
-    text-align: start;
-  }
-  .welcome-num {
-    margin-bottom: 0;
-  }
-  .welcome-step-body {
-    grid-column: 2;
-  }
+.welcome-formats-group svg {
+  width: 14px;
+  height: 14px;
 }
+/* A format name never breaks or squeezes (in a very narrow canvas it would go one letter a line) */
+.welcome-formats-group > * {
+  flex: none;
+  white-space: nowrap;
+}
+/* Help → Getting Started shows the same page in a dialog, on a lighter background where --faint would fail G2 */
+.sheet-intro .welcome-formats {
+  color: var(--muted);
+}
+/* The animation that acts the loop out (Demo.tsx) */
+.welcome-demo {
+  width: 100%;
+  max-width: 560px;
+  margin-top: 24px;
+}
+/* Under the animation: the three ways to start */
 .welcome-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
-}
-.welcome-foot {
-  margin: 24px 0 0;
+  margin-top: 24px;
 }
 
 /* ---------- Zoomable canvas (ZoomView.tsx) ---------- */
@@ -1725,6 +1709,12 @@ kbd {
   font-size: var(--fs-caption);
   line-height: var(--lh-caption);
   white-space: nowrap;
+}
+/* A switch on the zoom bar that is on (plain backdrop): the same light cell as "Marks hidden" */
+.zoom-btn.is-on {
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  color: var(--text);
 }
 .zoom-sep {
   flex: none;
@@ -2216,17 +2206,13 @@ kbd {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
-/* A group with nothing in it, and "N more items have no notes" below: the text sits on the 44 line (8 + 24 + 12) */
-.group-empty,
-.group-rest {
+/* A group with nothing in it: the text sits on the 44 line (8 + 24 + 12) */
+.group-empty {
   margin-left: 24px;
   padding: 4px 12px;
   font-size: var(--fs-caption);
   line-height: var(--lh-caption);
   color: var(--muted);
-}
-.group-rest {
-  margin-top: 16px;
 }
 /* The group of folder comments: clicking its title opens nothing, and no hover background appears */
 .group-head.is-folder:not(.is-current):hover {

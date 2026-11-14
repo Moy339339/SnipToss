@@ -33,7 +33,8 @@ test("clicking the time in the playback bar cycles seconds → timecode → fram
   await openVideo(app, "clip.mp4");
   await seek(app, 1);
   await expect(readout(app)).toHaveText("00:01.000 / 00:03.000");
-  await expect(readout(app)).toHaveAttribute("title", "单击切换秒、时间码、帧号（15 帧/秒）");
+  // The tooltip names what a click does (and the frame rate), without spelling out the three formats
+  await expect(readout(app)).toHaveAttribute("title", "切换时间格式（15 帧/秒）");
 
   await readout(app).click();
   await expect(readout(app)).toHaveText("00:00:01:00 / 00:00:03:00");

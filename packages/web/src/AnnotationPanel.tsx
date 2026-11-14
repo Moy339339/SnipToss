@@ -27,7 +27,7 @@ import {
   MoreIcon,
   ReopenIcon,
   SearchIcon,
-  SparkIcon,
+  TextIcon,
   TrashIcon,
 } from "./icons";
 import { Menu, type MenuItem } from "./Menu";
@@ -65,8 +65,6 @@ export function AnnotationPanel(props: {
   renderItem: (it: Item) => ReactNode;
   /** Gray text after the name in a group title */
   groupHint: (m: MaterialEntry) => string;
-  /** How many items are not listed because they have no (open) notes */
-  hiddenGroups: number;
   selectMaterial: (m: MaterialEntry) => void;
   /** The group of an item that no longer exists: delete its whole notes file (asks first) */
   onDeleteMissing: (key: string) => void;
@@ -126,7 +124,6 @@ export function AnnotationPanel(props: {
     thisOne,
     renderItem,
     groupHint,
-    hiddenGroups,
     selectMaterial,
     onDeleteMissing,
     applyStatus,
@@ -466,14 +463,7 @@ export function AnnotationPanel(props: {
               );
             })
           : groups.map((g) => sectioned(g.key, g.items.filter(passes)))}
-        {grouped && hiddenGroups > 0 && (
-          <div className="group-rest">
-            {intl.formatMessage(
-              { id: filtering ? "panel.rest.filtered" : prefs.panelResolved ? "panel.rest.none" : "panel.rest.noOpen" },
-              { count: hiddenGroups },
-            )}
-          </div>
-        )}
+        {/* Items with nothing to show are simply not listed (no line counting them: the list shows what there is) */}
         {searching && passingCount === 0 && (
           <div className="panel-empty" role="status">
             <KeepPunctuation>
@@ -579,8 +569,9 @@ export function AnnotationPanel(props: {
             <span className="dock-all-text">{intl.formatMessage({ id: "panel.dock.all" })}</span>
           </button>
           {/* The two copy buttons form a group: when one row is too narrow the whole group wraps to a second row, right-aligned, unsplit */}
+          {/* Two ways to hand off, of equal weight (neither is the main one: which fits depends on the AI): as images for web-based AI
+              and chat apps (they cannot read local paths), as text for AI that reads the project's files. Each says "Copied" after its own copy */}
           <div className="dock-buttons">
-            {/* For web-based AI and chat apps: one image per note (they cannot read local paths) */}
             <button
               type="button"
               className="btn btn-secondary btn-small dock-images"
@@ -588,44 +579,48 @@ export function AnnotationPanel(props: {
               disabled={toCopy.length === 0}
               title={intl.formatMessage({ id: "app.copy.asImages.title" })}
             >
-              <KindIcon kind="image" />
-              <span>{intl.formatMessage({ id: "app.copy.asImages.button" })}</span>
+              {copied === "images" ? <CheckIcon /> : <KindIcon kind="image" />}
+              <CopyLabel copied={copied === "images"} label={intl.formatMessage({ id: "app.copy.asImages.button" })} />
             </button>
             <button
               type="button"
-              className="btn btn-primary btn-small dock-copy"
+              className="btn btn-secondary btn-small dock-copy"
               onClick={() => void copyCurrent()}
               disabled={toCopy.length === 0}
               title={copyTitle}
             >
-              {copied ? <CheckIcon /> : <SparkIcon />}
-              {/* "Copied" and the original label are stacked in the same cell, so the button doesn't widen or narrow */}
-              <span className="dock-copy-label" aria-live="polite">
-                <span className={copied ? "is-hidden" : undefined}>{intl.formatMessage({ id: "panel.dock.copy" })}</span>
-                <span className={copied ? undefined : "is-hidden"}>{intl.formatMessage({ id: "panel.dock.copied" })}</span>
-              </span>
+              {copied === "text" ? <CheckIcon /> : <TextIcon />}
+              <CopyLabel copied={copied === "text"} label={intl.formatMessage({ id: "panel.dock.copy" })} />
             </button>
           </div>
         </div>
       )}
-      {home && (
+      {/* Where the notes are, once there are some (a link that opens the folder); nothing to say before that */}
+      {home && homeHasNotes && (
         <div className="panel-footer">
-          {homeHasNotes ? (
-            <button
-              className="footer-link"
-              onClick={revealDataDir}
-              title={intl.formatMessage({ id: "panel.footer.title" }, { path: homeJoin(home, DATA_DIR) })}
-            >
-              <FolderIcon />
-              <span>
-                {intl.formatMessage({ id: "panel.footer.saved" }, { path: `${baseName(home) || home}${pathSep(home)}${DATA_DIR}` })}
-              </span>
-            </button>
-          ) : (
-            <span>{intl.formatMessage({ id: "panel.footer.auto" })}</span>
-          )}
+          <button
+            className="footer-link"
+            onClick={revealDataDir}
+            title={intl.formatMessage({ id: "panel.footer.title" }, { path: homeJoin(home, DATA_DIR) })}
+          >
+            <FolderIcon />
+            <span>
+              {intl.formatMessage({ id: "panel.footer.saved" }, { path: `${baseName(home) || home}${pathSep(home)}${DATA_DIR}` })}
+            </span>
+          </button>
         </div>
       )}
     </aside>
+  );
+}
+
+/** A copy button's words: "Copied" and the label stacked in the same cell, so the button doesn't widen or narrow */
+function CopyLabel(props: { copied: boolean; label: string }) {
+  const intl = useIntl();
+  return (
+    <span className="dock-copy-label" aria-live="polite">
+      <span className={props.copied ? "is-hidden" : undefined}>{props.label}</span>
+      <span className={props.copied ? undefined : "is-hidden"}>{intl.formatMessage({ id: "panel.dock.copied" })}</span>
+    </span>
   );
 }

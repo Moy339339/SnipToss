@@ -189,6 +189,13 @@ export const EyeIcon = () => (
     <circle cx="8" cy="8" r="2" />
   </I>
 );
+/** What is around the picture on the canvas (the switch on the zoom bar): a picture in a frame, the frame filled in (blurred backdrop) or empty (plain) */
+export const BackdropIcon = ({ plain }: { plain: boolean }) => (
+  <I>
+    <rect x="2" y="2.5" width="12" height="11" rx="2" fill={plain ? "none" : "currentColor"} fillOpacity={plain ? undefined : 0.35} />
+    <rect x="5" y="5.5" width="6" height="5" rx="0.5" fill="currentColor" stroke="none" />
+  </I>
+);
 /** Marks are hidden on the canvas: an eye with a diagonal slash */
 export const EyeOffIcon = () => (
   <I>
@@ -211,6 +218,13 @@ export const BanIcon = () => (
 export const TrashIcon = () => (
   <I>
     <path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.2a1 1 0 001 .8h3.8a1 1 0 001-.8l.6-8.2" />
+  </I>
+);
+/** Copy as Text: a page of lines (its partner, Copy as Images, has the picture) */
+export const TextIcon = () => (
+  <I>
+    <path d="M4 1.8h8a1 1 0 011 1v10.4a1 1 0 01-1 1H4a1 1 0 01-1-1V2.8a1 1 0 011-1z" />
+    <path d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3" />
   </I>
 );
 export const FileIcon = () => (

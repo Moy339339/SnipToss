@@ -40,8 +40,9 @@ final class SmokeRun {
         })()
         """
 
-    /// The onboarding tour card is on screen (first run, an item shown)
-    static let tourScript = "!!document.querySelector('.tour-card')"
+    /// The tutorial's card is on screen (first run, an item shown): Guide.tsx's `.guide`, made hidden and shown once it has been placed next to
+    /// the control of its step
+    static let tourScript = "(() => { const c = document.querySelector('.guide'); return !!c && getComputedStyle(c).visibility === 'visible'; })()"
 
     /// SNIPTOSS_SMOKE_READY picks what to wait for: `welcome` (default, an empty library), `image`, `tour`, `keys` (the welcome screen, then
     /// the key experiment of KeyExperiment.swift, whose answers go into result.json), `capture` (the welcome screen, then the capture
@@ -67,7 +68,7 @@ final class SmokeRun {
     static let probeScript = """
         (() => {
           const media = document.querySelector('.zoom-media');
-          const card = document.querySelector('.tour-card');
+          const card = document.querySelector('.guide');
           const parts = card
             ? Array.from(card.querySelectorAll('*')).slice(0, 12).map((el) => {
                 const s = getComputedStyle(el);

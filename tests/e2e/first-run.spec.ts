@@ -1,20 +1,32 @@
-// First use: with an empty list the middle of the canvas explains how to use the app; the add buttons are always there;
-// with the default Select tool, dragging on the image draws a box.
+// First use: with an empty list the middle of the canvas is the welcome page (what to drop in, the formats, the loop acted out, the ways to
+// start); the add buttons are always there; with the default Select tool, dragging on the image draws a box.
+// The first-run dialog and the tutorial that start from it are in onboarding.spec.ts (here they count as seen)
 
 import { join } from "node:path";
 import { expect, test } from "./harness";
 
-test("With an empty list, the middle of the canvas explains the three steps and lets you add directly; once there are items, the buttons at the top of the library still add", async ({ app }) => {
+test("With an empty list, the middle of the canvas says to drop files in, shows the main formats and the loop, and lets you add directly or take the tutorial; once there are items, the buttons at the top of the library still add", async ({
+  app,
+}) => {
   app.host.entries = [];
   await app.page.goto("https://app.sniptoss.example/index.html");
   const welcome = app.page.locator(".welcome");
   await expect(welcome).toBeVisible();
-  await expect(welcome.locator(".welcome-steps li")).toHaveCount(3);
-  await expect(welcome).toContainText("交给 AI");
-  // The Screen Capture shortcut is written into the text (it follows changes made in Settings)
-  await expect(welcome).toContainText("Ctrl Alt A");
-  // The library only talks about the list itself and does not repeat the "drag it in" hint
-  await expect(app.page.locator(".lib-empty")).toContainText("暂无素材");
+  await expect(welcome.locator(".stage-empty-title")).toHaveText("拖入文件或文件夹，开始批注");
+  // The formats line: an icon and the main formats for images and for videos, each with an ellipsis; the sentence for screen readers, the
+  // full list (with those turned on in Settings) on hover
+  const formats = welcome.locator(".welcome-formats");
+  await expect(formats.locator(".welcome-formats-group")).toHaveText(["PNGJPGWebPGIFSVG…", "MP4MOVWebM…"]);
+  await expect(formats).toHaveAttribute("aria-label", "支持图片（PNG、JPG、WebP、GIF、SVG…）和视频（MP4、MOV、WebM…）");
+  await expect(formats).toHaveAttribute("title", /^可批注的格式：图片 PNG、JPG、WebP、GIF、SVG、BMP、AVIF；视频 MP4、WebM、MOV、M4V；更多格式/);
+  await expect(welcome.locator(".welcome-demo .demo")).toBeVisible();
+  // No steps written out and no notes on saving or on Screen Capture (the animation shows the loop; each feature's first use brings its own hint)
+  await expect(welcome.locator(".welcome-steps")).toHaveCount(0);
+  await expect(welcome).not.toContainText("Ctrl Alt A");
+  await expect(welcome.locator(".welcome-actions button")).toHaveText(["添加文件", "添加文件夹", "新手教程"]);
+  // The empty library says nothing of its own (the canvas already does)
+  await expect(app.page.locator(".lib-row")).toHaveCount(0);
+  await expect(app.page.locator(".lib-empty")).toHaveCount(0);
 
   app.host.nextPickFolder = join(app.project, "assets");
   await welcome.getByRole("button", { name: "添加文件夹" }).click();

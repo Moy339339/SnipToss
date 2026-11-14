@@ -56,7 +56,8 @@ test("clicking three pins in a row: with the note box open, further clicks outsi
   // Clicking the same spot again (a quick double-tap): it doesn't stack another pin
   await app.page.mouse.click(...at(box, 0.2, 0.5));
   await expect(draftBadges(app)).toHaveCount(1);
-  await expect(app.page.locator(".composer-text")).toHaveAttribute("placeholder", "输入批注内容（可继续标记更多位置）");
+  // A short placeholder: that more places can be marked is the Pin tool's first-use hint, not repeated here
+  await expect(app.page.locator(".composer-text")).toHaveAttribute("placeholder", "输入批注内容");
   // This hint fits on one line in every language (it used to wrap onto two lines)
   const hints = readdirSync(LOCALES).map(
     (f) => (JSON.parse(readFileSync(join(LOCALES, f), "utf8")) as Record<string, string>)["composer.placeholderMarks"],
@@ -143,7 +144,7 @@ test("right-clicking one place of the note being written: Remove This Mark remov
   // Right-click the pin of the middle place
   const pin = (await draftBadges(app).nth(1).boundingBox())!;
   await app.page.mouse.click(pin.x + pin.width / 2, pin.y + pin.height / 2, { button: "right" });
-  await expect(menuRow(app, "移除此处标记")).toHaveAttribute("title", "仅移除此处，批注和其余标记保留");
+  await expect(menuRow(app, "移除此处标记")).not.toHaveAttribute("title");
   await menuRow(app, "移除此处标记").click();
   await expect(draftBadges(app)).toHaveCount(2);
   const a = await save(app, "两边的");

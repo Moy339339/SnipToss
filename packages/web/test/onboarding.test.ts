@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { placeNear, TOUR_STEPS } from "../src/onboarding";
+import { GUIDE_STEPS, placeNear, SAMPLE_BOX } from "../src/onboarding";
 
-// The tour's explanation cards and hints are placed beside their target (docs/design-rules.md: next to the thing they explain, never covering it)
+// The guide's cards and hints are placed beside their target (docs/design-rules.md: next to the thing they explain, never covering it)
 const AREA = { left: 8, top: 8, right: 1272, bottom: 792 };
 const SIZE = { w: 340, h: 160 };
 const ORDER = ["below", "above", "left", "right"] as const;
@@ -47,8 +47,15 @@ describe("placeNear", () => {
   });
 });
 
-describe("tour", () => {
-  it("only 3 steps (the tour stays short): drawing tools → notes panel → Screen Capture", () => {
-    expect(TOUR_STEPS.map((s) => s.id)).toEqual(["tools", "panel", "capture"]);
+describe("guide", () => {
+  it("only the four steps of one note, done by doing (the guide stays short): pick the rectangle → box a place → write → copy", () => {
+    expect(GUIDE_STEPS).toEqual(["tool", "mark", "write", "copy"]);
+  });
+
+  it("the place to box on the sample picture lies inside the picture", () => {
+    expect(SAMPLE_BOX.x).toBeGreaterThanOrEqual(0);
+    expect(SAMPLE_BOX.y).toBeGreaterThanOrEqual(0);
+    expect(SAMPLE_BOX.x + SAMPLE_BOX.w).toBeLessThanOrEqual(1);
+    expect(SAMPLE_BOX.y + SAMPLE_BOX.h).toBeLessThanOrEqual(1);
   });
 });

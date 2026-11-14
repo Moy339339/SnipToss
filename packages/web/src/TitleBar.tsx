@@ -11,6 +11,8 @@ import { MenuBar, type TopMenu } from "./MenuBar";
 export interface CaptureControls {
   /** Global shortcut, e.g. "Ctrl+Alt+A"; not set / not registered = empty */
   hotkey: string;
+  /** Why the shortcut does not work (another program holds it): the button carries a quiet mark and says why on hover */
+  problem?: string;
   /** The setting "Hide this window while capturing" */
   hide: boolean;
   start: () => void;
@@ -74,12 +76,15 @@ export function TitleBar(props: {
         </button>
       )}
       <div className="titlebar-split">
+        {/* The shortcut does not work: a small dot on the icon, and the tooltip says why (instead of the shortcut), whenever one looks; nothing pops up */}
         <button
-          className="titlebar-action"
+          className={`titlebar-action${capture.problem ? " has-problem" : ""}`}
           onClick={() => capture.start()}
-          title={intl.formatMessage({ id: "titlebar.captureTitle" }, { keys: keys || "none" })}
+          title={capture.problem ?? intl.formatMessage({ id: "titlebar.captureTitle" }, { keys: keys || "none" })}
         >
-          <CaptureIcon />
+          <span className="titlebar-capture-icon">
+            <CaptureIcon />
+          </span>
           {intl.formatMessage({ id: "titlebar.capture" })}
         </button>
         <Menu

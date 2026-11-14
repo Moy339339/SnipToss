@@ -142,7 +142,7 @@ test("only shortcuts are shown on the right of menu items, with explanations in 
   const top = app.page.getByRole("menuitemcheckbox", { name: "窗口置顶" });
   await expect(top).toBeVisible();
   await expect(top.locator(".menu-hint")).toHaveCount(0);
-  await expect(top).toHaveAttribute("title", "始终显示在其他窗口之上");
+  await expect(top).not.toHaveAttribute("title");
   await app.page.keyboard.press("Escape");
   await app.page.keyboard.press("Alt+v");
   await expect(menuItem(app, /^放大/).locator(".menu-hint")).toHaveText("Ctrl +");

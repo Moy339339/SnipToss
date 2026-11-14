@@ -64,8 +64,8 @@ A half step of 2px is only for tight gaps between controls (between buttons insi
 | `--fs-micro` | 11 / 16 | densely set pure digits and code: pixel readouts, hover time on the playback bar, code in Settings |
 | `--fs-caption` | 12 / 16 (18 for running text) | secondary information: paths, footers, hints, categories, timecodes, counts, numbers, keycaps |
 | `--fs-body` | 13 / 20 | interface default: list names, note text, menu items, buttons (including 28-high compact buttons); menu names in the title bar (as in Codex) |
-| `--fs-title` | 15 / 22 | dialog titles, the main line of an empty canvas, the speed indicator in the middle of the canvas |
-| `--fs-heading` | 18 / 26 | Settings page titles, the drop hint |
+| `--fs-title` | 15 / 22 | dialog titles, the main line of an empty canvas (no access, can't open), the speed indicator in the middle of the canvas |
+| `--fs-heading` | 18 / 26 | Settings page titles, the drop hint, the welcome title (empty library: it leads a formats line and the animation) |
 | `--fs-display` | 30 / 1 | **logo only**: the product name in Settings → About (twice the 15 at the top of the library) |
 
 The Chinese product name (超级批注) uses its own brand font (Noto Sans SC Medium, subset to just those four characters by `scripts/build-brand-font.mjs`) with 0.03em letter spacing,
@@ -201,6 +201,7 @@ When editing an existing note, the mark and its number together count as the bou
 | `--hover-over` | small blocks laid over a row's background (white 7%): hover on small buttons in a row, labels such as “Overall” and “Done” — still a distinct block when the row's hover or selection changes its background | hover of the row itself |
 | `--danger` / `--warn` | danger (red text, delete) / caution (yellow) | category colors |
 | `--text` / `--text-2` / `--muted` | primary / secondary / tertiary text | — |
+| `--faint` | a quiet aside one level below `--muted`, on `--bg` only (4.57:1 there): the formats line under the welcome title | anything on `--surface` or lighter (it fails G2 there); text that is needed to use a control |
 | `--accent` | lines and text for interaction: progress, focus, the vertical bar for “currently open”, the line for dragging a side panel; `--accent-soft` the background of a selected row, `--accent-edge` the outline of a selected row | notes; backgrounds for white text |
 | `--accent-fill` | solid fill for interaction, with white text and white glyphs on top: primary button, current tool, checked checkbox, switch that is on (one level each for hover / pressed, white text passes 4.5 on all) | lines and text |
 | `--hit` | background of search hits (notes panel search; pale blue 30%: search is interaction; `--text` on it is 8.9:1) | selected rows (use `--accent-soft`) |
@@ -246,12 +247,15 @@ List-like things (note cards, the library) use `↑` `↓` to move between entri
 The dangerous button in a confirmation dialog (Remove, Clear, Delete) is **red text on a 14% red fill** (`.btn-danger-soft`, 22% on hover), with text-to-fill contrast 4.8:1;
 no solid red — it is the only colored element in a confirmation dialog, and solid red would be too loud.
 
-**The tour and first-use hints** (`Tour.tsx`, `Hint.tsx`, `onboarding.ts`): the onboarding flow must be short.
-The tour covers only the main points, in **3 steps** (drawing tools → notes panel → Capture), each a title plus one or two sentences; it runs once automatically the first time an item is shown, can be skipped at any time, and can be taken again from Help → Feature Tour.
-It is a dialog: the whole window is darkened (the outer shadow of the highlight frame, the same as `--backdrop`), the highlight frame is 4 larger than the target with a 2px `--accent` ring, and the description card looks like a confirmation dialog (`--surface`, title 15 / 600, `--shadow-dialog`), one step narrower (340, padding 16 20 20);
-the card sits next to the target (S11: below → above → left → right, 12 from the target and 8 from the window edge). There is no separate welcome page: when the list is empty, the message in the middle of the canvas is the starting point.
-Finer details are not added as tour steps but as **first-use hints**: shown once, next to the control, as a floating layer (`--surface-2`, `--shadow-pop`, the same radius as menus, a small tip pointing at the middle of the control),
-without darkening and without taking focus; a click elsewhere dismisses it and that click takes effect as usual; once shown, it doesn't appear again. The first-use explanation of the capture overlay (WPF) is written below the magnifier and follows the cursor; it goes away after the first completed capture.
+**The first run, the guide and first-use hints** (`FirstRun.tsx`, `Guide.tsx`, `Demo.tsx`, `Hint.tsx`, `onboarding.ts`): the onboarding flow must be short, and it is done by doing.
+The first launch shows one dialog (the loop acted out, “Start Tutorial” and a quiet “Skip”). The guide runs on a sample picture the app ships (`addSample`): pick the rectangle → box the place → write → see the toolbar labeled → copy → done;
+the sample leaves the list at the end; “Tutorial” on the welcome page and in Help starts it again (always on the sample). Skipping the first-run dialog counts as having seen it. Only what the current step is done on stays lit and usable (the rest is `--backdrop`, the title bar stays usable); the lit control gets a breathing 2px `--accent` ring.
+The card sits right beside it with a caret pointing at it (S11 order per step, 12 from the target, 16 from the window edge) and holds a small animation of the step (`Demo.tsx`), the step's title and its count; **no sentence** except where nothing on screen can say it (which copy suits which AI).
+“Next” on a step does it for the user; the end is a card in the middle with a check and a short burst of confetti (just the check with reduced motion).
+**Guide illustrations** (`Demo.tsx` scenes): a simplified window in the interface's own colors and shapes (same tokens, no photos except the sample picture itself), one action per scene, looping; nothing in them is text to read.
+Finer details are **first-use hints**: shown once, next to the control, at the moment it is first used, as a floating layer (`--surface-2`, `--shadow-pop`, the same radius as menus, a small tip pointing at the middle of the control), with the feature's animation above one sentence,
+without darkening and without taking focus; a click elsewhere dismisses it and that click takes effect as usual; “Turn Off Beginner Mode” on any of them turns all of them off. The first-use explanation of the capture overlay (WPF) is written below the magnifier and follows the cursor; it goes away after the first completed capture.
+When the list is empty the canvas shows the welcome page: what to do (drop files or folders, `--fs-heading`), the formats line (`--faint`), the loop acted out and the ways to start.
 
 **Ask before changing things**: removing from the list, clearing and deleting notes always show a confirmation dialog first (`Confirm.tsx`: a × at the top right, a question as the title, the name of the thing being changed in the description in `--text` and in quotation marks,
 “Cancel” on the left and the dangerous action on the right, Enter confirms and Esc cancels); the action happens only after confirmation, and no toast with “Undo” follows (confirm before changing; don't rely on undo afterwards).
@@ -394,6 +398,9 @@ Patterns that are fine in one language and a calque in another are decided per l
 | 2026-10-27 | Sy1 | A tour added (step-by-step “Next”, like Adobe's) and small hints at first use; the onboarding flow must be short: the paragraph “The tour and first-use hints” added: the tour is 3 steps and looks like a dialog; finer details become hints shown once at the point of use that don't block the work; no separate welcome page |
 | 2026-10-28 | S4, F5 | When dragging the playback bar you couldn't tell which moment you had reached, and the Settings × wasn't in the corner: the time bubble above the playback bar now appears on drag, click and keyboard seek (15 / 600, `--floating` fill; before, only on hover and at size 11); the Settings × sits in the corner like the window close button (46 × 32) and turns `--mark` on hover (the one exception to F5); dialog × buttons show no tooltip. Not adopted: aligning the × with the “Settings” title and 11 from the corner (it still didn't look like it reached the corner) |
 | 2026-10-28 | Sy1 | Now that SVG can be annotated, the common black line icons were invisible on the dark canvas: images with transparency get a light checkerboard behind them (white + `--checker`, as in image editors), tiled the same way in screenshots; when the system extension is missing and a HEIC can't be opened, two buttons sit side by side below the description (go to the Microsoft Store + Show in File Explorer). Not adopted: filling the transparent area with white (white icons would disappear); doing it only for SVG (PNG icons with alpha are invisible too) |
+| 2026-11-14 | Sy1 | The 3-step tour became a guide done by doing on a sample picture (first-run dialog, one lit control per step, cards with an animation and only a title, done with a check and confetti), and hints got animations: the paragraph on onboarding rewritten, guide illustrations added |
+| 2026-11-14 | G2, Sy | The formats line under the welcome title had to be quieter than `--muted`: `--faint #7e7e86` added, the faintest text that still passes G2, and only on `--bg` (4.57:1; on `--surface` it would fail). Not adopted: fading it with opacity (G1 trap), going below 4.5:1 |
+| 2026-11-14 | S2 | The formats line became icons + format names; at 15 the welcome title was narrower than that line and only 1.25× its size, reading like a caption of the animation: the welcome title moved to `--fs-heading` (18 / 26), 8 above the formats line. Not adopted: the images and videos on two lines (three short lines stack with no hierarchy, the two icons don't line up, and the page grows taller) |
 
 ## Checks
 

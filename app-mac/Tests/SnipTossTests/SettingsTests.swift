@@ -28,6 +28,36 @@ final class SettingsTests: SnipTestCase {
         XCTAssertTrue(s.library.isEmpty)
         XCTAssertNil(s.startupNotice)
         XCTAssertEqual(s.migrations, Settings.latestMigration)
+        // A new install has nothing to unlearn: whether the shortcut worked is not known until the first start has registered it
+        s.migrate()
+        XCTAssertNil(s.capture.hotkeyWorked)
+    }
+
+    /// Migration 2: someone upgrading has been using their shortcut, so it counts as having worked, and losing it is said once. Run once:
+    /// what a later start records is not overwritten
+    func testAnUpgradedFileCountsTheShortcutAsHavingWorkedOnce() {
+        let dir = makeTempDir()
+        let path = dir + "/settings.json"
+        writeText("{ \"Capture\": { \"Hotkey\": \"Control+Ctrl+Alt+K\" }, \"Migrations\": 1 }", to: path)
+        let s = Settings.load(from: path)
+        s.migrate()
+        XCTAssertEqual(s.capture.hotkeyWorked, true)
+        XCTAssertEqual(s.migrations, 2)
+        XCTAssertEqual(Settings.load(from: path).current.capture.hotkeyWorked, true, "written to the file")
+        XCTAssertEqual(s.capture.hotkey, "Control+Ctrl+Alt+K", "nothing else changes")
+
+        s.update { $0.capture.hotkeyWorked = false }
+        let again = Settings.load(from: path)
+        again.migrate()
+        XCTAssertEqual(again.capture.hotkeyWorked, false)
+
+        // A value already there (a file the Windows shell migrated) is kept
+        let other = dir + "/other.json"
+        writeText("{ \"Capture\": { \"HotkeyWorked\": false }, \"Migrations\": 0 }", to: other)
+        let w = Settings.load(from: other)
+        w.migrate()
+        XCTAssertEqual(w.capture.hotkeyWorked, false)
+        XCTAssertEqual(w.migrations, 2)
     }
 
     func testAutomaticUpdateCheckIsOffOnlyWhenWrittenAsFalse() {
@@ -296,6 +326,7 @@ final class SettingsTests: SnipTestCase {
         XCTAssertFalse(v.placement.maximized)
         XCTAssertFalse(v.topmost)
         XCTAssertEqual(v.capture.hotkey, "Control+Ctrl+Alt+A")
+        XCTAssertNil(v.capture.hotkeyWorked)
         XCTAssertTrue(v.capture.keepInTray)
         XCTAssertTrue(v.capture.hideWindow)
         XCTAssertTrue(v.capture.notesInImage)
@@ -317,7 +348,7 @@ final class SettingsTests: SnipTestCase {
               "Placement": { "Left": "NaN", "Top": 12.5, "Width": 1200, "Height": 800, "Maximized": true },
               "Topmost": true,
               "Prefs": { "language": "en", "moreFormats": true, "kinds": { "video": false } },
-              "Capture": { "Hotkey": "Ctrl+Alt+K", "HotkeyCustom": true, "KeepInTray": false, "TrayHintShown": true, "SelectHintDone": true,
+              "Capture": { "Hotkey": "Ctrl+Alt+K", "HotkeyCustom": true, "HotkeyWorked": true, "KeepInTray": false, "TrayHintShown": true, "SelectHintDone": true,
                 "DrawingHintDone": true, "HideWindow": false, "NotesInImage": false, "Folder": "/Users/me/shots" },
               "SkipDirs": [ "node_modules" ],
               "MarkColor": "#ff6a3d",
@@ -345,6 +376,7 @@ final class SettingsTests: SnipTestCase {
         XCTAssertEqual(v.enabledKinds, ["image", "more"])
         XCTAssertEqual(v.capture.hotkey, "Ctrl+Alt+K")
         XCTAssertTrue(v.capture.hotkeyCustom)
+        XCTAssertEqual(v.capture.hotkeyWorked, true)
         XCTAssertFalse(v.capture.keepInTray)
         XCTAssertTrue(v.capture.trayHintShown)
         XCTAssertTrue(v.capture.selectHintDone)
@@ -376,7 +408,9 @@ final class SettingsTests: SnipTestCase {
         XCTAssertTrue(text.contains("    \"Width\": 1360,\n"))
         XCTAssertTrue(text.contains("    \"note\": \"say \\\"hi\\\"\\n\\t/ done\",\n"), "slashes are not escaped")
         XCTAssertTrue(text.contains("    \"alpha\": [\n      true,\n      null\n    ],\n"), "preferences keep booleans and null, keys sorted")
-        XCTAssertTrue(text.contains("  \"UpdatesCheckedAt\": null,\n  \"UpdateSkipped\": null,\n  \"Migrations\": 1\n}"))
+        XCTAssertTrue(text.contains("  \"UpdatesCheckedAt\": null,\n  \"UpdateSkipped\": null,\n  \"Migrations\": 2\n}"))
+        // Not known yet on a new file (written as null, as the Windows shell writes a bool? it never set), right after HotkeyCustom
+        XCTAssertTrue(text.contains("    \"HotkeyCustom\": false,\n    \"HotkeyWorked\": null,\n    \"KeepInTray\": true,\n"), text)
         let keys = [
             "\"Library\"", "\"Expanded\"", "\"Collapsed\"", "\"Selected\"", "\"Placement\"", "\"Topmost\"", "\"Prefs\"", "\"Capture\"",
             "\"UpdatesCheckedAt\"", "\"UpdateSkipped\"", "\"Migrations\"",

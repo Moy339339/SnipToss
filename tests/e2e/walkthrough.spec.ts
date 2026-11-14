@@ -300,7 +300,9 @@ test("deleting hand-picked notes: after checking them, Delete at the bottom or t
   await app.page.locator(".panel-batch").getByRole("button", { name: "删除" }).click();
   const dialog = app.page.getByRole("alertdialog");
   await expect(dialog).toContainText("删除勾选的 2 条批注？");
-  await expect(dialog).toContainText("2 条批注（分属 2 个素材）将被删除。");
+  // The title says what goes; the body only says it can be undone (no "… will be deleted" repeating the title)
+  await expect(dialog).toContainText("可按 Ctrl Z 撤销。");
+  await expect(dialog).not.toContainText("将被删除");
   await dialog.getByRole("button", { name: "删除" }).click();
   await expect(toast(app)).toContainText("已删除 2 条批注");
   await expect.poll(() => ids(HERO).includes("k3f9a2")).toBe(false);
@@ -404,7 +406,7 @@ test("writing a note: Enter saves and Shift+Enter inserts a new line, as in Scre
   await app.open();
   await focusStage(app);
   await app.page.keyboard.press("n");
-  await expect(app.page.locator(".composer")).toContainText("Enter 保存 · Shift Enter 换行");
+  await expect(app.page.locator(".composer")).toContainText("保存Enter");
   const text = app.page.locator(".composer-text");
   await text.pressSequentially("第一行");
   await text.press("Shift+Enter");

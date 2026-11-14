@@ -45,10 +45,14 @@ function Assert-NoTestHooks([string] $dll) {
 
 if ($Out) {
     if ($TestHooks -and $Out -notmatch 'tests[\\/]shell[\\/]\.app') { throw '-TestHooks is only for building to tests/shell/.app (shell tests)' }
+    # The version the UI is built with (root package.json), not the csproj's, which only changes on an install: otherwise a test build
+    # made right after a new beta series starts shows the red "≠ app" version tag
+    $uiVersion = ([IO.File]::ReadAllText((Join-Path $root 'package.json')) | ConvertFrom-Json).version
+    $versionProp = "-p:Version=$uiVersion"
     if ($Publish) {
-        & $dotnet publish $project -c $Configuration -r win-x64 --self-contained true -p:PublishReadyToRun=true -o $Out -nologo -v quiet --disable-build-servers $hooks
+        & $dotnet publish $project -c $Configuration -r win-x64 --self-contained true -p:PublishReadyToRun=true -o $Out -nologo -v quiet --disable-build-servers $hooks $versionProp
     } else {
-        & $dotnet build $project -c $Configuration -o $Out -nologo -v quiet --disable-build-servers $hooks
+        & $dotnet build $project -c $Configuration -o $Out -nologo -v quiet --disable-build-servers $hooks $versionProp
     }
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     Remove-LegacyFiles

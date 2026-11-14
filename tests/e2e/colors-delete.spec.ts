@@ -289,7 +289,11 @@ for (const scale of [1, 1.25]) {
     const box = await app.media();
     await app.page.mouse.click(...at(box, 0.15, 0.3));
     await expect(composer(app)).toBeVisible();
-    await expect(app.page.locator(".composer-grip")).toHaveAttribute("data-tip", "拖动可移动");
+    // The grip and the move cursor on the title row say it can be dragged: the grip has no tooltip
+    await expect(app.page.locator(".composer-grip")).toBeVisible();
+    await expect(app.page.locator(".composer-grip")).not.toHaveAttribute("data-tip");
+    await expect(app.page.locator(".composer-grip")).not.toHaveAttribute("title");
+    expect(await app.page.locator(".composer-title").evaluate((el) => getComputedStyle(el).cursor)).toBe("move");
     await settled(composer(app));
     const before = (await composer(app).boundingBox())!;
     const title = (await app.page.locator(".composer-title").boundingBox())!;

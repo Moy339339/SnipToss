@@ -150,6 +150,8 @@ interface Methods {
   /** Ctrl+V: files copied in File Explorer (same as dragging them in) or an image (saved into the "Pasted images" folder) from the clipboard */
   pasteClipboard: [void, AddResult];
   pickFiles: [void, string[]];
+  /** Put the sample picture that ships with the app into the Sample folder (appInfo.sampleDir), add that folder to the library and locate the picture */
+  addSample: [void, AddResult];
   /** title: the dialog title (if omitted, "Add Item Folder") */
   pickFolder: [{ title?: string }, string | null];
   /** Point a library entry that can no longer be found to a new location (moved, renamed): replaced in place, with pinning and position unchanged */
@@ -312,10 +314,13 @@ export interface CaptureSettings {
   /** The character this key combination would type in the installed keyboard layouts (AltGr = Ctrl+Alt, e.g. Polish ą); "" = types nothing */
   hotkeyTypes: string;
   /**
-   * At this launch the default shortcut would have typed a character and the shell replaced it (present only for that one launch); to =
-   * "" means no alternative worked and no shortcut is used
+   * At this launch the default shortcut would have typed a character and the shell replaced it, and the user had been using it. Given once,
+   * in the first reply after the launch; to = "" means no alternative worked and no shortcut is used. Not given on the first launch, when
+   * there is nothing to unlearn
    */
   hotkeyMoved: { from: string; to: string; typed: string } | null;
+  /** The shortcut worked at the previous launch and does not now (another program took it). Given once, like hotkeyMoved */
+  hotkeyLost?: boolean;
   keepInTray: boolean;
   hideWindow: boolean;
   notesInImage: boolean;
@@ -358,6 +363,8 @@ export interface AppInfo {
   logDir: string;
   /** The folder where images pasted with Ctrl+V are put: shown in the library as "Pasted images" */
   pastedDir?: string;
+  /** The folder the sample picture is put in ("Try a Sample"): shown in the library as "Sample". Absent when the shell cannot add the sample */
+  sampleDir?: string;
   /**
    * Portable build (a data folder next to the app holds all data): writes no registry, and the context menu and start-with-Windows
    * switches in Settings are greyed out

@@ -77,7 +77,9 @@ test("Delete All Notes… asks first (stating how many will be deleted and how m
   await menuItem(app, /^删除全部批注…/).click();
   const dialog = app.page.getByRole("alertdialog");
   await expect(dialog).toContainText("删除批注栏中列出的全部 3 条批注？");
-  await expect(dialog).toContainText("3 条批注将被删除。");
+  // The title already says what goes: the body doesn't repeat "will be deleted", only what stays and how to undo
+  await expect(dialog).not.toContainText("将被删除");
+  await expect(dialog).toContainText("可按 Ctrl Z 撤销");
   // done01 is done and the notes panel doesn't show resolved notes: it isn't deleted, and the dialog says so
   await expect(dialog).toContainText("另有 1 条未列出");
   await dialog.getByRole("button", { name: "删除" }).click();
@@ -99,7 +101,8 @@ test("while searching only the matches are deleted; with a single note listed th
   await menuItem(app, /^删除全部批注…/).click();
   const dialog = app.page.getByRole("alertdialog");
   await expect(dialog).toContainText("删除批注栏中列出的全部 1 条批注？");
-  await expect(dialog).toContainText("「标题字太细了，换成粗一点的黑体」将被删除。");
+  await expect(dialog).toContainText("「标题字太细了，换成粗一点的黑体」");
+  await expect(dialog).not.toContainText("将被删除");
   await expect(dialog).toContainText("另有 3 条未列出");
   await app.page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);

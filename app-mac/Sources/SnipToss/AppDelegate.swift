@@ -51,6 +51,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     private var settingsOpener: SettingsOpener!
     /// Says at startup that the capture shortcut couldn't be enabled
     private let hotkeyNotice = HotKeyNotice()
+    /// Whether the capture shortcut stopped working since the last start, said once
+    private let hotkeyChange = HotKeyChange()
     /// Removes empty notes folders and keeps their snapshots for undo while the app runs (HomeTidy)
     private let tidy = HomeTidy()
     /// The screen capture; in the capture smoke runs its pictures are a made-up pattern, never the real screen, except in the timing one,
@@ -91,6 +93,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             exit(1)
         }
         let settings = Settings.load()
+        settings.migrate()
         self.settings = settings
         // The shell's own words (menus, tray, messages) are in the language the UI is in, from the first one on
         ShellLocale.use(pref: settings.current.language)
@@ -123,9 +126,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             runOnMain { updates.pageReady() }
         })
         // What is opened from outside before the page has read the library waits in `pendingOpens` for that first read
+        // The tutorial's picture ships with the UI; without it the page offers no tutorial on a sample (no `sampleDir`)
+        let sample = Sample.source(ui: root)
         installLibraryMethods(
             into: bridge, settings: settings, pending: pendingOpens.take, prefsChanged: { runOnMain { updates.prefsChanged() } }, homes: homes,
-            tidy: tidy)
+            tidy: tidy, sampleDir: sample == nil ? nil : AppPaths.sampleDir)
+        if let sample { installSampleMethods(into: bridge, settings: settings, source: sample) }
         let dropped = DroppedPaths()
         installDropMethods(into: bridge, settings: settings, dropped: dropped)
         installClipboardMethods(into: bridge, settings: settings)
@@ -133,6 +139,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         let hotkey = GlobalHotKey(backend: CarbonHotKeyBackend(), onPressed: { [weak self] in self?.captureHotKeyPressed() })
         hotkey.error = hotkey.set(settings.capture.hotkey)
         self.hotkey = hotkey
+        hotkeyChange.startup(settings: settings, works: hotkey.error == nil)
         SmokeNotes.record("hotkey", ["asked": settings.capture.hotkey, "registered": hotkey.current ?? "", "error": hotkey.error ?? "none"])
         // Capture from the page (the title bar's Capture, File → Capture Screen…): the call returns when the capture is over
         bridge.register("captureStart") { [weak self] _ in
@@ -144,7 +151,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             return nil
         }
         installCaptureSettingsMethods(
-            into: bridge, settings: settings, hotkey: hotkey, access: SystemScreenAccess(),
+            into: bridge, settings: settings, hotkey: hotkey, change: hotkeyChange, access: SystemScreenAccess(),
             // A test instance never touches the login item (it belongs to the installed copy, which has the same identity)
             loginItem: AppPaths.isTestInstance ? nil : SystemLoginItem()
         ) { [weak self] keepInTray in
@@ -253,27 +260,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         let initial = LaunchArguments.paths(from: CommandLine.arguments) + earlyOpens
         earlyOpens = []
         if !initial.isEmpty { opens.open(initial) }
-        tellIfHotKeyFailed(hotkey)
+        tellIfHotKeyFailed(hotkey, windowShown: !atLogin)
     }
 
-    /// At startup: when the capture shortcut couldn't be registered (another app holds it, or the stored one is not a shortcut), a notice
-    /// says so and leads to Settings → Screen Capture, and the log says why (HotKeyNotice). Started at login with no window, pressing the
-    /// shortcut would otherwise do nothing and say nothing. Smoke runs only record it, except the `hotkeyNotice` one, which shows it for a
-    /// reason made up there (nothing holds the shortcut on a CI machine). The made-up reason is kept as the shortcut's error, so the rest of
-    /// the app sees the failure too: the note under Capture Screen in the menu bar item's menu, and Settings → Screen Capture
-    private func tellIfHotKeyFailed(_ hotkey: GlobalHotKey) {
+    /// At startup, when the capture shortcut couldn't be registered (another app holds it, or the stored one is not a shortcut): the log
+    /// says why, and the user is told once, only when it worked at the previous start (HotKeyChange). With the window up the page says it
+    /// (and its Capture button keeps a mark that says why); started at login with no window, the notice at the top right says it and leads
+    /// to Settings → Screen Capture (HotKeyNotice), since pressing the shortcut would otherwise do nothing and say nothing. Smoke runs only
+    /// record it, except the `hotkeyNotice` one, which shows the notice for a reason made up there (nothing holds the shortcut on a CI
+    /// machine). The made-up reason is kept as the shortcut's error, so the rest of the app sees the failure too: the note under Capture
+    /// Screen in the menu bar item's menu, and Settings → Screen Capture
+    private func tellIfHotKeyFailed(_ hotkey: GlobalHotKey, windowShown: Bool) {
         var reason = hotkey.error
-        if Self.smokeMode == "hotkeyNotice" {
+        let madeUp = Self.smokeMode == "hotkeyNotice"
+        if madeUp {
             let keys = HotKeySpec.parse(settings.capture.hotkey)?.symbols ?? settings.capture.hotkey
             reason = ShellText.t("shell.hotkey.taken", ["keys": keys])
             hotkey.error = reason
         }
         guard let reason else { return }
         Log.info("Screen Capture shortcut could not be registered: \(reason)")
-        if Self.smokeMode != nil && Self.smokeMode != "hotkeyNotice" {
+        if Self.smokeMode != nil && !madeUp {
             SmokeNotes.record("hotkeyNotice", ["shown": false, "reason": reason])
             return
         }
+        // Taken here, so the page does not say it again when the window is opened later
+        guard madeUp || (!windowShown && hotkeyChange.take()) else { return }
         hotkeyNotice.show(title: ShellText.t("shell.tray.hotkeyFailed"), body: HotKeyNotice.body(reason: reason)) {
             [weak self] in self?.openSettingsPage(section: "capture")
         }
@@ -319,6 +331,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     /// screen before the picture is taken. The wait (180 ms) is the Windows shell's: long enough for the window server to take a window down
     private func startCapture(fromWindow: Bool = false, fromMenu: Bool = false, whenClosed done: @escaping () -> Void = {}) {
         let hide = fromWindow && settings.capture.hideWindow && window.isVisible && !window.isMiniaturized
+        // Without the permission no picture is taken: only the window that asks for it comes up, over this one, which stays where it is
+        if !captureSession.screenAllowed {
+            captureSession.start(whenClosed: done)
+            return
+        }
         if !hide && !fromMenu {
             captureSession.start(whenClosed: done)
             return

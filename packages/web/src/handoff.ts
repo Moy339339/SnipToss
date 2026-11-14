@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { useIntl } from "react-intl";
 import { renderHandoff, type HandoffMaterial, type MaterialFile, type Translate } from "@sniptoss/core";
-import { blockedReason, fileKey, type Stored } from "./annotationStore";
+import { blockedReason, fileKey, isFolderKey, type Stored } from "./annotationStore";
 import { buildPages } from "./handoffPages";
 import type { PlanNote } from "./handoffPlan";
 import { baseName, call, keyOf, logError, type MaterialEntry } from "./host";
@@ -112,14 +112,17 @@ export function useHandoff(opts: {
   const translate: Translate = (id, values) => intl.formatMessage({ id }, values);
   /** What the bottom button and Ctrl+Shift+A hand over: the checked notes if any are checked, otherwise all open notes the notes panel lists */
   const toCopy = checkedList.length > 0 ? checkedList : openList;
-  /** The button shows "Copied": this records which copy it was, and another copy within 1.6 seconds restarts the timer */
-  const [copiedAt, setCopiedAt] = useState(0);
-  const copied = copiedAt > 0;
+  /**
+   * The button of the last copy (as text or as images) shows "Copied": this records which way and which copy it was, and another copy within
+   * 1.6 seconds restarts the timer
+   */
+  const [copiedAs, setCopiedAs] = useState<{ mode: HandoffMode; n: number }>();
+  const copied = copiedAs?.mode;
   useEffect(() => {
-    if (!copiedAt) return;
-    const t = setTimeout(() => setCopiedAt(0), 1600);
+    if (!copiedAs) return;
+    const t = setTimeout(() => setCopiedAs(undefined), 1600);
     return () => clearTimeout(t);
-  }, [copiedAt]);
+  }, [copiedAs]);
   /** "this image" / "this video": called the same in the notes panel, in toasts and in the text copied for AI */
   const thisKind = (kind: string) => intl.formatMessage({ id: "app.kind.this" }, { kind });
   /**
@@ -290,13 +293,10 @@ export function useHandoff(opts: {
   };
   const copyOne = (it: Item, mode: HandoffMode = "text") =>
     void handOff(handoffOf([it]), () => intl.formatMessage({ id: "app.copy.done.one" }), mode);
+  /** How many items these notes are spread over: a folder's comments are not an item (counted as in copyMaterials) */
+  const itemsIn = (items: Item[]) => new Set(items.filter((it) => !isFolderKey(it.key)).map((it) => it.key)).size;
   /** How many items the notes to copy are spread over */
-  const copyMaterialCount = new Set(toCopy.map((it) => it.key)).size;
-  /**
-   * How many items the open notes listed in the notes panel are spread over (what right-click copy hands over when several rows are
-   * selected in the library)
-   */
-  const listedMaterialCount = new Set(openList.map((it) => it.key)).size;
+  const copyMaterialCount = itemsIn(toCopy);
   /**
    * There is a single rule for the copy scope: the checked notes if any are checked, otherwise all open notes the notes panel lists.
    * The bottom button of the notes panel, Ctrl+Shift+A, the Edit menu and right-click on blank canvas space all go through here.
@@ -313,7 +313,7 @@ export function useHandoff(opts: {
           ? intl.formatMessage({ id: "app.copy.noneListed" })
           : intl.formatMessage({ id: "app.copy.noneThis" }, { this: thisKind(current!.kind) }),
       );
-    const materials = new Set(items.map((it) => it.key)).size;
+    const materials = itemsIn(items);
     // "Copied 3 checked notes" / "Copied 4 notes on this video" / "Copied 9 notes on 3 items"
     const done = (count: number) =>
       byCheck
@@ -323,7 +323,7 @@ export function useHandoff(opts: {
           : materials > 1
             ? intl.formatMessage({ id: "app.copy.done.materials" }, { materials, count })
             : intl.formatMessage({ id: "app.copy.done.count" }, { count });
-    if ((await handOff(handoffOf(items), done, mode)) && mode === "text" && !listed) setCopiedAt((n) => n + 1);
+    if ((await handOff(handoffOf(items), done, mode)) && !listed) setCopiedAs((c) => ({ mode, n: (c?.n ?? 0) + 1 }));
   };
   // The bottom button shows no count and always says "Copy for AI"; how many are checked is shown on the left as "N selected"
   // (a button saying "1 note" with nothing checked looks like one is checked; the number either follows the checks or is not on the button at all,
@@ -369,5 +369,5 @@ export function useHandoff(opts: {
     );
   };
 
-  return { toCopy, copied, thisKind, copyOne, copyCurrent, copyMaterials, copyTitle, listedMaterialCount, openItems };
+  return { toCopy, copied, thisKind, copyOne, copyCurrent, copyMaterials, copyTitle, openItems };
 }

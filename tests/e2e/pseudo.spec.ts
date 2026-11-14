@@ -9,6 +9,7 @@ import { prepare, usePseudo, walkScreens, welcome } from "./screens";
 /** Never translated: file names of the test items, key names, the version number, units, file formats, names of folders skipped by default */
 const ALLOWED = new Set([
   "hero", "png", "clip", "mp4", "assets", "video", "project", "sniptoss", "snapshots", "tester", // tester: the Windows user name given by the mock host
+  "landing", "page", // the tutorial's sample picture, landing-page.jpg
   "jpg", "webp", "gif", "bmp", "avif", "webm", "mov", "JPEG", "node", "modules", "bin", "obj", "dist", "build", "pycache", "venv", "beta",
   "svg", "tiff", "heic", "ico", "mkv", "apng", "jfif", "SVG", "TIFF", "HEIC", "ICO", "MKV", "HEIF", "HEVC",
   "Ctrl", "Shift", "Alt", "Esc", "Enter", "Tab", "Delete", "Backspace", "Win", "Home", "End", "PageUp", "PageDown", "Insert",

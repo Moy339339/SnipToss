@@ -330,83 +330,167 @@
   font: inherit;
 }
 
-/* ---------- Onboarding tour (Tour.tsx) and first-use hints (Hint.tsx) ---------- */
+/* ---------- Onboarding guide (Guide.tsx) and first-use hints (Hint.tsx) ---------- */
 
-/* One layer over the whole window, blocking the mouse from reaching what is behind; the dimming comes from the highlight box's outer shadow (dimming only outside the box). On the same layer as dialogs: menus and tooltips are above it */
-.tour {
-  -webkit-app-region: no-drag; /* must not become a window drag area when covering the title bar */
-  app-region: no-drag;
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-}
-/* The highlight box: wraps the target with a 2px blue ring (the interactive color) + dims the whole window outside it (same as the dialogs' --backdrop). It slides over on step changes (the transition is added only after the first placement, so it does not fly in from the top-left) */
-.tour-hole {
+/* The guide: a small window in the corner of the canvas area with an animation of the step to take (placed by Guide.tsx every frame).
+   Above the shades that dim what the step does not use, below dialogs */
+.guide {
   position: fixed;
   left: 0;
   top: 0;
-  border-radius: var(--r-group);
-  box-shadow:
-    0 0 0 2px var(--accent),
-    0 0 0 200vmax var(--backdrop);
-  pointer-events: none;
-}
-.tour-hole[data-ready],
-.tour-card[data-ready] {
-  transition-property: left, top, width, height;
-  transition-duration: var(--dur-slow);
-  transition-timing-function: var(--ease);
-}
-/* The card: looks like a dialog (the window behind is dimmed), narrower than the confirm dialog, one step smaller on every side */
-.tour-card {
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: min(340px, calc(var(--vw) - 32px));
-  padding: 16px 20px 20px;
+  z-index: 56;
+  width: 320px;
+  max-width: calc(var(--vw) - 32px);
+  padding: 12px;
   border-radius: var(--r-dialog);
   background: var(--surface);
   box-shadow:
     inset 0 0 0 1px var(--border-strong),
-    var(--shadow-dialog);
+    var(--shadow-pop);
   animation: sheet-in var(--dur) var(--ease) both;
 }
-.tour-head {
+/* It slides to the next place when the step changes (added after the first placement, so it does not fly in from the corner) */
+.guide[data-ready] {
+  transition:
+    left var(--dur-slow) var(--ease),
+    top var(--dur-slow) var(--ease);
+}
+/* The caret points at what the step is about (--caret-x / --caret-y and data-side are set by Guide.tsx): a square rotated 45° with its
+   center on the edge that faces it, only the two outward edges stroked. None when the card is in the corner */
+.guide[data-side]::before {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--surface);
+}
+.guide[data-side="below"]::before {
+  left: var(--caret-x);
+  top: -6px;
+  border-left: 1px solid var(--border-strong);
+  border-top: 1px solid var(--border-strong);
+  transform: translateX(-50%) rotate(45deg);
+}
+.guide[data-side="above"]::before {
+  left: var(--caret-x);
+  bottom: -6px;
+  border-right: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border-strong);
+  transform: translateX(-50%) rotate(45deg);
+}
+.guide[data-side="right"]::before {
+  left: -6px;
+  top: var(--caret-y);
+  border-left: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border-strong);
+  transform: translateY(-50%) rotate(45deg);
+}
+.guide[data-side="left"]::before {
+  right: -6px;
+  top: var(--caret-y);
+  border-right: 1px solid var(--border-strong);
+  border-top: 1px solid var(--border-strong);
+  transform: translateY(-50%) rotate(45deg);
+}
+/* What holds the guide's pieces (it only stops right-clicks from reaching the canvas area): no box of its own, each piece is fixed */
+.guide-layer {
+  display: contents;
+}
+/* Four of these cover everything below the title bar except what the step is done on: dimmed like behind a dialog, and they take the presses */
+.guide-shade {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+  position: fixed;
+  z-index: 55;
+  background: var(--backdrop);
+}
+/* Over what a step lights only to explain it (the toolbar, the overall comment): nothing shows, presses stop here */
+.guide-cover {
+  background: none;
+}
+/* Where to drag on the sample picture: a dashed box */
+.guide-drag {
+  position: fixed;
+  z-index: 55;
+  border-radius: 2px;
+  outline: 2px dashed var(--mark);
+  box-shadow: 0 0 0 1px var(--casing);
+  pointer-events: none;
+}
+.guide-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 8px;
+  margin-top: 12px;
 }
-.tour-title {
-  font-size: var(--fs-title);
-  line-height: var(--lh-title);
+.guide-title {
   font-weight: 600;
 }
-.tour-count {
+.guide-count {
   flex: none;
   color: var(--muted);
   font-size: var(--fs-caption);
   line-height: var(--lh-caption);
   font-variant-numeric: tabular-nums;
 }
-.tour-body {
+.guide-body {
+  margin-top: 4px;
   color: var(--text-2);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-note);
   word-break: keep-all;
   overflow-wrap: anywhere;
   text-wrap: pretty;
 }
-/* "Skip" on the left, "Back" and "Next" on the right; the last step has only "Done" */
-.tour-actions {
+/* "Skip" on the left, "Next" on the right */
+.guide-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 8px;
-  margin-top: 20px;
+  margin-top: 12px;
 }
-.tour-skip {
-  margin-right: auto;
+/* The end (a check and confetti, demo.css): centered, one button */
+.guide[data-step="done"],
+.guide[data-step="done"] .guide-head,
+.guide[data-step="done"] .guide-actions {
+  justify-content: center;
+  text-align: center;
 }
-
+/* The ring around the control a step uses: the interactive color, breathing; lets every press through */
+.guide-ring {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 55;
+  border-radius: var(--r-group);
+  box-shadow: 0 0 0 2px var(--accent);
+  pointer-events: none;
+  animation: guide-ring 1.6s ease-in-out infinite;
+}
+@keyframes guide-ring {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px var(--accent),
+      0 0 0 2px var(--accent-edge);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px var(--accent),
+      0 0 0 8px transparent;
+  }
+}
+/* On the steps that only explain, the ring holds still (breathing reads as "press here") */
+.guide-ring:is([data-step="tools"], [data-step="whole"]) {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .guide-ring,
+  .guide-callout {
+    animation: none;
+  }
+}
 /* Hint: looks like a floating layer (same as menus), no dimming. Above the composer and the color bar, below dialogs */
 .hint {
   position: fixed;
@@ -422,6 +506,18 @@
     inset 0 0 0 1px var(--border-strong),
     var(--shadow-pop);
   animation: sheet-in var(--dur) var(--ease) both;
+}
+/* With an animation of the feature above the words (Hint.tsx): as wide as the guide's window */
+.hint[data-demo] {
+  width: 320px;
+  max-width: calc(var(--vw) - 16px);
+}
+.hint[data-demo] .hint-text {
+  margin-top: 12px;
+}
+/* "Turn Off Beginner Mode": quiet, at the other end from "OK" */
+.hint-off {
+  margin-right: auto;
 }
 .hint-text {
   word-break: keep-all;
@@ -888,13 +984,16 @@
 .composer-foot {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
   margin-top: 12px;
 }
-.composer-hint {
-  flex: 1;
-  font-size: var(--fs-caption);
-  line-height: var(--lh-caption);
+/* The key that saves, on the Save button: a keycap in the button's own colors */
+.composer-foot .btn-primary kbd {
+  margin: 0 -2px 0 8px;
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: none;
+  color: inherit;
 }
 
 /* ---------- Toast (App.tsx) ---------- */
@@ -982,7 +1081,6 @@
   text-align: center;
 }
 .drop-title {
-  margin-bottom: 4px;
   font-size: var(--fs-heading);
   line-height: var(--lh-heading);
   font-weight: 600;
@@ -1043,6 +1141,102 @@
   mask-image: linear-gradient(to bottom, black calc(100% - 24px), transparent);
 }
 /* Help → Getting Started: only three steps and two buttons, narrower than the shortcut list */
+/* While the guide is on, hover tooltips are off: the guide is what explains, and a tooltip on the lit control would cover its card */
+html[data-guide] .tooltip {
+  display: none;
+}
+/* The first-run dialog and the guide leave the title bar uncovered, so the window can still be moved, minimized and closed;
+   the menus and Screen Capture in it are off meanwhile (set by FirstRun.tsx and Guide.tsx) */
+.overlay-under-bar {
+  top: calc(var(--h-bar) + 1px);
+}
+html[data-guided] .titlebar :is(.menubar, .titlebar-split, .titlebar-update) {
+  pointer-events: none;
+  opacity: var(--disabled);
+}
+/* The toolbar step: every tool labeled at once (placed by Guide.tsx: left = the middle of the tool's button, top = under the toolbar,
+   --drop = how far down its row is, --n = its row). A line drops from the button and turns to the label on its right; the rows appear
+   one after the other */
+.guide-callout {
+  position: fixed;
+  z-index: 56;
+  pointer-events: none;
+  animation: sheet-in var(--dur-slow) var(--ease) both;
+  animation-delay: calc(var(--n, 0) * 60ms);
+}
+.guide-callout i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 12px;
+  height: var(--drop);
+  border-left: 1px solid var(--accent);
+  border-bottom: 1px solid var(--accent);
+  border-bottom-left-radius: var(--r-control);
+}
+.guide-callout span {
+  position: absolute;
+  left: 16px;
+  top: var(--drop);
+  transform: translateY(-50%);
+  width: max-content;
+  padding: 2px 8px;
+  border-radius: var(--r-control);
+  background: var(--surface-2);
+  box-shadow:
+    inset 0 0 0 1px var(--border-strong),
+    var(--shadow-pop);
+  color: var(--text-2);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-note);
+}
+.guide-callout b {
+  margin-right: 8px;
+  color: var(--text);
+  font-weight: 600;
+}
+/* The dialog on the very first launch (FirstRun.tsx): the animation of the whole loop, the main sentence, one line, and two buttons
+   ("Skip" quiet on the left, "Start Tutorial" on the right). In a short window the animation shrinks so the buttons stay in view */
+.firstrun {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(640px, calc(var(--vw) - 64px));
+  max-height: calc(var(--vh) - 96px);
+  padding: 24px;
+  border-radius: var(--r-dialog);
+  background: var(--surface);
+  box-shadow:
+    inset 0 0 0 1px var(--border-strong),
+    var(--shadow-dialog);
+  text-align: center;
+  animation: sheet-in var(--dur) var(--ease) both;
+}
+.firstrun-demo {
+  width: 100%;
+  max-width: calc((var(--vh) - 96px - 200px) * 1.6);
+  min-width: 0;
+}
+.firstrun-title {
+  margin-top: 20px;
+  font-size: var(--fs-heading);
+  line-height: var(--lh-heading);
+  font-weight: 600;
+}
+.firstrun-body {
+  margin-top: 4px;
+  color: var(--text-2);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+.firstrun-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin-top: 24px;
+}
 .sheet-intro {
   width: min(720px, calc(var(--vw) - 64px));
 }
@@ -1365,11 +1559,6 @@
   color: #fff;
   color: oklch(from var(--mark) clamp(0.2, (0.9 - l) * 1000, 1) 0 0);
 }
-/* A page's description, the first thing in its content */
-.set-heading {
-  margin-bottom: 8px;
-}
-.set-heading p,
 .shortcut-row {
   word-break: keep-all;
   overflow-wrap: anywhere;
@@ -1378,12 +1567,6 @@
 .about-mark {
   padding: 16px 0 24px;
   border-bottom: 1px solid var(--border);
-}
-.set-heading p {
-  max-width: 560px;
-  margin: 4px 0 0;
-  font-size: var(--fs-caption);
-  line-height: var(--lh-note);
 }
 /* A group within a page (Settings → Advanced): the group name is a subheading, like the group names in the shortcut list; 24 of space from the previous group */
 .set-group {
@@ -1401,6 +1584,19 @@
   gap: 24px;
   padding: 16px 0;
   border-bottom: 1px solid var(--border);
+}
+/* Settings was opened to point out this row (SettingsDialog's row): it flashes a few times */
+.set-row.is-pointed {
+  border-radius: var(--r-control);
+  animation: row-pointed 0.8s var(--ease) 4 alternate;
+}
+@keyframes row-pointed {
+  to {
+    background: var(--accent-soft);
+    box-shadow:
+      -8px 0 0 var(--accent-soft),
+      8px 0 0 var(--accent-soft);
+  }
 }
 .set-row.is-wide {
   flex-direction: column;

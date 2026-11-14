@@ -197,14 +197,15 @@ test("Typing in the filter box and then clicking a row with the mouse shows no k
 
 // ---------- Empty list, startup ----------
 
-test("An empty list shows \"No items yet\" in the library, no filter box and \"list is empty\" in the footer; cancelling the add dialog changes nothing, and the filter box appears once something is added", async ({ app }) => {
+test("An empty list says nothing in the library (the canvas beside it is the welcome page), with no filter box and no footer stats; cancelling the add dialog changes nothing, and the filter box appears once something is added", async ({ app }) => {
   app.host.entries = [];
   await app.page.goto("https://app.sniptoss.example/index.html");
-  await expect(app.page.locator(".lib-empty")).toContainText("暂无素材");
-  await expect(app.page.locator(".lib-empty")).toContainText("从列表中移除不会删除文件");
-  await expect(app.page.getByPlaceholder("筛选素材")).toHaveCount(0);
-  await expect(app.page.locator(".footer-stats")).toHaveText("列表为空");
   await expect(app.page.locator(".welcome")).toBeVisible();
+  // The library itself writes nothing: neither an explanation in the list nor "list is empty" in the footer
+  await expect(app.page.locator(".lib-empty")).toHaveCount(0);
+  await expect(app.page.locator(".lib-list")).toHaveText("");
+  await expect(app.page.getByPlaceholder("筛选素材")).toHaveCount(0);
+  await expect(app.page.locator(".footer-stats")).toHaveText("");
   await expect(app.page.locator(".lib-header-actions button")).toHaveCount(2);
   // Right-click on blank space: list actions are grayed out, adding works as usual
   await list(app).click({ button: "right", position: { x: 20, y: 200 } });
@@ -216,7 +217,8 @@ test("An empty list shows \"No items yet\" in the library, no filter box and \"l
   await app.page.locator(".welcome").getByRole("button", { name: "添加文件", exact: true }).click();
   await expect.poll(() => app.host.calls.some((c) => c.method === "pickFiles")).toBe(true);
   expect(app.host.calls.some((c) => c.method === "libraryAdd")).toBe(false);
-  await expect(app.page.locator(".lib-empty")).toBeVisible();
+  await expect(app.page.locator(".welcome")).toBeVisible();
+  await expect(app.page.locator(".lib-row")).toHaveCount(0);
   // Add Files at the top of the library: adds and opens the file
   app.host.nextPickFiles = [HERO(app)];
   await app.page.locator(".lib-header-actions button").first().click();
@@ -367,7 +369,7 @@ test("A missing entry is struck through and grayed with a plain file icon; a cli
   await expect(r).toHaveAttribute("aria-selected", "true");
   await expect(app.page).toHaveTitle("hero.png");
   await r.click({ button: "right" });
-  expect(await menuLabels(app)).toEqual(["定位…", "复制批注成文字", "复制批注成图片", "从列表中移除", "清空列表…"]);
+  expect(await menuLabels(app)).toEqual(["定位…", "复制批注成文字", "复制批注成图片", "从列表中移除"]);
   await app.page.keyboard.press("Escape");
   copyFileSync(HERO(app), gone);
   await expect(r).not.toHaveClass(/is-missing/, { timeout: 8000 });
@@ -777,14 +779,14 @@ test("Filtering searches by project name / path, case-insensitively; each row sh
   await expect(row(app, "poster.jpg")).toBeVisible();
 });
 
-test("Rows in the filter results open when clicked, and their context menu has the two Copy items, Show in File Explorer and Clear Library but no Remove", async ({ app }) => {
+test("Rows in the filter results open when clicked, and their context menu has the two Copy items and Show in File Explorer, but no Remove or Clear Library", async ({ app }) => {
   await app.open();
   const search = app.page.getByPlaceholder("筛选素材");
   await search.fill("poster");
   await row(app, "poster.jpg").click();
   await expect(app.page).toHaveTitle("poster.jpg");
   await row(app, "poster.jpg").click({ button: "right" });
-  expect(await menuLabels(app)).toEqual(["复制批注成文字", "复制批注成图片", "在资源管理器中显示", "清空列表…"]);
+  expect(await menuLabels(app)).toEqual(["复制批注成文字", "复制批注成图片", "在资源管理器中显示"]);
   await expect(app.page.locator(".menu .menu-item").first()).toBeDisabled();
   await menuItem(app, "在资源管理器中显示").click();
   expect(app.host.revealed.at(-1)).toBe(join(app.project, "assets", "poster.jpg"));

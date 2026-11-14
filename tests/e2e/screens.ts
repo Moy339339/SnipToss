@@ -1,19 +1,32 @@
 // Opens every screen of the UI once: overflow detection (overflow.spec.ts), pseudo-localization (pseudo.spec.ts) and the per-language screenshots (i18n-shots.spec.ts)
 // share this one walkthrough, so a new screen added here is checked by all three. visit(screen name) is called once per screen.
-// The welcome page needs an empty library and goes through welcome() instead
+// The welcome page on its own needs an empty library and goes through welcome(); the walk ends on it too, after the first launch
+// (the first-run dialog and the tutorial on the sample picture)
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse, TYPE, type MessageFormatElement } from "@formatjs/icu-messageformat-parser";
 import { printAST } from "@formatjs/icu-messageformat-parser/printer.js";
 import { expect, ROOT, type App } from "./harness";
+import { ONBOARDED } from "./mock-host";
 
-/** Set before the UI opens: the UI language; the tour doesn't start by itself (it is opened from the Help menu at the end) and the video hint is left for last */
+/** The first-use hints the walk passes by on the way (each where its feature is first used); the one next to Capture follows the tutorial */
+const PASSED_BY = ["hint.pin", "hint.color", "hint.copy", "hint.drawing", "hint.video"];
+/** What a first launch has not seen yet: the first-run dialog, the tutorial and the hint that follows it */
+const FIRST_LAUNCH = ["welcome", "tour", "hint.capture"];
+
+/**
+ * Set before the UI opens: the UI language; nothing of the onboarding comes by itself but the hints the walk passes by (the first-run
+ * dialog and the tutorial come at the end, from an empty library)
+ */
 export function prepare(app: App, language: string) {
   app.host.onboarded = false;
   app.host.expanded = [join(app.project, "assets"), join(app.project, "video")];
-  app.host.prefs = { language, onboarding: ["tour", "hint.copy"] };
+  app.host.prefs = { language, onboarding: ONBOARDED.filter((k) => !PASSED_BY.includes(k)) };
 }
+
+/** The steps of the tutorial, in order (onboarding.ts: the four done by doing, with the toolbar between writing and copying, and the end) */
+export const GUIDE_STEPS = ["tool", "mark", "write", "tools", "copy", "done"];
 
 export async function walkScreens(app: App, visit: (screen: string) => Promise<void>) {
   const page = app.page;
@@ -53,16 +66,29 @@ export async function walkScreens(app: App, visit: (screen: string) => Promise<v
     await expect(page.locator(".menu")).toHaveCount(0);
   }
 
-  // The note box (the pin lands outside the frames that already exist in the test item) and the confirm dialog before deleting
+  // The Pin tool picked for the first time brings its hint; then the note box (the pin lands outside the frames that already exist in the
+  // test item), with the hint about recoloring next to the first mark drawn
+  const hint = (id: string) => page.locator(`.hint[data-hint="${id}"]`);
+  const layer = page.locator(".annot-layer");
   await page.locator(".stage").click({ position: { x: 5, y: 5 } });
   await page.keyboard.press("c");
-  const media = (await page.locator(".zoom-media").boundingBox())!;
+  await expect(hint("pin")).toBeVisible();
+  await visit("图钉的提示");
+  // Esc closes only the hint (the tool stays): in the longer languages the hint reaches down over the picture
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".hint")).toHaveCount(0);
+  await expect(layer).toHaveClass(/tool-point/);
+  const media = await app.media();
   await page.mouse.click(media.x + media.width * 0.8, media.y + media.height * 0.75);
   await expect(page.locator(".composer")).toBeVisible();
+  await expect(hint("color")).toBeVisible();
   await visit("写批注小窗");
+  await page.keyboard.press("Escape"); // The hint first
+  await expect(page.locator(".hint")).toHaveCount(0);
   await page.keyboard.press("Escape");
   await expect(page.locator(".composer")).toHaveCount(0);
   await page.keyboard.press("Escape"); // Back to the Select tool
+  await expect(layer).toHaveClass(/tool-select/);
   await page.locator('[data-annot$="|k3f9a2"] .card-body').click();
   await page.keyboard.press("Delete");
   await expect(page.getByRole("alertdialog")).toBeVisible();
@@ -101,29 +127,67 @@ export async function walkScreens(app: App, visit: (screen: string) => Promise<v
   await visit("快捷键一览");
   await page.keyboard.press("Escape");
 
-  // The three steps of the onboarding tour (the second Help menu item, Feature Tour) and the hint shown when a video is opened
-  if (native) {
-    // The menus the shell has are the ones with the shortcut list still open until the page has sent them again: a command from those is dropped
-    await expect.poll(() => app.host.menusSent.at(-1)?.modal).toBe(false);
-    const sent = app.host.menusSent[app.host.menusSent.length - 1];
-    const help = sent.menus[sent.menus.length - 1].items as { id: string; label: string }[];
-    app.host.chooseMenuItem(help.find((item) => item.label === "Feature Tour")!.id, sent.version);
-  } else {
-    await tops.last().click();
-    await page.locator(".menu [role=menuitem]").nth(1).click();
-  }
-  for (let i = 1; i <= 3; i++) {
-    await expect(page.locator(".tour-count")).toHaveText(`${i} / 3`);
-    await visit(`引导 ${i}`);
-    await page.locator(".tour-card .btn-primary").click();
-  }
-  await expect(page.locator(".tour")).toHaveCount(0);
+  // The first note saved brings the hint next to the copy buttons (an overall comment: no mark, so nothing else comes with it)
+  await page.locator(".stage").click({ position: { x: 5, y: 5 } });
+  await page.keyboard.press("n");
+  await page.locator(".composer-text").fill("整体再亮一点");
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".composer")).toHaveCount(0);
+  await expect(hint("copy")).toBeVisible();
+  await visit("复制的提示");
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".hint")).toHaveCount(0);
+
+  // A mark left without a word stays as a drawing, and the first one brings its hint
+  await page.locator(".stage").click({ position: { x: 5, y: 5 } });
+  await page.keyboard.press("b");
+  await page.mouse.move(media.x + media.width * 0.6, media.y + media.height * 0.4);
+  await page.mouse.down();
+  await page.mouse.move(media.x + media.width * 0.75, media.y + media.height * 0.55, { steps: 5 });
+  await page.mouse.up();
+  await expect(page.locator(".composer")).toBeVisible();
+  // A click elsewhere on the picture leaves the note unwritten (on the right: in a narrow window the note box covers the left of the picture)
+  await page.mouse.click(media.x + media.width * 0.9, media.y + media.height * 0.3);
+  await expect(page.locator(".composer")).toHaveCount(0);
+  await expect(hint("drawing")).toBeVisible();
+  await visit("涂鸦的提示");
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".hint")).toHaveCount(0);
+  await page.keyboard.press("v");
+  await expect(layer).toHaveClass(/tool-select/);
+
+  // The hint shown when a video is opened
   await page.locator(".lib-row", { hasText: "clip.mp4" }).click();
-  await expect(page.locator(".hint")).toBeVisible();
+  await expect(hint("video")).toBeVisible();
   await visit("视频的提示");
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".hint")).toHaveCount(0);
+
+  // The very first launch: an empty library, and nothing seen yet but the hints passed by above. The first-run dialog, the tutorial on the
+  // sample picture step by step ("Next" does each step), and at its end the hint next to Capture on the welcome page
+  app.host.entries = [];
+  app.host.selected = null;
+  const seen = (app.host.prefs?.onboarding as string[] | undefined) ?? [];
+  app.host.prefs = { ...app.host.prefs, onboarding: seen.filter((k) => !FIRST_LAUNCH.includes(k)) };
+  await page.reload();
+  const firstRun = page.locator(".firstrun");
+  await expect(firstRun).toBeVisible();
+  await visit("首次启动");
+  await firstRun.locator(".firstrun-actions .btn-primary").click();
+  const guide = page.locator(".guide");
+  for (const step of GUIDE_STEPS) {
+    await expect(guide).toHaveAttribute("data-step", step);
+    await expect(guide).toBeVisible();
+    await visit(`教程 ${GUIDE_STEPS.indexOf(step) + 1} ${step}`);
+    await guide.locator(".guide-actions button").last().click();
+  }
+  await expect(guide).toHaveCount(0);
+  await expect(page.locator(".welcome")).toBeVisible();
+  await expect(hint("capture")).toBeVisible();
+  await visit("截图批注的提示");
 }
 
-/** The three-step explanation in the middle of the canvas with an empty library (what you see the first time you open the app). Call it before app.open(): the library is empty */
+/** The welcome page in the middle of the canvas with an empty library (the first-run dialog counts as seen). Call it before app.open(): the library is empty */
 export async function welcome(app: App, visit: (screen: string) => Promise<void>) {
   app.host.entries = [];
   await app.page.goto("https://app.sniptoss.example/index.html");

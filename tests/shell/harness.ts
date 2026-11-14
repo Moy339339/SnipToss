@@ -160,10 +160,11 @@ export interface WindowInfo {
 }
 
 /**
- * The feature tour and hints count as seen (onboarding.ts in packages/web):
- * otherwise the first file dims the whole window for the tour and covers what the test clicks
+ * The first-run dialog, the guide and the hints count as seen (onboarding.ts in packages/web):
+ * otherwise they come up over what the test clicks (the same list as tests/e2e/mock-host.ts).
+ * The settings file has no Migrations on purpose: it counts as an older one, so migration 1 pins the UI to Chinese, which the tests assert
  */
-export const ONBOARDED = ["tour", "hint.copy", "hint.video"];
+export const ONBOARDED = ["welcome", "tour", "hint.copy", "hint.video", "hint.drawing", "hint.capture", "hint.pin", "hint.color"];
 
 function settingsJson(project: string, library = [project]) {
   return JSON.stringify(

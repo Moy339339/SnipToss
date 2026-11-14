@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { CheckIcon, ChevronIcon, MinusIcon, PlusIcon } from "./icons";
+import { BackdropIcon, CheckIcon, ChevronIcon, MinusIcon, PlusIcon } from "./icons";
 import { useKeys } from "./keys";
 import { Menu } from "./Menu";
 import { handHold } from "./pan";
@@ -343,12 +343,18 @@ export function ZoomView(props: {
       </div>
       <div className="zoom-overlay" ref={setOverlay} />
       <div className="zoom-control" onPointerDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
-        {extras && (
-          <>
-            {extras}
-            <span className="zoom-sep" />
-          </>
-        )}
+        {/* What is around the picture: blurred or plain. It is in the menus too, but nobody looks for a background there */}
+        <button
+          type="button"
+          className={`zoom-btn${prefs.backdrop === "plain" ? " is-on" : ""}`}
+          aria-pressed={prefs.backdrop === "plain"}
+          onClick={() => setPrefs({ backdrop: prefs.backdrop === "blur" ? "plain" : "blur" })}
+          title={intl.formatMessage({ id: "zoom.backdrop" })}
+        >
+          <BackdropIcon plain={prefs.backdrop === "plain"} />
+        </button>
+        {extras}
+        <span className="zoom-sep" />
         <button className="zoom-btn" onClick={() => zoomBy(0.8)} title={intl.formatMessage({ id: "zoom.out" })}>
           <MinusIcon />
         </button>

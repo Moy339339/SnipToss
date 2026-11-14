@@ -95,8 +95,11 @@ export interface MenuContext {
   openDevTools: () => void;
   /** Help menu: intro, open the log folder, copy diagnostic info, report an issue */
   openIntro: () => void;
-  /** Help → "Feature Tour": walk through the onboarding again (Tour.tsx) */
-  openTour: () => void;
+  /**
+   * Help → "Tutorial": the tutorial again, on the sample picture (as the welcome page's button), never on the user's own item, where "Next"
+   * would write sample notes into their project. Absent when the shell can't add the sample
+   */
+  openTour?: () => void;
   openLogs: () => void;
   copyDiagnostics: () => void;
   exportDiagnostics: () => void;
@@ -182,11 +185,10 @@ export function buildMenus(c: MenuContext): TopMenu[] {
         "-",
         { label: t("menu.file.addFiles"), hint: "Ctrl O", onClick: c.addFiles },
         { label: t("menu.file.addFolder"), hint: "Ctrl Shift O", onClick: c.addFolder },
-        { label: t("menu.file.paste"), hint: "Ctrl V", title: t("menu.file.pasteTitle"), onClick: c.paste },
+        { label: t("menu.file.paste"), hint: "Ctrl V", onClick: c.paste },
         {
           label: t("menu.file.find"),
           hint: "Ctrl P",
-          title: t("menu.file.findTitle"),
           onClick: c.findMaterial,
           disabled: !c.hasEntries,
         },
@@ -195,7 +197,7 @@ export function buildMenus(c: MenuContext): TopMenu[] {
         { label: t("menu.file.revealNotes"), onClick: c.revealDataDir, disabled: !c.hasNotes },
         "-",
         { label: t("menu.file.refresh"), hint: "F5", onClick: c.refresh, disabled: !c.hasEntries },
-        { label: t("menu.file.clear"), title: t("menu.file.clearTitle"), danger: true, onClick: c.clearList, disabled: !c.canClear },
+        { label: t("menu.file.clear"), danger: true, onClick: c.clearList, disabled: !c.canClear },
         "-",
         // On the Mac the app menu has Settings…, About and Quit, so these three are Windows only (menuModel.ts)
         { label: t("cmd.settings"), hint: "Ctrl ,", only: "windows", onClick: () => c.openSettings() },
@@ -216,14 +218,14 @@ export function buildMenus(c: MenuContext): TopMenu[] {
         {
           label: c.checkedCount > 0 ? t("menu.edit.copyChecked", { count: c.checkedCount }) : t("app.copy.toAi"),
           hint: "Ctrl Shift A",
-          title: c.canCopy ? t("app.copy.asText.hint") : t("app.copy.title.none"),
+          title: c.canCopy ? undefined : t("app.copy.title.none"),
           onClick: c.copyCurrent,
           disabled: !c.canCopy,
         },
         {
           label: c.checkedCount > 0 ? t("menu.edit.copyCheckedImages", { count: c.checkedCount }) : t("app.copy.asImages"),
           hint: "Ctrl Shift I",
-          title: c.canCopy ? t("app.copy.asImages.hint") : t("app.copy.title.none"),
+          title: c.canCopy ? undefined : t("app.copy.title.none"),
           onClick: c.copyImages,
           disabled: !c.canCopy,
         },
@@ -231,7 +233,6 @@ export function buildMenus(c: MenuContext): TopMenu[] {
         {
           label: t("menu.edit.find"),
           hint: "Ctrl F",
-          title: t("panel.search.title"),
           onClick: c.findAnnotation,
           disabled: !c.canFindAnnotation,
         },
@@ -247,7 +248,6 @@ export function buildMenus(c: MenuContext): TopMenu[] {
         // Everything the notes panel lists (same as right-click on blank space in the notes panel); unlisted notes are untouched
         {
           label: t("menu.edit.deleteAll"),
-          title: t("menu.edit.deleteAllTitle"),
           onClick: c.deleteAll,
           disabled: !c.canDeleteAll,
           danger: true,
@@ -264,7 +264,7 @@ export function buildMenus(c: MenuContext): TopMenu[] {
           hint: "Ctrl \\",
           onClick: c.toggleBoth,
         },
-        { label: t("menu.view.resetLayout"), title: t("menu.view.resetLayoutTitle"), onClick: c.resetLayout },
+        { label: t("menu.view.resetLayout"), onClick: c.resetLayout },
         "-",
         key("menu.view.fit", "Shift 1", "Shift+1", noZoom),
         key("menu.view.fill", "Shift 2", "Shift+2", noZoom),
@@ -321,12 +321,11 @@ export function buildMenus(c: MenuContext): TopMenu[] {
           onClick: () => c.chooseTool(tool.tool),
           disabled: !c.canDraw && tool.tool !== "select" && tool.tool !== "hand",
         })),
-        { label: t("menu.note.timed"), hint: "T", title: t("menu.note.timedTitle"), onClick: c.startTimed, disabled: !c.canTimed },
-        { label: t("menu.note.whole"), hint: "N", title: t("menu.note.wholeTitle"), onClick: c.startWhole, disabled: !c.canAnnotate },
+        { label: t("menu.note.timed"), hint: "T", onClick: c.startTimed, disabled: !c.canTimed },
+        { label: t("menu.note.whole"), hint: "N", onClick: c.startWhole, disabled: !c.canAnnotate },
         {
           label: c.folderName ? t("menu.note.folderNamed", { name: c.folderName }) : t("menu.note.folder"),
           hint: "Shift N",
-          title: t("menu.note.folderTitle"),
           onClick: c.startFolderNote,
           disabled: !c.folderName,
         },
@@ -401,7 +400,6 @@ export function buildMenus(c: MenuContext): TopMenu[] {
         "-",
         {
           label: t("menu.window.topmost"),
-          title: t("menu.window.topmostTitle"),
           checked: c.win.topmost,
           onClick: () => c.windowCmd("topmost"),
         },
@@ -410,26 +408,26 @@ export function buildMenus(c: MenuContext): TopMenu[] {
     {
       ...mnemonic(t("menu.top.help")),
       items: () => [
-        { label: t("menu.help.intro"), title: t("menu.help.introTitle"), onClick: c.openIntro },
-        { label: t("menu.help.tour"), title: t("menu.help.tourTitle"), onClick: c.openTour },
+        { label: t("menu.help.intro"), onClick: c.openIntro },
+        // The same Tutorial as the welcome page's button (on the sample picture); none when the shell can't add the sample
+        { label: t("welcome.sample"), onClick: () => c.openTour?.(), disabled: !c.openTour },
         { label: t("cmd.shortcuts"), hint: "? / F1", onClick: c.openHelp },
         { label: t("menu.help.handoff"), onClick: () => c.openSettings("ai") },
         "-",
-        { label: t("menu.help.logs"), title: t("menu.help.logsTitle"), onClick: c.openLogs },
-        { label: t("menu.help.diagnostics"), title: t("menu.help.diagnosticsTitle"), onClick: c.copyDiagnostics },
-        { label: t("menu.help.exportDiagnostics"), title: t("menu.help.exportDiagnosticsTitle"), onClick: c.exportDiagnostics },
-        { label: t("menu.help.report"), title: t("menu.help.reportTitle"), onClick: c.reportIssue },
+        { label: t("menu.help.logs"), onClick: c.openLogs },
+        { label: t("menu.help.diagnostics"), onClick: c.copyDiagnostics },
+        { label: t("menu.help.exportDiagnostics"), onClick: c.exportDiagnostics },
+        { label: t("menu.help.report"), onClick: c.reportIssue },
         "-",
         // The Mac app has no developer tools of its own (WebKit's inspector needs Safari's Develop menu); its logs and diagnostics package are enough
-        { label: t("menu.help.devTools"), title: t("menu.help.devToolsTitle"), only: "windows", onClick: c.openDevTools },
+        { label: t("menu.help.devTools"), only: "windows", onClick: c.openDevTools },
         "-",
         c.newerVersion
           ? {
               label: t("menu.help.updateAvailable", { version: versionLabel(c.newerVersion.version) }),
-              title: t("menu.help.updateAvailableTitle"),
               onClick: c.openNewerVersion,
             }
-          : { label: t("menu.help.checkUpdates"), title: t("menu.help.checkUpdatesTitle"), onClick: c.checkUpdates },
+          : { label: t("menu.help.checkUpdates"), onClick: c.checkUpdates },
         { label: t("menu.help.about", { app: t("brand.name") }), only: "windows", onClick: () => c.openSettings("about") },
       ],
     },

@@ -97,6 +97,7 @@ export function StageHeader(props: {
             className={`tool-btn${props.tool === tool.tool ? " is-on" : ""}`}
             onClick={() => props.onTool(tool.tool)}
             disabled={!props.canDraw && tool.tool !== "select" && tool.tool !== "hand"}
+            data-tool={tool.tool}
             data-tip={tip(t(`tool.${tool.tool}.tip`), tool.key)}
             aria-label={t(`tool.${tool.tool}`)}
           >
@@ -117,7 +118,7 @@ export function StageHeader(props: {
           </button>
         )}
         <button
-          className="tool-btn tool-text"
+          className="tool-btn tool-text tool-whole"
           onClick={props.onWhole}
           disabled={!props.canAnnotate}
           data-tip={tip(t("header.wholeTip"), "N")}

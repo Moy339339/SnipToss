@@ -66,7 +66,8 @@ test("Copying from a folder row's context menu does not count the folder comment
   app.host.expanded = [join(app.project, "assets")];
   await app.open();
   await row(app, "assets").click({ button: "right" });
-  await expect(menuItem(app, "复制批注成文字").locator(".menu-hint")).toHaveText("2 条 · Ctrl C");
+  // The menu item carries no count (each row shows its own), only the shortcut
+  await expect(menuItem(app, "复制批注成文字").locator(".menu-hint")).toHaveText("Ctrl C");
   await menuItem(app, "复制批注成文字").click();
   await expect(app.page.locator(".toast")).toContainText("已复制「assets」的 2 条批注");
 });
@@ -85,13 +86,17 @@ test("The right side of the library context menu shows only shortcuts and counts
   await app.open();
   await row(app, "project").click({ button: "right" });
   await expect(menuItem(app, "置顶").locator(".menu-hint")).toHaveCount(0);
-  await expect(menuItem(app, "置顶")).toHaveAttribute("title", "排在最前，清空列表时保留");
+  await expect(menuItem(app, "置顶")).not.toHaveAttribute("title");
   await expect(menuItem(app, "复制批注成图片").locator(".menu-hint")).toHaveCount(0);
-  await expect(menuItem(app, "复制批注成图片")).toHaveAttribute("title", "用于网页版 AI 和聊天软件");
+  await expect(menuItem(app, "复制批注成图片")).not.toHaveAttribute("title");
   await expect(menuItem(app, "从列表中移除此项目").locator(".menu-hint")).toHaveText("Delete");
-  await expect(menuItem(app, "从列表中移除此项目")).toHaveAttribute("title", "不删除文件和批注");
+  await expect(menuItem(app, "从列表中移除此项目")).not.toHaveAttribute("title");
+  // Clear List… is not on a row's menu; on blank space it has neither gray text nor a tooltip
+  await expect(menuItem(app, "清空列表…")).toHaveCount(0);
+  await app.page.keyboard.press("Escape");
+  await blankMenu(app);
   await expect(menuItem(app, "清空列表…").locator(".menu-hint")).toHaveCount(0);
-  await expect(menuItem(app, "清空列表…")).toHaveAttribute("title", "保留置顶的项目。不会删除任何文件和批注。");
+  await expect(menuItem(app, "清空列表…")).not.toHaveAttribute("title");
 });
 
 test("Removing two selected projects together: the confirm dialog says \"these 2 items\" by the number of selected rows, not by the entries inside", async ({ app }) => {
@@ -118,7 +123,7 @@ test("Removing two selected projects together: the confirm dialog says \"these 2
 
 // ---------- Context menus of each kind of row ----------
 
-test("Right-clicking a project row: the two Copy items, folder comment, collapse, pin, open project folder, open notes folder, remove project, clear library", async ({ app }) => {
+test("Right-clicking a project row: the two Copy items, folder comment, collapse, pin, open project folder, open notes folder, remove project, and no Clear Library (that is the whole list's)", async ({ app }) => {
   await app.open();
   await row(app, "project").click({ button: "right" });
   expect(await menuLabels(app)).toEqual([
@@ -130,7 +135,6 @@ test("Right-clicking a project row: the two Copy items, folder comment, collapse
     "打开项目文件夹",
     "打开批注文件夹（.sniptoss）",
     "从列表中移除此项目",
-    "清空列表…",
   ]);
   await menuItem(app, "打开项目文件夹").click();
   expect(app.host.revealed.at(-1)).toBe(app.project);
@@ -146,10 +150,10 @@ test("Right-clicking an entry added on its own: a folder entry has folder commen
   app.host.entries.push({ path: join(app.project, "dist"), pinned: false }, { path: join(other, "x.png"), pinned: false });
   await app.open();
   await row(app, "dist").click({ button: "right" });
-  expect(await menuLabels(app)).toEqual(["复制批注成文字", "复制批注成图片", "添加文件夹意见…", "展开", "在资源管理器中显示", "从列表中移除", "清空列表…"]);
+  expect(await menuLabels(app)).toEqual(["复制批注成文字", "复制批注成图片", "添加文件夹意见…", "展开", "在资源管理器中显示", "从列表中移除"]);
   await app.page.keyboard.press("Escape");
   await row(app, "x.png").click({ button: "right" });
-  expect(await menuLabels(app)).toEqual(["复制批注成文字", "复制批注成图片", "在资源管理器中显示", "从列表中移除", "清空列表…"]);
+  expect(await menuLabels(app)).toEqual(["复制批注成文字", "复制批注成图片", "在资源管理器中显示", "从列表中移除"]);
   await menuItem(app, "在资源管理器中显示").click();
   expect(app.host.revealed.at(-1)).toBe(join(other, "x.png"));
 });
@@ -158,11 +162,11 @@ test("Right-clicking a folder or file row in the tree: there is no Remove; Show 
   app.host.expanded = [join(app.project, "assets")];
   await app.open();
   await row(app, "assets").click({ button: "right" });
-  expect(await menuLabels(app)).toEqual(["复制批注成文字", "复制批注成图片", "添加文件夹意见…", "折叠", "在资源管理器中显示", "清空列表…"]);
+  expect(await menuLabels(app)).toEqual(["复制批注成文字", "复制批注成图片", "添加文件夹意见…", "折叠", "在资源管理器中显示"]);
   await menuItem(app, "在资源管理器中显示").click();
   expect(app.host.revealed.at(-1)).toBe(join(app.project, "assets"));
   await row(app, "hero.png").click({ button: "right" });
-  expect(await menuLabels(app)).toEqual(["复制批注成文字", "复制批注成图片", "在资源管理器中显示", "清空列表…"]);
+  expect(await menuLabels(app)).toEqual(["复制批注成文字", "复制批注成图片", "在资源管理器中显示"]);
   await menuItem(app, "在资源管理器中显示").click();
   expect(app.host.revealed.at(-1)).toBe(HERO(app));
   // No open notes: both Copy items are grayed out
@@ -186,7 +190,7 @@ test("Right-clicking blank space, the library header or the footer stats shows t
   await app.page.keyboard.press("Escape");
   await app.page.getByPlaceholder("筛选素材").click({ button: "right" });
   await expect(menu(app)).toHaveCount(0);
-  await expect(app.page.locator(".lib-header")).toHaveAttribute("title", "右键单击可添加、刷新或清空列表");
+  await expect(app.page.locator(".lib-header")).not.toHaveAttribute("title");
 });
 
 test("Right-clicking a multi-selection: with only item rows there is no Remove; right-clicking an unselected row first selects only that row", async ({ app }) => {
@@ -195,25 +199,29 @@ test("Right-clicking a multi-selection: with only item rows there is no Remove; 
   await row(app, "hero.png").click();
   await row(app, "poster.jpg").click({ modifiers: ["Control"] });
   await row(app, "poster.jpg").click({ button: "right" });
-  expect(await menuLabels(app)).toEqual(["复制批注成文字", "复制批注成图片", "清空列表…"]);
+  expect(await menuLabels(app)).toEqual(["复制批注成文字", "复制批注成图片"]);
   await app.page.keyboard.press("Escape");
   await row(app, "clip.mp4").click({ button: "right" });
   await expect(row(app, "hero.png")).toHaveAttribute("aria-selected", "false");
   await expect(row(app, "clip.mp4")).toHaveAttribute("aria-selected", "true");
-  expect(await menuLabels(app)).toEqual(["复制批注成文字", "复制批注成图片", "在资源管理器中显示", "清空列表…"]);
+  expect(await menuLabels(app)).toEqual(["复制批注成文字", "复制批注成图片", "在资源管理器中显示"]);
 });
 
-test("The count beside the two Copy items reads \"1 note\" for one item and \"2 items 3 notes\" for several (folder comments count as notes, not as items); Copy as Images is handed to the shell", async ({ app }) => {
+test("The two Copy items carry no count (Copy as Text shows only Ctrl C); the toast says \"1 note\" for one item and \"2 items 3 notes\" for several (folder comments count as notes, not as items); Copy as Images is handed to the shell", async ({ app }) => {
   folderNote(app, "assets", "assets 里的图统一加圆角");
   app.host.expanded = [join(app.project, "assets")];
   await app.open();
   await row(app, "hero.png").click({ button: "right" });
-  await expect(menuItem(app, "复制批注成文字").locator(".menu-hint")).toHaveText("1 条 · Ctrl C");
-  await app.page.keyboard.press("Escape");
+  await expect(menuItem(app, "复制批注成文字").locator(".menu-hint")).toHaveText("Ctrl C");
+  await expect(menuItem(app, "复制批注成图片").locator(".menu-hint")).toHaveCount(0);
+  await menuItem(app, "复制批注成文字").click();
+  await expect(app.page.locator(".toast")).toContainText("已复制「hero.png」的 1 条批注");
   await row(app, "project").click({ button: "right" });
-  await expect(menuItem(app, "复制批注成文字").locator(".menu-hint")).toHaveText("2 个素材 3 条 · Ctrl C");
+  await expect(menuItem(app, "复制批注成文字").locator(".menu-hint")).toHaveText("Ctrl C");
+  await expect(menuItem(app, "复制批注成图片").locator(".menu-hint")).toHaveCount(0);
   await menuItem(app, "复制批注成图片").click();
   await expect.poll(() => app.host.copiedImages.at(-1)?.flatMap((p) => p.notes).length).toBe(3);
+  await expect(app.page.locator(".toast")).toContainText("已复制「project」中 2 个素材的 3 条批注");
 });
 
 test("Add Folder Comment… opens the composer titled with that folder and saves into that folder's notes file", async ({ app }) => {
@@ -254,7 +262,7 @@ test("Pin to Top: hovering shows the pin and × (covering the note count); pinne
   expect(await names()).toEqual(["project", "other"]);
   const o = row(app, "other");
   const pin = o.locator(".lib-pin");
-  await expect(pin).toHaveAttribute("title", "置顶：排在最前，清空列表时保留");
+  await expect(pin).toHaveAttribute("title", "置顶");
   await expect(o.locator(".lib-actions")).toBeHidden();
   await o.hover();
   await expect(o.locator(".lib-actions")).toBeVisible();
@@ -298,7 +306,7 @@ test("Removing a project or entry asks first (no files or notes are deleted); Es
   const dialog = app.page.getByRole("alertdialog");
   const o = row(app, "other");
   await o.hover();
-  await expect(o.locator(".lib-act").last()).toHaveAttribute("title", "从列表中移除此项目（不删除文件，Delete）");
+  await expect(o.locator(".lib-act").last()).toHaveAttribute("title", "从列表中移除（Delete）");
   await o.locator(".lib-act").last().click();
   await expect(dialog).toContainText("从列表中移除此项目？");
   await expect(dialog).toContainText("「other」将从列表中移除。");
@@ -389,7 +397,8 @@ test("F5, the context menu's Refresh and the menu bar's Refresh List all rescan 
   expect(scans().at(-1)?.params).toEqual({ paths: [app.project] });
   app.host.entries = [];
   await app.page.goto("https://app.sniptoss.example/index.html");
-  await expect(app.page.locator(".lib-empty")).toBeVisible();
+  // An empty list says nothing in the library: the canvas beside it is the welcome page
+  await expect(app.page.locator(".welcome")).toBeVisible();
   await blankMenu(app);
   await expect(menuItem(app, "刷新")).toBeDisabled();
   await app.page.keyboard.press("Escape");

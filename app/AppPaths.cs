@@ -64,6 +64,12 @@ static class AppPaths
     public static string PastedDir => Path.Combine(LocalDir, "pasted");
 
     /// <summary>
+    /// The sample picture ("Try a Sample" on the welcome page) is copied here from the UI folder: an item has to be a file in a folder the notes can be written next to.
+    /// One project in the library, shown in the UI as "Sample"
+    /// </summary>
+    public static string SampleDir => Path.Combine(LocalDir, "sample");
+
+    /// <summary>
     /// WebView2 data (localStorage such as the sidebar width, cache). It used to use the default location, pizhu.exe.WebView2 next to the exe,
     /// which broke when the app was installed in a read-only directory; moved here on the rename. The WEBVIEW2_USER_DATA_FOLDER environment variable wins if set
     /// </summary>

@@ -15,18 +15,20 @@ import Foundation
 /// where it is allowed: the system's own question the first time, System Settings afterwards (docs/host-api.md, "The screen recording
 /// permission"; `ScreenAccessAsk.lead`).
 /// - Parameter hotkey: what registers the shortcut (nil: nothing does, the shortcut is only kept)
+/// - Parameter change: hands out once that the shortcut stopped working since the last start (`hotkeyLost`; nil: never)
 /// - Parameter access: the screen recording permission (nil: not known, and `screenAccess` is left out)
 /// - Parameter loginItem: the login item (nil: none, `autostart` is only kept, as it was set)
 /// - Parameter defaults: where it is kept that the system was asked
 /// - Parameter onKeepInTrayChanged: told the new value after a call that carried `keepInTray`, so the menu bar item can follow. Called on
 ///   the bridge's background queue
 func installCaptureSettingsMethods(
-    into bridge: BridgeHost, settings: Settings, hotkey: HotKeyControl? = nil, access: ScreenAccess? = nil,
+    into bridge: BridgeHost, settings: Settings, hotkey: HotKeyControl? = nil, change: HotKeyChange? = nil, access: ScreenAccess? = nil,
     loginItem: LoginItemControl? = nil, defaults: UserDefaults = .standard, onKeepInTrayChanged: @escaping (Bool) -> Void = { _ in }
 ) {
     bridge.register("captureSettings") { _ in
         captureSettingsReply(
-            settings.capture, hotkeyError: hotkey?.error, screenAccess: access?.allowed, autostart: loginItem.map { $0.state == .on })
+            settings.capture, hotkeyError: hotkey?.error, hotkeyLost: change?.take() ?? false, screenAccess: access?.allowed,
+            autostart: loginItem.map { $0.state == .on })
     }
 
     bridge.register("setCaptureSettings") { params in
@@ -72,17 +74,19 @@ func addRecentColorReply(_ params: Any?, settings: Settings) throws -> [String] 
 }
 
 /// The reply of both methods: the settings as the page shows them.
-/// `defaultFolder` is where screenshots go when `folder` is empty; `screenAccess` is left out when it is nil;
+/// `defaultFolder` is where screenshots go when `folder` is empty; `hotkeyLost` is given once, in the first `captureSettings` reply after a
+/// start where the shortcut stopped working (HotKeyChange); `screenAccess` is left out when it is nil;
 /// `autostart` is what the system says about the login item, the stored value when it is nil
 func captureSettingsReply(
-    _ capture: CaptureSettings, defaultFolder: String = AppPaths.capturesDir, hotkeyError: String? = nil, screenAccess: Bool? = nil,
-    autostart: Bool? = nil
+    _ capture: CaptureSettings, defaultFolder: String = AppPaths.capturesDir, hotkeyError: String? = nil, hotkeyLost: Bool = false,
+    screenAccess: Bool? = nil, autostart: Bool? = nil
 ) -> [String: Any] {
     var reply: [String: Any] = [
         "hotkey": capture.hotkey,
         "hotkeyError": hotkeyError ?? NSNull(),
         "hotkeyTypes": "",
         "hotkeyMoved": NSNull(),
+        "hotkeyLost": hotkeyLost,
         "keepInTray": capture.keepInTray,
         "hideWindow": capture.hideWindow,
         "notesInImage": capture.notesInImage,
@@ -161,6 +165,8 @@ struct CaptureSettingsPatch {
         if let hotkey {
             capture.hotkey = hotkey
             capture.hotkeyCustom = true
+            // Stored only once it registered (or none is wanted): it works now, and stopping later is a change worth saying
+            capture.hotkeyWorked = true
         }
         if let keepInTray { capture.keepInTray = keepInTray }
         if let hideWindow { capture.hideWindow = hideWindow }

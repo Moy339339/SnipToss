@@ -369,13 +369,14 @@ test("With an unreadable notes file in the project, unused snapshots are not cle
 
 // ---------- Settings → System ----------
 
-test("System: the context menu description mentions only folders, images and videos (PDF and PPT are no longer registered); turning it on and off each shows a toast", async ({ app }) => {
+test("System: the context menu description says only where Windows 11 puts it (no list of kinds, so no PDF or PPT, which are no longer registered); turning it on and off each shows a toast", async ({ app }) => {
   await app.open();
   await focusStage(app);
   await app.page.keyboard.press("Control+,");
   await app.page.locator(".settings-tab", { hasText: "系统集成" }).click();
   const shellRow = app.page.locator(".set-row", { hasText: "资源管理器右键菜单" });
-  await expect(shellRow).toContainText("图片、视频");
+  await expect(shellRow).toContainText("Windows 11 中位于「显示更多选项」下。");
+  await expect(shellRow).not.toContainText("图片、视频");
   await expect(shellRow).not.toContainText("PDF");
   await expect(shellRow).not.toContainText("PPT");
   const sw = shellRow.getByRole("switch");

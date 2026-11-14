@@ -25,7 +25,9 @@ import type { Item } from "./panelScope";
 import type { Media } from "./Viewer";
 
 // The context menu on the canvas (split out of Workspace): on a mark it is for that note, elsewhere for this item.
-// The gray text on the right holds only counts and shortcuts, with explanations in hover tooltips (same as the library's context menu and the menu bar); icons follow the library's context menu
+// The gray text on the right holds shortcuts, and counts only where nothing on screen shows them (what Delete All Notes… deletes); the two
+// Copy items are alike (neither is the main one), so neither carries a count. Explanations are in hover tooltips (same as the library's
+// context menu and the menu bar); icons follow the library's context menu
 
 /** Where the right-click landed on the canvas (0–1, snapped to whole pixels, like the Pin tool) and the video moment: the video keeps playing while the menu is open */
 export type StagePoint = { x: number; y: number; time?: number; clientX: number; clientY: number };
@@ -78,14 +80,11 @@ export function annotationMenu(
     {
       label: intl.formatMessage({ id: "app.copy.toAi" }),
       icon: <SparkIcon />,
-      hint: intl.formatMessage({ id: "library.menu.copyCount" }, { materials: 1, count: 1 }),
-      title: intl.formatMessage({ id: "app.copy.asText.hint" }),
       onClick: () => ctx.copyOne(it),
     },
     {
       label: intl.formatMessage({ id: "app.copy.asImages" }),
       icon: <KindIcon kind="image" />,
-      title: intl.formatMessage({ id: "app.copy.asImages.hint" }),
       onClick: () => ctx.copyOne(it, "images"),
     },
     {
@@ -100,7 +99,6 @@ export function annotationMenu(
           {
             label: intl.formatMessage({ id: mark.hidden ? "card.menu.showMark" : "card.menu.hideMark" }),
             icon: mark.hidden ? <EyeIcon /> : <EyeOffIcon />,
-            title: intl.formatMessage({ id: "card.mark.title" }),
             onClick: mark.toggle,
           },
         ]
@@ -148,7 +146,6 @@ export function annotationMenu(
           {
             label: intl.formatMessage({ id: "stage.menu.removePlace" }),
             icon: <CloseIcon />,
-            title: intl.formatMessage({ id: "stage.menu.removePlaceTitle" }),
             onClick: ctx.removePlace,
           },
         ]
@@ -193,7 +190,6 @@ export function draftMarkMenu(
           {
             label: intl.formatMessage({ id: "stage.menu.removePlace" }),
             icon: <CloseIcon />,
-            title: intl.formatMessage({ id: "stage.menu.removePlaceTitle" }),
             onClick: ctx.remove,
           },
         ]
@@ -225,7 +221,6 @@ export function drawingMenu(
     "-",
     {
       label: intl.formatMessage({ id: "stage.menu.drawingNote" }),
-      title: intl.formatMessage({ id: "stage.menu.drawingNoteTitle" }),
       onClick: ctx.addNote,
     },
     { label: intl.formatMessage({ id: "stage.menu.drawingDelete" }), icon: <CloseIcon />, hint: "Delete", onClick: ctx.remove },
@@ -259,18 +254,14 @@ export function materialMenu(
     {
       label: intl.formatMessage({ id: "app.copy.toAi" }),
       icon: <SparkIcon />,
-      hint:
-        n === 0
-          ? intl.formatMessage({ id: "app.copy.hint.none" })
-          : intl.formatMessage({ id: "library.menu.copyCount" }, { materials: 1, count: n }),
-      title: intl.formatMessage({ id: "app.copy.asText.hint" }),
+      // How many is shown by the numbers on the canvas; only when there is nothing to copy does it say why both are gray
+      hint: n === 0 ? intl.formatMessage({ id: "app.copy.hint.none" }) : undefined,
       onClick: () => ctx.copy("text"),
       disabled: n === 0,
     },
     {
       label: intl.formatMessage({ id: "app.copy.asImages" }),
       icon: <KindIcon kind="image" />,
-      title: intl.formatMessage({ id: "app.copy.asImages.hint" }),
       onClick: () => ctx.copy("images"),
       disabled: n === 0,
     },
@@ -283,7 +274,6 @@ export function materialMenu(
             label: intl.formatMessage({ id: "menu.note.timed" }),
             icon: <ClockIcon />,
             hint: "T",
-            title: intl.formatMessage({ id: "menu.note.timedTitle" }),
             onClick: ctx.startTimed,
             disabled: !ctx.canAnnotate,
           },
@@ -293,7 +283,6 @@ export function materialMenu(
       label: intl.formatMessage({ id: "menu.note.whole" }),
       icon: <NoteIcon />,
       hint: "N",
-      title: intl.formatMessage({ id: "menu.note.wholeTitle" }),
       onClick: ctx.startWhole,
       disabled: !ctx.canAnnotate,
     },
@@ -333,7 +322,7 @@ export function panelMenu(
       label: checked > 0 ? t("menu.edit.copyChecked", { count: checked }) : t("app.copy.toAi"),
       icon: <SparkIcon />,
       hint: "Ctrl Shift A",
-      title: ctx.canCopy ? t("app.copy.asText.hint") : t("app.copy.title.none"),
+      title: ctx.canCopy ? undefined : t("app.copy.title.none"),
       onClick: () => ctx.copy("text"),
       disabled: !ctx.canCopy,
     },
@@ -341,7 +330,7 @@ export function panelMenu(
       label: checked > 0 ? t("menu.edit.copyCheckedImages", { count: checked }) : t("app.copy.asImages"),
       icon: <KindIcon kind="image" />,
       hint: "Ctrl Shift I",
-      title: ctx.canCopy ? t("app.copy.asImages.hint") : t("app.copy.title.none"),
+      title: ctx.canCopy ? undefined : t("app.copy.title.none"),
       onClick: () => ctx.copy("images"),
       disabled: !ctx.canCopy,
     },
@@ -358,7 +347,6 @@ export function panelMenu(
       label: t("menu.edit.deleteAll"),
       icon: <TrashIcon />,
       hint: listed > 0 ? t("library.menu.copyCount", { materials: 1, count: listed }) : undefined,
-      title: t("menu.edit.deleteAllTitle"),
       onClick: ctx.deleteAll,
       disabled: !ctx.canDeleteAll,
       danger: true,

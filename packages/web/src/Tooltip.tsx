@@ -21,10 +21,12 @@ const GAP = 8;
 
 /** What looks like a shortcut: Ctrl B, Ctrl Alt B, Alt F4, N, Esc, Ctrl , ...; key names (Space, Wheel) follow the interface language and come from messages */
 const MODIFIERS = /^((Ctrl|Shift|Alt) )*(.+)$/;
-const KEY = /^([A-Za-z0-9]{1,6}|[?,.=\-[\]\\/])$/;
+const KEY = /^([A-Za-z0-9]{1,6}|[?,.=\-[\]\\/←→↑↓])$/;
+/** A pair of one-character keys for the two directions of one thing: ", ." (slower / faster), "↑ ↓" (volume). Only symbols: words in parentheses are never taken for keys */
+const KEY_PAIR = /^[?,.=\-[\]\\/←→↑↓] [?,.=\-[\]\\/←→↑↓]$/;
 const isKey = (text: string, names: readonly string[]) => {
   const key = MODIFIERS.exec(text)?.[3] ?? "";
-  return KEY.test(key) || names.includes(key);
+  return KEY.test(key) || KEY_PAIR.test(text) || names.includes(key);
 };
 
 /**
@@ -39,6 +41,16 @@ function splitKey(text: string, names: readonly string[]): [string, string?] {
   const paren = /^(.+?)\s*[\uFF08(]([^\uFF08\uFF09()]+)[\uFF09)]$/.exec(text);
   if (paren && isKey(paren[2], names)) return [paren[1], paren[2]];
   return [text];
+}
+
+/** The element shows these words in full: its visible text contains them (spaces aside), and nothing in it is cut off */
+function says(el: Element, words: string) {
+  const flat = (s: string) => s.replace(/\s+/g, "");
+  const want = flat(words);
+  if (!want || !(el instanceof HTMLElement) || !flat(el.innerText).includes(want)) return false;
+  return ![el, ...el.querySelectorAll<HTMLElement>("*")].some(
+    (e) => e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflowX !== "visible",
+  );
 }
 
 /** While the bubble is open, close it right away (no fade-out) */
@@ -96,7 +108,11 @@ export function Tooltips() {
       }
       const text = target.getAttribute("data-tip") ?? title ?? "";
       if (!text) return;
-      const [label, key] = split(text);
+      const [named, key] = split(text);
+      // What the element already says is not said again: a button that shows its name gets only its shortcut, and nothing without one.
+      // Unless the words are cut off (ellipsis): then the tooltip is how to read them
+      const label = says(target, named) ? "" : named;
+      if (!label && !key) return;
       tip.replaceChildren(...punctuationNodes(label.replace(/[\\/]/g, "$&\u200b")));
       if (key) {
         const k = document.createElement("span");

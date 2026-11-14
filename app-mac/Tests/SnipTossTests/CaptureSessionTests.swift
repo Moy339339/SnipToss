@@ -27,13 +27,13 @@ final class CaptureSessionTests: SnipTestCase {
         func openSettings() { settingsOpened += 1 }
     }
 
-    /// Shows nothing; "Open System Settings" is chosen when `choose` is set
+    /// Shows nothing; records which of the two it would show, and goes on (Continue / Open System Settings) when `choose` is set
     private final class FakeGuide: PermissionGuiding {
-        var shown = 0
+        var shown: [Bool] = []
         var choose = false
-        func show(openSettings: @escaping () -> Void) {
-            shown += 1
-            if choose { openSettings() }
+        func show(firstTime: Bool, proceed: @escaping () -> Void) {
+            shown.append(firstTime)
+            if choose { proceed() }
         }
     }
 
@@ -97,61 +97,64 @@ final class CaptureSessionTests: SnipTestCase {
 
     // MARK: The permission
 
-    func testWithoutThePermissionTheSystemAsksTheFirstTimeAndTheGuideComesAfterwardsNeverBoth() {
+    /// Never asked: our window says why first, and the system is asked only after Continue. Not Now leaves everything as it was. Asked
+    /// before: the same window leads to System Settings. No picture is taken without the permission
+    func testWithoutThePermissionOurWindowComesFirstAndTheSystemIsAskedOnlyAfterContinue() {
         let access = FakeAccess()
         access.allowed = false
         let guide = FakeGuide()
         let source = FakeSource(.success([]))
         let session = CaptureSession(source: source, access: access, guide: guide, defaults: defaults)
 
-        startAndWait(session, "first")
-        XCTAssertEqual(access.requests, 1)
-        XCTAssertEqual(guide.shown, 0)
+        startAndWait(session, "not now")
+        XCTAssertEqual(guide.shown, [true])
+        XCTAssertEqual([access.requests, access.settingsOpened], [0, 0])
+        XCTAssertFalse(ScreenAccessAsk.asked(defaults), "Not Now asks nothing, so the next capture explains again")
         XCTAssertFalse(session.isOpen)
 
-        // The system shows its own question once only: from now on only the guide says where to allow it
-        startAndWait(session, "second")
-        XCTAssertEqual(access.requests, 1)
-        XCTAssertEqual(guide.shown, 1)
-        XCTAssertEqual(access.settingsOpened, 0)
-
         guide.choose = true
-        startAndWait(session, "third")
-        XCTAssertEqual(access.requests, 1)
-        XCTAssertEqual(guide.shown, 2)
-        XCTAssertEqual(access.settingsOpened, 1)
+        startAndWait(session, "continue")
+        XCTAssertEqual(guide.shown, [true, true])
+        XCTAssertEqual([access.requests, access.settingsOpened], [1, 0])
+        XCTAssertTrue(ScreenAccessAsk.asked(defaults))
+
+        // The system shows its own question once only: from now on the window leads to System Settings
+        startAndWait(session, "asked before")
+        XCTAssertEqual(guide.shown, [true, true, false])
+        XCTAssertEqual([access.requests, access.settingsOpened], [1, 1])
         XCTAssertEqual(session.overlayPanels.count, 0)
-        // No picture is taken without the permission: that alone would make the system put up its question next to ours
         XCTAssertEqual(source.calls.value, 0)
     }
 
-    func testTheGuideComesFromTheSecondTimeOnAcrossLaunches() {
+    func testWhetherTheSystemWasAskedIsKeptAcrossLaunches() {
         let first = FakeAccess()
         first.allowed = false
         let firstGuide = FakeGuide()
+        firstGuide.choose = true
         startAndWait(CaptureSession(source: FakeSource(.success([])), access: first, guide: firstGuide, defaults: defaults), "first launch")
         let second = FakeAccess()
         second.allowed = false
         let guide = FakeGuide()
         startAndWait(CaptureSession(source: FakeSource(.success([])), access: second, guide: guide, defaults: defaults), "second launch")
         XCTAssertEqual([first.requests, second.requests], [1, 0])
-        XCTAssertEqual([firstGuide.shown, guide.shown], [0, 1])
+        XCTAssertEqual(firstGuide.shown + guide.shown, [true, false])
     }
 
     /// The check said yes, but taking the picture was refused (the permission was taken away in between): the same as no permission
     func testAPictureRefusedForLackOfPermissionIsTreatedAsNoPermission() {
         let access = FakeAccess()
         let guide = FakeGuide()
+        guide.choose = true
         let session = CaptureSession(source: FakeSource(.failure(.noAccess)), access: access, guide: guide, defaults: defaults)
         startAndWait(session, "first")
         startAndWait(session, "second")
-        XCTAssertEqual(access.requests, 1)
-        XCTAssertEqual(guide.shown, 1)
+        XCTAssertEqual(guide.shown, [true, false])
+        XCTAssertEqual([access.requests, access.settingsOpened], [1, 1])
     }
 
-    /// The buttons that lead to the permission (Settings → Screen Capture, the hint next to Capture): only an app that has asked is in the
-    /// list of System Settings, so the first press asks the system; System Settings opens from then on
-    func testAButtonThatLeadsToThePermissionAsksTheSystemTheFirstTimeAndOpensSystemSettingsAfterwards() {
+    /// The button in Settings → Screen Capture: only an app that has asked is in the list of System Settings, so the first press asks the
+    /// system; System Settings opens from then on
+    func testTheSettingsButtonAsksTheSystemTheFirstTimeAndOpensSystemSettingsAfterwards() {
         let access = FakeAccess()
         access.allowed = false
         ScreenAccessAsk.lead(access, defaults: defaults)
@@ -161,25 +164,76 @@ final class CaptureSessionTests: SnipTestCase {
         XCTAssertEqual([access.requests, access.settingsOpened], [1, 2])
     }
 
-    /// The system asks once only, whoever asked it: after a button asked, a capture shows the guide; after a capture asked, a button opens
-    /// System Settings
-    func testTheButtonsAndTheCaptureShareWhetherTheSystemWasAsked() {
+    /// The system asks once only, whoever asked it: after the Settings button asked, a capture's window leads to System Settings; after a
+    /// capture asked, the button opens System Settings
+    func testTheSettingsButtonAndTheCaptureShareWhetherTheSystemWasAsked() {
         let access = FakeAccess()
         access.allowed = false
         let guide = FakeGuide()
+        guide.choose = true
         ScreenAccessAsk.lead(access, defaults: defaults)
         startAndWait(CaptureSession(source: FakeSource(.success([])), access: access, guide: guide, defaults: defaults), "after a button")
-        XCTAssertEqual([access.requests, guide.shown, access.settingsOpened], [1, 1, 0])
+        XCTAssertEqual(guide.shown, [false])
+        XCTAssertEqual([access.requests, access.settingsOpened], [1, 1])
 
         let otherName = "SnipTossTests-" + UUID().uuidString
         let other = UserDefaults(suiteName: otherName)!
         defer { other.removePersistentDomain(forName: otherName) }
         let fresh = FakeAccess()
         fresh.allowed = false
-        let session = CaptureSession(source: FakeSource(.success([])), access: fresh, guide: FakeGuide(), defaults: other)
-        startAndWait(session, "a capture first")
+        let goOn = FakeGuide()
+        goOn.choose = true
+        startAndWait(CaptureSession(source: FakeSource(.success([])), access: fresh, guide: goOn, defaults: other), "a capture first")
         ScreenAccessAsk.lead(fresh, defaults: other)
         XCTAssertEqual([fresh.requests, fresh.settingsOpened], [1, 1])
+    }
+
+    /// The window's words: why, and Continue, the first time; where to allow it and the off-and-on-again line, with Open System Settings,
+    /// afterwards. The same title both times
+    func testTheWindowSaysWhyTheFirstTimeAndWhereToAllowItAfterwards() {
+        let first = PermissionGuide.content(firstTime: true)
+        let later = PermissionGuide.content(firstTime: false)
+        XCTAssertEqual(first.title, later.title)
+        XCTAssertEqual(first.button, ShellText.t("shell.capture.continue"))
+        XCTAssertEqual(later.button, ShellText.t("shell.capture.openSettings"))
+        let app = ["app": ShellText.t("brand.name")]
+        XCTAssertEqual(first.body, ShellText.t("shell.capture.askBody", app))
+        XCTAssertEqual(
+            later.body, ShellText.t("shell.capture.noAccessBody", app) + "\n\n" + ShellText.t("shell.capture.noAccessToggle", app))
+        for text in [first.title, first.body, first.button, later.body] {
+            XCTAssertFalse(text.hasPrefix("shell."), text)
+            XCTAssertFalse(text.contains("{"), text)
+        }
+    }
+
+    /// The window that asks comes up instead of the layers: the session says whether the system lets it take pictures now
+    func testTheSessionSaysWhetherItMayTakePictures() {
+        let access = FakeAccess()
+        let session = CaptureSession(source: FakeSource(.success([])), access: access, guide: FakeGuide(), defaults: defaults)
+        XCTAssertTrue(session.screenAllowed)
+        access.allowed = false
+        XCTAssertFalse(session.screenAllowed)
+    }
+
+    // MARK: Dialogs of the system
+
+    /// The question about recording the screen comes up while the layers are open: they step just below it, stay there while it is up,
+    /// and come back once it has gone; nothing happens while there is none
+    func testTheLayersStepBelowADialogOfTheSystemAndComeBackOnceItHasGone() {
+        var watch = DialogWatch()
+        XCTAssertEqual(watch.see(nil), .none)
+        XCTAssertEqual(watch.see(8), .below(7))
+        XCTAssertEqual(watch.under, 7)
+        XCTAssertEqual(watch.see(8), .none, "still up: nothing more to do")
+        XCTAssertEqual(watch.see(20), .below(19), "a higher one: below that")
+        XCTAssertEqual(watch.see(nil), .back)
+        XCTAssertNil(watch.under)
+        XCTAssertEqual(watch.see(nil), .none)
+    }
+
+    /// Only the system's own dialogs count: the process that asks, by its name
+    func testTheDialogsAreTheOnesOfTheProcessThatAsks() {
+        XCTAssertEqual(SystemDialogWindows.owners, ["UserNotificationCenter"])
     }
 
     // MARK: Failures and repeats
@@ -191,7 +245,7 @@ final class CaptureSessionTests: SnipTestCase {
             let session = CaptureSession(source: FakeSource(.failure(failure)), access: access, guide: guide, defaults: defaults)
             startAndWait(session, "\(failure)")
             XCTAssertEqual(access.requests, 0, "\(failure)")
-            XCTAssertEqual(guide.shown, 0, "\(failure)")
+            XCTAssertEqual(guide.shown, [], "\(failure)")
             XCTAssertFalse(session.isOpen)
             // The timing smoke run reads why it did not open, and there is no opening time
             XCTAssertNotNil(session.lastFailure, "\(failure)")

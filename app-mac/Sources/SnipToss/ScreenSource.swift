@@ -66,6 +66,36 @@ enum WindowList {
     }
 }
 
+/// The dialogs in which the system asks the user something while a capture is open. From macOS 15 on, taking a picture of the screen
+/// makes the system ask now and then (about once a month, and for a copy of the app in a new place) whether the app may keep recording
+/// the screen; the picture is taken all the same, and the question comes up about half a second later, in a window of the
+/// UserNotificationCenter process at the modal panel level (8). The capture layers, at the screen saver's level, would cover it for the
+/// whole capture. Other questions of the system (privacy permissions) come from the same process
+protocol SystemDialogs {
+    /// The level of the highest dialog on screen now, or nil when there is none. Main thread
+    func dialogLevel() -> Int?
+}
+
+struct SystemDialogWindows: SystemDialogs {
+    /// The processes whose windows are the system asking: the name is the process's own, the same in every language
+    static let owners: Set<String> = ["UserNotificationCenter"]
+
+    func dialogLevel() -> Int? {
+        guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]
+        else { return nil }
+        return list.compactMap { window -> Int? in
+            guard let owner = window[kCGWindowOwnerName as String] as? String, Self.owners.contains(owner),
+                let level = window[kCGWindowLayer as String] as? Int
+            else { return nil }
+            if let alpha = window[kCGWindowAlpha as String] as? Double, alpha <= 0 { return nil }
+            guard let bounds = window[kCGWindowBounds as String] as? NSDictionary,
+                let rect = CGRect(dictionaryRepresentation: bounds as CFDictionary), rect.width >= 40, rect.height >= 40
+            else { return nil }
+            return level
+        }.max()
+    }
+}
+
 /// The system's screen capture: one picture per display, at the display's own resolution, without the cursor
 struct ScreenCaptureKitSource: ScreenSource {
     /// ScreenCaptureKit's "the user declined" (SCStreamError.userDeclined); it is also what a first use without any answer yet reports
@@ -174,23 +204,28 @@ protocol ScreenAccess {
 }
 
 /// The system asks the user about recording the screen only once, and only an app that has asked is in the list of System Settings. So
-/// the first time anything needs the permission (a capture, a button that leads to it), the system is asked; after that the way is System
-/// Settings. That it was asked is kept across launches
+/// the first time the user goes for the permission (Continue in the capture's window, the button in Settings → Screen Capture), the system
+/// is asked; after that the way is System Settings. That it was asked is kept across launches
 enum ScreenAccessAsk {
     static let key = "ScreenAccessRequested"
 
-    /// Asks the system when it has not been asked before; true = it was asked now
-    static func firstTime(_ access: ScreenAccess, defaults: UserDefaults) -> Bool {
-        if defaults.bool(forKey: key) { return false }
+    /// The system has been asked before (by this app, on this Mac)
+    static func asked(_ defaults: UserDefaults) -> Bool { defaults.bool(forKey: key) }
+
+    /// Lets the system ask, and records that it did
+    static func ask(_ access: ScreenAccess, defaults: UserDefaults) {
         defaults.set(true, forKey: key)
         access.request()
-        return true
     }
 
-    /// A button that leads to the permission (Settings → Screen Capture, the hint next to Capture): the system's question the first time,
-    /// System Settings afterwards
+    /// The button in Settings → Screen Capture, which says itself what it is for: the system's question the first time, System Settings
+    /// afterwards
     static func lead(_ access: ScreenAccess, defaults: UserDefaults) {
-        if !firstTime(access, defaults: defaults) { access.openSettings() }
+        if asked(defaults) {
+            access.openSettings()
+        } else {
+            ask(access, defaults: defaults)
+        }
     }
 }
 

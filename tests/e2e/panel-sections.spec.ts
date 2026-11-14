@@ -124,7 +124,7 @@ test("filtering: removing Overall comment in the funnel menu hides that section,
   await expect.poll(() => app.host.prefs?.panelHidden).toBeUndefined();
 });
 
-test("when filtering leaves nothing for this item, it says no notes match the filter and offers Clear filter; for other items under Project it says they have no notes matching the filter", async ({ app }) => {
+test("when filtering leaves nothing for this item, it says no notes match the filter and offers Clear filter; under Project, other items left with nothing are simply not listed (no line counting them)", async ({ app }) => {
   app.host.prefs = { panelScope: "material", panelHidden: ["marked", "earlier"] };
   // Drop the overall comments of hero.png
   const json = JSON.parse(readFileSync(heroFile(app), "utf8"));
@@ -138,8 +138,11 @@ test("when filtering leaves nothing for this item, it says no notes match the fi
 
   await filterMenu(app, "画面标记");
   await app.page.locator(".scope-switch .seg", { hasText: "整个项目" }).click();
-  // clip.mp4 only has canvas marks (filtered out) and poster.jpg has no notes
-  await expect(app.page.locator(".group-rest")).toHaveText("另有 2 个素材没有符合筛选条件的批注");
+  await expect(app.page.locator(".group-head.is-current", { hasText: "hero.png" })).toBeVisible();
+  // clip.mp4 only has canvas marks (filtered out) and poster.jpg has no notes: neither is listed, and no line counts them
+  await expect(app.page.locator(".group-head", { hasText: "clip.mp4" })).toHaveCount(0);
+  await expect(app.page.locator(".group-head", { hasText: "poster.jpg" })).toHaveCount(0);
+  await expect(app.page.locator(".group-rest")).toHaveCount(0);
 });
 
 test("Shift+H hides all marks on the canvas: the zoom bar says the marks are hidden and the View menu entry is unchecked; selecting a note draws only that one; pressing again brings them back. Nothing is written to the notes file and copying works as usual", async ({ app }) => {

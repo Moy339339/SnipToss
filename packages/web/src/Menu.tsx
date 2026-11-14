@@ -10,9 +10,9 @@ import { darkSwatch } from "./markColors";
 export interface MenuItem {
   label: string;
   icon?: ReactNode;
-  /** Gray text on the right: shortcuts only (explanatory text goes in title, shown on hover) */
+  /** Gray text on the right: shortcuts only */
   hint?: string;
-  /** Hover tooltip: extra explanation of what this item does */
+  /** Hover tooltip: only why the item is unavailable right now. What an item does is said by its label, never explained in a tooltip */
   title?: string;
   onClick: () => void;
   disabled?: boolean;

@@ -51,9 +51,10 @@ Status: ✅ implemented　⏳ to be done together with the corresponding feature
 
 ## Screen Capture (anywhere on the screen)
 
-A global shortcut that works in other programs too (also with the window closed, since the app stays in the tray). The default is `Ctrl+Alt+A` (the same combination as common screenshot tools; `Alt+A` is often taken by other programs). Windows treats AltGr as `Ctrl+Alt`:
-if, on a keyboard layout installed on the computer, it types a character (such as ą in Polish), the app switches automatically at startup to `Shift+PrintScreen` (trying `Ctrl+PrintScreen` and then `Ctrl+Shift+PrintScreen` if that is taken) and shows a notice once;
+A global shortcut that works in other programs too (also with the window closed, since the app stays in the tray). The default is `Ctrl+Alt+A` (the same combination as common screenshot tools; `Alt+A` is often taken by other programs; not Print Screen, which many keyboards lack). Windows treats AltGr as `Ctrl+Alt`:
+if, on a keyboard layout installed on the computer, it types a character (such as ą in Polish), the app switches automatically at startup to `Shift+PrintScreen` (trying `Ctrl+PrintScreen` and then `Ctrl+Shift+PrintScreen` if that is taken), and says so once if you had been using the old one;
 a combination you record yourself is used as is even if it types a character, and the Settings page says which character it will block.
+If another program holds the shortcut, it is not replaced: the Capture button keeps a small dot and its tooltip says why. The app says so out loud only once, when a shortcut that worked at the previous start stops working; never on the first start, which would put it over the tutorial.
 In Settings → Screen Capture, click the shortcut box and record a new one directly (while recording, `Esc` cancels and `Backspace` / `Delete` clear it). A global shortcut is taken before the program in front sees the keys, so the same shortcut stops working in other programs while it is set; the page says so next to the box. It can also be started from “Capture” at the right of the title bar, the File menu (Capture Screen…) and the tray's right-click menu.
 
 | Key | Action | Status |

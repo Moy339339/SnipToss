@@ -90,6 +90,12 @@ export function useLibraryActions(opts: {
   };
   const addFiles = () => void afterAdd(library.pickFiles());
   const addFolder = () => void afterAdd(library.pickFolder());
+  /** "Try a Sample": the sample is there to be tried, so adding it again says nothing about it being in the library already */
+  const addSample = () =>
+    void library.addSample().then(
+      (r) => !r.reloading && reveal(r.focus),
+      (e: Error) => onNotify(e.message),
+    );
   /**
    * Ctrl+V: files and folders copied in File Explorer → same as dragging them in; an image copied from web-based AI or a chat app → the shell
    * saves it into "Pasted images", and opening it makes it ready to annotate
@@ -154,5 +160,17 @@ export function useLibraryActions(opts: {
   );
   useEffect(() => onHostEvent("libraryChanged", (e) => onLibraryChanged(e)), []);
 
-  return { notifySkipped, notifyRelocated, relocateEntry, addFiles, addFolder, paste, dragging, removeEntries, clearList, pinProject };
+  return {
+    notifySkipped,
+    notifyRelocated,
+    relocateEntry,
+    addFiles,
+    addFolder,
+    addSample,
+    paste,
+    dragging,
+    removeEntries,
+    clearList,
+    pinProject,
+  };
 }

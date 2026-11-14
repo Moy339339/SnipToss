@@ -182,12 +182,6 @@ final class CaptureOverlay: NSView, OverlayView {
             self.placeNote()
         }
         noteBox.handle.onDrag = { [weak self] phase, delta in self?.dragNote(phase, delta) }
-        noteBox.handle.onHover = { [weak self] inside in
-            guard let self else { return }
-            self.showTip(over: self.noteBox.handle, tip: ShellText.t("capture.note.dragTip"), inside) { [weak self] in
-                self?.noteBox.handle.hovered == true
-            }
-        }
         noteBox.textView.onKey = { [weak self] event in self?.routeKey(event) ?? false }
         textBox.textView.onKey = { [weak self] event in self?.routeKey(event) ?? false }
         for b in noteBox.tipButtons { b.onHover = { [weak self] b, inside in self?.hoverTip(b, inside) } }
@@ -743,11 +737,18 @@ final class CaptureOverlay: NSView, OverlayView {
     /// Where the typed text's first character is: the finished text is drawn there, so it lands where it was typed
     var textOrigin: CGPoint { textBox.isHidden ? state.textAt : textBox.firstCharacter(in: self) }
 
+    /// While a dialog of the system is up (macOS asking whether the app may keep recording the screen), the layer stays below this level,
+    /// just under the dialog, so the dialog can be read and answered (CaptureSession's watch); nil: no dialog
+    var levelCap: NSWindow.Level? {
+        didSet { typingLevel() }
+    }
+
     /// While something is typed the layer steps down below the input method's candidate window (still above the menu bar and the Dock)
     private func typingLevel() {
         guard let panel = window as? OverlayPanel else { return }
         let typing = !noteBox.isHidden || !textBox.isHidden || picker.isOpen
-        let level = typing ? OverlayPanel.typingLevel : OverlayPanel.capturingLevel
+        var level = typing ? OverlayPanel.typingLevel : OverlayPanel.capturingLevel
+        if let cap = levelCap, cap.rawValue < level.rawValue { level = cap }
         if panel.level != level { panel.level = level }
     }
 
@@ -834,12 +835,12 @@ final class CaptureOverlay: NSView, OverlayView {
         return b
     }
 
-    /// Finish: a check mark and the word, on the solid blue of a primary button
+    /// Finish: a check mark and the word, on the solid blue of a primary button. The button says what it does; its tooltip only gives the key
     private func doneButton() -> OverlayButton {
         let label = ShellText.t("capture.done")
         let tip = ShellText.t("capture.doneTip")
         let width = 10 + 16 + 6 + ceil(OverlayText(label, size: 13, color: .white).fitting.width) + 12
-        let b = OverlayButton(id: "done", name: tip, tip: tip, size: CGSize(width: width, height: 32), action: { [weak self] in
+        let b = OverlayButton(id: "done", name: label, tip: tip, size: CGSize(width: width, height: 32), action: { [weak self] in
             guard let self, !self.isClosed else { return }
             self.session?.finish()
         }) { b, context in

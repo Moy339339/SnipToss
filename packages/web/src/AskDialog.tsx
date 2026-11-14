@@ -109,7 +109,6 @@ export function AskDialog(props: {
         body: (
           <>
             {snippet(q.annotation)}
-            {intl.formatMessage({ id: "ask.delete.body" })}
             <br />
             {intl.formatMessage({ id: "ask.delete.undo" })}
           </>
@@ -119,22 +118,15 @@ export function AskDialog(props: {
       };
     }
     if (q.kind === "deleteMany") {
-      const materials = new Set(q.items.map((t) => t.key)).size;
       return {
         title: intl.formatMessage({ id: "ask.deleteMany.title" }, { count: q.items.length }),
-        body: (
-          <>
-            {intl.formatMessage({ id: "ask.deleteMany.body" }, { count: q.items.length, materials })}
-            <br />
-            {intl.formatMessage({ id: "ask.delete.undo" })}
-          </>
-        ),
+        // The title says how many: the body only says it can be undone
+        body: intl.formatMessage({ id: "ask.delete.undo" }),
         confirm: intl.formatMessage({ id: "ask.delete.confirm" }),
         onConfirm: then(() => on.deleteMany(q.items)),
       };
     }
     if (q.kind === "deleteAll") {
-      const materials = new Set(q.items.map((t) => t.key)).size;
       // Drawings (marks left without a note) on an item that ends up with no notes go too; with no notes listed they are all there is
       const drawings = q.drawings.reduce((n, d) => n + d.count, 0);
       return {
@@ -144,15 +136,8 @@ export function AskDialog(props: {
             : intl.formatMessage({ id: "ask.deleteAll.title" }, { count: q.items.length }),
         body: (
           <>
-            {/* When only one is listed, say which one ("These 1 notes will be deleted" reads badly) */}
-            {q.items.length === 1 ? (
-              <>
-                {snippet(q.items[0].a)}
-                {intl.formatMessage({ id: "ask.delete.body" })}
-              </>
-            ) : (
-              q.items.length > 1 && intl.formatMessage({ id: "ask.deleteMany.body" }, { count: q.items.length, materials })
-            )}
+            {/* The title says how many; when only one is listed, say which one */}
+            {q.items.length === 1 && snippet(q.items[0].a)}
             {q.items.length > 0 && drawings > 0 && (
               <>
                 <br />

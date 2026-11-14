@@ -153,8 +153,11 @@ test("Keyboard shortcuts: six groups with these names in this order; parenthetic
   await app.open();
   await focusStage(app);
   await app.page.keyboard.press("F1");
-  await expect(sheet(app).locator(".section-label")).toHaveText(["全局", "截图批注（全局可用）", "素材列表（焦点在列表中时）", "批注", "画面", "视频"]);
-  expect(await sheet(app).locator(".shortcut-note").count()).toBeGreaterThan(0);
+  // Group names carry no bracketed extras ("(works everywhere)", "(when the list has focus)" were removed)
+  await expect(sheet(app).locator(".section-label")).toHaveText(["全局", "截图批注", "素材列表", "批注", "画面", "视频"]);
+  // A row is just its name: the only bracketed remark left is the one a setting must be on for, on its own line in small text
+  await expect(sheet(app).locator(".shortcut-note")).toHaveText(["需在设置中开启"]);
+  await expect(sheet(app).locator(".shortcut-row", { has: app.page.locator(".shortcut-note") })).toContainText("按住临时使用对应工具");
   await expect(sheet(app).locator("input")).toHaveCount(0);
 });
 
@@ -244,13 +247,22 @@ test("Intro: has aria-modal, focus moves into the dialog, Tab / Shift+Tab never 
   await expect(intro(app)).toHaveCount(0);
 });
 
-test("Intro: three steps and the small print; Add Folder first closes the dialog, then opens the picker, and the chosen folder is added to the list", async ({ app }) => {
+test("Intro: the drop prompt, the formats line, the animation and the buttons (no written steps or small print); Add Folder first closes the dialog, then opens the picker, and the chosen folder is added to the list", async ({ app }) => {
   await app.open();
   await topMenu(app, "帮助");
   await menuItem(app, "入门").click();
-  await expect(intro(app).locator(".welcome-steps li")).toHaveCount(3);
-  await expect(intro(app)).toContainText(".sniptoss");
-  await expect(intro(app)).toContainText("Ctrl Alt A");
+  // The same page as the welcome page: one line on what to do, a faint formats line (the sentence is for screen readers), the animation
+  await expect(intro(app).locator(".stage-empty-title")).toHaveText("拖入文件或文件夹，开始批注");
+  await expect(intro(app).locator(".welcome-formats")).toHaveAttribute(
+    "aria-label",
+    "支持图片（PNG、JPG、WebP、GIF、SVG…）和视频（MP4、MOV、WebM…）",
+  );
+  await expect(intro(app).locator(".welcome-demo")).toBeVisible();
+  // The written steps and the small print (where notes are saved, the capture shortcut) are gone: the animation and first-use hints say it
+  await expect(intro(app).locator(".welcome-steps")).toHaveCount(0);
+  await expect(intro(app)).not.toContainText(".sniptoss");
+  await expect(intro(app)).not.toContainText("Ctrl Alt A");
+  await expect(intro(app).locator(".welcome-actions button")).toHaveText(["添加文件", "添加文件夹", "新手教程"]);
   // The tooltips of the two buttons match the library's (the name includes the shortcut)
   await expect(intro(app).getByRole("button", { name: "添加文件夹" })).toHaveAttribute("title", "添加文件夹（Ctrl Shift O）");
   await expect(intro(app).getByRole("button", { name: "添加文件", exact: true })).toHaveAttribute("title", "添加文件（Ctrl O）");

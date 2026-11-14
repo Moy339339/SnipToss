@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState, type RefObject } from "react";
 import { useIntl } from "react-intl";
 import { DATA_DIR, shapesOf, type Annotation, type AnnotationStatus, type MaterialKind } from "@sniptoss/core";
 import { AnnotationLayer, markAt, type MarkHit, type ShownAnnotation } from "./AnnotationLayer";
@@ -38,8 +38,9 @@ import { AnnotationPanel } from "./AnnotationPanel";
 import { blockedReason, isFolderKey, opKind, useAnnotationStore, type Op } from "./annotationStore";
 import { type SeekRequest } from "./VideoPlayer";
 import { IntroDialog, Welcome } from "./Welcome";
-import { useOnboarding } from "./onboarding";
-import { Tour } from "./Tour";
+import { GUIDE_STEPS, SAMPLE_BOX, useOnboarding, type GuideStep } from "./onboarding";
+import { FirstRun } from "./FirstRun";
+import { Guide } from "./Guide";
 import { Hint } from "./Hint";
 import { copyDiagnostics, diagnosticsText, reportIssue } from "./diagnostics";
 import { useUpdates } from "./updates";
@@ -61,7 +62,7 @@ export function WorkspaceView(props: {
   appInfo?: AppInfo;
   onHelp: () => void;
   /** Open Settings; section is which page to show first (menu "Help → About", etc.) */
-  onSettings: (section?: string) => void;
+  onSettings: (section?: string, row?: string) => void;
   onNotify: Notify;
   /** The notes folder of the current item (the Settings window needs it) */
   onHome: (home: string | undefined) => void;
@@ -160,17 +161,21 @@ export function WorkspaceView(props: {
         : undefined;
   const mediaRef = useRef<Media | null>(null);
   const stageRef = useRef<HTMLElement>(null);
-  // On the Mac: whether macOS lets the app record the screen (asked once; allowing it takes a restart of the app anyway)
-  const [noScreenAccess, setNoScreenAccess] = useState(false);
-  useEffect(() => {
-    if (platform !== "mac") return;
-    call("captureSettings")
-      .then((c) => setNoScreenAccess(c.screenAccess === false))
-      .catch((e) => logError("captureSettings", e));
-  }, []);
-  // Onboarding tour and first-use hints (onboarding.ts): the tour runs the first time an item is shown; a hint appears once the first time a video is opened and once when the first note is saved,
-  // and on the Mac without the permission to record the screen, once next to Capture
-  const onboarding = useOnboarding({ current, selectedKey, video: canTimed && !!dims, noScreenAccess });
+  // Onboarding tour and first-use hints (onboarding.ts): the tour runs the first time an item is shown; a hint appears once the first time a video is opened and once when the first note is saved.
+  // Nothing here about the Mac's permission to record the screen: it is asked the first time Screen Capture is used (the shell), not at launch
+  const [composingNew, setComposingNew] = useState(false);
+  const [markingNew, setMarkingNew] = useState(false);
+  // The very first launch: the library has loaded empty and the shell can add the sample picture (the first-run dialog offers the tutorial)
+  const fresh = library.loaded && library.entries.length === 0 && !!props.appInfo?.sampleDir;
+  const onboarding = useOnboarding({
+    current,
+    selectedKey,
+    video: canTimed && !!dims,
+    composing: composingNew,
+    marking: markingNew,
+    tool,
+    fresh,
+  });
   const [ask, setAsk] = useState<Ask>();
   // The note being written in the composer: draft.ts; opening the composer and saving: compose.ts (see "Drawing notes" below)
   /** Marks left without a word stay as drawings (drawings.ts, set up below once the snapshots are) */
@@ -224,9 +229,7 @@ export function WorkspaceView(props: {
     panelQuery,
     setPanelQuery,
     terms,
-    searching,
     panelSearch,
-    passes,
     revealSection,
     allItems,
     folderOpenCount,
@@ -324,8 +327,48 @@ export function WorkspaceView(props: {
   }, [deniedEntries, rescanEntries]);
 
   // ---------- Adding to the library, removing, clearing: libraryActions.ts ----------
-  const { notifySkipped, notifyRelocated, relocateEntry, addFiles, addFolder, paste, dragging, removeEntries, clearList, pinProject } =
-    useLibraryActions({ library, prefs, onNotify, reasonOf, reveal });
+  const {
+    notifySkipped,
+    notifyRelocated,
+    relocateEntry,
+    addFiles,
+    addFolder,
+    addSample: addSampleItem,
+    paste,
+    dragging,
+    removeEntries,
+    clearList,
+    pinProject,
+  } = useLibraryActions({ library, prefs, onNotify, reasonOf, reveal });
+  /** "Try a Sample" on the welcome page: only when the shell can add the sample picture */
+  // It is the tutorial: the guide follows on the sample even when it was seen before or beginner mode is off (it was asked for)
+  const addSample = props.appInfo?.sampleDir
+    ? () => {
+        // Asked for, the tutorial runs from its first step (picking the rectangle), even when the rectangle is still the tool in use
+        // (as it is after the last run)
+        setTool("select");
+        onboarding.askTour();
+        return addSampleItem();
+      }
+    : undefined;
+  /**
+   * The guide is over (finished or skipped). Run on the sample, the sample has done its job and leaves the list: the real work starts from
+   * the welcome page (or what else is listed), with nothing left to wonder whether to delete. It is the app's own copy; "Tutorial" brings it
+   * back, clean (the shell clears its notes)
+   */
+  const onSample = !!current && !!props.appInfo?.sampleDir && keyOf(current.home) === keyOf(props.appInfo.sampleDir);
+  const endGuide = () => {
+    onboarding.closeTour();
+    const dir = props.appInfo?.sampleDir;
+    const entry = onSample && dir ? library.entries.find((e) => keyOf(e.path) === keyOf(dir)) : undefined;
+    if (entry) removeEntries([entry]);
+  };
+  // The guide moves on by what is done (onboarding.ts): the composer is open on a new note
+  const composingNow = !!draft?.composing && !draft.id;
+  useEffect(() => setComposingNew(composingNow), [composingNow]);
+  // A new note's mark is on the canvas (the first one drawn brings the hint about recoloring marks)
+  const markingNow = !!draft && !draft.id && !draft.folder && !!draft.shapes?.length;
+  useEffect(() => setMarkingNew(markingNow), [markingNow]);
 
   /** Select a note and seek the video to its moment. If it belongs to another item (when the notes panel lists several items), switch the canvas to that item first; the selection on the left stays unchanged */
   const pickItem = (it: Item) => {
@@ -506,7 +549,40 @@ export function WorkspaceView(props: {
     onNotify,
     report: { notifyError, copyReason },
   });
-  const { toCopy, thisKind, copyOne, copyCurrent, copyMaterials, listedMaterialCount, openItems } = handoff;
+  const { toCopy, thisKind, copyOne, copyCurrent, copyMaterials, openItems } = handoff;
+  /**
+   * "Next" on a step of the guide that is done by doing: it is done for the user, who watches it (the rectangle picked, the sample's
+   * headline boxed, the note saved with what was typed or a sample sentence, copied as text), and the guide moves on as if they had done it
+   */
+  const doGuideStep = () => {
+    const step = onboarding.guide;
+    if (step === "tool") return chooseTool("rect");
+    if (step === "mark") {
+      const m = document.querySelector(".stage .zoom-content img, .stage .zoom-content video")?.getBoundingClientRect();
+      if (!m) return;
+      const { x, y, w, h } = SAMPLE_BOX;
+      if (tool !== "rect") chooseTool("rect");
+      const box = {
+        left: m.left + m.width * x,
+        top: m.top + m.height * y,
+        right: m.left + m.width * (x + w),
+        bottom: m.top + m.height * (y + h),
+      };
+      // As from the canvas menu's "Add Note Here…": the composer opens whatever Settings say about opening it
+      return onCreate({ type: "rect", x, y, w, h }, box, { time: videoTime() });
+    }
+    if (step === "write" && draft) {
+      const typed = liveDraft.current;
+      const body = typed?.body.trim() || intl.formatMessage({ id: "guide.write.sample" });
+      return void saveDraft({ category: typed?.category ?? draft.category, body, time: typed?.time ?? draft.time });
+    }
+    if (step === "copy") void copyCurrent();
+  };
+  // Notes were copied: the guide's last step is done
+  const guideCopied = useEffectEvent(() => onboarding.copied());
+  useEffect(() => {
+    if (handoff.copied) guideCopied();
+  }, [handoff.copied]);
   const home = current?.home;
   const homeHasNotes = !!home && homeFiles(home).some((f) => f.annotations.length > 0);
   const revealDataDir = () => {
@@ -685,7 +761,7 @@ export function WorkspaceView(props: {
   const { win, windowCmd } = useWindowState(onNotify);
   // When the window is hidden (to the tray, or hidden before a capture), stop any playing video (otherwise sound continues from an invisible window)
   useEffect(() => onHostEvent("windowHidden", () => mediaRef.current instanceof HTMLVideoElement && mediaRef.current.pause()), []);
-  const { captureHotkey, captureHide, startCapture, setCaptureHideAlways } = useCaptureControls({
+  const { captureHotkey, captureProblem, captureHide, startCapture, setCaptureHideAlways } = useCaptureControls({
     onNotify,
     notifyError,
     onSettings: () => props.onSettings("capture"),
@@ -874,7 +950,7 @@ export function WorkspaceView(props: {
   // ---------- Menu bar ----------
   const menus = buildMenus({
     openIntro: () => setIntro(true),
-    openTour: onboarding.startTour,
+    openTour: addSample,
     openLogs: () => revealInExplorer("@logs"),
     copyDiagnostics: () => void copyDiagnosticsNow(),
     exportDiagnostics: () => void exportDiagnosticsNow(),
@@ -1204,9 +1280,6 @@ export function WorkspaceView(props: {
   const multiHome = new Set(groups.map((g) => keyOf(g.material.home))).size > 1;
   const groupHint = (m: MaterialEntry) =>
     [...(multiHome ? [baseName(m.home) || m.home] : []), ...m.homeRel.split("/").slice(0, -1)].join(" / ");
-  /** When several items are listed, how many are left out because they have no (open) notes. Not said while searching (that means no match, not no notes) */
-  const hiddenGroups =
-    grouped && !searching ? groups.filter((g) => !g.missing && g.key !== selectedKey && !g.items.some(passes)).length : 0;
   // When several items are listed and the item on the canvas changed (Ctrl+↓, a group title was clicked): scroll its group into view.
   // If it changed because a note of another item was clicked (a note got selected), leave it: that note scrolls into view itself
   useEffect(() => {
@@ -1223,6 +1296,7 @@ export function WorkspaceView(props: {
         onWindow={windowCmd}
         capture={{
           hotkey: captureHotkey,
+          problem: captureProblem,
           hide: captureHide,
           start: startCapture,
           setHide: setCaptureHideAlways,
@@ -1252,7 +1326,7 @@ export function WorkspaceView(props: {
             onPin={pinProject}
             onCopy={copyMaterials}
             onCopyListed={(mode) => void copyCurrent(mode, true)}
-            listed={{ count: openList.length, materials: listedMaterialCount }}
+            listed={{ count: openList.length }}
             folderCount={folderOpenCount}
             missingCount={missingOpenCount}
             hasNotes={(h) => homeFiles(h).some((f) => f.annotations.length > 0)}
@@ -1333,11 +1407,27 @@ export function WorkspaceView(props: {
             ) : (
               <div className={library.loaded && library.entries.length === 0 ? "stage-empty is-welcome" : "stage-empty"}>
                 {library.loaded && library.entries.length === 0 ? (
-                  <Welcome onAddFiles={addFiles} onAddFolder={addFolder} captureKeys={captureKeys} />
+                  <Welcome onAddFiles={addFiles} onAddFolder={addFolder} onSample={addSample} captureKeys={captureKeys} />
                 ) : (
                   library.loaded && <KeepPunctuation>{intl.formatMessage({ id: "stage.pickFirst" })}</KeepPunctuation>
                 )}
               </div>
+            )}
+            {onboarding.guide && (
+              <ErrorBoundary area="guide" onClose={onboarding.closeTour}>
+                <Guide
+                  step={onboarding.guide}
+                  sample={onSample}
+                  onNext={
+                    onboarding.guide === "done"
+                      ? endGuide
+                      : GUIDE_STEPS.includes(onboarding.guide as GuideStep)
+                        ? doGuideStep
+                        : onboarding.nextStep
+                  }
+                  onClose={endGuide}
+                />
+              </ErrorBoundary>
             )}
             {earlierPick && home && (
               <EarlierShot
@@ -1418,7 +1508,6 @@ export function WorkspaceView(props: {
             thisOne={thisOne}
             renderItem={renderItem}
             groupHint={groupHint}
-            hiddenGroups={hiddenGroups}
             selectMaterial={selectMaterial}
             onDeleteMissing={(key) => setAsk({ kind: "deleteMissing", key })}
             applyStatus={applyStatus}
@@ -1438,7 +1527,6 @@ export function WorkspaceView(props: {
           <div className="drop-overlay">
             <div className="drop-card">
               <div className="drop-title">{intl.formatMessage({ id: "drop.title" })}</div>
-              <div className="muted">{intl.formatMessage({ id: "drop.body" })}</div>
             </div>
           </div>
         )}
@@ -1476,17 +1564,41 @@ export function WorkspaceView(props: {
       )}
       {intro && (
         <ErrorBoundary area="intro" onClose={() => setIntro(false)}>
-          <IntroDialog onClose={() => setIntro(false)} onAddFiles={addFiles} onAddFolder={addFolder} captureKeys={captureKeys} />
+          <IntroDialog
+            onClose={() => setIntro(false)}
+            onAddFiles={addFiles}
+            onAddFolder={addFolder}
+            onSample={addSample}
+            captureKeys={captureKeys}
+          />
         </ErrorBoundary>
       )}
-      {onboarding.touring && (
-        <ErrorBoundary area="guide" onClose={onboarding.closeTour}>
-          <Tour captureKeys={captureKeys} onClose={onboarding.closeTour} />
+      {onboarding.welcoming && (
+        <ErrorBoundary area="guide" onClose={onboarding.closeWelcome}>
+          <FirstRun
+            onStart={() => {
+              onboarding.closeWelcome();
+              addSample?.();
+            }}
+            onSkip={onboarding.skipWelcome}
+          />
         </ErrorBoundary>
       )}
       {onboarding.hint && (
         <ErrorBoundary area="guide" onClose={onboarding.closeHint}>
-          <Hint key={onboarding.hint} id={onboarding.hint} onClose={onboarding.closeHint} />
+          <Hint
+            key={onboarding.hint}
+            id={onboarding.hint}
+            target={onboarding.hintTarget}
+            captureKeys={captureKeys}
+            onClose={onboarding.closeHint}
+            // No more of these: turn beginner mode off, and show where it is in Settings (to turn it back on)
+            onBeginnerOff={() => {
+              setPrefs({ beginner: false });
+              onboarding.closeHint();
+              props.onSettings("general", "beginner");
+            }}
+          />
         </ErrorBoundary>
       )}
     </div>

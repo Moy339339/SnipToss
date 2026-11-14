@@ -399,7 +399,7 @@ test("closing: the × in the top-right corner can be clicked (even with the cont
   await app.page.mouse.up();
 });
 
-test("eight tabs: clicking a tab shows its page and lights the current tab; switching pages doesn't lose text just typed; closing and reopening returns to General; there is no OK button, and the dialog says changes take effect immediately", async ({
+test("eight tabs: clicking a tab shows its page and lights the current tab; switching pages doesn't lose text just typed; closing and reopening returns to General; there is no OK button (changes apply at once, with no line saying so)", async ({
   app,
 }) => {
   await app.open();
@@ -411,7 +411,7 @@ test("eight tabs: clicking a tab shows its page and lights the current tab; swit
     await expect(onTab(app)).toHaveText(tab);
     await expect(app.page.locator(".settings-head h2")).toHaveText(tab);
   }
-  await expect(app.page.locator(".settings-nav-foot")).toHaveText("更改即时生效");
+  await expect(app.page.locator(".settings-nav-foot")).toHaveCount(0);
   await expect(settings(app).getByRole("button", { name: /^(确定|保存|取消)$/ })).toHaveCount(0);
   await app.page.locator(".settings-tab", { hasText: /^复制批注$/ }).click();
   await setRow(app, "附加说明").locator("textarea").fill("改完重新导出一版");
@@ -572,7 +572,7 @@ test("when the General page can't read the tray and start-at-login settings, tho
   await expect(setRow(app, "登录 Windows 时启动").getByRole("switch")).toBeVisible();
 });
 
-test("opening Settings with the window at its minimum size and Interface size 125%: the whole dialog is inside the window, the × can be clicked, and the changes-take-effect-immediately line is visible", async ({ app }) => {
+test("opening Settings with the window at its minimum size and Interface size 125%: the whole dialog is inside the window, the × can be clicked, and the content scrolls down to its last row", async ({ app }) => {
   app.host.prefs = { uiScale: 1.25 };
   await app.page.setViewportSize({ width: 960, height: 600 }); // Same as MinWidth / MinHeight in MainWindow
   await app.open();
@@ -588,8 +588,10 @@ test("opening Settings with the window at its minimum size and Interface size 12
     [c.x + c.width / 2, c.y + c.height / 2],
   );
   expect(hit).toBe(true);
-  const foot = (await app.page.locator(".settings-nav-foot").boundingBox())!;
-  expect(foot.y + foot.height).toBeLessThanOrEqual(d.y + d.height);
+  // The last tab (the nav no longer ends with a "changes take effect immediately" line) is inside the dialog
+  await expect(app.page.locator(".settings-nav-foot")).toHaveCount(0);
+  const lastTab = (await app.page.locator(".settings-tab").last().boundingBox())!;
+  expect(lastTab.y + lastTab.height).toBeLessThanOrEqual(d.y + d.height);
   // The content area scrolls on its own, and scrolled to the bottom the last row is visible
   await app.page.locator(".settings-body").evaluate((el) => (el.scrollTop = el.scrollHeight));
   await expect(setRow(app, "恢复默认设置")).toBeInViewport();
@@ -604,14 +606,17 @@ test("capture shortcut: shows the current keys; an unset shortcut reads Not set;
   const keyRow = setRow(app, "快捷键");
   await expect(keyRow.locator(".hotkey-input kbd")).toHaveText(["Ctrl", "Alt", "A"]);
   await expect(keyRow.locator(".text-danger")).toHaveText("Ctrl Alt A 已被其他程序占用，请更换快捷键");
-  // The title bar button's tooltip doesn't mention a shortcut that failed to register
+  // The title bar button doesn't offer a shortcut that failed to register: it carries a dot and its tooltip is the reason instead
   await app.page.keyboard.press("Escape");
-  await expect(app.page.locator(".titlebar-action").first()).not.toHaveAttribute("title", /Ctrl Alt A/);
+  await expect(app.page.locator(".titlebar-action").first()).toHaveClass(/has-problem/);
+  await expect(app.page.locator(".titlebar-action").first()).toHaveAttribute("title", "Ctrl Alt A 已被其他程序占用，请更换快捷键");
   app.host.capture.hotkey = "";
   app.host.capture.hotkeyError = null;
   await openSettings(app, "截图批注");
   await expect(keyRow.locator(".hotkey-input")).toHaveText("未设置");
-  await expect(keyRow).toContainText("在任何程序中都可用");
+  // Back to the usual one-line description, no red text
+  await expect(keyRow).toContainText("按 Backspace 清除。");
+  await expect(keyRow.locator(".text-danger")).toHaveCount(0);
 });
 
 test("recording the capture shortcut: the old one is paused while recording and restored afterwards; the title bar tooltip and the menu follow the new one; Esc only cancels recording and Backspace clears it", async ({ app }) => {
@@ -704,10 +709,10 @@ test("screenshot save location: the default states that screenshots are kept for
 test("extra instructions are appended at the end of Copy as Text; all-whitespace text is not appended", async ({ app }) => {
   await app.open();
   await openSettings(app, "复制批注");
-  await expect(app.page.locator(".settings-body .set-heading")).toContainText("复制成文字");
-  await expect(app.page.locator(".settings-body .set-heading")).toContainText("复制成图片");
+  // No page intro above the settings; the example of extra instructions is the input's placeholder
+  await expect(app.page.locator(".settings-body .set-heading")).toHaveCount(0);
   const extra = setRow(app, "附加说明").locator("textarea");
-  await expect(extra).toHaveAttribute("placeholder", "留空则不附加");
+  await expect(extra).toHaveAttribute("placeholder", "例如：修改后重新导出，文件名加 _v2");
   await extra.fill("改完重新导出一版");
   await app.page.keyboard.press("Escape");
   await focusStage(app);
@@ -722,7 +727,7 @@ test("extra instructions are appended at the end of Copy as Text; all-whitespace
   expect((await app.clipboard())?.endsWith("   ")).toBe(false);
 });
 
-test("System page: the context menu switch reads the shell's state and announces a change; when the shell errors it says why and the switch doesn't move; \"drop onto the desktop icon\" is only a description", async ({ app }) => {
+test("System page: the context menu switch reads the shell's state and announces a change; when the shell errors it says why and the switch doesn't move; there is no \"drop onto the desktop icon\" row (nothing to set there)", async ({ app }) => {
   await app.open();
   await openSettings(app, "系统集成");
   const sw = setRow(app, "资源管理器右键菜单").getByRole("switch");
@@ -734,9 +739,10 @@ test("System page: the context menu switch reads the shell's state and announces
   await sw.click();
   await expect(toast(app)).toContainText("setShellIntegration 失败（测试注入）");
   await expect(sw).toHaveAttribute("aria-checked", "true");
-  const drop = setRow(app, "拖放到桌面图标");
-  await expect(drop).toContainText("已支持");
-  await expect(drop.getByRole("switch")).toHaveCount(0);
+  // The page holds only what can be set: the "drop onto the desktop icon" description row is gone, and so is the page intro
+  await expect(setRow(app, "拖放到桌面图标")).toHaveCount(0);
+  await expect(app.page.locator(".settings-body .set-heading")).toHaveCount(0);
+  await expect(app.page.locator(".settings-body .set-row")).toHaveCount(1);
 });
 
 test("portable build: the two switches that write to the registry (start at login, context menu) are disabled and explain why", async ({ app }) => {
@@ -760,7 +766,9 @@ test("portable build: the two switches that write to the registry (start at logi
 test("Shortcuts page: shows the same groups as the ones you get by pressing ?", async ({ app }) => {
   await app.open();
   await openSettings(app, "快捷键");
-  await expect(app.page.locator(".settings-body .set-heading")).toContainText("按 ? 也可查看此列表。截图快捷键在「截图批注」中更改");
+  // No page intro: the page is the list itself
+  await expect(app.page.locator(".settings-body .set-heading")).toHaveCount(0);
+  await expect(app.page.locator(".settings-body")).not.toContainText("也可查看此列表");
   const inSettings = await app.page.locator(".keys-grid .section-label").allInnerTexts();
   expect(inSettings.length).toBeGreaterThanOrEqual(6);
   await app.page.keyboard.press("Escape");
@@ -837,7 +845,8 @@ test("Diagnostic info gives the UI's release date and no build times of day (it 
 test("About page: third-party notices can be read inside the app and are only loaded when opened; they are listed by component, a click on a row shows the license text; Esc closes only the notices and Settings stays open", async ({ app }) => {
   await app.open();
   await openSettings(app, "关于");
-  await expect(setRow(app, "第三方声明")).toContainText("程序中使用的开源组件及其许可证");
+  // The row is just its name and View (the description repeated what the name says)
+  await expect(setRow(app, "第三方声明")).toHaveText("第三方声明查看");
   await setRow(app, "第三方声明").getByRole("button", { name: "查看" }).click();
   const sheet = app.page.getByRole("dialog", { name: "第三方声明" });
   // The intro and the header follow the UI language; each component has a row, and the license text starts collapsed

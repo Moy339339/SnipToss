@@ -3,6 +3,7 @@ import { CATEGORIES, type AnnotationCategory } from "@sniptoss/core";
 import { useIntl } from "react-intl";
 import { cssZoom } from "./cssZoom";
 import { afterToolHold } from "./hold";
+import { keycaps } from "./hotkey";
 import { CloseIcon, GripIcon, PlusIcon, UndoIcon } from "./icons";
 import { pressesControl, useKeys } from "./keys";
 import { usePrefs } from "./prefs";
@@ -292,7 +293,8 @@ export function Composer(props: {
             </button>
           </span>
         )}
-        <span className="composer-grip" data-tip={intl.formatMessage({ id: "composer.dragTip" })}>
+        {/* The grip and the move cursor say it can be dragged: no tooltip */}
+        <span className="composer-grip">
           <GripIcon />
         </span>
       </div>
@@ -390,12 +392,13 @@ export function Composer(props: {
         spellCheck={false}
       />
       <div className="composer-foot">
-        <span className="muted composer-hint">{intl.formatMessage({ id: "composer.keys" })}</span>
         <button className="btn btn-ghost btn-small" onClick={props.onCancel}>
           {intl.formatMessage({ id: "dialog.cancel" })}
         </button>
         <button className="btn btn-primary btn-small" onClick={save} disabled={!body.trim() || props.saving}>
           {intl.formatMessage({ id: props.saving ? "composer.saving" : "composer.save" })}
+          {/* The key that saves, on the button it presses: no line of text to say so. Named as the keyboard says it (↩ on the Mac, Eingabe in German…) */}
+          <kbd>{keycaps("Enter", (id) => intl.formatMessage({ id }))}</kbd>
         </button>
       </div>
     </div>

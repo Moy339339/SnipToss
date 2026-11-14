@@ -459,17 +459,17 @@ export function VideoPlayer(props: {
     props.selectedId,
   );
   const pick = (id: string) => props.onMarkClick?.(id);
-  /** A stack's tooltip: its notes one per line (the first eight), then how many more */
+  /** A stack's tooltip: its notes one per line (the first eight), then how many more. No line saying how many: the stack shows the number */
   const stackTip = (ids: string[]) =>
     [
-      intl.formatMessage({ id: "player.stack" }, { count: ids.length }),
       ...ids.slice(0, 8).map((id) => `${markById.get(id)!.line}  ${markById.get(id)!.body}`),
       ...(ids.length > 8 ? [intl.formatMessage({ id: "player.stackMore" }, { count: ids.length - 8 })] : []),
     ].join("\n");
 
   // The three icon-only buttons: the name also goes into aria-label. The window-wide tooltip takes the title off while the mouse rests (Tooltip.tsx), and at that moment the button would have no name
   const playLabel = intl.formatMessage({ id: playing ? "video.pause" : "video.play" });
-  const loopLabel = intl.formatMessage({ id: prefs.loop ? "video.loopTitleOn" : "video.loopTitle" });
+  // Whether it is on is shown by the lit button, not in words
+  const loopLabel = intl.formatMessage({ id: "video.loopTitle" });
   const muteLabel = intl.formatMessage({ id: silent ? "video.unmute" : "video.mute" });
 
   return (

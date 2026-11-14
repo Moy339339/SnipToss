@@ -33,8 +33,10 @@ const DECODED = new Set([".tif", ".tiff", ".heic", ".heif"]);
  * (fixtures/formats/decoded/<file name>.png, whose size is the size of the original image). A file with no pre-converted PNG is treated as corrupt
  */
 const DECODED_DIR = fileURLToPath(new URL("./fixtures/formats/decoded/", import.meta.url));
-/** Names of the onboarding tour and hints (onboarding.ts in packages/web) */
-export const ONBOARDED = ["tour", "hint.copy", "hint.video", "hint.screenAccess"];
+/** Names of the first-run dialog, the guide and the hints (onboarding.ts in packages/web): all seen */
+export const ONBOARDED = ["welcome", "tour", "hint.copy", "hint.video", "hint.drawing", "hint.capture", "hint.pin", "hint.color"];
+/** The tutorial's picture, shipped with the UI (packages/web/public/sample, ui/sample in the app) */
+const SAMPLE = fileURLToPath(new URL("../../packages/web/public/sample/landing-page.jpg", import.meta.url));
 const DEFAULT_SKIP = ["node_modules", "bin", "obj", "dist", "build", "__pycache__", "venv"];
 /** Same as DataDir.GitIgnore */
 const GIT_IGNORE =
@@ -80,6 +82,8 @@ const inside = (p: string, folder: string) => {
 /** Same as Uri.EscapeDataString: escapes ! ' ( ) * in addition to what encodeURIComponent does */
 const escapeData = (s: string) => encodeURIComponent(s).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
 const kindOf = (p: string) => KINDS[path.extname(p).toLowerCase()];
+/** Why a shortcut held by another program could not be registered (GlobalHotKey.Set's message) */
+const takenError = (hotkey: string) => `${hotkey.split("+").join(" ")} 已被其他程序占用，请更换快捷键`;
 const toSlash = (p: string) => p.replaceAll("\\", "/");
 
 /**
@@ -174,8 +178,9 @@ export class MockHost {
   selected: string | null = null;
   prefs: Record<string, unknown> | null = null;
   /**
-   * The onboarding tour and hints all count as seen (onboarding.ts): otherwise the first item displayed dims the whole window for the tour and blocks whatever the test clicks.
-   * Added on read, removed on write, so the prefs a test sees and asserts on don't have this extra entry. Tests of the tour set it to false first
+   * The first-run dialog, the guide and the hints all count as seen (onboarding.ts): otherwise the first item displayed dims the whole window for the guide
+   * (and an empty library brings the first-run dialog) and blocks whatever the test clicks.
+   * Added on read, removed on write, so the prefs a test sees and asserts on don't have this extra entry. Tests of the guide and hints set it to false first
    */
   onboarded = true;
   /** What the next Add Files / Add Folder dialog returns (set in the test first) */
@@ -202,6 +207,7 @@ export class MockHost {
   menusSent: { version: number; modal: boolean; menus: { label: string; items: unknown[] }[] }[] = [];
   capture = {
     hotkey: "Ctrl+Alt+A",
+    /** Why the shortcut could not be registered at this launch (set it before the page opens to simulate another program holding it) */
     hotkeyError: null as string | null,
     hotkeyTypes: "",
     hotkeyMoved: null as { from: string; to: string; typed: string } | null,
@@ -223,8 +229,25 @@ export class MockHost {
   get pastedDir() {
     return path.join(this.opts.tempDir, "pasted");
   }
-  /** Test only: these shortcuts are held by another program (same as GlobalHotKey.Set failing to register: not saved, hotkeyError returned, the old one stays) */
+  /** Same as AppPaths.SampleDir: the tutorial's sample picture is put here (appInfo.sampleDir) */
+  get sampleDir() {
+    return path.join(this.opts.tempDir, "sample");
+  }
+  /**
+   * Test only: these shortcuts are held by another program (same as GlobalHotKey.Set failing to register: not saved, hotkeyError returned, the old one stays).
+   * The shortcut in capture.hotkey being one of them at launch also fails, as when the shell registers it at startup
+   */
   hotkeyTaken = new Set<string>();
+  /**
+   * Same as CaptureSettings.HotkeyWorked in the settings file before this launch: true = the shortcut registered at the previous launch (someone who has been
+   * using it, the default here), false = it did not, null = never tried (a new install). The shell tells the user about the shortcut only when this changes
+   * (TellHotkeyChange): hotkeyLost when it worked and does not now, hotkeyMoved only for someone who had been using the replaced key
+   */
+  hotkeyWorked: boolean | null = true;
+  /** The shell has started: TellHotkeyChange ran (at the first captureSettings the page asks for; a page reload is not a new launch) */
+  private launched = false;
+  /** The shortcut worked at the previous launch and does not now (TellHotkeyChange); given once, like hotkeyMoved (TakeHotkeyLost) */
+  private hotkeyLost = false;
   /** The UI paused the old shortcut while recording a new one (captureHotkeyPause); it must be restored when recording ends */
   hotkeyPaused = false;
   /** Simulates the keyboard layout of the user's computer: which key combination types which character (AltGr = Ctrl+Alt, e.g. Polish "Ctrl+Alt+A": "ą"); the shell's GlobalHotKey.TypedChars */
@@ -360,6 +383,18 @@ export class MockHost {
         const file = path.join(dir, `paste-${String(++this.pastes).padStart(3, "0")}.png`);
         writeFileSync(file, this.clipboardImage);
         return { ...this.add([dir]), focus: file, pasted: file, reloading: false };
+      }
+      case "addSample": {
+        // Same as Bridge.AddSampleAsync: the notes left on the sample last time are removed first, the picture is copied in if it isn't there,
+        // then the folder is added and the picture located
+        const dir = this.sampleDir;
+        rmSync(path.join(dir, DATA_DIR), { recursive: true, force: true });
+        const file = path.join(dir, path.basename(SAMPLE));
+        if (!existsSync(file)) {
+          mkdirSync(dir, { recursive: true });
+          cpSync(SAMPLE, file);
+        }
+        return { ...this.add([dir]), focus: file, reloading: false };
       }
       case "pickFiles": {
         const r = this.nextPickFiles;
@@ -527,6 +562,7 @@ export class MockHost {
           systemLanguage: this.systemLanguage,
           logDir: path.join(this.opts.tempDir, "logs"),
           pastedDir: this.pastedDir,
+          sampleDir: this.sampleDir,
           portable: false,
           built: new Date().toISOString(),
           dotnet: "e2e",
@@ -616,12 +652,16 @@ export class MockHost {
       case "captureSettings":
         return this.captureState();
       case "setCaptureSettings": {
-        // Same as MainWindow.SetCapture: the shortcut is registered first and only saved if that works
+        // Same as MainWindow.SetCapture: the shortcut is registered first and only saved if that works (and then counts as working, HotkeyWorked)
+        this.launch();
         const { hotkey, ...rest } = a as { hotkey?: string } & Record<string, unknown>;
         Object.assign(this.capture, rest);
         if (typeof hotkey === "string") {
-          if (this.hotkeyTaken.has(hotkey)) this.capture.hotkeyError = `${hotkey.split("+").join(" ")} 已被其他程序占用，请更换快捷键`;
-          else Object.assign(this.capture, { hotkey, hotkeyError: null });
+          if (this.hotkeyTaken.has(hotkey)) this.capture.hotkeyError = takenError(hotkey);
+          else {
+            Object.assign(this.capture, { hotkey, hotkeyError: null });
+            this.hotkeyWorked = true;
+          }
         }
         return this.captureState();
       }
@@ -635,16 +675,40 @@ export class MockHost {
     }
   }
 
-  /** Same as MainWindow.CaptureState: which characters the current shortcut types is computed each time; the note about a moved key is given only once (TakeHotkeyMoved) */
+  /**
+   * Same as MainWindow.CaptureState: which characters the current shortcut types is computed each time; the note about a moved key and the one
+   * about a lost key are given only once (TakeHotkeyMoved, TakeHotkeyLost)
+   */
   private captureState() {
+    this.launch();
     const moved = this.capture.hotkeyMoved;
+    const lost = this.hotkeyLost;
     this.capture.hotkeyMoved = null;
+    this.hotkeyLost = false;
     return {
       ...this.capture,
       hotkeyMoved: moved,
+      hotkeyLost: lost,
       hotkeyTypes: this.typingKeys[this.capture.hotkey] ?? "",
       defaultFolder: path.join(this.opts.tempDir, "captures"),
     };
+  }
+
+  /**
+   * Same as MainWindow.StartBackground, once per launch: the shortcut in settings is registered (one held by another program fails), then
+   * TellHotkeyChange decides what to tell against the previous launch (hotkeyWorked): a key that worked and does not now is lost (said once);
+   * a replaced default is said only to someone who had been using it; a new install hears nothing (the Capture button's dot says why)
+   */
+  private launch() {
+    if (this.launched) return;
+    this.launched = true;
+    const c = this.capture;
+    if (c.hotkey && this.hotkeyTaken.has(c.hotkey)) c.hotkeyError ??= takenError(c.hotkey);
+    const before = this.hotkeyWorked;
+    const works = c.hotkeyError === null;
+    if (before !== true) c.hotkeyMoved = null;
+    this.hotkeyLost = before === true && !works;
+    this.hotkeyWorked = works;
   }
 
   // ---------- Library (same as Library.Add) ----------
