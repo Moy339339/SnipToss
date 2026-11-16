@@ -84,7 +84,7 @@ public class ImeUnderlineTests
     /// </summary>
     static TextBox LaidOut(string text)
     {
-        var box = new TextBox { Width = 330, TextWrapping = TextWrapping.Wrap, AcceptsReturn = true, FontSize = 13, Text = text };
+        var box = new TextBox { Width = 330, TextWrapping = TextWrapping.Wrap, AcceptsReturn = true, FontSize = 14, Text = text };
         var window = new Window
         {
             Content = box,

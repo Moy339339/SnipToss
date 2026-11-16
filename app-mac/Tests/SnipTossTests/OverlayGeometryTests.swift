@@ -43,6 +43,18 @@ final class OverlayGeometryTests: SnipTestCase {
         XCTAssertEqual(OverlayGeometry.resized(sel, 0, CGPoint(x: 20, y: 30)), CGRect(x: 20, y: 30, width: 480, height: 370))
     }
 
+    func testWithSomethingDrawnEachDraggedEdgeStopsAtItAndNeverFlips() {
+        let drawn = CGRect(x: 200, y: 150, width: 100, height: 100)
+        // Nothing drawn: as before
+        XCTAssertEqual(OverlayGeometry.resized(sel, 3, CGPoint(x: 500, y: 999), keep: WPFRect.empty), CGRect(x: 100, y: 100, width: 400, height: 300))
+        // The right edge stops at the drawing instead of flipping
+        XCTAssertEqual(OverlayGeometry.resized(sel, 3, CGPoint(x: 50, y: 0), keep: drawn), CGRect(x: 100, y: 100, width: 200, height: 300))
+        // The top-left corner stops at both of its edges
+        XCTAssertEqual(OverlayGeometry.resized(sel, 0, CGPoint(x: 450, y: 380), keep: drawn), CGRect(x: 200, y: 150, width: 300, height: 250))
+        // Growing is not limited
+        XCTAssertEqual(OverlayGeometry.resized(sel, 1, CGPoint(x: 0, y: 20), keep: drawn), CGRect(x: 100, y: 20, width: 400, height: 380))
+    }
+
     func testSnappingToPhysicalPixelsOnA150PercentScreenGivesWholeMultiplesOfTwoThirdsOfAPoint() {
         let p = OverlayGeometry.snap(CGPoint(x: 10.4, y: 10.2), scale: 1.5)
         XCTAssertEqual(p.x * 1.5, 16, accuracy: 1e-9)  // 10.4 points = 15.6 physical pixels → 16

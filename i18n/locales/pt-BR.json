@@ -917,7 +917,6 @@
   "capture.note.cancelTip": "Esc",
   "capture.note.dragTip": "Arraste para mover",
   "capture.note.save": "Salvar",
-  "capture.cancelWarn": "Suas notas ainda não foram copiadas. Pressione Esc ou clique em × novamente para descartá-las, ou pressione Enter para finalizar",
   "capture.drawingHint": "Uma marcação deixada sem nota fica na captura de tela como desenho. Clique nela para trocar a cor ou excluí-la; clique duas vezes para adicionar uma nota.",
   "capture.toolName.rect": "Retângulo",
   "capture.toolName.ellipse": "Elipse",

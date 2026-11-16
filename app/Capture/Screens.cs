@@ -21,7 +21,8 @@ static class Screens
         if (CaptureFakes.Monitors is { } fake) return fake();
 #endif
         var monitors = Monitors();
-        var pixels = GrabAll(monitors.Select(m => m.rect).ToList());
+        var pixels = new int[monitors.Count][];
+        RunAll(monitors.Count, i => pixels[i] = Grab(monitors[i].handle, monitors[i].rect));
         // The WPF bitmaps are made here, on the calling thread (the grab threads create no WPF objects)
         var shots = new List<MonitorShot>();
         for (var i = 0; i < monitors.Count; i++)
@@ -46,7 +47,55 @@ static class Screens
 #if TEST_HOOKS
         if (CaptureFakes.Monitors is not null) return;
 #endif
-        GrabAll(Monitors().Select(m => new RECT { Left = m.rect.Left, Top = m.rect.Top, Right = m.rect.Left + 1, Bottom = m.rect.Top + 1 }).ToList());
+        var pixels = Monitors().Select(m => new RECT { Left = m.rect.Left, Top = m.rect.Top, Right = m.rect.Left + 1, Bottom = m.rect.Top + 1 }).ToList();
+        RunAll(pixels.Count, i => GdiGrab(pixels[i]));
+    }
+
+    /// <summary>
+    /// Makes ready the grab through Desktop Duplication (<see cref="DesktopDuplication.Prepare"/>) on a worker thread: the first time in a process it loads the graphics driver,
+    /// about 150 ms and 50 MB, so it is done ahead of a shortcut press and only for someone who uses Screen Capture. Until it is ready the grabs use GDI
+    /// </summary>
+    public static void PrepareDuplication()
+    {
+#if TEST_HOOKS
+        if (CaptureFakes.Monitors is not null) return;
+#endif
+        if (Interlocked.Exchange(ref preparing, 1) == 1) return;
+        Task.Run(() =>
+        {
+            try
+            {
+                DesktopDuplication.Prepare();
+            }
+            finally
+            {
+                Volatile.Write(ref preparing, 0);
+            }
+        });
+    }
+
+    static int preparing;
+
+    /// <summary>Why the last grab of each display (by its position and size) fell back to GDI: logged when it changes, not at every capture</summary>
+    static readonly Dictionary<string, string?> fallbacks = [];
+
+    /// <summary>One display: through Desktop Duplication when that is ready (whole frames only), else GDI</summary>
+    static int[] Grab(IntPtr monitor, RECT r)
+    {
+        if (!DesktopDuplication.Prepared) return GdiGrab(r);
+        // A frame normally comes within 3–15 ms of opening the duplication (the compositor presents one for it); the wait only runs out when something is wrong
+        var px = DesktopDuplication.TryGrab(monitor, r, TimeSpan.FromMilliseconds(100), out var why);
+        var key = $"{r.Left},{r.Top} {r.Right - r.Left}×{r.Bottom - r.Top}";
+        lock (fallbacks)
+        {
+            fallbacks.TryGetValue(key, out var before);
+            if (why != before)
+            {
+                fallbacks[key] = why;
+                Log.Info(why is not null ? $"Screen grab of display {key} uses GDI: {why}" : $"Screen grab of display {key} uses desktop duplication");
+            }
+        }
+        return px ?? GdiGrab(r);
     }
 
     /// <summary>The displays (handle, screen coordinates in physical pixels), without any that have no size</summary>
@@ -63,27 +112,25 @@ static class Screens
     }
 
     /// <summary>
-    /// Grabs all the regions at once, one thread each: reading the composed screen back is most of the time (about 25 ms for a 2560 × 1440 display), and one display after another it adds up
+    /// Grabs all the displays at once, one thread each: reading the composed screen back is most of the time (10–30 ms for a 2560 × 1440 display), and one display after another it adds up
     /// </summary>
-    static int[][] GrabAll(List<RECT> regions)
+    static void RunAll(int count, Action<int> grab)
     {
-        var pixels = new int[regions.Count][];
         try
         {
-            Parallel.For(0, regions.Count, i => pixels[i] = Grab(regions[i]));
+            Parallel.For(0, count, grab);
         }
         catch (AggregateException ex)
         {
             ExceptionDispatchInfo.Throw(ex.InnerExceptions[0]); // the original error, not "One or more errors occurred", goes to the log and the error notice
         }
-        return pixels;
     }
 
     /// <summary>
-    /// The pixels of one region of the screen, top row first, in Bgra32 (cropping, compositing, the magnifier and the clipboard all use this format afterwards).
+    /// The pixels of one region of the screen through GDI, top row first, in Bgra32 (cropping, compositing, the magnifier and the clipboard all use this format afterwards).
     /// Runs on a worker thread, so it touches GDI only and creates no WPF objects
     /// </summary>
-    static int[] Grab(RECT r)
+    static int[] GdiGrab(RECT r)
     {
         var (x, y, w, h) = (r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top);
         var screen = GetDC(IntPtr.Zero);

@@ -222,6 +222,51 @@ public class OverlayStateMachineTests
     }
 
     [Fact]
+    public void After_drawing_the_edges_can_still_be_dragged_but_stop_at_what_was_drawn_and_the_selection_does_not_move()
+    {
+        var a = new Layer().Selected(); // 200,200 – 600,500
+        a.State.ChooseTool(Tool.Rect);
+        a.Drag((300, 300), (400, 380));
+        a.View.NoteDraft = "改大";
+        a.State.CommitNote();
+        var rect = a.State.Marks.Single();
+        Assert.True(a.State.Locked);
+        Assert.True(a.State.HandlesVisible);
+
+        // The outer half of the bottom-right handle, with the Rectangle tool still chosen: a resize (on the border line itself it would draw, as before)
+        a.State.MoveTo(new Point(603, 503), false);
+        Assert.Equal(CursorKind.SizeNWSE, a.View.LastCursor);
+        Assert.True(a.Down(603, 503));
+        Assert.Equal(DragOp.Resize, a.State.Op);
+        a.State.MoveTo(new Point(700, 560), false);
+        a.Up();
+        Assert.Equal(new Rect(200, 200, 500, 360), a.State.Sel);
+
+        // Dragged far inside: it stops at the rectangle (its line included), so nothing drawn is cut off; the mark itself stays where it is on the screen
+        var extent = rect.Extent;
+        a.Drag((703, 563), (250, 250));
+        Assert.Equal(new Rect(new Point(200, 200), extent.BottomRight), a.State.Sel);
+        a.Drag((197, 197), (390, 390)); // the top-left corner
+        Assert.Equal(extent, a.State.Sel);
+        // The number circle stays centered on the rectangle's corner (room was kept for it), instead of being pushed into the image's corner
+        Assert.Equal(rect.BadgeAt, MarkPainter.BadgeCenter(rect, a.State.Sel!.Value));
+        Assert.Equal(new Rect(300, 300, 100, 80), rect.Bounds);
+        Assert.Single(a.State.Marks);
+
+        // Dragging inside still draws with the chosen tool (the selection does not move), and a right-click does not select again
+        a.Drag((extent.Left - 3, extent.Top - 3), (150, 150));
+        var grown = new Rect(new Point(150, 150), extent.BottomRight);
+        Assert.Equal(grown, a.State.Sel);
+        a.Drag((170, 170), (250, 250));
+        Assert.Equal(2, a.State.Marks.Count(m => !m.Removed));
+        Assert.Equal(grown, a.State.Sel);
+        a.View.NoteDraft = "再改";
+        a.State.CommitNote();
+        a.State.Right();
+        Assert.Equal(grown, a.State.Sel);
+    }
+
+    [Fact]
     public void Clicks_that_just_open_an_input_box_do_not_capture_the_mouse_only_drags_that_draw_do()
     {
         // A number mark used to capture the mouse and nobody released it, so later clicks on the toolbar and on Finish were swallowed
@@ -351,7 +396,13 @@ public class OverlayStateMachineTests
         Assert.Equal(Window, a.State.Hover); // the window under the pointer is highlighted at once, even if the mouse does not move
 
         a.State.Right();
-        Assert.Equal(["Release", "RequestCancel", "FocusOwner"], a.Host.Log);
+        Assert.Equal(["Release", "RequestCancel"], a.Host.Log);
+
+        // Another display has the selection: a right-click on this one only gives the keyboard back, it does not cancel
+        var b = new Layer();
+        b.Host.OtherOwner = true;
+        b.State.Right();
+        Assert.Equal(["FocusOwner"], b.Host.Log);
     }
 
     [Fact]
@@ -461,19 +512,6 @@ public class OverlayStateMachineTests
         // The overall comment was left without a key: N does nothing
         Assert.False(a.Press(Key.N));
         Assert.False(a.State.NoteOpen);
-    }
-
-    [Fact]
-    public void Cancel_warns_first_only_when_notes_were_written_and_a_second_press_within_3_seconds_really_cancels()
-    {
-        var a = new Layer().Selected();
-        var t = new DateTime(2026, 10, 22, 12, 0, 0);
-        Assert.False(a.State.ArmCancel(t)); // no notes written: cancels straight away
-        a.Press(Key.N);
-        a.View.NoteDraft = "意见";
-        Assert.True(a.State.ArmCancel(t));
-        Assert.False(a.State.ArmCancel(t.AddSeconds(2.9)));
-        Assert.True(a.State.ArmCancel(t.AddSeconds(5)));
     }
 
     [Fact]

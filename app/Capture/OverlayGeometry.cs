@@ -32,14 +32,27 @@ static class OverlayGeometry
         return -1;
     }
 
-    /// <summary>Drag handle h to p: dragging past the opposite side flips the rectangle (it is built from two corners)</summary>
-    public static Rect Resized(Rect r, int h, Point p)
+    /// <summary>
+    /// Drag handle h to p: dragging past the opposite side flips the rectangle (it is built from two corners).
+    /// With something to keep (what has been drawn, not empty): each moved edge stops at it instead, so the result always contains it and never flips
+    /// </summary>
+    public static Rect Resized(Rect r, int h, Point p, Rect? keep = null)
     {
         double l = r.Left, t = r.Top, rt = r.Right, b = r.Bottom;
-        if (h is 0 or 6 or 7) l = p.X;
-        if (h is 2 or 3 or 4) rt = p.X;
-        if (h is 0 or 1 or 2) t = p.Y;
-        if (h is 4 or 5 or 6) b = p.Y;
+        if (keep is { IsEmpty: false } k)
+        {
+            if (h is 0 or 6 or 7) l = Math.Min(p.X, k.Left);
+            if (h is 2 or 3 or 4) rt = Math.Max(p.X, k.Right);
+            if (h is 0 or 1 or 2) t = Math.Min(p.Y, k.Top);
+            if (h is 4 or 5 or 6) b = Math.Max(p.Y, k.Bottom);
+        }
+        else
+        {
+            if (h is 0 or 6 or 7) l = p.X;
+            if (h is 2 or 3 or 4) rt = p.X;
+            if (h is 0 or 1 or 2) t = p.Y;
+            if (h is 4 or 5 or 6) b = p.Y;
+        }
         return new Rect(new Point(l, t), new Point(rt, b));
     }
 

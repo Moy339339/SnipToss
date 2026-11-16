@@ -254,7 +254,8 @@ enum CaptureSmoke {
     /// shows), a click on it picks it (its colors and Delete pop up below it) and that Delete deletes it; 8 and 7 for white and black; a
     /// click on the text picks it, delete deletes it and ⌘Z brings it
     /// back; the hue disc opens the color picker, six digits are typed with the keyboard (7 and 8 among them: they must not be color keys
-    /// there) and Return uses the color. Esc once more only warns (notes were written); a picture of the layer; Finish on the toolbar
+    /// there) and Return uses the color. The bottom-right handle dragged out, then far in (it stops at what was drawn). A picture of the layer;
+    /// Finish on the toolbar
     static func mainLine(_ s: Stage) -> Steps {
         let textAt = s.at(0.35, 0.55)
         // The keyboard's key codes for 1 7 A 9 9 8
@@ -303,7 +304,16 @@ enum CaptureSmoke {
             ("pickerOpen", { s.click("color-custom") }),
             ("pickerType", { for (code, c) in digits { s.key(code, c) } }),
             ("pickerApply", { s.key(0x24, "\r") }),
-            ("escapeWarns", { s.key(53, "\u{1B}") }),
+            // After drawing the edges still move (Rectangle is still the tool): the outer half of the bottom-right handle makes the
+            // selection larger, and pulled far in it stops at what was drawn
+            ("growAfterDrawing", {
+                let corner = s.inSelection(1, 1)
+                s.drag(CGPoint(x: corner.x + 3, y: corner.y + 3), s.at(0.8, 0.8))
+            }),
+            ("shrinkToDrawings", {
+                let corner = s.inSelection(1, 1)
+                s.drag(CGPoint(x: corner.x + 3, y: corner.y + 3), s.at(0.25, 0.25))
+            }),
             ("picture", { s.picture("capture-main.png") }),
             ("finish", { s.click("done") }),
         ]
@@ -503,12 +513,15 @@ enum CaptureSmoke {
             "textOpen": s.textOpen, "overall": s.overall, "marks": s.marks.map { describeMark($0) },
             "toolbar": o.toolbar.isHidden ? NSNull() as Any : rect(o.toolbar.frame), "subbar": o.subbar.isHidden ? NSNull() as Any : rect(o.subbar.frame),
             "sizeLabel": o.sizeLabel.isHidden ? NSNull() as Any : o.sizeLabel.label.text as Any, "magnifier": !o.magnifier.isHidden,
-            "warn": o.warn.isHidden ? NSNull() as Any : o.warn.label.text as Any, "level": o.window?.level.rawValue ?? -1, "key": o.window?.isKeyWindow ?? false,
+            "level": o.window?.level.rawValue ?? -1, "key": o.window?.isKeyWindow ?? false,
             "drawingHint": o.drawingHint.isHidden ? NSNull() as Any : rect(o.drawingHint.frame),
             "buttons": buttons(in: o).map { $0.id },
             "picked": s.picked.map { describeMark($0) as Any } ?? NSNull(),
             "deleteEnabled": buttons(in: o).first { $0.id == "delete" }?.enabled() ?? false, "noteMoved": o.noteMoved,
             "recent": o.recentShown,
+            // What was drawn, line widths, arrowheads, texts and number circles included: the edges of the selection stop at it
+            "drawn": s.marks.isEmpty
+                ? NSNull() as Any : rect(s.marks.reduce(WPFRect.empty) { $0.wpfUnion($1.extent(measure: SystemTextMeasure())) }),
         ]
         if o.pickerOpen {
             let picker: [String: Any] = ["digits": o.picker.digitsText, "color": o.picker.color.hexText, "box": rect(o.picker.frame)]

@@ -4,6 +4,19 @@ All notable changes to SnipToss Desktop are listed here: SnipToss for Windows an
 
 The annotation data format has its own version (`"schema": "sniptoss/5"`); its history is in [docs/annotation-format.md](docs/annotation-format.md).
 
+## [1.6.1] — 2026-11-16
+
+### Changed
+
+- Screen Capture: the selection's edges can still be dragged after something is drawn. An edge stops at what was drawn (line width, arrowheads, text and number circles included), so nothing is cut off and the marks stay where they are. With a drawing tool chosen, a drag on the border line still draws; the outer half of a handle resizes.
+- Screen Capture: Esc, × and Alt+F4 (⌘W and ⌘. on a Mac) close the overlay at once. The "press again to discard" step is gone.
+- Screen Capture: with a selection on one display, a right-click on another display no longer cancels the capture; it gives the keyboard back to the display with the selection.
+- Screen Capture: text in the overlay follows the main window's sizes (note text 14, buttons as high as their controls). The picture handed to the AI is unchanged.
+
+### Fixed
+
+- Windows: the frozen screen could show a half-drawn frame or a black area where a browser draws through the GPU. The overlay now takes frames the system has finished composing (Desktop Duplication), with the earlier method as a fallback, and turns portrait displays upright.
+
 ## [1.6.0] — 2026-11-16
 
 ### Added
@@ -200,6 +213,7 @@ First public release.
 - Portable version: with a `data` folder next to the app, all data stays in it and the registry is never touched.
 - Command-line tool `sniptoss` (list, review, resolve, wontfix); its messages follow the system display language.
 
+[1.6.1]: https://github.com/Moy339339/SnipToss/releases/tag/v1.6.1
 [1.6.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.6.0
 [1.5.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.5.0
 [1.4.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.4.0

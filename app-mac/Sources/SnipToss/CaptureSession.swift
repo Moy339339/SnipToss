@@ -416,9 +416,8 @@ final class CaptureSession {
 
     // MARK: Ending
 
-    /// Esc, ⌘W, ⌘. and the × on the toolbar: if notes have been written, warn once instead of discarding everything at once
+    /// Esc, ⌘W, ⌘. and the × on the toolbar: close at once, whatever has been drawn (no "press again to discard" step)
     func requestCancel() {
-        if owner?.guardCancel() == true { return }
         close()
     }
 

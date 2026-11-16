@@ -139,6 +139,25 @@ final class Mark {
         return r
     }
 
+    /// What it covers when drawn (points): the points plus half the line width, the arrowhead, the text's extent, and its number circle
+    /// (radius 10 and the ring) centered on where the number belongs. The selection can't be resized past this, so nothing drawn is cut off
+    /// and the number is not pushed off its corner into the edge of the image
+    func extent(measure: TextMeasuring) -> CGRect {
+        if points.isEmpty { return WPFRect.empty }
+        var r = kind == .text ? MarkPainter.textBounds(self, measure: measure) : bounds
+        let pad: CGFloat = kind == .text || kind == .note ? 0 : size / 2
+        r = r.wpfInflated(by: pad, pad)
+        if kind == .note || head.hasNote || head.pendingNumber > 0 {
+            r = r.wpfUnion(WPFRect.spanning(badgeAt, badgeAt).wpfInflated(by: 11, 11))
+        }
+        if kind == .arrow {
+            // The head is at most twice the line width plus 5 wide (MarkDrawing.drawArrow), around the tip
+            let tip = points[points.count - 1]
+            r = r.wpfUnion(WPFRect.spanning(tip, tip).wpfInflated(by: 2 * size + 5, 2 * size + 5))
+        }
+        return r
+    }
+
     /// Too small to count (an accidental click)
     var isTiny: Bool {
         switch kind {

@@ -111,6 +111,23 @@ static class Native
     public static extern bool AllowSetForegroundWindow(int processId);
 
     [DllImport("user32.dll")]
+    public static extern IntPtr GetAncestor(IntPtr hwnd, uint flags);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetWindow(IntPtr hwnd, uint cmd);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern int GetClassName(IntPtr hwnd, [Out] char[] name, int size);
+
+    public delegate void WinEventProc(IntPtr hook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint thread, uint time);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr module, WinEventProc proc, uint processId, uint threadId, uint flags);
+
+    [DllImport("user32.dll")]
+    public static extern bool UnhookWinEvent(IntPtr hook);
+
+    [DllImport("user32.dll")]
     public static extern bool ReleaseCapture();
 
     [DllImport("user32.dll")]
@@ -171,6 +188,15 @@ static class Native
 
     [DllImport("gdi32.dll")]
     public static extern bool DeleteDC(IntPtr hdc);
+
+    // ---------- Screen capture through Desktop Duplication (dxgi, d3d11; the COM methods are called in Capture/DesktopDuplication.cs) ----------
+
+    [DllImport("dxgi.dll")]
+    public static extern int CreateDXGIFactory1(in Guid riid, out IntPtr factory);
+
+    [DllImport("d3d11.dll")]
+    public static extern int D3D11CreateDevice(IntPtr adapter, int driverType, IntPtr software, uint flags, IntPtr featureLevels, uint featureLevelCount,
+        uint sdkVersion, out IntPtr device, out int featureLevel, out IntPtr context);
 
     // ---------- Window appearance (dwmapi) ----------
 

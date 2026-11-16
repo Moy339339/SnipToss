@@ -659,6 +659,45 @@ public class CaptureTests
         });
     }
 
+    // A 3 × 2 picture as Desktop Duplication hands it over (the panel's own orientation):  1 2 3
+    //                                                                                     4 5 6
+    [Theory]
+    [InlineData(0, new[] { 1, 2, 3, 4, 5, 6 })] // DXGI_MODE_ROTATION_UNSPECIFIED: as it is
+    [InlineData(1, new[] { 1, 2, 3, 4, 5, 6 })] // IDENTITY
+    [InlineData(2, new[] { 4, 1, 5, 2, 6, 3 })] // ROTATE90: a quarter turn clockwise, 2 wide × 3 high
+    [InlineData(3, new[] { 6, 5, 4, 3, 2, 1 })] // ROTATE180
+    [InlineData(4, new[] { 3, 6, 2, 5, 1, 4 })] // ROTATE270: a quarter turn counterclockwise (checked against GDI on a real portrait display)
+    public void Desktop_duplication_turns_the_picture_of_a_rotated_display_upright(int rotation, int[] expected)
+    {
+        int[] panel = [1, 2, 3, 4, 5, 6];
+        Assert.Equal(expected, DesktopDuplication.Upright(panel, 3, 2, rotation));
+    }
+
+    [Fact]
+    public void Desktop_duplication_gives_the_same_picture_as_the_GDI_grab_on_every_display_where_it_works()
+    {
+        // Real displays, in memory only. Duplication needs a GPU that drives the display: where there is none (a virtual machine, a remote session) there is nothing to compare.
+        // The two grabs are a moment apart, so what changed in between (a caret, text being written, a video) differs: most of the picture must match, which also catches
+        // a rotated display turned the wrong way (about half the pixels would differ)
+        DesktopDuplication.Prepare();
+        var displays = new List<(IntPtr monitor, Native.RECT rect)>();
+        Native.EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (monitor, _, rect, _) =>
+        {
+            displays.Add((monitor, System.Runtime.InteropServices.Marshal.PtrToStructure<Native.RECT>(rect)));
+            return true;
+        }, IntPtr.Zero);
+        var gdiGrab = typeof(Screens).GetMethod("GdiGrab", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+        foreach (var (monitor, r) in displays)
+        {
+            var dda = DesktopDuplication.TryGrab(monitor, r, TimeSpan.FromMilliseconds(500), out _);
+            if (dda is null) continue;
+            var gdi = (int[])gdiGrab.Invoke(null, [r])!;
+            Assert.Equal(gdi.Length, dda.Length);
+            var same = gdi.Zip(dda).Count(p => p.First == p.Second);
+            Assert.True(same >= gdi.Length * 0.8, $"display {r.Left},{r.Top} {r.Right - r.Left}×{r.Bottom - r.Top}: only {100.0 * same / gdi.Length:0.0}% of the pixels match");
+        }
+    }
+
     static IEnumerable<object> Descendants(object node)
     {
         if (node is not System.Windows.DependencyObject d) yield break;

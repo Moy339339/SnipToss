@@ -158,16 +158,13 @@ final class ToolPrefs {
     }
 }
 
-/// The state and transitions of the overlay on one display: selection, hover, drag, tool, marks, note box, text box, undo, the warning
-/// before cancelling. It does not touch AppKit views: when it needs to draw, open or close an input box, or move focus it calls
+/// The state and transitions of the overlay on one display: selection, hover, drag, tool, marks, note box, text box, undo, right-click.
+/// It does not touch AppKit views: when it needs to draw, open or close an input box, or move focus it calls
 /// `OverlayView`, and for multi-display matters it asks `OverlayHost` (the session), so unit tests can run without a window
 /// (OverlayStateMachineTests). Keep the order of calls to the view as is (state first or open the box first, release the mouse first or
 /// finish up first). All coordinates are points in this layer, y pointing down; the press point is already snapped to physical pixels
 /// (`OverlayGeometry.snap`)
 final class OverlayStateMachine {
-    /// After notes have been written, the first Esc / × only warns; pressing again within this time really cancels
-    static let warnFor: TimeInterval = 3
-
     let prefs: ToolPrefs
 
     /// The keys of the tools, the overall comment and undo, as they are in Settings → Keyboard Shortcuts
@@ -287,11 +284,9 @@ final class OverlayStateMachine {
 
     private(set) var textSize: CGFloat = 0
 
-    private var cancelArmed = Date.distantPast
-
     /// There are drawings on this display: marks, an overall comment, or text typed in an input box and not yet saved. This locks the
-    /// selection (it cannot be moved or re-selected with a right-click), another display cannot start selecting, and cancelling warns once
-    /// first (unsaved typed text must count: switching displays or clicking × would lose it at once)
+    /// selection (it cannot be moved or re-selected with a right-click; its edges can still be dragged, but not past anything drawn, see
+    /// `drawnExtent`), and another display cannot start selecting (unsaved typed text must count: switching displays would lose it)
     var locked: Bool { !marks.isEmpty || !overall.isEmpty || pendingText }
 
     private var pendingText: Bool {
@@ -310,7 +305,40 @@ final class OverlayStateMachine {
         return host.hasOwner && !host.isOwner ? nil : hover
     }
 
-    var handlesVisible: Bool { sel != nil && !locked && op != .newSel }
+    /// The 8 handles: also after drawing (the edges can still be adjusted), but not while a note or text with words in it is being written
+    /// (a click outside saves it instead)
+    var handlesVisible: Bool { sel != nil && op != .newSel && !(locked && (noteOpen || textOpen)) }
+
+    /// What has been drawn inside the selection, with its line width, arrowheads, text and number circles (points): when there are
+    /// drawings, resizing the selection stops at it, so nothing drawn is cut off. Empty when nothing is drawn
+    private func drawnExtent(_ sel: CGRect) -> CGRect {
+        var drawn = WPFRect.empty
+        for m in marks where !m.points.isEmpty { drawn = drawn.wpfUnion(m.extent(measure: measure)) }
+        return drawn.wpfIsEmpty ? drawn : drawn.wpfIntersect(sel)
+    }
+
+    /// The handle a press here would drag (-1 = none): with no tool, the whole handle and edge zone; with a drawing tool, only the part
+    /// outside the selection, since a drag that starts inside the box (its border line included) draws
+    private func grabs(_ s: CGRect, _ p: CGPoint) -> Int {
+        tool != .noTool && s.wpfContains(p) ? -1 : OverlayGeometry.hitHandle(s, p)
+    }
+
+    /// Outside the selection a handle comes before a mark: marks are inside, only their hit tolerance reaches out. Otherwise, once the edge
+    /// has been pulled in up to a drawing, the outer half of the handle would pick that drawing and the edge could not be pulled out again
+    private static func grabsBeforeMarks(_ s: CGRect, _ p: CGPoint) -> Int {
+        s.wpfContains(p) ? -1 : OverlayGeometry.hitHandle(s, p)
+    }
+
+    /// The edges can be adjusted at any time, also after drawing (only so far that nothing drawn is cut off)
+    private func startResize(_ s: CGRect, _ grabbed: Int) {
+        handle = grabbed
+        startSel = s
+        resizeKeep = drawnExtent(s)
+        op = .resize
+    }
+
+    /// What the edges may not be dragged past during this resize (set when it starts)
+    private var resizeKeep = WPFRect.empty
 
     /// The toolbar hides while the selection is being dragged, moved or resized
     var toolbarVisible: Bool { sel != nil && !(op == .newSel || op == .move || op == .resize) }
@@ -382,12 +410,18 @@ final class OverlayStateMachine {
             op = .newSel
             return true
         }
-        if let m = placeAt(p) {
+        let outer = Self.grabsBeforeMarks(s, p)
+        let grabbed = grabs(s, p)
+        if outer >= 0 {
+            startResize(s, outer)
+        } else if let m = placeAt(p) {
             // Hit a mark: pick it. A number also opens its note (clicking a number = edit that note); a line only picks, so delete and the
             // color keys act on the mark instead of going into a note box (the main window picks a clicked mark the same way)
             if m.head.hasNote && badgePlaceAt(p) === m { openNote(m.head) }
             pick(m)
             return false
+        } else if grabbed >= 0 {
+            startResize(s, grabbed)
         } else if tool != .noTool && s.wpfContains(p) {
             startMark(p)
             // A numbered dot or text opens its input box on a single click, with no drag: do not capture the mouse. A capture nobody
@@ -395,15 +429,8 @@ final class OverlayStateMachine {
             // (symptom: after writing a note nothing responds, and the only way out is Esc, which loses all the notes)
             if op == .noDrag { return false }
         } else if !locked {
-            handle = OverlayGeometry.hitHandle(s, p)
             startSel = s
-            if handle >= 0 {
-                op = .resize
-            } else if s.wpfContains(p) {
-                op = .move
-            } else {
-                op = .newSel
-            }
+            op = s.wpfContains(p) ? .move : .newSel
         } else {
             return false
         }
@@ -433,7 +460,7 @@ final class OverlayStateMachine {
             sel = r
             view.refresh()
         case .resize:
-            sel = OverlayGeometry.resized(startSel, handle, p)
+            sel = OverlayGeometry.resized(startSel, handle, p, keep: resizeKeep)
             view.refresh()
         case .draw:
             extendMark(p, shift: shift)
@@ -486,10 +513,12 @@ final class OverlayStateMachine {
             host.release()
             hoverAtCursor()  // highlight the window under the mouse at once even if the mouse does not move (same as right after opening)
             view.refresh()
+        } else if sel == nil && host.hasOwner {
+            // Another display has the selection: a right-click here does not cancel (that would drop what is being done there at once,
+            // with no warning), it only gives the keyboard back to that layer
+            host.focusOwner()
         } else if sel == nil {
-            // notes may have been written on another display: warn once first as usual (discarding everything at once would lose them)
-            host.requestCancel()
-            host.focusOwner()  // the warning says "press Enter to finish": the keyboard must return to the layer that has the selection
+            host.requestCancel()  // nothing selected anywhere: cancel, as Esc
         }
     }
 
@@ -517,8 +546,9 @@ final class OverlayStateMachine {
 
     private func cursorAt(_ p: CGPoint) -> CursorKind {
         guard let s = sel else { return .arrow }
-        // A mark that can be hit shows a hand (clicking picks it and edits its note). While the note box is open only this note's places
-        // can be hit; anything else is "click outside = done writing"
+        // The same order as `down`: the outer half of a handle, a mark (a hand: clicking picks it and edits its note), the rest of a handle.
+        // While an input box is open there is no handle (a click saves what is being written), and only this note's places can be hit
+        if !noteOpen && !textOpen, let outer = Self.sizeCursor(Self.grabsBeforeMarks(s, p)) { return outer }
         let overMark: Bool
         if noteOpen {
             if let mine = noteFor, let place = placeAt(p) { overMark = place.head === mine } else { overMark = false }
@@ -526,15 +556,20 @@ final class OverlayStateMachine {
             overMark = !textOpen && placeAt(p) != nil
         }
         if overMark { return .hand }
+        if !noteOpen && !textOpen, let inner = Self.sizeCursor(grabs(s, p)) { return inner }
         // Drawing tools: the pointer becomes that tool's small icon (as in the main app), and the Pin tool shows a pin
         if tool != .noTool && s.wpfContains(p) { return .tool }
         if locked { return .arrow }
-        switch OverlayGeometry.hitHandle(s, p) {
+        return s.wpfContains(p) ? .sizeAll : .arrow
+    }
+
+    private static func sizeCursor(_ handle: Int) -> CursorKind? {
+        switch handle {
         case 0, 4: return .sizeNWSE
         case 2, 6: return .sizeNESW
         case 1, 5: return .sizeNS
         case 3, 7: return .sizeWE
-        default: return s.wpfContains(p) ? .sizeAll : .arrow
+        default: return nil
         }
     }
 
@@ -567,14 +602,6 @@ final class OverlayStateMachine {
         overall = ""
         tool = .noTool
         view.refresh()
-    }
-
-    /// Once notes have been written, the first Esc / × does not cancel but warns "press again to discard"; only a second press within
-    /// `warnFor` really cancels. Returns true = this time should warn (and not cancel)
-    func armCancel(now: Date) -> Bool {
-        if !hasNotes || now.timeIntervalSince(cancelArmed) < Self.warnFor { return false }
-        cancelArmed = now
-        return true
     }
 
     /// On finish: the open note box and text box are committed first (a box left empty keeps its marks as drawings, without the hint: the
@@ -1024,7 +1051,7 @@ final class OverlayStateMachine {
     ///   - names: the key's names as the page writes them (`CaptureKeys.names`), tried in order: the keys that can be changed in Settings
     ///     go by these, and so do ⌘C, ⌘W and ⌘. (by the character typed, as the main window's ⌘ keys)
     ///
-    /// One difference from the Windows shell: there Alt+F4 means cancel (warn once first if notes were written), and it is handled before
+    /// One difference from the Windows shell: there Alt+F4 means cancel, as Esc, and it is handled before
     /// the input-box check because left to the system it would close only this layer without the session knowing, and Screen Capture could
     /// never open again. Alt+F4 means nothing on a Mac; ⌘W and ⌘. (command + period) do exactly that. ⌘Q is not handled: it stays with the
     /// system. The command table lists ⌘W, ⌘. and ⌘Q as taken on the Mac, so no changeable command has them

@@ -917,7 +917,6 @@
   "capture.note.cancelTip": "Échap",
   "capture.note.dragTip": "Faites glisser pour déplacer",
   "capture.note.save": "Enregistrer",
-  "capture.cancelWarn": "Vos notes n’ont pas encore été copiées. Appuyez de nouveau sur Échap ou cliquez sur × pour les abandonner, ou appuyez sur Entrée pour terminer",
   "capture.drawingHint": "Un repère laissé sans note reste un dessin et figure dans la capture d’écran. Cliquez dessus pour changer la couleur ou le supprimer ; double-cliquez pour ajouter une note.",
   "capture.toolName.rect": "Rectangle",
   "capture.toolName.ellipse": "Ellipse",

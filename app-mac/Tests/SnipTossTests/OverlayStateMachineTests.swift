@@ -223,6 +223,49 @@ final class OverlayStateMachineTests: SnipTestCase {
         XCTAssertEqual(a.state.sel, CGRect(x: 210, y: 210, width: 490, height: 390))
     }
 
+    func testAfterDrawingTheEdgesCanStillBeDraggedButStopAtWhatWasDrawnAndTheSelectionDoesNotMove() throws {
+        let a = Layer().selected()  // 200,200 – 600,500
+        a.state.chooseTool(.rect)
+        a.drag(from: (300, 300), to: (400, 380))
+        a.view.noteDraft = "改大"
+        a.state.commitNote()
+        let rect = try only(a.state.marks)
+        XCTAssertTrue(a.state.locked)
+        XCTAssertTrue(a.state.handlesVisible)
+
+        // The outer half of the bottom-right handle, with the Rectangle tool still chosen: a resize (on the border line itself it would
+        // draw, as before)
+        XCTAssertEqual(a.cursorAt(603, 503), .sizeNWSE)
+        XCTAssertTrue(a.down(603, 503))
+        XCTAssertEqual(a.state.op, .resize)
+        a.state.moveTo(CGPoint(x: 700, y: 560), shift: false)
+        a.up()
+        XCTAssertEqual(a.state.sel, CGRect(x: 200, y: 200, width: 500, height: 360))
+
+        // Dragged far inside: it stops at the rectangle (its line and its number circle included), so nothing drawn is cut off and the
+        // number stays on its corner; the mark itself stays where it is on the screen
+        let extent = rect.extent(measure: FixedTextMeasure())
+        a.drag(from: (703, 563), to: (250, 250))
+        XCTAssertEqual(a.state.sel, WPFRect.spanning(CGPoint(x: 200, y: 200), extent.wpfBottomRight))
+        a.drag(from: (197, 197), to: (390, 390))  // the top-left corner
+        XCTAssertEqual(a.state.sel, extent)
+        XCTAssertEqual(MarkPainter.badgeCenter(rect, keepInside: try XCTUnwrap(a.state.sel)), rect.badgeAt)
+        XCTAssertEqual(rect.bounds, CGRect(x: 300, y: 300, width: 100, height: 80))
+        XCTAssertEqual(a.state.marks.count, 1)
+
+        // Dragging inside still draws with the chosen tool (the selection does not move), and a right-click does not select again
+        a.drag(from: (extent.wpfLeft - 3, extent.wpfTop - 3), to: (150, 150))
+        let grown = WPFRect.spanning(CGPoint(x: 150, y: 150), extent.wpfBottomRight)
+        XCTAssertEqual(a.state.sel, grown)
+        a.drag(from: (170, 170), to: (250, 250))
+        XCTAssertEqual(a.state.marks.count, 2)
+        XCTAssertEqual(a.state.sel, grown)
+        a.view.noteDraft = "再改"
+        a.state.commitNote()
+        a.state.right()
+        XCTAssertEqual(a.state.sel, grown)
+    }
+
     func testClicksThatJustOpenAnInputBoxDoNotCaptureTheMouseOnlyDragsThatDrawDo() throws {
         // A number mark must not capture the mouse with nobody releasing it: later clicks on the toolbar and on Finish would be swallowed
         // by this layer, leaving only Esc, which loses all notes
@@ -338,7 +381,13 @@ final class OverlayStateMachineTests: SnipTestCase {
         XCTAssertEqual(a.state.hover, window)  // the window under the pointer is highlighted at once, even if the mouse does not move
 
         a.state.right()
-        XCTAssertEqual(a.host.log, ["Release", "RequestCancel", "FocusOwner"])
+        XCTAssertEqual(a.host.log, ["Release", "RequestCancel"])
+
+        // Another display has the selection: a right-click on this one only gives the keyboard back, it does not cancel
+        let b = Layer()
+        b.host.otherOwner = true
+        b.state.right()
+        XCTAssertEqual(b.host.log, ["FocusOwner"])
     }
 
     func testUnsavedTextInAnInputBoxAlsoLocksTheSelectionButOnlySpacesDoNot() {
@@ -427,17 +476,6 @@ final class OverlayStateMachineTests: SnipTestCase {
         XCTAssertEqual(a.state.marks.count, 1)
         XCTAssertTrue(a.key("Ctrl+Z"))
         XCTAssertTrue(a.state.marks.isEmpty)
-    }
-
-    func testCancelWarnsFirstOnlyWhenNotesWereWrittenAndASecondPressWithin3SecondsReallyCancels() {
-        let a = Layer().selected()
-        let t = Date(timeIntervalSince1970: 1_792_000_000)
-        XCTAssertFalse(a.state.armCancel(now: t))  // no notes written: cancels straight away
-        a.key("N")
-        a.view.noteDraft = "意见"
-        XCTAssertTrue(a.state.armCancel(now: t))
-        XCTAssertFalse(a.state.armCancel(now: t.addingTimeInterval(2.9)))
-        XCTAssertTrue(a.state.armCancel(now: t.addingTimeInterval(5)))
     }
 
     func testDoubleClickingToFinishInsideTheBoxDiscardsTheEmptyNumberPinTheFirstClickJustPlaced() {

@@ -68,6 +68,39 @@ sealed class Mark
         }
     }
 
+    /// <summary>
+    /// What it covers when drawn (DIPs): the points plus half the line width, the arrowhead, the text's extent, and its number circle (radius 10 and the ring) centered on where the number belongs.
+    /// The selection can't be resized past this, so nothing drawn is cut off and the number is not pushed off its corner into the edge of the image
+    /// </summary>
+    public Rect Extent
+    {
+        get
+        {
+            if (Points.Count == 0) return Rect.Empty;
+            var r = Kind == Tool.Text ? MarkPainter.TextBounds(this) : Bounds;
+            var pad = Kind switch
+            {
+                Tool.Text or Tool.Note => 0,
+                _ => Size / 2,
+            };
+            r.Inflate(pad, pad);
+            if (Kind == Tool.Note || Head.HasNote || Head.PendingNumber > 0)
+            {
+                var badge = new Rect(BadgeAt, BadgeAt);
+                badge.Inflate(11, 11);
+                r.Union(badge);
+            }
+            if (Kind == Tool.Arrow)
+            {
+                // The head is at most twice the line width plus 5 wide (MarkPainter.DrawArrow), around the tip
+                var head = new Rect(Points[^1], Points[^1]);
+                head.Inflate(2 * Size + 5, 2 * Size + 5);
+                r.Union(head);
+            }
+            return r;
+        }
+    }
+
     /// <summary>Too small to count (an accidental click)</summary>
     public bool IsTiny => Kind switch
     {

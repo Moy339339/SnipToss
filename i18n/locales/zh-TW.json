@@ -917,7 +917,6 @@
   "capture.note.cancelTip": "Esc",
   "capture.note.dragTip": "拖曳即可移動",
   "capture.note.save": "儲存",
-  "capture.cancelWarn": "批註尚未複製：再按一次 Esc 或按一下 × 捨棄，按 Enter 完成",
   "capture.drawingHint": "沒寫內容的標記會留作塗鴉，保留在截圖中。按一下可換色或刪除，按兩下可補寫批註。",
   "capture.toolName.rect": "矩形",
   "capture.toolName.ellipse": "橢圓",

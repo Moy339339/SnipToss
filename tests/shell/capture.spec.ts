@@ -174,7 +174,14 @@ async function pickMarkColor(shell: Shell, c: string) {
   // A swatch's screen-reader name is the color's name (e.g. "蓝色"), so find it by the order of the row in settings (same as MARK_COLORS)
   const order = ["#ff6a3d", "#ff4d6d", "#ffc233", "#3ddc84", "#5b8cff", "#b07cff"];
   await page.locator(".swatches .swatch").nth(order.indexOf(c)).click();
-  await waitFor("the setting to be written to the settings file", () => JSON.parse(readFileSync(join(shell.temp, "settings.json"), "utf8")).Prefs?.markColor === c);
+  // The settings file is replaced with a .bak kept (File.Replace), so for an instant it isn't there: a read that misses it just tries again
+  await waitFor("the setting to be written to the settings file", () => {
+    try {
+      return JSON.parse(readFileSync(join(shell.temp, "settings.json"), "utf8")).Prefs?.markColor === c;
+    } catch {
+      return false;
+    }
+  });
   await page.keyboard.press("Escape");
 }
 
@@ -564,7 +571,7 @@ test("Moving the selection, pulling the eight handles, cursor shapes; moving and
   expect(o.sel).toEqual({ x: 900, y: 0, width: 100, height: 500 });
 });
 
-test("With a tool picked a drag inside the box draws while handles within 6 of the edge still resize; a drag outside re-selects; once something is drawn the selection is locked", async ({
+test("With a tool picked a drag inside the box draws while handles within 6 of the edge still resize; a drag outside re-selects; once something is drawn the selection is locked except that its edges can still be pulled, never past what was drawn", async ({
   shell,
 }) => {
   await shell.launch();
@@ -585,20 +592,30 @@ test("With a tool picked a drag inside the box draws while handles within 6 of t
   o = await run(shell, [{ op: "drag", from: [750, 150], to: [850, 250] }, { op: "type", text: "框" }, { op: "key", key: "Enter" }]);
   expect(o.marks.map((m) => m.kind)).toEqual(["rect"]);
   expect(o.locked).toBe(true);
-  expect(o.handles).toBe(false);
-  // Once locked: put the tool down; dragging inside or outside the box, pulling a corner and arrow keys all do nothing
+  expect(o.handles).toBe(true);
+  // Once locked: put the tool down; dragging inside or outside the box, arrow keys and a right-click do nothing
   o = await run(shell, [{ op: "click", id: "rect" }]);
   expect(o.tool).toBe("none");
   o = await run(shell, [
     { op: "drag", from: [900, 300], to: [950, 350] },
     { op: "drag", from: [100, 100], to: [300, 300] },
-    { op: "drag", from: [1100, 500], to: [1200, 600] },
     { op: "key", key: "Left" },
     { op: "right", x: 900, y: 300 },
   ]);
   expect(o.sel).toEqual({ x: 700, y: 100, width: 400, height: 400 });
   expect(o.marks.length).toBe(1);
   expect((await run(shell, [{ op: "move", x: 900, y: 300 }])).cursor).toBe("arrow");
+  // The edges can still be pulled: a corner grows the box, and pulled far in it stops at the rectangle (its line included), which stays where it is
+  o = await run(shell, [{ op: "drag", from: [1100, 500], to: [1200, 600] }]);
+  expect(o.sel).toEqual({ x: 700, y: 100, width: 500, height: 500 });
+  o = await run(shell, [{ op: "drag", from: [1200, 600], to: [760, 160] }]);
+  expect(o.sel!.x).toBe(700);
+  expect(o.sel!.y).toBe(100);
+  expect(o.sel!.x + o.sel!.width).toBeGreaterThanOrEqual(850);
+  expect(o.sel!.x + o.sel!.width).toBeLessThan(860);
+  expect(o.sel!.y + o.sel!.height).toBeGreaterThanOrEqual(250);
+  expect(o.sel!.y + o.sel!.height).toBeLessThan(260);
+  expect(o.marks.length).toBe(1);
 });
 
 // ---------- 4. Toolbar and sub-toolbar ----------
@@ -734,7 +751,7 @@ test("Clicking a tool picks it or puts it down; a tool key always picks; thickne
   ]);
   expect(o.marks[0]).toMatchObject({ kind: "arrow", size: 2, color: "3ddc84" });
   expect([o.size, o.color]).toEqual([6, "b07cff"]);
-  await run(shell, [{ op: "key", key: "Escape" }, { op: "key", key: "Escape" }]); // a note was written: the first press warns, the second cancels
+  await run(shell, [{ op: "key", key: "Escape" }]); // cancels at once, notes or not
   await closed(shell);
   // Next time: still purple (remembered for this run)
   await open(shell);
@@ -1371,8 +1388,8 @@ test("More colors: 7 and 8 are black and white; the hue disc after the colors op
   expect([o.picked, o.picker!.color]).toEqual([0, "17a998"]);
   o = await run(shell, [{ op: "type", text: "#8B5A2B", replace: true }, { op: "click", id: "picker-apply" }]);
   expect([o.picker, o.note, o.marks[0].color, o.color, o.recent]).toEqual([null, null, "8b5a2b", "17a998", ["8b5a2b", "17a998"]]);
-  // Esc: puts the picked mark down, warns (notes were written), cancels
-  await run(shell, [{ op: "key", key: "Escape" }, { op: "key", key: "Escape" }, { op: "key", key: "Escape" }]);
+  // Esc: puts the picked mark down, then cancels
+  await run(shell, [{ op: "key", key: "Escape" }, { op: "key", key: "Escape" }]);
   await closed(shell);
   // The main window's UI has the new recent colors at once (the Annotate menu's color row)
   await shell.page.locator(".menubar").getByRole("menuitem", { name: "批注" }).click();
@@ -1477,9 +1494,7 @@ test("Note box: category defaults to the setting and follows the previous note, 
 
 // ---------- 7. Keyboard and mouse ----------
 
-test("Esc: with no note one press cancels; with notes the first press only warns (above the toolbar row) and a second within 3 seconds cancels, otherwise the warning goes away; × and Alt+F4 behave the same", async ({
-  shell,
-}) => {
+test("Esc, × and Alt+F4 cancel at once, with or without notes written (no press-again step)", async ({ shell }) => {
   await shell.launch();
   await open(shell);
   await select(shell);
@@ -1488,21 +1503,14 @@ test("Esc: with no note one press cancels; with notes the first press only warns
   await open(shell);
   await select(shell);
   let o = await run(shell, [{ op: "key", key: "N" }, { op: "type", text: "意见" }, { op: "key", key: "Enter" }, { op: "key", key: "R" }, { op: "key", key: "Escape" }]);
-  expect(o.open).toBe(true);
-  expect(o.warn!.text).toBe("批注尚未复制：再按 Esc 或单击 × 放弃，按 Enter 完成");
-  // Toolbar below the selection, sub-toolbar below the toolbar: the warning sits above the whole group
-  expect(o.warn!.box.y + o.warn!.box.height).toBeLessThanOrEqual(o.toolbar!.y - 8);
-  await waitFor("the warning to disappear after 3 seconds", async () => (await layer(shell)).warn === null, 5000);
-  o = await run(shell, [{ op: "click", id: "cancel" }]);
-  expect(o.open).toBe(true);
-  o = await run(shell, [{ op: "click", id: "cancel" }]);
+  expect(o.open).toBe(false);
+  await open(shell);
+  await select(shell);
+  o = await run(shell, [{ op: "key", key: "N" }, { op: "type", text: "意见" }, { op: "key", key: "Enter" }, { op: "click", id: "cancel" }]);
   expect(o.open).toBe(false);
   await open(shell);
   await select(shell);
   o = await run(shell, [{ op: "key", key: "N" }, { op: "type", text: "意见" }, { op: "key", key: "F4", alt: true }]);
-  expect(o.open).toBe(true);
-  expect(o.warn).not.toBeNull();
-  o = await run(shell, [{ op: "key", key: "F4", alt: true }]);
   expect(o.open).toBe(false);
 });
 
@@ -1565,13 +1573,14 @@ test("Right-click: discards the note box, finishes the text box, re-selects when
   // No selection: right-click cancels at once
   o = await run(shell, [{ op: "right" }]);
   expect(o.open).toBe(false);
-  // With a note written: a right-click on another monitor also warns first instead of dropping everything at once
+  // A selection on another monitor: a right-click on this one doesn't cancel (that would drop what's being done there), it only gives the keyboard back to that layer
   await open(shell, { monitors: TWO });
   await select(shell);
   await run(shell, [{ op: "key", key: "N" }, { op: "type", text: "意见" }, { op: "key", key: "Enter" }]);
   o = await run(shell, [{ op: "right", x: 100, y: 100 }], 1);
   expect(o.open).toBe(true);
-  expect(o.all[0].warn).not.toBeNull();
+  expect(o.all[0].marks.length).toBe(0);
+  expect(o.all[0].overall).toBeTruthy();
   await waitFor("the keyboard to go back to the first layer", async () => (await layer(shell, 0)).active);
   // A selection but locked: right-click does nothing
   o = await run(shell, [{ op: "right", x: 300, y: 300 }]);
@@ -2047,7 +2056,7 @@ test("Multiple monitors: with an empty overall-comment box or text box open on o
   expect(a.sel).toEqual({ x: 200, y: 200, width: 400, height: 300 });
 });
 
-test("Unfinished text in the text box counts as drawing: the selection locks, another monitor can't take over and Alt+F4 warns first; whitespace only doesn't count", async ({
+test("Unfinished text in the text box counts as drawing: the selection locks and another monitor can't take over; whitespace only doesn't count", async ({
   shell,
 }) => {
   await shell.launch();
@@ -2058,10 +2067,6 @@ test("Unfinished text in the text box counts as drawing: the selection locks, an
   let b = await run(shell, [{ op: "drag", from: [100, 100], to: [500, 400] }], 1);
   expect(b.sel).toBeNull();
   expect(b.all[0].text).toMatchObject({ text: "还没写好" });
-  // With the text box open Esc belongs to the input box (finish writing), while Alt+F4 reaches the overlay first: with unfinished text, it warns first
-  o = await run(shell, [{ op: "key", key: "F4", alt: true }]);
-  expect(o.open).toBe(true);
-  expect(o.warn).not.toBeNull();
   o = await run(shell, [{ op: "type", replace: true, text: "  " }]);
   expect(o.locked).toBe(false);
   b = await run(shell, [{ op: "drag", from: [100, 100], to: [500, 400] }], 1);

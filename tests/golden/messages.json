@@ -1024,12 +1024,6 @@
     },
     {
       "locale": "de",
-      "key": "capture.cancelWarn",
-      "args": {},
-      "text": "Ihre Notizen wurden noch nicht kopiert. Zum Verwerfen erneut Esc drücken oder × klicken; zum Abschließen Eingabe drücken"
-    },
-    {
-      "locale": "de",
       "key": "capture.drawingHint",
       "args": {},
       "text": "Eine Markierung ohne Notiz bleibt als Zeichnung im Screenshot erhalten. Klicken Sie darauf, um sie umzufärben oder zu löschen; ein Doppelklick fügt eine Notiz hinzu."
@@ -3651,12 +3645,6 @@
       "key": "capture.note.save",
       "args": {},
       "text": "Save"
-    },
-    {
-      "locale": "en",
-      "key": "capture.cancelWarn",
-      "args": {},
-      "text": "Your notes haven't been copied yet. Press Esc or click × again to discard them, or press Enter to finish"
     },
     {
       "locale": "en",
@@ -6284,12 +6272,6 @@
     },
     {
       "locale": "es",
-      "key": "capture.cancelWarn",
-      "args": {},
-      "text": "Tus notas aún no se han copiado. Presiona Esc o haz clic en × otra vez para descartarlas, o presiona Entrar para finalizar"
-    },
-    {
-      "locale": "es",
       "key": "capture.drawingHint",
       "args": {},
       "text": "Una marca sin nota se queda como dibujo y permanece en la captura de pantalla. Haz clic en ella para cambiar el color o eliminarla; doble clic para agregar una nota."
@@ -8911,12 +8893,6 @@
       "key": "capture.note.save",
       "args": {},
       "text": "Enregistrer"
-    },
-    {
-      "locale": "fr",
-      "key": "capture.cancelWarn",
-      "args": {},
-      "text": "Vos notes n’ont pas encore été copiées. Appuyez de nouveau sur Échap ou cliquez sur × pour les abandonner, ou appuyez sur Entrée pour terminer"
     },
     {
       "locale": "fr",
@@ -11544,12 +11520,6 @@
     },
     {
       "locale": "it",
-      "key": "capture.cancelWarn",
-      "args": {},
-      "text": "Le note non sono ancora state copiate. Premi di nuovo Esc o fai clic su × per scartarle, oppure premi Invio per terminare"
-    },
-    {
-      "locale": "it",
       "key": "capture.drawingHint",
       "args": {},
       "text": "Un segno lasciato senza nota resta nello screenshot come disegno. Fai clic per cambiarne il colore o eliminarlo; doppio clic per aggiungere una nota."
@@ -14120,12 +14090,6 @@
     },
     {
       "locale": "ja",
-      "key": "capture.cancelWarn",
-      "args": {},
-      "text": "メモがまだコピーされていません。破棄するには Esc キーを押すか、× をもう一度クリックします。完了するには Enter キーを押します"
-    },
-    {
-      "locale": "ja",
       "key": "capture.drawingHint",
       "args": {},
       "text": "メモのないマークは図形としてスクリーンショットに残ります。クリックで色の変更や削除、ダブルクリックでメモを追加できます。"
@@ -16693,12 +16657,6 @@
       "key": "capture.note.save",
       "args": {},
       "text": "저장"
-    },
-    {
-      "locale": "ko",
-      "key": "capture.cancelWarn",
-      "args": {},
-      "text": "메모가 아직 복사되지 않았습니다. 버리려면 Esc 키를 누르거나 ×를 다시 클릭하고, 마치려면 Enter 키를 누르세요"
     },
     {
       "locale": "ko",
@@ -19323,12 +19281,6 @@
       "key": "capture.note.save",
       "args": {},
       "text": "Salvar"
-    },
-    {
-      "locale": "pt-BR",
-      "key": "capture.cancelWarn",
-      "args": {},
-      "text": "Suas notas ainda não foram copiadas. Pressione Esc ou clique em × novamente para descartá-las, ou pressione Enter para finalizar"
     },
     {
       "locale": "pt-BR",
@@ -22010,12 +21962,6 @@
     },
     {
       "locale": "ru",
-      "key": "capture.cancelWarn",
-      "args": {},
-      "text": "Заметки ещё не скопированы. Чтобы отказаться от них, ещё раз нажмите Esc или ×; чтобы завершить, нажмите Enter"
-    },
-    {
-      "locale": "ru",
       "key": "capture.drawingHint",
       "args": {},
       "text": "Метка без заметки остаётся рисунком и попадает в снимок экрана. Щёлкните по ней, чтобы сменить цвет или удалить; двойной щелчок — добавить заметку."
@@ -24586,12 +24532,6 @@
     },
     {
       "locale": "zh-CN",
-      "key": "capture.cancelWarn",
-      "args": {},
-      "text": "批注尚未复制：再按 Esc 或单击 × 放弃，按 Enter 完成"
-    },
-    {
-      "locale": "zh-CN",
       "key": "capture.drawingHint",
       "args": {},
       "text": "未写批注的标记留作涂鸦，保留在截图中。单击可换色或删除，双击可补写批注。"
@@ -26649,12 +26589,6 @@
       "key": "capture.note.save",
       "args": {},
       "text": "儲存"
-    },
-    {
-      "locale": "zh-TW",
-      "key": "capture.cancelWarn",
-      "args": {},
-      "text": "批註尚未複製：再按一次 Esc 或按一下 × 捨棄，按 Enter 完成"
     },
     {
       "locale": "zh-TW",

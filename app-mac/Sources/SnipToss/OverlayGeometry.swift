@@ -33,16 +33,25 @@ enum OverlayGeometry {
         return -1
     }
 
-    /// Drag handle h to p: dragging past the opposite side flips the rectangle (it is built from two corners)
-    static func resized(_ r: CGRect, _ h: Int, _ p: CGPoint) -> CGRect {
+    /// Drag handle h to p: dragging past the opposite side flips the rectangle (it is built from two corners).
+    /// With something to keep (what has been drawn, not empty): each moved edge stops at it instead, so the result always contains it and
+    /// never flips
+    static func resized(_ r: CGRect, _ h: Int, _ p: CGPoint, keep: CGRect = WPFRect.empty) -> CGRect {
         var l = r.wpfLeft
         var t = r.wpfTop
         var rt = r.wpfRight
         var b = r.wpfBottom
-        if h == 0 || h == 6 || h == 7 { l = p.x }
-        if h == 2 || h == 3 || h == 4 { rt = p.x }
-        if h == 0 || h == 1 || h == 2 { t = p.y }
-        if h == 4 || h == 5 || h == 6 { b = p.y }
+        if !keep.wpfIsEmpty {
+            if h == 0 || h == 6 || h == 7 { l = min(p.x, keep.wpfLeft) }
+            if h == 2 || h == 3 || h == 4 { rt = max(p.x, keep.wpfRight) }
+            if h == 0 || h == 1 || h == 2 { t = min(p.y, keep.wpfTop) }
+            if h == 4 || h == 5 || h == 6 { b = max(p.y, keep.wpfBottom) }
+        } else {
+            if h == 0 || h == 6 || h == 7 { l = p.x }
+            if h == 2 || h == 3 || h == 4 { rt = p.x }
+            if h == 0 || h == 1 || h == 2 { t = p.y }
+            if h == 4 || h == 5 || h == 6 { b = p.y }
+        }
         return WPFRect.spanning(CGPoint(x: l, y: t), CGPoint(x: rt, y: b))
     }
 

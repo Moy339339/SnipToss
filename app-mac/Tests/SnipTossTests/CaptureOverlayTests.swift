@@ -392,8 +392,8 @@ final class CaptureOverlayTests: SnipTestCase {
         XCTAssertEqual(o.state.marks.count, 1)
         XCTAssertEqual(o.state.marks[0].note, "Make this blue")
         XCTAssertEqual(o.state.marks[0].number, 1)
-        // A mark locks the selection: no handles
-        XCTAssertFalse(o.state.handlesVisible)
+        // A mark locks the selection, but its edges can still be adjusted: the handles stay
+        XCTAssertTrue(o.state.handlesVisible)
     }
 
     func testTheNoteBoxKeysSaveCancelAndPickTheCategory() {
@@ -481,24 +481,6 @@ final class CaptureOverlayTests: SnipTestCase {
         XCTAssertFalse(o.performKeyEquivalent(with: key(0x0C, "q", .command)))
         // F keys mean nothing here and do not reach the main menu
         XCTAssertTrue(o.performKeyEquivalent(with: key(0x60, String(Character(UnicodeScalar(UInt32(NSF5FunctionKey))!)))))
-    }
-
-    // MARK: Cancelling
-
-    func testAfterANoteTheFirstEscOnlyWarnsAboveTheToolbar() {
-        let o = selected()
-        XCTAssertFalse(o.guardCancel(), "nothing written: cancel at once")
-        o.state.chooseTool(.rect)
-        drag(o, CGPoint(x: 200, y: 200), CGPoint(x: 300, y: 260))
-        type("Keep me", into: o.noteBox.textView)
-        o.noteBox.save.click()
-        XCTAssertTrue(o.guardCancel())
-        XCTAssertFalse(o.warn.isHidden)
-        XCTAssertEqual(o.warn.label.text, KeepWords.of(ShellText.t("capture.cancelWarn")))
-        // Above the toolbar, right-aligned with it, unless that is off the screen
-        XCTAssertLessThanOrEqual(o.warn.frame.maxY, min(o.toolbar.frame.minY, o.subbar.isHidden ? .infinity : o.subbar.frame.minY) - 8 + 0.5)
-        // A second press soon after really cancels
-        XCTAssertFalse(o.guardCancel())
     }
 
     // MARK: Pixels

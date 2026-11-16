@@ -485,7 +485,7 @@ final class OverlayNoteBox: OverlayPanelView, NSTextViewDelegate {
     let scroll = NSScrollView()
     // TextKit 1 from the start: the box is laid out with its layout manager (asking a TextKit 2 view for one switches it over midway)
     let textView = OverlayTextView(usingTextLayoutManager: false)
-    let placeholder = OverlayText(size: 13, color: OverlayStyle.muted)
+    let placeholder = OverlayText(size: 14, color: OverlayStyle.muted)
     private(set) var cancel: OverlayButton!
     private(set) var save: OverlayButton!
 
@@ -519,7 +519,7 @@ final class OverlayNoteBox: OverlayPanelView, NSTextViewDelegate {
         scroll.hasVerticalScroller = true
         scroll.autohidesScrollers = true
         scroll.scrollerStyle = .overlay
-        textView.makePlain(font: OverlayStyle.font(13), color: OverlayStyle.text)
+        textView.makePlain(font: OverlayStyle.font(14), color: OverlayStyle.text)  // --fs-content: note text, as in the main window's note box
         textView.insertionPointColor = OverlayStyle.text
         // The text starts 7 in from the field's border and 9 from its left edge, where the placeholder is
         textView.textContainerInset = NSSize(width: 6, height: 6)
@@ -542,9 +542,9 @@ final class OverlayNoteBox: OverlayPanelView, NSTextViewDelegate {
             id: "note-cancel", name: cancelLabel, tip: ShellText.t("capture.note.cancelTip"), size: Self.footSize(cancelLabel), action: cancelAction
         ) { b, _ in
             OverlayButton.fillBackground(b, b.hovered ? OverlayStyle.hover : nil)
-            OverlayButton.drawLabel(cancelLabel, size: 13, color: b.hovered ? OverlayStyle.text : OverlayStyle.text2, in: b.bounds)
+            OverlayButton.drawLabel(cancelLabel, size: 12, color: b.hovered ? OverlayStyle.text : OverlayStyle.text2, in: b.bounds)
         }
-        let saveText = NSAttributedString(string: saveLabel, attributes: [.font: OverlayStyle.font(13), .foregroundColor: NSColor.white])
+        let saveText = NSAttributedString(string: saveLabel, attributes: [.font: OverlayStyle.font(12), .foregroundColor: NSColor.white])
         let capText = NSAttributedString(string: Self.saveKey, attributes: [.font: OverlayStyle.font(12), .foregroundColor: NSColor.white])
         let capWidth = max(20, ceil(capText.size().width) + 12)
         // 12, the label, 8, the keycap, 10 (the main window's .composer-foot .btn-primary kbd: 20 high, 4 rounded, white at 18%)
@@ -576,7 +576,7 @@ final class OverlayNoteBox: OverlayPanelView, NSTextViewDelegate {
     static let saveKey = "↩"
 
     private static func footSize(_ label: String) -> CGSize {
-        CGSize(width: ceil(OverlayText(label, size: 13, color: .white).fitting.width) + 24, height: 28)
+        CGSize(width: ceil(OverlayText(label, size: 12, color: .white).fitting.width) + 24, height: 28)  // 28 high: 12, as in the main window
     }
 
     /// Nothing written yet (white space does not count)

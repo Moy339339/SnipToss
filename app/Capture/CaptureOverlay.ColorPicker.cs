@@ -81,7 +81,7 @@ sealed partial class CaptureOverlay
             CaretBrush = Solid(Text),
             SelectionBrush = Solid(Accent),
             FontFamily = new FontFamily("Consolas"),
-            FontSize = 13,
+            FontSize = 12, // a 28-high field, as in the main window
             VerticalAlignment = VerticalAlignment.Center,
             CharacterCasing = CharacterCasing.Upper,
         };

@@ -131,9 +131,6 @@ for (const locale of LOCALES) {
     ]);
     texts["hint next to the first drawing"] = o.drawingHint?.text;
     await shot("first drawing (hint)");
-    o = await run(shell, [{ op: "key", key: "Escape" }]); // nothing selected now: the first Esc shows the warning
-    texts["cancel warning"] = o.warn?.text;
-    await shot("cancel warning");
 
     // Finish: toast + composited image (notes attached by default)
     await run(shell, [{ op: "key", key: "Enter" }]);

@@ -917,7 +917,6 @@
   "capture.note.cancelTip": "Esc",
   "capture.note.dragTip": "Zum Verschieben ziehen",
   "capture.note.save": "Speichern",
-  "capture.cancelWarn": "Ihre Notizen wurden noch nicht kopiert. Zum Verwerfen erneut Esc drücken oder × klicken; zum Abschließen Eingabe drücken",
   "capture.drawingHint": "Eine Markierung ohne Notiz bleibt als Zeichnung im Screenshot erhalten. Klicken Sie darauf, um sie umzufärben oder zu löschen; ein Doppelklick fügt eine Notiz hinzu.",
   "capture.toolName.rect": "Rechteck",
   "capture.toolName.ellipse": "Ellipse",

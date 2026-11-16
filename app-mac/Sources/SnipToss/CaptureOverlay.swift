@@ -92,7 +92,7 @@ final class OverlayMarksView: NSView {
 /// (rectangle, ellipse, arrow, pen, Pixelate, text, then the Pin and the overall comment). After a rectangle, ellipse, arrow or pen stroke a
 /// note box opens next to it. Finishing (✓, a double click in the selection, Return) hands over to the session.
 /// What happens is decided by `OverlayStateMachine`; this view draws, takes the mouse and the keyboard, holds the two input boxes and the
-/// magnifier, and shows the warning before cancelling. Coordinates are points in this view, y pointing down, snapped to the screen's pixels
+/// magnifier. Coordinates are points in this view, y pointing down, snapped to the screen's pixels
 final class CaptureOverlay: NSView, OverlayView {
     private weak var session: CaptureSession?
     let shot: FrozenScreen
@@ -118,14 +118,11 @@ final class CaptureOverlay: NSView, OverlayView {
     /// The color picker, opened by the hue disc at the end of the color row
     let picker = OverlayColorPicker()
     let textBox = OverlayTextBox()
-    let warn = OverlayBanner(size: 13, stroke: OverlayStyle.danger, radius: 8, padX: 12, padY: 6, shadow: false)
-    private var warnTimer: Timer?
     /// The one-time hint next to the first mark left as a drawing: the toolbar's panel, never takes a click
-    let drawingHint = OverlayBanner(size: 13, stroke: OverlayStyle.borderStrong, radius: 10, padX: 12, padY: 12, shadow: true)
+    let drawingHint = OverlayBanner(size: 14, stroke: OverlayStyle.borderStrong, radius: 10, padX: 12, padY: 12, shadow: true)
     /// The system's tooltips are windows below the overlay's level and would not show; the overlay draws its own
     let tooltip = OverlayBanner(size: 12, stroke: OverlayStyle.borderStrong, radius: 4, padX: 8, padY: 4, shadow: true)
     private var tooltipTimer: Timer?
-    private var toolbarPlaced = false
 
     private var cursor = NSCursor.arrow
     /// The name of the pointer the state machine chose (for the smoke run's account of the layer)
@@ -201,7 +198,7 @@ final class CaptureOverlay: NSView, OverlayView {
         picker.onClose = { [weak self] in self?.pickerClosed() }
 
         // Bottom to top, as the Windows overlay stacks them
-        for v in [pictureView, marksView, sizeLabel, textBox, toolbar, subbar, noteBox!, picker, magnifier, warn, drawingHint, tooltip] as [NSView] {
+        for v in [pictureView, marksView, sizeLabel, textBox, toolbar, subbar, noteBox!, picker, magnifier, drawingHint, tooltip] as [NSView] {
             addSubview(v)
         }
         buildToolbar()
@@ -224,7 +221,6 @@ final class CaptureOverlay: NSView, OverlayView {
     /// The capture is over: timers and observers stop, late events are ignored
     func teardown() {
         isClosed = true
-        warnTimer?.invalidate()
         tooltipTimer?.invalidate()
         if let resignObserver { NotificationCenter.default.removeObserver(resignObserver) }
         resignObserver = nil
@@ -656,7 +652,7 @@ final class CaptureOverlay: NSView, OverlayView {
     func drawingsKept(_ first: Mark) {
         guard !isClosed, session?.takeDrawingHint() == true else { return }
         let label = drawingHint.label
-        label.lineHeight = 19
+        label.lineHeight = 22  // --lh-label: hints in the main window
         label.width = nil
         label.text = KeepWords.of(ShellText.t("capture.drawingHint"))
         // 300 with the padding, the width of the main window's hints
@@ -850,14 +846,14 @@ final class CaptureOverlay: NSView, OverlayView {
     private func doneButton() -> OverlayButton {
         let label = ShellText.t("capture.done")
         let tip = ShellText.t("capture.doneTip")
-        let width = 10 + 16 + 6 + ceil(OverlayText(label, size: 13, color: .white).fitting.width) + 12
+        let width = 10 + 16 + 6 + ceil(OverlayText(label, size: 14, color: .white).fitting.width) + 12
         let b = OverlayButton(id: "done", name: label, tip: tip, size: CGSize(width: width, height: 32), action: { [weak self] in
             guard let self, !self.isClosed else { return }
             self.session?.finish()
         }) { b, context in
             OverlayButton.fillBackground(b, b.hovered ? OverlayStyle.accentFillHover : OverlayStyle.accentFill)
             OverlayIcons.draw(OverlayIcons.check, in: context, at: CGPoint(x: 10, y: 8), color: .white, lineWidth: 1.6)
-            OverlayButton.drawLabel(label, size: 13, color: .white, in: CGRect(x: 32, y: 0, width: b.bounds.width - 32 - 12, height: b.bounds.height))
+            OverlayButton.drawLabel(label, size: 14, color: .white, in: CGRect(x: 32, y: 0, width: b.bounds.width - 32 - 12, height: b.bounds.height))
         }
         b.onHover = { [weak self] b, inside in self?.hoverTip(b, inside) }
         toolButtons.append((b, { false }))
@@ -1017,7 +1013,6 @@ final class CaptureOverlay: NSView, OverlayView {
         let sub = subbar.isHidden ? CGSize.zero : subbar.frame.size
         let at = OverlayGeometry.toolbarAt(s, toolbar: toolbar.frame.size, subbar: sub, full: full)
         toolbar.setFrameOrigin(at.toolbar)
-        toolbarPlaced = true
         if sub.height > 0 {
             // A clicked mark's colors and Delete pop up next to it, as in the main window; while its note box is open they stay by the
             // toolbar (the box sits next to the mark)
@@ -1128,39 +1123,6 @@ final class CaptureOverlay: NSView, OverlayView {
         guard drawn else { return (.clear, "") }
         let color = NSColor(srgbRed: CGFloat(bytes[0]) / 255, green: CGFloat(bytes[1]) / 255, blue: CGFloat(bytes[2]) / 255, alpha: 1)
         return (color, String(format: "#%02X%02X%02X", bytes[0], bytes[1], bytes[2]))
-    }
-
-    // MARK: The warning before cancelling
-
-    /// Once notes have been written, the first Esc / × does not cancel but shows "press again to discard" above the toolbar; only a second
-    /// press within 3 seconds really cancels (the state machine's `armCancel` decides). Returns true = only the warning was shown
-    func guardCancel() -> Bool {
-        guard !isClosed, state.armCancel(now: Date()) else { return false }
-        warn.show(KeepWords.of(ShellText.t("capture.cancelWarn")))
-        let size = warn.frame.size
-        var x: CGFloat
-        var y: CGFloat
-        if toolbarPlaced {
-            x = toolbar.frame.maxX - size.width
-            // The thickness and color row above or below the toolbar counts too: the warning goes outside the whole group
-            var top = toolbar.frame.minY
-            var bottom = toolbar.frame.maxY
-            if !subbar.isHidden {
-                top = min(top, subbar.frame.minY)
-                bottom = max(bottom, subbar.frame.maxY)
-            }
-            y = top - 8 - size.height >= full.minY + 4 ? top - 8 - size.height : bottom + 8
-        } else {
-            x = (full.width - size.width) / 2
-            y = full.height / 2
-        }
-        x = clampValue(x, full.minX + 4, max(full.minX + 4, full.maxX - 4 - size.width))
-        warn.setFrameOrigin(CGPoint(x: x, y: y))
-        warnTimer?.invalidate()
-        let timer = Timer(timeInterval: OverlayStateMachine.warnFor, repeats: false) { [weak self] _ in self?.warn.isHidden = true }
-        RunLoop.main.add(timer, forMode: .common)
-        warnTimer = timer
-        return true
     }
 
     // MARK: For the session

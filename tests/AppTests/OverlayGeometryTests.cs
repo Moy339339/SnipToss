@@ -43,6 +43,16 @@ public class OverlayGeometryTests
     }
 
     [Fact]
+    public void With_something_drawn_each_dragged_edge_stops_at_it_and_never_flips()
+    {
+        var drawn = new Rect(200, 150, 100, 100);
+        Assert.Equal(new Rect(100, 100, 400, 300), OverlayGeometry.Resized(Sel, 3, new Point(500, 999), Rect.Empty)); // nothing drawn: as before
+        Assert.Equal(new Rect(100, 100, 200, 300), OverlayGeometry.Resized(Sel, 3, new Point(50, 0), drawn)); // the right edge stops at the drawing instead of flipping
+        Assert.Equal(new Rect(200, 150, 300, 250), OverlayGeometry.Resized(Sel, 0, new Point(450, 380), drawn)); // the top-left corner stops at both of its edges
+        Assert.Equal(new Rect(100, 20, 400, 380), OverlayGeometry.Resized(Sel, 1, new Point(0, 20), drawn)); // growing is not limited
+    }
+
+    [Fact]
     public void Snapping_to_physical_pixels_on_a_150_percent_screen_gives_whole_multiples_of_two_thirds_of_a_DIP()
     {
         var p = OverlayGeometry.Snap(new Point(10.4, 10.2), 1.5);

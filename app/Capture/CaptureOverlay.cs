@@ -57,7 +57,7 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
     readonly TextBox noteInput;
     readonly TextBlock noteTitle = Txt("", 12, Muted);
     // Worded like the main app's composer (the two sides use the same phrasing)
-    readonly TextBlock notePlaceholder = Txt(Locale.T("capture.note.placeholder"), 13, Muted);
+    readonly TextBlock notePlaceholder = Txt(Locale.T("capture.note.placeholder"), 14, Muted);
 
     // Text tool: text written directly on the image
     readonly Border textBox;
@@ -253,62 +253,6 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
     // Selection handles, which handle is hit, resizing, moving: OverlayGeometry (pure functions, tested with xUnit)
     static Point[] HandlePoints(Rect r) => OverlayGeometry.HandlePoints(r);
 
-    // ---------- A safeguard before cancelling ----------
-
-    readonly System.Windows.Threading.DispatcherTimer warnTimer = new() { Interval = OverlayStateMachine.WarnFor };
-    Border? warn;
-
-    /// <summary>
-    /// Once notes have been written, the first Esc / × does not cancel but shows a "press again to discard" warning above the toolbar, and only a second press within 3 seconds really cancels (whether it counts is decided by the state machine's ArmCancel).
-    /// Returns true = this time only the warning was shown
-    /// </summary>
-    public bool GuardCancel()
-    {
-        if (!state.ArmCancel(DateTime.Now)) return false;
-        if (warn is null)
-        {
-            var text = Txt(KeepWords.Of(Locale.T("capture.cancelWarn")), 13, Text);
-            warn = new Border
-            {
-                Background = Solid(Surface2),
-                BorderBrush = Solid(Color.FromRgb(0xff, 0x5f, 0x5f)),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8),
-                Padding = new Thickness(12, 6, 12, 6),
-                Child = text,
-                IsHitTestVisible = false,
-            };
-            root.Children.Add(warn);
-            warnTimer.Tick += (_, _) =>
-            {
-                warnTimer.Stop();
-                warn.Visibility = Visibility.Collapsed;
-            };
-        }
-        warn.Visibility = Visibility.Visible;
-        warn.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        var x = Canvas.GetLeft(toolbar);
-        var y = Canvas.GetTop(toolbar);
-        if (double.IsNaN(x) || double.IsNaN(y))
-        {
-            x = (full.Width - warn.DesiredSize.Width) / 2;
-            y = full.Height / 2;
-        }
-        Canvas.SetLeft(warn, Math.Clamp(x + toolbar.DesiredSize.Width - warn.DesiredSize.Width, full.Left + 4, Math.Max(full.Left + 4, full.Right - 4 - warn.DesiredSize.Width)));
-        // Count the thickness and color row above or below the toolbar too, and place the warning outside the whole group (it used to cover the row above)
-        var top = y;
-        var bottom = y + toolbar.DesiredSize.Height;
-        if (subbar.Visibility == Visibility.Visible && Canvas.GetTop(subbar) is var st && !double.IsNaN(st))
-        {
-            top = Math.Min(top, st);
-            bottom = Math.Max(bottom, st + subbar.DesiredSize.Height);
-        }
-        Canvas.SetTop(warn, top - 8 - warn.DesiredSize.Height >= full.Top + 4 ? top - 8 - warn.DesiredSize.Height : bottom + 8);
-        warnTimer.Stop();
-        warnTimer.Start();
-        return true;
-    }
-
     // ---------- The one-time hint about drawings ----------
 
     Border? drawingHint;
@@ -320,10 +264,10 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
     public void DrawingsKept(Mark first)
     {
         if (!session.TakeDrawingHint()) return;
-        var text = Txt(KeepWords.Of(Locale.T("capture.drawingHint")), 13, Text);
+        var text = Txt(KeepWords.Of(Locale.T("capture.drawingHint")), 14, Text);
         text.TextWrapping = TextWrapping.Wrap;
         text.MaxWidth = 276; // 300 with the padding, the width of the main window's hints
-        text.LineHeight = 19;
+        text.LineHeight = 22; // --lh-label: hints in the main window
         drawingHint = Panel(text, 12);
         drawingHint.IsHitTestVisible = false;
         drawingHint.Visibility = Visibility.Visible;
@@ -382,7 +326,7 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
             BorderThickness = new Thickness(1),
             Padding = new Thickness(6, 6, 6, 6),
             FontFamily = MarkPainter.Font,
-            FontSize = 13,
+            FontSize = 14, // --fs-content: note text, as in the main window's note box
         };
         input.PreviewKeyDown += (_, e) =>
         {
@@ -476,7 +420,7 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
     Border FootButton(string label, bool primary, Action click, string? tip = null, string? key = null)
     {
         // The primary button stands out by its blue background, and its text is regular weight (same as .btn-primary in the main UI)
-        var text = Txt(label, 13, primary ? Colors.White : Text2);
+        var text = Txt(label, 12, primary ? Colors.White : Text2);
         UIElement content = text;
         if (key is not null)
         {
@@ -815,7 +759,7 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
             Margin = new Thickness(0, 0, 6, 0),
         });
         var label = Locale.T("capture.done");
-        row.Children.Add(Txt(label, 13, Colors.White)); // regular weight, same as the main UI's primary button
+        row.Children.Add(Txt(label, 14, Colors.White)); // regular weight at the body size, same as the main UI's 32-high primary button
         // The button says what it does; its tooltip only gives the key (as in the main UI, where a labelled button's tooltip is just its shortcut)
         var b = Named(new Border { Height = 32, Padding = new Thickness(10, 0, 12, 0), Margin = new Thickness(4, 0, 0, 0), CornerRadius = new CornerRadius(6), Child = row, Background = Solid(AccentFill), ToolTip = Tip(Locale.T("capture.doneTip")) }, "done", label);
         Wire(b, session.Finish);

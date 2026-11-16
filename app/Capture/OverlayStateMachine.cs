@@ -168,9 +168,6 @@ sealed class OverlayStateMachine(
     CaptureKeys? keys = null
 )
 {
-    /// <summary>After notes have been written, the first Esc / × only warns; pressing again within this time really cancels</summary>
-    public static readonly TimeSpan WarnFor = TimeSpan.FromSeconds(3);
-
     public ToolPrefs Prefs { get; } = prefs;
 
     /// <summary>The keys of the tools, the overall comment and undo, as they are in Settings → Keyboard Shortcuts</summary>
@@ -252,10 +249,10 @@ sealed class OverlayStateMachine(
 
     public double TextSize { get; private set; }
 
-    DateTime cancelArmed = DateTime.MinValue;
 
     /// <summary>
-    /// There are drawings on this display: marks, an overall comment, or text typed in an input box and not yet saved. This locks the selection (it cannot be moved or re-selected with a right-click),
+    /// There are drawings on this display: marks, an overall comment, or text typed in an input box and not yet saved. This locks the selection (it cannot be moved or re-selected with a right-click;
+    /// its edges can still be dragged, but not past anything drawn, see <see cref="DrawnExtent"/>),
     /// another display cannot start selecting, and cancelling warns once first (unsaved typed text used to not count: switching displays or clicking × lost it at once)
     /// </summary>
     public bool Locked => marks.Any(m => !m.Removed) || Overall.Length > 0 || PendingText;
@@ -270,7 +267,44 @@ sealed class OverlayStateMachine(
     /// <summary>The part that gets an outline and is not dimmed: the selection; while still choosing, the hovered window (none while another display is selecting)</summary>
     public Rect? Shown => Sel ?? (host.HasOwner && !host.IsOwner ? null : Hover);
 
-    public bool HandlesVisible => Sel is not null && !Locked && Op != DragOp.NewSel;
+    /// <summary>The 8 handles: also after drawing (the edges can still be adjusted), but not while a note or text with words in it is being written (a click outside saves it instead)</summary>
+    public bool HandlesVisible => Sel is not null && Op != DragOp.NewSel && !(Locked && (NoteOpen || TextOpen));
+
+    /// <summary>
+    /// What has been drawn inside the selection, with its line width, arrowheads and text (DIPs): when there are drawings, resizing the selection stops at it, so nothing drawn is cut off.
+    /// Empty when nothing is drawn
+    /// </summary>
+    Rect DrawnExtent(Rect sel)
+    {
+        var all = Rect.Empty;
+        foreach (var m in marks)
+            if (!m.Removed && m.Points.Count > 0) all.Union(m.Extent);
+        return all.IsEmpty ? all : Rect.Intersect(all, sel);
+    }
+
+    /// <summary>
+    /// The handle a press here would drag (-1 = none): with no tool, the whole handle and edge zone; with a drawing tool, only the part outside the selection,
+    /// since a drag that starts inside the box (its border line included) draws
+    /// </summary>
+    int Grabs(Rect s, Point p) => Tool != Tool.None && s.Contains(p) ? -1 : OverlayGeometry.HitHandle(s, p);
+
+    /// <summary>
+    /// Outside the selection a handle comes before a mark: marks are inside, only their hit tolerance reaches out. Otherwise, once the edge has been pulled in up to a drawing,
+    /// the outer half of the handle would pick that drawing and the edge could not be pulled out again
+    /// </summary>
+    static int GrabsBeforeMarks(Rect s, Point p) => s.Contains(p) ? -1 : OverlayGeometry.HitHandle(s, p);
+
+    /// <summary>The edges can be adjusted at any time, also after drawing (only so far that nothing drawn is cut off)</summary>
+    void StartResize(Rect s, int grabbed)
+    {
+        handle = grabbed;
+        startSel = s;
+        resizeKeep = DrawnExtent(s);
+        Op = DragOp.Resize;
+    }
+
+    /// <summary>What the edges may not be dragged past during this resize (set when it starts)</summary>
+    Rect resizeKeep = Rect.Empty;
 
     /// <summary>The toolbar hides while the selection is being dragged, moved or resized</summary>
     public bool ToolbarVisible => Sel is not null && Op is not (DragOp.NewSel or DragOp.Move or DragOp.Resize);
@@ -341,6 +375,10 @@ sealed class OverlayStateMachine(
         {
             Op = DragOp.NewSel;
         }
+        else if (GrabsBeforeMarks(s, p) is var outer and >= 0)
+        {
+            StartResize(s, outer);
+        }
         else if (PlaceAt(p) is { } m)
         {
             // Hit a mark: pick it. A number also opens its note (clicking a number = edit that note); a line only picks, so Delete / Backspace and
@@ -348,6 +386,10 @@ sealed class OverlayStateMachine(
             if (m.Head.HasNote && BadgePlaceAt(p) == m) OpenNote(m.Head);
             Pick(m);
             return false;
+        }
+        else if (Grabs(s, p) is var grabbed and >= 0)
+        {
+            StartResize(s, grabbed);
         }
         else if (Tool != Tool.None && s.Contains(p))
         {
@@ -358,9 +400,8 @@ sealed class OverlayStateMachine(
         }
         else if (!Locked)
         {
-            handle = OverlayGeometry.HitHandle(s, p);
             startSel = s;
-            Op = handle >= 0 ? DragOp.Resize : s.Contains(p) ? DragOp.Move : DragOp.NewSel;
+            Op = s.Contains(p) ? DragOp.Move : DragOp.NewSel;
         }
         else
         {
@@ -394,7 +435,7 @@ sealed class OverlayStateMachine(
                 view.Refresh();
                 break;
             case DragOp.Resize:
-                Sel = OverlayGeometry.Resized(startSel, handle, p);
+                Sel = OverlayGeometry.Resized(startSel, handle, p, resizeKeep);
                 view.Refresh();
                 break;
             case DragOp.Draw:
@@ -453,10 +494,14 @@ sealed class OverlayStateMachine(
             HoverAtCursor(); // highlight the window under the mouse at once even if the mouse does not move (same as right after opening)
             view.Refresh();
         }
+        else if (Sel is null && host.HasOwner)
+        {
+            // Another display has the selection: a right-click here does not cancel (that would drop what is being done there at once, with no warning), it only gives the keyboard back to that layer
+            host.FocusOwner();
+        }
         else if (Sel is null)
         {
-            host.RequestCancel(); // notes may have been written on another display: warn once first as usual (it used to discard everything at once)
-            host.FocusOwner(); // the warning says "press Enter to finish": the keyboard must return to the layer that has the selection
+            host.RequestCancel(); // nothing selected anywhere: cancel, as Esc
         }
     }
 
@@ -486,20 +531,25 @@ sealed class OverlayStateMachine(
     CursorKind CursorAt(Point p)
     {
         if (Sel is not { } s) return CursorKind.Arrow;
-        // A mark that can be hit shows a hand (clicking picks it and edits its note). While the note box is open only this note's places can be hit; anything else is "click outside = done writing"
+        // The same order as Down: the outer half of a handle, a mark (a hand: clicking picks it and edits its note), the rest of a handle.
+        // While an input box is open there is no handle (a click saves what is being written), and only this note's places can be hit
+        if (!NoteOpen && !TextOpen && SizeCursor(GrabsBeforeMarks(s, p)) is { } outer) return outer;
         if (NoteOpen ? NoteFor is { } mine && PlaceAt(p)?.Head == mine : !TextOpen && PlaceAt(p) is not null) return CursorKind.Hand;
+        if (!NoteOpen && !TextOpen && SizeCursor(Grabs(s, p)) is { } inner) return inner;
         // Drawing tools: the pointer becomes that tool's small icon (as in the main app), and the Pin tool shows a pin
         if (Tool != Tool.None && s.Contains(p)) return CursorKind.Tool;
         if (Locked) return CursorKind.Arrow;
-        return OverlayGeometry.HitHandle(s, p) switch
-        {
-            0 or 4 => CursorKind.SizeNWSE,
-            2 or 6 => CursorKind.SizeNESW,
-            1 or 5 => CursorKind.SizeNS,
-            3 or 7 => CursorKind.SizeWE,
-            _ => s.Contains(p) ? CursorKind.SizeAll : CursorKind.Arrow,
-        };
+        return s.Contains(p) ? CursorKind.SizeAll : CursorKind.Arrow;
     }
+
+    static CursorKind? SizeCursor(int handle) => handle switch
+    {
+        0 or 4 => CursorKind.SizeNWSE,
+        2 or 6 => CursorKind.SizeNESW,
+        1 or 5 => CursorKind.SizeNS,
+        3 or 7 => CursorKind.SizeWE,
+        _ => null,
+    };
 
     void Nudge(double dx, double dy)
     {
@@ -530,17 +580,6 @@ sealed class OverlayStateMachine(
         Overall = "";
         Tool = Tool.None;
         view.Refresh();
-    }
-
-    /// <summary>
-    /// Once notes have been written, the first Esc / × does not cancel but warns "press again to discard"; only a second press within <see cref="WarnFor"/> really cancels.
-    /// Returns true = this time should warn (and not cancel)
-    /// </summary>
-    public bool ArmCancel(DateTime now)
-    {
-        if (!HasNotes || now - cancelArmed < WarnFor) return false;
-        cancelArmed = now;
-        return true;
     }
 
     /// <summary>On finish: the open note box and text box are committed first (a box left empty keeps its marks as drawings, without the hint: the overlay is closing)</summary>
@@ -997,7 +1036,7 @@ sealed class OverlayStateMachine(
     /// <summary>A key pressed on the overlay (the window gets it first, the input boxes after). Returns true = handled (swallowed); false = leave it to the input box / the system</summary>
     public bool Press(Key key, ModifierKeys mods)
     {
-        // Alt+F4 = cancel (warn once first if notes were written). It used to go back to the system, which closed only this layer without the session knowing, and Screen Capture could never open again
+        // Alt+F4 = cancel, as Esc. It used to go back to the system, which closed only this layer without the session knowing, and Screen Capture could never open again
         if (key == Key.F4 && mods.HasFlag(ModifierKeys.Alt))
         {
             host.RequestCancel();

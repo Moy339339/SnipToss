@@ -49,9 +49,13 @@ sealed class CaptureSession
 
     static bool warmed;
 
+    /// <summary>Notes in the log what other apps do to the overlay while it is open (OverlayWatch)</summary>
+    OverlayWatch? watch;
+
     /// <summary>
     /// Builds one overlay, lays it out once and closes it (never shown, never registered as a capture in progress): it pays up front the roughly 50 ms that building the layer, applying control templates and loading fonts would cost on the first shortcut press,
-    /// so even the first press after startup stays within the "shortcut press to overlay visible ≤ 200 ms" budget. Then grabs one pixel of each display (<see cref="Screens.WarmUp"/>), which takes the one-time setup of the grab threads and GDI off the first press too.
+    /// so even the first press after startup stays within the "shortcut press to overlay visible ≤ 200 ms" budget. Then grabs one pixel of each display (<see cref="Screens.WarmUp"/>), which takes the one-time setup of the grab threads and GDI off the first press too,
+    /// and for someone who has used Screen Capture before, makes the Desktop Duplication grab ready in the background (<see cref="Screens.PrepareDuplication"/>).
     /// Runs once; skipped while a capture is in progress; on failure it only logs (the next press builds the layer as usual)
     /// </summary>
     public static void WarmUp(Settings settings)
@@ -76,6 +80,8 @@ sealed class CaptureSession
             // A window that was never shown is still in Application.Windows: close it rather than leave it
             overlay.Close();
             Screens.WarmUp();
+            // Someone who has finished a capture before gets whole-frame grabs from the first press after startup; a newcomer's first capture uses GDI and prepares it then
+            if (settings.Capture.SelectHintDone) Screens.PrepareDuplication();
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or NotSupportedException or COMException or IOException)
         {
@@ -128,11 +134,16 @@ sealed class CaptureSession
                 if (cursor is { } c && Contains(shot.Bounds, c)) active = overlay;
             }
             (active ?? session.overlays[0]).Activate();
+            session.watch = new OverlayWatch(session.overlays);
+            // Someone who uses Screen Capture: from the next press on, grab whole frames through Desktop Duplication (this one used GDI if it was not ready yet).
+            // Runs at every capture: a display on another GPU, or a device lost since, gets its device again
+            Screens.PrepareDuplication();
         }
         catch (Exception ex)
         {
             Log.Error("Screen Capture could not open", ex);
             session.closing = true; // closing the layers below must not go through the OverlayClosed cleanup (it is done here)
+            session.watch?.Stop();
             foreach (var o in session.overlays)
             {
                 try
@@ -190,12 +201,8 @@ sealed class CaptureSession
         return true;
     }
 
-    /// <summary>Esc and the × on the toolbar: if notes have been written, warn once instead of discarding everything at once (see CaptureOverlay.GuardCancel)</summary>
-    public void RequestCancel()
-    {
-        if (Owner?.GuardCancel() == true) return;
-        Close();
-    }
+    /// <summary>Esc, Alt+F4 and the × on the toolbar: close at once, whatever has been drawn (no "press again to discard" step)</summary>
+    public void RequestCancel() => Close();
 
     public void Finish()
     {
@@ -323,6 +330,7 @@ sealed class CaptureSession
     {
         if (closing) return;
         closing = true;
+        watch?.Stop();
         foreach (var o in overlays.ToList()) o.Close();
         overlays.Clear();
         if (Current == this) Current = null;
@@ -602,8 +610,8 @@ static class Toast
         stack.Children.Add(new TextBlock
         {
             Text = KeepWords.Of(title),
-            FontSize = 15, // --fs-title
-            LineHeight = 22,
+            FontSize = 16, // --fs-title
+            LineHeight = 24, // --lh-title
             FontWeight = FontWeights.Bold, // not SemiBold: fonts without a semibold weight (such as Microsoft JhengHei) fall back to regular, so the weight would differ between scripts
             Foreground = NativeUi.Text,
             FontFamily = MarkPainter.Font,
@@ -616,7 +624,7 @@ static class Toast
             stack.Children.Add(new TextBlock { Text = KeepWords.Of(detail), FontSize = 12, LineHeight = 18, Foreground = NativeUi.Text, FontFamily = MarkPainter.Font, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 6, 0, 0) });
         var content = Translucent(new Border
         {
-            Width = 196, // one Chinese sentence (15 pt) fits on a line; longer languages wrap to two or three lines and still come out roughly square
+            Width = 196, // one Chinese sentence (16 px) fits on a line; longer languages wrap to two or three lines and still come out roughly square
             MinHeight = 152,
             Background = NativeUi.ToastSurface,
             BorderBrush = NativeUi.ToastBorder,
@@ -801,7 +809,7 @@ static class Toast
         head.Children.Add(closeButton);
         // The title wraps: it used to be a single line, and a long one ran under the × and was cut off (English overflowed); the × is aligned with the first line
         closeButton.VerticalAlignment = VerticalAlignment.Top;
-        head.Children.Add(new TextBlock { Text = KeepWords.Of(title), FontSize = 13, LineHeight = 20, FontWeight = FontWeights.SemiBold, Foreground = NativeUi.Text, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 2, 8, 2) });
+        head.Children.Add(new TextBlock { Text = KeepWords.Of(title), FontSize = 14, LineHeight = 20, FontWeight = FontWeights.SemiBold, Foreground = NativeUi.Text, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 2, 8, 2) });
         var stack = new StackPanel { Width = 480 };
         stack.Children.Add(head);
         stack.Children.Add(new TextBlock { Text = KeepWords.Of(detail), FontSize = 12, LineHeight = 18, Foreground = NativeUi.Text2, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) });

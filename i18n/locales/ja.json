@@ -917,7 +917,6 @@
   "capture.note.cancelTip": "Esc",
   "capture.note.dragTip": "ドラッグして移動",
   "capture.note.save": "保存",
-  "capture.cancelWarn": "メモがまだコピーされていません。破棄するには Esc キーを押すか、× をもう一度クリックします。完了するには Enter キーを押します",
   "capture.drawingHint": "メモのないマークは図形としてスクリーンショットに残ります。クリックで色の変更や削除、ダブルクリックでメモを追加できます。",
   "capture.toolName.rect": "四角形",
   "capture.toolName.ellipse": "楕円",

@@ -56,12 +56,12 @@ final class OverlayColorPicker: OverlayPanelView, NSTextViewDelegate {
         preview.frame = CGRect(x: pad, y: rowTop, width: 28, height: 28)
 
         let label = ShellText.t("markColor.apply")
-        let applyWidth = ceil(OverlayText(label, size: 13, color: .white).fitting.width) + 24
+        let applyWidth = ceil(OverlayText(label, size: 12, color: .white).fitting.width) + 24
         applyButton = OverlayButton(id: "picker-apply", name: label, size: CGSize(width: applyWidth, height: 28), action: { [weak self] in
             self?.commit()
         }) { b, _ in
             OverlayButton.fillBackground(b, b.hovered ? OverlayStyle.accentFillHover : OverlayStyle.accentFill)
-            OverlayButton.drawLabel(label, size: 13, color: .white, in: b.bounds)
+            OverlayButton.drawLabel(label, size: 12, color: .white, in: b.bounds)
         }
         applyButton.frame.origin = CGPoint(x: pad + width - applyWidth, y: rowTop)
         // The digits box takes what is left of the row between the preview and OK, 8 of room on each side
@@ -398,9 +398,9 @@ final class OverlayColorPicker: OverlayPanelView, NSTextViewDelegate {
     /// The box around the digits: a "#" in the muted color, then the text view of the six digits in a monospaced face. A press anywhere in
     /// the box (not only on the digits) gives the keyboard to them
     final class DigitsBox: NSView {
-        static let font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        static let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)  // a 28-high field, as in the main window
 
-        let hashSign = OverlayText("#", size: 13, color: OverlayStyle.muted)
+        let hashSign = OverlayText("#", size: 12, color: OverlayStyle.muted)
         let textView = OverlayTextView(usingTextLayoutManager: false)
 
         init() {

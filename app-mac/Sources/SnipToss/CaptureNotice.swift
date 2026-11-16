@@ -172,9 +172,9 @@ final class CaptureNotices: CaptureNotifying {
         private let detail: OverlayText?
 
         init(title text: String, detail second: String) {
-            let head = OverlayText(KeepWords.of(text), size: 15, color: OverlayStyle.text, weight: .bold)
+            let head = OverlayText(KeepWords.of(text), size: 16, color: OverlayStyle.text, weight: .bold)  // --fs-title
             head.width = 196 - 28
-            head.lineHeight = 22
+            head.lineHeight = 24  // --lh-title
             head.alignment = .center
             title = head
             var below: OverlayText?
@@ -239,7 +239,7 @@ final class CaptureNotices: CaptureNotifying {
             self.path = path
             super.init(frame: .zero)
             let inner: CGFloat = 480
-            let head = OverlayText(KeepWords.of(title), size: 13, color: OverlayStyle.text, weight: .semibold)
+            let head = OverlayText(KeepWords.of(title), size: 14, color: OverlayStyle.text, weight: .semibold)
             head.width = inner - 28
             head.lineHeight = 20
             head.fit(at: CGPoint(x: 16, y: 14))

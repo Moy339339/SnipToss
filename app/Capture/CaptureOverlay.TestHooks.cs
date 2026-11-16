@@ -282,7 +282,6 @@ sealed partial class CaptureOverlay
                 var t = toolButtons.FirstOrDefault(t => t.button == e);
                 return new { id = AutomationProperties.GetAutomationId(e), name = AutomationProperties.GetName(e), on = t.on?.Invoke(), enabled = t.button is null ? null : (bool?)(t.enabled?.Invoke() != false) };
             }).ToList(),
-            warn = warn is { Visibility: Visibility.Visible } w ? new { text = (w.Child as TextBlock)?.Text, box = Shown(w) } : null,
             // The one-time hint next to the first mark left as a drawing
             drawingHint = drawingHint is { } h ? new { text = (h.Child as TextBlock)?.Text, box = Shown(h) } : null,
         };

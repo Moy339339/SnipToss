@@ -286,7 +286,9 @@ jobs:
             expect("pickerOpen", "the hue disc opens the color picker, the keyboard on its digits, the layer below the input method", (s) => s.picker && s.firstResponder === "picker" && s.level === 26);
             expect("pickerType", "digits typed with the keyboard go to the picker, none is a color key there", (s) => s.picker && s.picker.digits === "17A998" && s.color === "#000000");
             expect("pickerApply", "Return uses the color and adds it to the recent colors", (s) => !s.picker && s.color === "#17a998" && (s.buttons || []).includes("color-17a998") && (s.recent || [])[0] === "#17a998");
-            expect("escapeWarns", "Esc after notes only warns", (s) => s.open && s.warn);
+            const before = (step.pickerApply || {}).sel || [0, 0, 0, 0];
+            expect("growAfterDrawing", "after drawing, the outer half of the bottom-right handle still resizes with the Rectangle tool chosen, and draws nothing", (s) => s.op === "noDrag" && s.handles && s.tool === "rect" && (s.marks || []).length === 3 && s.sel && s.sel[0] === before[0] && s.sel[1] === before[1] && s.sel[2] > before[2] + 20 && s.sel[3] > before[3] + 20);
+            expect("shrinkToDrawings", "pulled far in, the edges stop at what was drawn (number circles included) and the marks stay where they are", (s) => { const d = s.drawn || [0, 0, 0, 0]; return s.sel && (s.marks || []).length === 3 && Math.abs(s.sel[0] + s.sel[2] - d[0] - d[2]) < 1 && Math.abs(s.sel[1] + s.sel[3] - d[1] - d[3]) < 1 && s.sel[0] <= d[0] && s.sel[1] <= d[1] && JSON.stringify(s.marks) === JSON.stringify((step.growAfterDrawing || {}).marks); });
             expect("finish", "Finish on the toolbar ends the capture", (s) => s.open === false);
             if (!m.closed || m.whenClosedCalls !== 1) problems.push("the end: closed " + m.closed + ", announced " + m.whenClosedCalls + " times");
             const res = m.result || {};
@@ -296,7 +298,7 @@ jobs:
             // What finishing handed over: the composited picture as wide as the selection (or the notes area), saved, on the clipboard as
             // PNG and TIFF without words (the notes are in the picture), and the copied notice
             const out = m.output || {};
-            const sel = (step.select || {}).sel || [0, 0, 0, 0];
+            const sel = (step.picture || step.select || {}).sel || [0, 0, 0, 0];
             if (!out.size || out.size[0] < Math.round(sel[2]) || out.size[1] <= Math.round(sel[3])) problems.push("composited picture " + JSON.stringify(out.size) + " for the selection " + JSON.stringify(sel));
             if (!out.fileSaved) problems.push("the picture was not saved: " + JSON.stringify(out.file));
             if (out.clipboardPuts !== 1 || !out.clipboardPngBytes || !out.clipboardHasTiff || out.clipboardText !== null) problems.push("clipboard: " + JSON.stringify(out));

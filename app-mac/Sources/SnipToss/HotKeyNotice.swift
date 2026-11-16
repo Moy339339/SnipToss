@@ -153,7 +153,7 @@ final class HotKeyNotice {
             }
             super.init(frame: .zero)
             let inner = Self.width - 32
-            let head = OverlayText(KeepWords.of(title), size: 13, color: OverlayStyle.text, weight: .semibold)
+            let head = OverlayText(KeepWords.of(title), size: 14, color: OverlayStyle.text, weight: .semibold)
             head.width = inner - 32
             head.lineHeight = 20
             head.fit(at: CGPoint(x: 16, y: 14))
