@@ -104,12 +104,12 @@ private final class Layer {
     let host: FakeHost
     let state: OverlayStateMachine
 
-    init(_ windows: [CGRect] = []) {
+    init(_ windows: [CGRect] = [], keys: CaptureKeys = .standard) {
         let view = FakeView()
         let host = FakeHost()
         let state = OverlayStateMachine(
             view: view, host: host, scale: 1, full: screen, windows: windows, defaultColor: ToolPrefs.colors[0], defaultCategory: "change",
-            prefs: ToolPrefs(), measure: FixedTextMeasure())
+            prefs: ToolPrefs(), measure: FixedTextMeasure(), keys: keys)
         view.state = state
         host.state = state
         self.view = view
@@ -149,6 +149,20 @@ private final class Layer {
     @discardableResult
     func press(_ key: OverlayKey, _ mods: OverlayModifiers = []) -> Bool {
         state.press(key, mods)
+    }
+
+    /// A key that goes by its name as the page writes it ("R", "Ctrl+Z", "Shift+R"), the modifiers taken from the name. With only Shift
+    /// held the name without it is tried too, as the view does (CaptureKeys.names)
+    @discardableResult
+    func key(_ name: String) -> Bool {
+        let parts = CaptureKeys.parts(name)
+        var mods: OverlayModifiers = []
+        if parts.contains("Ctrl") { mods.insert(.command) }
+        if parts.contains("Control") { mods.insert(.control) }
+        if parts.contains("Alt") { mods.insert(.option) }
+        if parts.contains("Shift") { mods.insert(.shift) }
+        let names = mods == [.shift] ? [name, parts.last ?? name] : [name]
+        return state.press(nil, mods, names: names)
     }
 
     /// The cursor the state machine asks the view for when the mouse is at this place
@@ -284,7 +298,7 @@ final class OverlayStateMachineTests: SnipTestCase {
         a.state.undo()
         XCTAssertTrue(a.state.marks.isEmpty)
 
-        XCTAssertTrue(a.press(.n))
+        XCTAssertTrue(a.key("N"))
         a.view.noteDraft = "整体"
         XCTAssertTrue(a.state.noteKey(.enter, []))
         XCTAssertEqual(a.state.overall, "整体")
@@ -299,7 +313,7 @@ final class OverlayStateMachineTests: SnipTestCase {
         XCTAssertEqual(a.state.op, .move)
         a.up()
 
-        a.press(.n)
+        a.key("N")
         a.view.noteDraft = "不写了"
         a.state.right()
         XCTAssertFalse(a.state.noteOpen)
@@ -329,7 +343,7 @@ final class OverlayStateMachineTests: SnipTestCase {
 
     func testUnsavedTextInAnInputBoxAlsoLocksTheSelectionButOnlySpacesDoNot() {
         let a = Layer().selected()
-        a.press(.n)
+        a.key("N")
         XCTAssertFalse(a.state.locked)
         a.view.noteDraft = "  "
         XCTAssertFalse(a.state.locked)
@@ -379,26 +393,27 @@ final class OverlayStateMachineTests: SnipTestCase {
     /// ⌘. as the exception (they cancel, as Alt+F4 does there)
     func testWhileAnInputBoxIsOpenTheOverlaysKeysGoToTheBoxWithCommandWAndCommandPeriodAsTheException() {
         let a = Layer().selected()
-        a.press(.n)
-        XCTAssertFalse(a.press(.r))
+        a.key("N")
+        XCTAssertFalse(a.key("R"))
         XCTAssertEqual(a.state.tool, .noTool)
         XCTAssertFalse(a.press(.escape))
-        XCTAssertFalse(a.press(.w))  // a plain W is not a shortcut
-        XCTAssertFalse(a.press(.period))
+        XCTAssertFalse(a.key("W"))  // a plain W is not a shortcut
+        XCTAssertFalse(a.key("."))
         XCTAssertTrue(a.host.log.isEmpty)
-        XCTAssertTrue(a.press(.w, [.command]))
+        XCTAssertTrue(a.key("Ctrl+W"))
         XCTAssertEqual(a.host.log, ["RequestCancel"])
-        XCTAssertTrue(a.press(.period, [.command]))
+        XCTAssertTrue(a.key("Ctrl+."))
         XCTAssertEqual(a.host.log, ["RequestCancel", "RequestCancel"])
     }
 
     func testCommandWAndCommandPeriodCancelWithoutAnInputBoxToo() {
         let a = Layer().selected()
-        XCTAssertTrue(a.press(.w, [.command]))
-        XCTAssertTrue(a.press(.period, [.command, .shift]))
+        XCTAssertTrue(a.key("Ctrl+W"))
+        // ⌘. by the character typed: on a layout where the period needs Shift its name is still Ctrl+. (CaptureKeysTests)
+        XCTAssertTrue(a.key("Ctrl+."))
         XCTAssertEqual(a.host.log, ["RequestCancel", "RequestCancel"])
         // Option+W is not command+W
-        XCTAssertFalse(a.press(.w, [.option]))
+        XCTAssertFalse(a.key("Alt+W"))
         XCTAssertEqual(a.host.log.count, 2)
     }
 
@@ -408,9 +423,9 @@ final class OverlayStateMachineTests: SnipTestCase {
         a.drag(from: (250, 250), to: (300, 300))
         a.view.noteDraft = "框"
         a.state.commitNote()
-        XCTAssertFalse(a.press(.z, [.command, .shift]))
+        XCTAssertFalse(a.key("Ctrl+Shift+Z"))
         XCTAssertEqual(a.state.marks.count, 1)
-        XCTAssertTrue(a.press(.z, [.command]))
+        XCTAssertTrue(a.key("Ctrl+Z"))
         XCTAssertTrue(a.state.marks.isEmpty)
     }
 
@@ -418,7 +433,7 @@ final class OverlayStateMachineTests: SnipTestCase {
         let a = Layer().selected()
         let t = Date(timeIntervalSince1970: 1_792_000_000)
         XCTAssertFalse(a.state.armCancel(now: t))  // no notes written: cancels straight away
-        a.press(.n)
+        a.key("N")
         a.view.noteDraft = "意见"
         XCTAssertTrue(a.state.armCancel(now: t))
         XCTAssertFalse(a.state.armCancel(now: t.addingTimeInterval(2.9)))
@@ -527,7 +542,7 @@ final class OverlayStateMachineTests: SnipTestCase {
 
     func testIdleClosesOpenBoxesAndDrawingsWithoutTakingFocus() {
         let a = Layer().selected()
-        a.press(.n)
+        a.key("N")
         a.view.log.removeAll()
         a.state.idle()
         XCTAssertFalse(a.state.noteOpen)
@@ -546,34 +561,85 @@ final class OverlayStateMachineTests: SnipTestCase {
         XCTAssertTrue(a.press(.up))
         XCTAssertEqual(a.state.sel, CGRect(x: 191, y: 209, width: 400, height: 300))
         // With something drawn the selection is locked: the key is still taken, nothing moves
-        a.press(.n)
+        a.key("N")
         a.view.noteDraft = "整体"
         a.state.commitNote()
         XCTAssertTrue(a.press(.right))
         XCTAssertEqual(a.state.sel, CGRect(x: 191, y: 209, width: 400, height: 300))
     }
 
-    func testLetterKeysPickToolsByTheirPlaceAndCommandCFinishes() {
+    func testToolKeysPickToolsAndCommandCFinishes() {
         let a = Layer().selected()
-        let tools: [(OverlayKey, Tool)] = [(.r, .rect), (.o, .ellipse), (.a, .arrow), (.b, .pen), (.m, .mosaic), (.t, .text), (.c, .note)]
+        let tools: [(String, Tool)] = [("R", .rect), ("O", .ellipse), ("A", .arrow), ("B", .pen), ("M", .mosaic), ("T", .text), ("C", .note)]
         for (key, tool) in tools {
-            XCTAssertTrue(a.press(key), "\(key)")
-            XCTAssertEqual(a.state.tool, tool, "\(key)")
+            XCTAssertTrue(a.key(key), key)
+            XCTAssertEqual(a.state.tool, tool, key)
         }
         // Pressing the same key again stays on the tool (a shortcut always selects)
-        a.press(.r)
-        a.press(.r)
+        a.key("R")
+        a.key("R")
         XCTAssertEqual(a.state.tool, .rect)
-        XCTAssertTrue(a.press(.c, [.command]))
+        // With ⌘ or ⌥ a tool key is another key; with Shift alone it still picks its tool (Shift is about to make a square)
+        XCTAssertFalse(a.key("Ctrl+O"))
+        XCTAssertFalse(a.key("Alt+O"))
+        XCTAssertEqual(a.state.tool, .rect)
+        XCTAssertTrue(a.key("Shift+O"))
+        XCTAssertEqual(a.state.tool, .ellipse)
+        XCTAssertTrue(a.key("Ctrl+C"))
         XCTAssertEqual(a.host.log, ["Finish"])
-        XCTAssertEqual(a.state.tool, .rect)
+        XCTAssertEqual(a.state.tool, .ellipse)
         XCTAssertTrue(a.press(.enter))
         XCTAssertEqual(a.host.log, ["Finish", "Finish"])
         // Without a selection the tool keys are not taken
         let b = Layer()
-        XCTAssertFalse(b.press(.r))
-        XCTAssertFalse(b.press(.n))
+        XCTAssertFalse(b.key("R"))
+        XCTAssertFalse(b.key("N"))
         XCTAssertFalse(b.press(.digit(2)))
+    }
+
+    /// Settings → Keyboard Shortcuts: the tools, the overall comment and undo follow the changed keys (as the Windows overlay does)
+    func testChangedKeysPickToolsOpenTheOverallCommentAndUndo() {
+        let bindings: [String: [String]] = [
+            "capture.rect": ["Q", "F5"], "capture.ellipse": ["Shift+R"], "capture.whole": ["Ctrl+Alt+N"], "capture.undo": ["Ctrl+Y"],
+            "capture.point": [],
+        ]
+        let keys = CaptureKeys.from(bindings)
+        let a = Layer(keys: keys).selected()
+        XCTAssertTrue(a.key("Q"))
+        XCTAssertEqual(a.state.tool, .rect)
+        a.state.chooseTool(.pen)
+        XCTAssertTrue(a.key("F5"))
+        XCTAssertEqual(a.state.tool, .rect)
+        // R alone has no command now; Shift+R is the ellipse's own key, so Shift does not fall back to R
+        XCTAssertFalse(a.key("R"))
+        XCTAssertTrue(a.key("Shift+R"))
+        XCTAssertEqual(a.state.tool, .ellipse)
+        // The pin has no key: C does nothing
+        XCTAssertFalse(a.key("C"))
+        XCTAssertEqual(a.state.tool, .ellipse)
+        XCTAssertFalse(a.key("N"))
+        XCTAssertTrue(a.key("Ctrl+Alt+N"))
+        XCTAssertTrue(a.state.noteOpen)
+        a.view.noteDraft = "整体"
+        a.state.commitNote()
+        XCTAssertEqual(a.state.overall, "整体")
+        XCTAssertFalse(a.key("Ctrl+Z"))
+        XCTAssertEqual(a.state.overall, "整体")
+        XCTAssertTrue(a.key("Ctrl+Y"))
+        XCTAssertEqual(a.state.overall, "")
+    }
+
+    func testUndoWorksWithoutASelectionAndTheFixedKeysCannotBeTakenByAChangedOne() {
+        // A command given Return or ⌘C (the settings file edited by hand: the page refuses them) does not take them from finishing
+        let bindings: [String: [String]] = ["capture.rect": ["Enter", "Ctrl+C"], "capture.undo": ["U"]]
+        let keys = CaptureKeys.from(bindings)
+        let a = Layer(keys: keys)
+        XCTAssertTrue(a.key("U"))  // undo with nothing to undo is still taken, with or without a selection
+        let b = Layer(keys: keys).selected()
+        XCTAssertTrue(b.press(.enter))
+        XCTAssertTrue(b.key("Ctrl+C"))
+        XCTAssertEqual(b.host.log, ["Finish", "Finish"])
+        XCTAssertEqual(b.state.tool, .noTool)
     }
 
     // MARK: One note with several places (docs/adr/0009-several-places.md)
@@ -1140,7 +1206,7 @@ final class OverlayStateMachineTests: SnipTestCase {
     func testWithTheOverallCommentOpenClickingTheCanvasStillFinishesItWithoutAddingAPlace() {
         let a = Layer().selected()
         a.state.chooseTool(.note)
-        a.press(.n)
+        a.key("N")
         XCTAssertTrue(a.state.noteOpen)
         a.view.noteDraft = "整体"
         a.click(300, 300)
@@ -1150,11 +1216,12 @@ final class OverlayStateMachineTests: SnipTestCase {
     }
 }
 
-/// The overlay's keys on the Mac: found by the key's place on the keyboard, ⌘ and ⌥ standing in for Ctrl and Alt
+/// The overlay's keys that cannot be changed, found by the key's place on the keyboard, ⌘ and ⌥ standing in for Ctrl and Alt (the
+/// changeable ones go by their names: CaptureKeysTests)
 final class OverlayKeysTests: SnipTestCase {
     func testKeysAreFoundByTheirVirtualKeyCodeNotByTheCharacterTheyType() {
         let cases: [(UInt16, OverlayKey)] = [
-            (0x00, .a), (0x0B, .b), (0x08, .c), (0x2E, .m), (0x2D, .n), (0x1F, .o), (0x0F, .r), (0x11, .t), (0x0D, .w), (0x06, .z), (0x2F, .period),
+            (0x06, .z),
             (0x12, .digit(1)), (0x13, .digit(2)), (0x14, .digit(3)), (0x15, .digit(4)), (0x17, .digit(5)), (0x16, .digit(6)),
             (0x1A, .digit(7)), (0x1C, .digit(8)),
             (0x53, .keypad(1)), (0x54, .keypad(2)), (0x55, .keypad(3)), (0x56, .keypad(4)), (0x57, .keypad(5)), (0x58, .keypad(6)),
@@ -1168,8 +1235,8 @@ final class OverlayKeysTests: SnipTestCase {
     }
 
     func testKeysTheOverlayDoesNotUseAreNotMapped() {
-        // Q (so ⌘Q stays with the system), Space, 0, 9, keypad 9, Tab, F4
-        for code: UInt16 in [0x0C, 0x31, 0x1D, 0x19, 0x5C, 0x30, 0x76] {
+        // The tool letters and W, period (they go by name now), Q, Space, 0, 9, keypad 9, Tab, F4
+        for code: UInt16 in [0x00, 0x0B, 0x08, 0x2E, 0x2D, 0x1F, 0x0F, 0x11, 0x0D, 0x2F, 0x0C, 0x31, 0x1D, 0x19, 0x5C, 0x30, 0x76] {
             XCTAssertNil(OverlayKey.from(keyCode: code), "key code \(code)")
         }
     }
@@ -1179,7 +1246,7 @@ final class OverlayKeysTests: SnipTestCase {
         XCTAssertNil(OverlayKey.digit(4).keypadDigit)
         XCTAssertEqual(OverlayKey.keypad(2).keypadDigit, 2)
         XCTAssertNil(OverlayKey.keypad(2).mainRowDigit)
-        XCTAssertNil(OverlayKey.a.mainRowDigit)
+        XCTAssertNil(OverlayKey.z.mainRowDigit)
     }
 
     func testModifiersFromAKeyEvent() {

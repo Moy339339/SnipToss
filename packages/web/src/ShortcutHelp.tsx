@@ -1,146 +1,26 @@
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { platform } from "./host";
-import { keycaps } from "./hotkey";
+import { fixedCaps } from "./commandKeys";
+import { activeKeys, COMMAND_GROUPS, commandById, commandsFor, keyCaps, keysOf, type Command } from "./commands";
+import { call, inHost } from "./host";
+import { hotkeyParts, keycaps } from "./hotkey";
 import { KeepPunctuation } from "./KeepPunctuation";
+import { usePrefs } from "./prefs";
 import { Sheet } from "./Sheet";
 
-// Lists only shortcuts that already work; the full plan (including unimplemented ones) is in docs/shortcuts.md. The Settings window's Shortcuts page uses this list too.
-// Descriptions and group names are message ids (sc.*); key names are literal keys, and those starting with key. are messages (translated ones such as "Wheel" and "Double-click")
-export type ShortcutLabel = string;
-export const shortcutKey = (label: ShortcutLabel) => label;
-export const SHORTCUT_GROUPS: { title: string; items: [string[], ShortcutLabel][] }[] = [
-  {
-    title: "sc.group.global",
-    items: [
-      [["Ctrl", "O"], "sc.addFiles"],
-      [["Ctrl", "Shift", "O"], "sc.addFolder"],
-      [["Ctrl", "V"], "sc.paste"],
-      [["Ctrl", "P"], "shortcuts.find"],
-      [["F5"], "sc.refresh"],
-      [["Ctrl", "↑ / ↓"], "sc.stepItem"],
-      [["Ctrl", "B"], "sc.toggleLeft"],
-      [["Ctrl", "Alt", "B"], "sc.toggleRight"],
-      [["Ctrl", "\\"], "sc.toggleBoth"],
-      [["Alt", "F / E / V / N / P / W / H"], "sc.menus"],
-      [["F11"], "sc.fullscreen"],
-      [["Ctrl", ","], "sc.settings"],
-      [["? / F1"], "sc.shortcuts"],
-    ],
-  },
-  {
-    title: "sc.group.capture",
-    items: [
-      [["Ctrl", "Alt", "A"], "sc.capture.start"],
-      [["key.clickDrag"], "sc.capture.select"],
-      [["R / O / A / B"], "sc.capture.draw"],
-      [["M / T"], "sc.capture.mosaicText"],
-      [["C / N"], "sc.capture.notes"],
-      [["1–8"], "sc.capture.color"],
-      [["Delete"], "sc.capture.delete"],
-      [["Enter"], "sc.capture.done"],
-      [["Esc"], "sc.capture.cancel"],
-    ],
-  },
-  {
-    title: "sc.group.list",
-    items: [
-      [["↑ / ↓"], "sc.list.step"],
-      [["Shift", "↑ / ↓"], "sc.list.range"],
-      [["Ctrl", "A"], "sc.list.all"],
-      [["key.drag"], "sc.list.marquee"],
-      [["Esc"], "sc.list.clear"],
-      [["→ / ←"], "sc.list.expand"],
-      [["key.enterSpace"], "sc.list.open"],
-      [["Ctrl", "C"], "sc.list.copy"],
-      [["Delete"], "sc.list.remove"],
-      [["Shift", "F10"], "sc.list.menu"],
-    ],
-  },
-  {
-    title: "sc.group.notes",
-    items: [
-      [["V"], "tool.select.tip"],
-      [["H"], "sc.notes.hand"],
-      [["key.holdH"], "sc.notes.holdHand"],
-      [["C"], "tool.point"],
-      [["R"], "tool.rect"],
-      [["B"], "tool.pen"],
-      [["A"], "tool.arrow"],
-      [["key.holdTools"], "sc.notes.holdTools"],
-      [["T"], "sc.notes.timed"],
-      [["N"], "sc.notes.whole"],
-      [["Shift", "N"], "sc.notes.folder"],
-      [["Enter"], "sc.notes.save"],
-      [["Alt", "1–4"], "sc.notes.category"],
-      [["Alt", "Z"], "sc.notes.undoPlace"],
-      [["[ / ]"], "sc.notes.step"],
-      [["Ctrl", "F"], "shortcuts.findNotes"],
-      [["X"], "sc.notes.check"],
-      [["D"], "shortcuts.done"],
-      [["Shift", "D"], "shortcuts.wontfix"],
-      [["1–8"], "sc.notes.color"],
-      [["Ctrl", "Shift", "A"], "sc.notes.copy"],
-      [["Ctrl", "Shift", "I"], "sc.notes.copyImages"],
-      [["↑ ↓ ← →"], "sc.notes.nudge"],
-      [["Enter / Delete"], "sc.notes.editDelete"],
-      [["Ctrl", "Z"], "sc.notes.undo"],
-      [["Ctrl", "Shift", "Z"], "cmd.redo"],
-      [["Esc"], "sc.notes.cancel"],
-    ],
-  },
-  {
-    title: "sc.group.canvas",
-    items: [
-      [["Ctrl", "key.wheel"], "sc.canvas.wheel"],
-      [["Ctrl", "+ / -"], "sc.canvas.zoom"],
-      [["Shift", "1"], "sc.canvas.fit"],
-      [["Shift", "2"], "sc.canvas.fill"],
-      [["Shift", "0"], "sc.canvas.actual"],
-      [["key.dblclick"], "sc.canvas.dblclick"],
-      [["Shift", "H"], "sc.canvas.marks"],
-      [["key.middleDrag"], "sc.canvas.pan"],
-      [["← / →"], "sc.canvas.stepItem"],
-    ],
-  },
-  {
-    title: "sc.group.video",
-    items: [
-      [["key.space"], "sc.video.play"],
-      [["J / L"], "sc.video.seek5"],
-      [["← / →"], "sc.video.frame"],
-      [["Shift", "← / →"], "sc.video.seek1"],
-      [["Home / End"], "sc.video.ends"],
-      [[", / ."], "sc.video.speed"],
-      [["M"], "menu.play.mute"],
-      [["↑ / ↓"], "sc.video.volume"],
-      [["Ctrl", "L"], "sc.video.loop"],
-      [["Alt", "I / O"], "sc.video.range"],
-    ],
-  },
-];
+// The Keyboard Shortcuts sheet (? / F1): the command table (commands.ts) with the keys each command has now, grouped as in Settings →
+// Keyboard Shortcuts, where they are changed. Commands left without a key are not listed here.
 
-/** Rows only Windows has: the keys of the menu bar the UI draws itself (the Mac uses the system menu bar), and Shift+F10 / the Menu key, which only Windows turns into a context menu */
-const WINDOWS_ONLY = new Set<ShortcutLabel>(["sc.menus", "sc.list.menu"]);
-/** The Mac's default Screen Capture shortcut, ⌃⌥⌘A ("Control" is the Control key, "Ctrl" the Command key; the shell's Settings.swift) */
-const MAC_CAPTURE = ["Control", "Alt", "Ctrl", "A"];
-
-/** The shortcut list as this platform has it (the Shortcuts sheet and Settings → Keyboard Shortcuts) */
-export function shortcutGroups(mac = platform === "mac"): typeof SHORTCUT_GROUPS {
-  if (!mac) return SHORTCUT_GROUPS;
-  return SHORTCUT_GROUPS.map((g) => ({
-    ...g,
-    items: g.items
-      .filter(([, label]) => !WINDOWS_ONLY.has(label))
-      .map(([keys, label]): [string[], ShortcutLabel] => [label === "sc.capture.start" ? MAC_CAPTURE : keys, label]),
-  }));
-}
+/** A description ending in a parenthesized addition, fullwidth (U+FF08 U+FF09) or halfwidth */
+const ADDITION = new RegExp(`^(.+?)[${String.fromCharCode(0xff08)}(](.+)[${String.fromCharCode(0xff09)})]$`);
 
 /** One shortcut row. A parenthesized addition at the end of the description ("Open menu (or press Alt first, then the letter)") goes on its own line one size smaller, so long descriptions do not leave orphan words */
-export function ShortcutRow({ keys, label }: { keys: string[]; label: ShortcutLabel }) {
+export function ShortcutRow({ label, keys }: { label: string; keys: ReactNode }) {
   const intl = useIntl();
-  const text = intl.formatMessage({ id: label });
+  // The rows of the Mac's app menu keys name the app ("Quit {app}"), as the app menu does
+  const text = intl.formatMessage({ id: label }, { app: intl.formatMessage({ id: "brand.name" }) });
   // The parenthesized addition is shown in gray (both fullwidth CJK and halfwidth parentheses are recognized)
-  const m = /^(.+?)[\uFF08(](.+)[\uFF09)]$/.exec(text);
+  const m = ADDITION.exec(text);
   return (
     <div className="shortcut-row">
       {/* A column: the description, then the addition. Each is one element, so the pieces KeepPunctuation cuts the text into stay in the
@@ -155,25 +35,65 @@ export function ShortcutRow({ keys, label }: { keys: string[]; label: ShortcutLa
           </span>
         )}
       </span>
-      <span className="shortcut-keys">
-        {keys.map((k) => (
-          <kbd key={k}>{k.startsWith("key.") ? intl.formatMessage({ id: k }) : keycaps(k, (id) => intl.formatMessage({ id }))}</kbd>
-        ))}
-      </span>
+      <span className="shortcut-keys">{keys}</span>
     </div>
   );
 }
 
+/** Several keys of one command: each drawn as its keycaps, a slash between them */
+function KeyList({ keys }: { keys: string[][] }) {
+  return keys.map((caps, i) => (
+    <Fragment key={i}>
+      {i > 0 && <span className="shortcut-or">/</span>}
+      {caps.map((c, j) => (
+        <kbd key={j}>{c}</kbd>
+      ))}
+    </Fragment>
+  ));
+}
+
 export function ShortcutHelp({ onClose }: { onClose: () => void }) {
   const intl = useIntl();
+  const t = (id: string) => intl.formatMessage({ id });
+  const { prefs } = usePrefs();
+  const bindings = prefs.keybindings;
+  /** The Screen Capture shortcut, a global one the shell keeps with the capture settings ("" = none) */
+  const [capture, setCapture] = useState("");
+  useEffect(() => {
+    if (!inHost) return;
+    call("captureSettings")
+      .then((s) => setCapture(s.hotkey))
+      .catch(() => {});
+  }, []);
+
+  /** The keycaps of a command as it is now; undefined = no key, not listed */
+  const capsOf = (cmd: Command): string[][] | undefined => {
+    if (cmd.global) return capture ? [hotkeyParts(capture).map((k) => keycaps(k, t))] : undefined;
+    if (cmd.fixed) {
+      const caps = fixedCaps(cmd, bindings, intl);
+      return caps && [caps];
+    }
+    const keys = keysOf(cmd, bindings);
+    return keys.length ? keys.map((k) => keyCaps(k, t)) : undefined;
+  };
+  const groups = COMMAND_GROUPS.map((g) => ({
+    g,
+    rows: commandsFor()
+      .filter((x) => x.group === g)
+      .flatMap((cmd) => {
+        const caps = capsOf(cmd);
+        return caps ? [{ cmd, caps }] : [];
+      }),
+  })).filter((x) => x.rows.length > 0);
+
   return (
-    <Sheet title={intl.formatMessage({ id: "sc.title" })} closeKeys={["?", "F1"]} onClose={onClose}>
+    <Sheet title={t("sc.title")} closeKeys={activeKeys(commandById("app.shortcuts"), bindings)} onClose={onClose}>
       <div className="sheet-grid">
-        {shortcutGroups().map((g) => (
-          <section key={g.title}>
-            <div className="section-label">{intl.formatMessage({ id: g.title })}</div>
-            {g.items.map(([keys, label]) => (
-              <ShortcutRow key={shortcutKey(label)} keys={keys} label={label} />
+        {groups.map(({ g, rows }) => (
+          <section key={g}>
+            <div className="section-label">{t(`sc.group.${g}`)}</div>
+            {rows.map(({ cmd, caps }) => (
+              <ShortcutRow key={cmd.id} label={cmd.label} keys={<KeyList keys={caps} />} />
             ))}
           </section>
         ))}

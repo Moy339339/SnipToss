@@ -122,8 +122,10 @@ sealed class GlobalHotKey : IDisposable
     }
 
     /// <summary>The human-readable form, same as shortcuts elsewhere in the UI: "Ctrl Alt A" (space-separated, no plus signs)</summary>
-    public static string Pretty(string text) =>
-        string.Join(" ", text.Split('+', StringSplitOptions.TrimEntries).Select(k => KeycapNames.Contains(k) ? Locale.T($"keycap.{k}") : k));
+    public static string Pretty(string text) => string.Join(" ", text.Split('+', StringSplitOptions.TrimEntries).Select(Keycap));
+
+    /// <summary>One key's name as drawn on its keycap, in the UI language</summary>
+    internal static string Keycap(string key) => KeycapNames.Contains(key) ? Locale.T($"keycap.{key}") : key;
 
     /// <summary>Key names follow the UI language (messages keycap.*, same as keycaps in the UI's hotkey.ts: German Strg, Umschalt, French Maj, ...); letters and F keys are left as they are</summary>
     static readonly HashSet<string> KeycapNames = ["Ctrl", "Shift", "Enter", "Esc", "Delete", "Backspace", "Space", "Home", "End"];

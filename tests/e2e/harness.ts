@@ -17,6 +17,9 @@ export const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 /** Text → a regex source that matches it literally (file names and version numbers put into new RegExp) */
 export const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+/** A tooltip with a shortcut as the app writes it: the name, a fullwidth space, the keys it has now (Tooltip.tsx draws them as a keycap) */
+export const withKey = (label: string, keys: string) => `${label}${String.fromCharCode(0x3000)}${keys}`;
+
 const DIST = join(ROOT, "packages", "web", "dist");
 const FIXTURE = join(ROOT, "tests", "e2e", "fixtures", "project");
 

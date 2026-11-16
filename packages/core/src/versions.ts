@@ -20,17 +20,32 @@ export function writtenOn(a: { material_sha256?: string; created_at: string }, f
 }
 
 /**
- * The item's current fingerprint as known without reading the file: the one recorded by the latest note that has a fingerprint and was
- * written after the item's last modification. size = the item file's size now: a note that recorded a different size (material_size) is
- * not taken, since a file replaced by an older copy (extracted from an archive, copied with its timestamps kept) can have a modification
- * time from before the notes; the fingerprint then has to be computed
+ * What a new note records as material_mtime for an item file modified at mtimeMs: ISO 8601 UTC, truncated to whole milliseconds (the
+ * shells give whole milliseconds, Node's stat a fraction)
+ */
+export function mtimeStamp(mtimeMs: number): string {
+  return new Date(Math.floor(mtimeMs)).toISOString();
+}
+
+/**
+ * The item's current fingerprint as known without reading the file. mtimeMs, size = the item file's modification time and size now.
+ * A note that recorded material_mtime (from 1.6.0) counts only while its material_mtime and material_size both equal the file's now:
+ * a file replaced by an older copy (extracted from an archive, copied with its timestamps kept) can have a modification time from before
+ * the notes, and in formats whose size follows from the dimensions (BMP, uncompressed TIFF) the same size as well.
+ * Notes without material_mtime count only while no note of the file has one (a mismatch there may mean a replacement they can't see):
+ * the latest one with a fingerprint written after the item's last modification, unless it recorded a different material_size.
+ * Nothing matching → undefined, and the fingerprint has to be computed
  */
 export function knownSha(file: MaterialFile, mtimeMs: number, size?: number): string | undefined {
+  const now = Math.floor(mtimeMs);
+  const stamped = file.annotations.some((a) => a.material_sha256 && a.material_mtime !== undefined);
   let best: { at: number; sha: string } | undefined;
   for (const a of file.annotations) {
+    if (!a.material_sha256) continue;
     const at = Date.parse(a.created_at);
-    if (!a.material_sha256 || !(at >= mtimeMs)) continue;
-    if (size !== undefined && a.material_size !== undefined && a.material_size !== size) continue;
+    const sizeDiffers = size !== undefined && a.material_size !== undefined && a.material_size !== size;
+    if (sizeDiffers) continue;
+    if (a.material_mtime !== undefined ? Date.parse(a.material_mtime) !== now : stamped || !(at >= mtimeMs)) continue;
     if (!best || at > best.at) best = { at, sha: a.material_sha256.toLowerCase() };
   }
   return best?.sha;

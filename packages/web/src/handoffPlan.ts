@@ -40,7 +40,16 @@ function unitsOf(g: HandoffMaterial, group: number, each: boolean): PlanUnit[] {
   if (g.material.kind === "folder")
     return each ? g.items.map((n) => ({ group, kind: "text", notes: [n] })) : [{ group, kind: "text", notes: g.items }];
   const alone = (n: PlanNote): PlanUnit => ({ group, kind: "snapshot", notes: [n] });
-  if (each || g.missing) return g.items.map(alone);
+  if (g.missing) return g.items.map(alone);
+  if (each)
+    // One image per note, from its stored snapshot as before 1.4. A note without one (written by another program, or its snapshot could
+    // not be taken) used to come out as text only: on this version of the item it is drawn from the item as a frame of its own (a video
+    // needs its moment; an overall comment on a video has none)
+    return g.items.map((n) =>
+      !n.annotation.snapshot && sectionOfNote(n) !== "earlier" && (g.material.kind !== "video" || n.annotation.anchor.time)
+        ? { group, kind: "frame", time: n.annotation.anchor.time?.start, notes: [n] }
+        : alone(n),
+    );
 
   const now = g.items.filter((n) => sectionOfNote(n) !== "earlier");
   const earlier = g.items.filter((n) => sectionOfNote(n) === "earlier");

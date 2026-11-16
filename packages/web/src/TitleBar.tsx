@@ -1,7 +1,9 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { IntlContext, useIntl } from "react-intl";
 import { call, nativeMenus, platform, type WindowAction, type WindowState } from "./host";
 import { keycaps, prettyKeys } from "./hotkey";
+import { shortcutText, withShortcut } from "./commandKeys";
+import { usePrefs } from "./prefs";
 import { versionLabel } from "./brand";
 import { CaptureIcon, ChevronIcon, UpdateIcon } from "./icons";
 import { Menu } from "./Menu";
@@ -33,6 +35,38 @@ function stripPress(e: React.MouseEvent<HTMLElement>) {
 }
 
 /**
+ * Whether "Update available" shows only its icon: when the menu names would not fit beside it with its text (a narrow window, a long
+ * language, a large interface text size), the text goes and the tooltip still says it; the menus come first. The hidden text keeps its
+ * layout (styles.css .is-tight), so its width is known for when the room comes back. All in layout pixels (offset / client sizes, before
+ * the interface zoom)
+ */
+function useTightUpdate(bar: React.RefObject<HTMLDivElement | null>, on: boolean): boolean {
+  const [tight, setTight] = useState(false);
+  // Watches the strip and every menu name: a narrower window, another language or text size all change one of them
+  useEffect(() => {
+    const root = bar.current;
+    const menubar = root?.querySelector<HTMLElement>(".menubar");
+    if (!on || !root || !menubar) return; // the Mac's menus are the system's: nothing to make room for
+    const items = [...menubar.querySelectorAll<HTMLElement>(".menubar-item")];
+    const check = () => {
+      const button = root.querySelector<HTMLElement>(".titlebar-update");
+      const label = root.querySelector<HTMLElement>(".titlebar-update-label");
+      const last = items.at(-1);
+      if (!last || !button || !label) return;
+      const needed = last.offsetLeft + last.offsetWidth - menubar.offsetLeft + parseFloat(getComputedStyle(menubar).paddingRight);
+      // The room the menus would have with the text shown: now, less the text and its gap while it is hidden
+      const hidden = button.classList.contains("is-tight");
+      const room = menubar.clientWidth - (hidden ? label.offsetWidth + parseFloat(getComputedStyle(button).columnGap) : 0);
+      setTight(needed > room + 0.5);
+    };
+    const watch = new ResizeObserver(check);
+    for (const el of [root, menubar, ...items]) watch.observe(el);
+    return () => watch.disconnect();
+  }, [bar, on]);
+  return on && tight;
+}
+
+/**
  * The strip at the very top of the window: menu bar + drag area on the blank part + minimize / maximize / close (the menu bar sits in the title bar).
  * The system title bar has been removed (MainWindow.DropSystemTitleBar): the blank part acts as the title bar through app-region: drag,
  * and double-click to maximize, the right-click system menu, and snapping when dragged to a screen edge are all the system's own; pulling the top edge up to change the height is handed to the system by StartResize
@@ -54,8 +88,11 @@ export function TitleBar(props: {
   const resize = (edge: "top" | "topleft" | "topright") => (e: React.PointerEvent) => {
     if (e.button === 0) void call("windowResize", { edge }).catch(() => {});
   };
+  const bar = useRef<HTMLDivElement>(null);
+  const tight = useTightUpdate(bar, !!props.update);
   return (
     <div
+      ref={bar}
       className={`titlebar${win.fullscreen ? " is-fullscreen" : ""}${mac ? " is-mac" : ""}`}
       role="presentation"
       onMouseDown={mac ? stripPress : undefined}
@@ -67,12 +104,13 @@ export function TitleBar(props: {
           (the arrow menu holds only that one hide / don't-hide check; "don't hide this time" and a duplicate "Screen Capture" entry are dropped) */}
       {props.update && (
         <button
-          className="titlebar-action titlebar-update"
+          className={`titlebar-action titlebar-update${tight ? " is-tight" : ""}`}
           onClick={props.update.open}
           title={intl.formatMessage({ id: "titlebar.updateTitle" }, { version: versionLabel(props.update.version) })}
+          aria-label={intl.formatMessage({ id: "titlebar.update" })}
         >
           <UpdateIcon />
-          {intl.formatMessage({ id: "titlebar.update" })}
+          <span className="titlebar-update-label">{intl.formatMessage({ id: "titlebar.update" })}</span>
         </button>
       )}
       <div className="titlebar-split">
@@ -122,6 +160,9 @@ export function TitleBar(props: {
 function WindowButtons({ win, onWindow }: { win: WindowState; onWindow: (action: WindowAction) => void }) {
   const intl = useContext(IntlContext);
   const t = (id: string, fallback: string) => intl?.formatMessage({ id, defaultMessage: fallback }) ?? fallback;
+  // The full screen key as it is now (the error page may have no messages: then no key)
+  const { prefs } = usePrefs();
+  const fullscreenKey = intl ? shortcutText("window.fullscreen", prefs.keybindings, (id) => intl.formatMessage({ id })) : "";
   const max = win.fullscreen
     ? t("titlebar.exitFullscreen", "Exit full screen")
     : win.maximized
@@ -142,7 +183,7 @@ function WindowButtons({ win, onWindow }: { win: WindowState; onWindow: (action:
       <button
         className="win-btn"
         onClick={() => onWindow(win.fullscreen ? "fullscreen" : "maximize")}
-        title={win.fullscreen ? t("titlebar.exitFullscreenTitle", "Exit full screen (F11)") : max}
+        title={win.fullscreen ? withShortcut(t("titlebar.exitFullscreenTitle", "Exit full screen"), [fullscreenKey]) : max}
         aria-label={max}
       >
         {win.maximized || win.fullscreen ? (

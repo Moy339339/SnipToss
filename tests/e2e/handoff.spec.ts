@@ -154,7 +154,7 @@ test("Copy as Images from a project's context menu in the library copies all ope
     .toEqual(["project / assets/hero.png", "project / video/clip.mp4"]);
 });
 
-test("Copy as Images set to one image per note hands over each note with its own stored snapshot", async ({ app }) => {
+test("Copy as Images set to one image per note hands over each note with its own stored snapshot, and draws one from the item for a note that has none", async ({ app }) => {
   app.host.prefs = { copyImages: "each" };
   await app.open();
   await drawRect(app, "标题换粗体");
@@ -165,7 +165,12 @@ test("Copy as Images set to one image per note hands over each note with its own
   const pages = app.host.copiedImages.at(-1)!;
   expect(pages.map((p) => p.notes.map((n) => n.body))).toEqual([["标题字太细了，换成粗一点的黑体"], ["标题换粗体"], ["这段水印去掉"]]);
   expect(pages[1]).toMatchObject({ image: null, snapshot: `.sniptoss/${mine.snapshot}`, name: "hero.png 第 2 条" });
-  expect(app.host.stashed.size).toBe(0);
+  // The fixture's notes have no stored snapshot: each is drawn from the item (the video's at its moment) instead of coming out as text only
+  for (const p of [pages[0], pages[2]]) {
+    expect(p.snapshot).toBeNull();
+    expect(picture(app, p).width).toBeGreaterThanOrEqual(320);
+  }
+  expect(app.host.stashed.size).toBe(2);
 });
 
 test("Copy as Images with more frames than the limit puts several frames on one image", async ({ app }) => {
@@ -207,9 +212,9 @@ test("Copy as Images says when there are more images than most AI accepts, and t
   await app.page.keyboard.press("Control+,");
   await app.page.locator(".settings-tab", { hasText: "复制批注" }).click();
   const limit = app.page.locator(".set-row", { hasText: "图片数量上限" });
-  await app.page.locator(".set-row", { hasText: "复制成图片" }).first().getByRole("button", { name: "每条一张" }).click();
+  await app.page.locator(".set-row", { hasText: "同一画面的批注" }).getByRole("button", { name: "每条一张" }).click();
   await expect(limit).toHaveCount(0);
-  await app.page.locator(".set-row", { hasText: "复制成图片" }).first().getByRole("button", { name: "合成一张" }).click();
+  await app.page.locator(".set-row", { hasText: "同一画面的批注" }).getByRole("button", { name: "合成一张" }).click();
   await limit.getByRole("button", { name: "不限" }).click();
   await expect.poll(() => app.host.prefs).toMatchObject({ copyImagesMax: 0 });
   await app.page.keyboard.press("Escape");

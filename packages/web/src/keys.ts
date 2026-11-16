@@ -2,7 +2,8 @@ import { useEffect, useEffectEvent } from "react";
 import { platform } from "./host";
 
 // The single entry point for keyboard shortcuts. Key name format: modifiers + main key, e.g. "Ctrl+O", "Shift+ArrowLeft", "Space", "?", ",".
-// The full shortcut table is in docs/shortcuts.md; when changing anything here, update that document and the list in ShortcutHelp too.
+// Shortcuts that are commands (commands.ts, changeable in Settings) are registered by command through useCommands (commandKeys.ts), which
+// builds on this; useKeys directly is for keys that are not commands (a dialog's Esc and Tab, the digits, the arrow keys that move a mark).
 
 /**
  * A handler returning false = not handled this time, leave it to others (e.g. the selected mark was not "hit on the canvas", so the arrow
@@ -187,40 +188,6 @@ export function keyNames(e: KeyboardEvent): string[] {
   const name = keyName(e);
   const typed = keyName(e, false);
   return typed !== name && typed.length === 1 && !/[\p{L}\p{N}]/u.test(typed) ? [name, typed] : [name];
-}
-
-/**
- * Simulates pressing a shortcut once (used by the menu bar: clicking a menu item = pressing its shortcut, so both always do the same thing).
- * Dispatched on body rather than window, so the event goes through capture → bubble as usual and "handle first and stop" shortcuts work too.
- * Key name format is the same as useKeys, e.g. "Shift+1", "Ctrl+=", "Space", "ArrowLeft"
- */
-export function pressKey(name: string, mac = platform === "mac") {
-  const parts = name.split("+");
-  let key = parts.pop() || "+"; // "Ctrl++" ends up with an empty string after splitting
-  if (name.endsWith("++")) parts.pop();
-  const mods = new Set(parts);
-  let code = "";
-  if (/^\d$/.test(key)) code = `Digit${key}`;
-  else if (/^[A-Z]$/.test(key)) {
-    code = `Key${key}`;
-    key = mods.has("Shift") ? key : key.toLowerCase();
-  } else if (key === "Space") {
-    code = "Space";
-    key = " ";
-  } else code = key;
-  const init = {
-    key,
-    code,
-    // On the Mac the "Ctrl" of a key name is the Command key
-    ctrlKey: !mac && mods.has("Ctrl"),
-    metaKey: mac && mods.has("Ctrl"),
-    shiftKey: mods.has("Shift"),
-    altKey: mods.has("Alt"),
-    bubbles: true,
-    cancelable: true,
-  };
-  document.body.dispatchEvent(new KeyboardEvent("keydown", init));
-  document.body.dispatchEvent(new KeyboardEvent("keyup", init));
 }
 
 /**

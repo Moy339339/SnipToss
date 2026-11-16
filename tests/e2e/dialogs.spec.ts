@@ -3,7 +3,7 @@
 // the startup notices are in settings.spec.ts and rename.spec.ts
 
 import { join } from "node:path";
-import { expect, test, type App } from "./harness";
+import { expect, test, withKey, type App } from "./harness";
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const row = (app: App, name: string) => app.page.locator(".lib-row", { has: app.page.locator(".lib-name", { hasText: new RegExp(`^${escape(name)}$`) }) });
@@ -149,12 +149,12 @@ test("Keyboard shortcuts and intro: pressing inside the dialog and releasing ove
   }
 });
 
-test("Keyboard shortcuts: six groups with these names in this order; parenthetical remarks go on their own line in small text; there is no search box", async ({ app }) => {
+test("Keyboard shortcuts: six groups with these names, in the order of Settings → Keyboard Shortcuts; parenthetical remarks go on their own line in small text; there is no search box", async ({ app }) => {
   await app.open();
   await focusStage(app);
   await app.page.keyboard.press("F1");
   // Group names carry no bracketed extras ("(works everywhere)", "(when the list has focus)" were removed)
-  await expect(sheet(app).locator(".section-label")).toHaveText(["全局", "截图批注", "素材列表", "批注", "画面", "视频"]);
+  await expect(sheet(app).locator(".section-label")).toHaveText(["全局", "截图批注", "批注", "画面", "视频", "素材列表"]);
   // A row is just its name: the only bracketed remark left is the one a setting must be on for, on its own line in small text
   await expect(sheet(app).locator(".shortcut-note")).toHaveText(["需在设置中开启"]);
   await expect(sheet(app).locator(".shortcut-row", { has: app.page.locator(".shortcut-note") })).toContainText("按住临时使用对应工具");
@@ -264,8 +264,8 @@ test("Intro: the drop prompt, the formats line, the animation and the buttons (n
   await expect(intro(app)).not.toContainText("Ctrl Alt A");
   await expect(intro(app).locator(".welcome-actions button")).toHaveText(["添加文件", "添加文件夹", "新手教程"]);
   // The tooltips of the two buttons match the library's (the name includes the shortcut)
-  await expect(intro(app).getByRole("button", { name: "添加文件夹" })).toHaveAttribute("title", "添加文件夹（Ctrl Shift O）");
-  await expect(intro(app).getByRole("button", { name: "添加文件", exact: true })).toHaveAttribute("title", "添加文件（Ctrl O）");
+  await expect(intro(app).getByRole("button", { name: "添加文件夹" })).toHaveAttribute("title", withKey("添加文件夹", "Ctrl Shift O"));
+  await expect(intro(app).getByRole("button", { name: "添加文件", exact: true })).toHaveAttribute("title", withKey("添加文件", "Ctrl O"));
   app.host.nextPickFolder = join(app.project, "video");
   await intro(app).getByRole("button", { name: "添加文件夹" }).click();
   await expect(intro(app)).toHaveCount(0);

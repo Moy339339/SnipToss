@@ -3,6 +3,7 @@ import { useIntl } from "react-intl";
 import {
   emptyMaterialFile,
   isWritable,
+  mtimeStamp,
   newAnnotationId,
   removeDrawing,
   takenIds,
@@ -414,8 +415,9 @@ export function useComposer(opts: {
           author: author(),
           created_at: now,
           updated_at: now,
-          // With the size: a later file with an older modification time is told apart by it (knownSha in core's versions.ts)
-          ...(sha ? { material_sha256: sha, material_size: current.size } : {}),
+          // With the size and modification time: a later file with an older modification time is told apart by them, even at the same
+          // size (knownSha in core's versions.ts)
+          ...(sha ? { material_sha256: sha, material_size: current.size, material_mtime: mtimeStamp(current.mtime) } : {}),
           ...(colors.color ? { color: colors.color } : {}),
           replies: [],
         };

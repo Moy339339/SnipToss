@@ -8,7 +8,7 @@ import { call, homeJoin, platform, type AppInfo, type CaptureSettings, type Host
 import { ConfirmDialog } from "./Confirm";
 import { copyDiagnostics, reportIssue, runtimeParts } from "./diagnostics";
 import { AVAILABLE_LOCALES, LOCALE_NAMES, NEEDS_REVIEW, resolveLocale } from "./i18n";
-import { ChevronIcon, CloseIcon } from "./icons";
+import { ChevronIcon, CloseIcon, MinusIcon, PlusIcon } from "./icons";
 import { useKeys } from "./keys";
 import { Menu, trapTab, useRestoreFocus } from "./Menu";
 import { hotkeyFrom, hotkeyParts, keycaps, prettyKeys } from "./hotkey";
@@ -18,15 +18,18 @@ import { useRecentColors } from "./recentColors";
 import { noticesFor, parseNotices, type Notice } from "./notices";
 import { DEFAULT_PREFS, MARK_COLORS, NOT_SETTINGS, usePrefs, type Prefs } from "./prefs";
 import { Sheet } from "./Sheet";
-import { ShortcutRow, shortcutGroups, shortcutKey } from "./ShortcutHelp";
+import { ShortcutSettings, type HeadSlots } from "./ShortcutSettings";
+import { keyHint } from "./commands";
+import { HOLD_TOOL_COMMANDS, holdableKeys } from "./holdKeys";
+import { TEXT_SIZES, typeVars, type TextSize } from "./typeScale";
 import { Wordmark } from "./Wordmark";
 
 // The Settings window: what ordinary users need goes on the first pages, and anything that can be decided automatically is not listed (a snapshot is generated for every note),
 // while expert options are tucked into "Advanced"; tray and launch at startup live under "General". Copy follows docs/design-rules.md, section 6 (copy), and always goes through messages
 
-export type Section = "general" | "annotate" | "capture" | "ai" | "system" | "keys" | "advanced" | "about";
+export type Section = "general" | "appearance" | "annotate" | "capture" | "ai" | "system" | "keys" | "advanced" | "about";
 
-export const SECTIONS: readonly Section[] = ["general", "annotate", "capture", "ai", "system", "keys", "advanced", "about"];
+export const SECTIONS: readonly Section[] = ["general", "appearance", "annotate", "capture", "ai", "system", "keys", "advanced", "about"];
 
 /** The messages of this page: settings.<page>.<item> */
 function useT() {
@@ -75,11 +78,21 @@ export function SettingsDialog(props: {
   }, [props.row, props.request]);
   // While recording a shortcut, Esc means "cancel recording", not close Settings
   const [recording, setRecording] = useState(false);
+  /** Places in the fixed title area a page can render into (portals): beside the title, and below it */
+  const [headActions, setHeadActions] = useState<HTMLDivElement | null>(null);
+  const [headBelow, setHeadBelow] = useState<HTMLDivElement | null>(null);
+  /** The content has scrolled under the title: the line under the title shows (a new page starts at its top) */
+  const [scrolled, setScrolled] = useState(false);
+  const [seenSection, setSeenSection] = useState(section);
+  if (section !== seenSection) {
+    setSeenSection(section);
+    setScrolled(false);
+  }
   /** The "Restore Defaults" confirm dialog is open: Esc and Enter belong to it */
   const [confirmReset, setConfirmReset] = useState(false);
   /** About → Third-party notices is open: Esc closes only that */
   const [notices, setNotices] = useState(false);
-  const { setPrefs } = usePrefs();
+  const { prefs, setPrefs } = usePrefs();
   const t = useT();
   // Keyboard focus: on open it goes into the dialog (the current tab), Tab cycles only inside, and closing returns to where it was (same as the confirm dialog and context menu)
   const overlay = useRef<HTMLDivElement>(null);
@@ -99,6 +112,8 @@ export function SettingsDialog(props: {
       <div
         className="settings"
         ref={dialog}
+        // Its own text size (Settings → Appearance → Settings text size), set in full so the interface's does not reach in (typeScale.ts)
+        style={typeVars("settingsFontSize", prefs.settingsFontSize, true)}
         onPointerDown={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -119,18 +134,32 @@ export function SettingsDialog(props: {
         {/* The page title stays put above the scrolling content (the content used to scroll right up to the dialog's top edge, cut off with nothing above it).
             Each page starts at its top: the content area is rebuilt per page */}
         <div className="settings-main">
-          <div className="settings-head">
-            <h2>{t(`settings.${section}.title`)}</h2>
+          {/* The title and the content share one centered column; the line under the title shows only once the content has scrolled under it */}
+          <div className={`settings-head${scrolled ? " is-scrolled" : ""}`}>
+            <div className="settings-column">
+              <div className="settings-title-row">
+                <h2>{t(`settings.${section}.title`)}</h2>
+                {/* A page can put its own actions here (Keyboard Shortcuts: "Reset All") */}
+                <div className="settings-head-actions" ref={setHeadActions} />
+              </div>
+              {/* …and what should stay in view while its content scrolls (Keyboard Shortcuts: the search box) */}
+              <div ref={setHeadBelow} />
+            </div>
           </div>
-          <div className="settings-body" key={section} ref={body}>
-            {section === "general" && <General home={props.home} onNotify={props.onNotify} />}
-            {section === "annotate" && <Annotate />}
-            {section === "capture" && <Capture onNotify={props.onNotify} onRecording={setRecording} />}
-            {section === "ai" && <Ai />}
-            {section === "system" && <System onNotify={props.onNotify} />}
-            {section === "keys" && <Keys />}
-            {section === "advanced" && <Advanced onNotify={props.onNotify} onReset={() => setConfirmReset(true)} />}
-            {section === "about" && <About onNotify={props.onNotify} onNotices={() => setNotices(true)} />}
+          <div className="settings-body" key={section} ref={body} onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 0)}>
+            <div className="settings-column">
+              {section === "general" && <General home={props.home} onNotify={props.onNotify} />}
+              {section === "appearance" && <Appearance />}
+              {section === "annotate" && <Annotate />}
+              {section === "capture" && <Capture onNotify={props.onNotify} onRecording={setRecording} />}
+              {section === "ai" && <Ai />}
+              {section === "system" && <System onNotify={props.onNotify} />}
+              {section === "keys" && (
+                <Keys onNotify={props.onNotify} onRecording={setRecording} head={{ actions: headActions, below: headBelow }} />
+              )}
+              {section === "advanced" && <Advanced onNotify={props.onNotify} onReset={() => setConfirmReset(true)} />}
+              {section === "about" && <About onNotify={props.onNotify} onNotices={() => setNotices(true)} />}
+            </div>
           </div>
         </div>
         {/* Rendered into body (the settings box has an animated transform, and a fixed overlay inside it would move with it); React events still pass through the settings box, so clicking outside it does not close Settings */}
@@ -203,17 +232,93 @@ function Choice<T extends string | number>(props: { value: T; options: { value: 
   );
 }
 
-/** A group within a page (Advanced): the group name is a subheading, and desc is the explanation shared by the group */
-function Group(props: { title: string; desc?: string }) {
+/**
+ * A size in pixels: − and + step by one and grey out at the ends of the range (so the range shows itself), and the number can be typed:
+ * a number within the range takes effect as it is typed; Enter, leaving the box or closing Settings (Esc, ×: the box goes away) takes
+ * any other, pulled back into the range; ↑ ↓ step too
+ */
+function SizeField(props: { name: string; value: number; min: number; max: number; label: string; onChange: (v: number) => void }) {
+  const t = useT();
+  const [text, setText] = useState(String(props.value));
+  const [seen, setSeen] = useState(props.value);
+  if (props.value !== seen) {
+    setSeen(props.value);
+    setText(String(props.value));
+  }
+  const clamp = (v: number) => Math.min(props.max, Math.max(props.min, Math.round(v)));
+  const set = (v: number) => {
+    const next = clamp(v);
+    setText(String(next));
+    if (next !== props.value) props.onChange(next);
+  };
+  const take = () => {
+    const typed = Number.parseInt(text, 10);
+    if (Number.isFinite(typed)) set(typed);
+    else setText(String(props.value));
+  };
+  // Settings closing takes the box away without a blur, and its Esc never reaches the box (useKeys handles it first)
+  const takeOnClose = useEffectEvent(() => {
+    const typed = Number.parseInt(text, 10);
+    if (Number.isFinite(typed) && clamp(typed) !== props.value) props.onChange(clamp(typed));
+  });
+  useEffect(() => () => takeOnClose(), []);
   return (
-    <div className="set-group">
-      <div className="set-group-title">{props.title}</div>
-      {props.desc && (
-        <div className="set-desc">
-          <KeepPunctuation>{props.desc}</KeepPunctuation>
-        </div>
-      )}
+    <div className="size-field">
+      <button
+        className="size-step"
+        onClick={() => set(props.value - 1)}
+        disabled={props.value <= props.min}
+        aria-label={t("settings.appearance.smaller")}
+        title={t("settings.appearance.smaller")}
+      >
+        <MinusIcon />
+      </button>
+      <label className="size-value">
+        <input
+          name={props.name}
+          value={text}
+          inputMode="numeric"
+          maxLength={2}
+          aria-label={props.label}
+          spellCheck={false}
+          onChange={(e) => {
+            const digits = e.target.value.replace(/\D/g, "");
+            setText(digits);
+            const typed = Number.parseInt(digits, 10);
+            if (typed >= props.min && typed <= props.max && typed !== props.value) props.onChange(typed);
+          }}
+          onBlur={take}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") take();
+            else if (e.key === "ArrowUp") set(props.value + 1);
+            else if (e.key === "ArrowDown") set(props.value - 1);
+            else return;
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        />
+        px
+      </label>
+      <button
+        className="size-step"
+        onClick={() => set(props.value + 1)}
+        disabled={props.value >= props.max}
+        aria-label={t("settings.appearance.larger")}
+        title={t("settings.appearance.larger")}
+      >
+        <PlusIcon />
+      </button>
     </div>
+  );
+}
+
+/** A group of rows on a page: a heading (left out when the page has only this group) above a box holding the rows, one line between rows */
+function Section(props: { title?: string; children: ReactNode }) {
+  return (
+    <section className={`set-section${props.title ? "" : " is-plain"}`}>
+      {props.title && <h3 className="set-section-title">{props.title}</h3>}
+      <div className="set-card">{props.children}</div>
+    </section>
   );
 }
 
@@ -345,91 +450,193 @@ function General(props: { home?: string; onNotify: (t: string) => void }) {
   const dataDir = props.home ? homeJoin(props.home, DATA_DIR) : undefined;
   return (
     <>
-      <Row
-        label={t("settings.general.language")}
-        desc={
-          <>
-            {t("settings.general.languageDesc")}
-            {/* Second-tier languages have not been reviewed by native speakers yet: say so and welcome corrections (ADR-0001 item 4) */}
-            {(NEEDS_REVIEW as readonly string[]).includes(locale) && (
-              <div className="set-desc-line">{t("settings.general.languageReview")}</div>
-            )}
-          </>
-        }
-      >
-        <LanguagePicker />
-      </Row>
-      <Row label={t("settings.general.uiScale")}>
-        <Choice
-          value={prefs.uiScale}
-          options={[0.9, 1, 1.1, 1.25].map((v) => ({ value: v, label: `${Math.round(v * 100)}%` }))}
-          onChange={(v) => setPrefs({ uiScale: v })}
-        />
-      </Row>
-      <Row label={t("settings.general.backdrop")}>
-        <Choice
-          value={prefs.backdrop}
-          options={[
-            { value: "blur", label: t("settings.general.backdropBlur") },
-            { value: "plain", label: t("settings.general.backdropPlain") },
-          ]}
-          onChange={(v) => setPrefs({ backdrop: v })}
-        />
-      </Row>
-      {capture.loadError ? (
-        <LoadError reason={capture.loadError} onRetry={capture.load} />
-      ) : (
-        capture.c && (
-          <>
-            <Row label={t("settings.general.tray")} desc={t("settings.general.trayDesc")}>
-              <Switch on={capture.c.keepInTray} onChange={(v) => void capture.save({ keepInTray: v })} />
-            </Row>
-            <Row
-              label={t("settings.general.autostart")}
-              desc={<RegistryDesc desc={t("settings.general.autostartDesc")} portable={portable} />}
-            >
-              <Switch on={capture.c.autostart} disabled={portable} onChange={(v) => void capture.save({ autostart: v })} />
-            </Row>
-          </>
-        )
-      )}
-      {/* Check for updates (app/Updates.cs): the app goes online only here, so it is its own item and says what it checks (About → Privacy says so too) */}
-      <Row label={t("settings.general.updateCheck")} desc={t("settings.general.updateCheckDesc")}>
-        <Switch on={prefs.updateCheck} onChange={(v) => setPrefs({ updateCheck: v })} />
-      </Row>{" "}
-      <Row label={t("settings.general.initialSelect")}>
-        <Choice
-          value={prefs.initialSelect}
-          options={[
-            { value: "first", label: t("settings.general.initialFirst") },
-            { value: "firstOpen", label: t("settings.general.initialOpen") },
-          ]}
-          onChange={(v) => setPrefs({ initialSelect: v })}
-        />
-      </Row>
-      {/* Beginner mode (onboarding.ts): one switch for everything that teaches, so whoever knows the app can turn it all off */}
-      <Row name="beginner" label={t("settings.general.beginner")}>
-        <Switch on={prefs.beginner} onChange={(v) => setPrefs({ beginner: v })} />
-      </Row>
-      <Row
-        label={t("settings.general.storage")}
-        desc={
-          <>
-            {t("settings.general.storageDesc")}
-            <br />
-            {dataDir ? <code>{dataDir}</code> : t("settings.general.storageNone")}
-          </>
-        }
-      >
-        <Button disabled={!dataDir} onClick={() => void reveal(dataDir!, t("settings.general.storageMissing"), props.onNotify)}>
-          {t("settings.reveal")}
-        </Button>
-      </Row>
+      <Section title={t("settings.general.interface")}>
+        <Row
+          label={t("settings.general.language")}
+          desc={
+            <>
+              {t("settings.general.languageDesc")}
+              {/* Second-tier languages have not been reviewed by native speakers yet: say so and welcome corrections (ADR-0001 item 4) */}
+              {(NEEDS_REVIEW as readonly string[]).includes(locale) && (
+                <div className="set-desc-line">{t("settings.general.languageReview")}</div>
+              )}
+            </>
+          }
+        >
+          <LanguagePicker />
+        </Row>
+        {/* Beginner mode (onboarding.ts): one switch for everything that teaches, so whoever knows the app can turn it all off */}
+        <Row name="beginner" label={t("settings.general.beginner")}>
+          <Switch on={prefs.beginner} onChange={(v) => setPrefs({ beginner: v })} />
+        </Row>
+      </Section>
+      <Section title={t("settings.general.app")}>
+        {capture.loadError ? (
+          <div className="set-row">
+            <LoadError reason={capture.loadError} onRetry={capture.load} />
+          </div>
+        ) : (
+          capture.c && (
+            <>
+              <Row label={t("settings.general.tray")} desc={t("settings.general.trayDesc")}>
+                <Switch on={capture.c.keepInTray} onChange={(v) => void capture.save({ keepInTray: v })} />
+              </Row>
+              <Row
+                label={t("settings.general.autostart")}
+                desc={<RegistryDesc desc={t("settings.general.autostartDesc")} portable={portable} />}
+              >
+                <Switch on={capture.c.autostart} disabled={portable} onChange={(v) => void capture.save({ autostart: v })} />
+              </Row>
+            </>
+          )
+        )}
+        {/* Check for updates (app/Updates.cs): the app goes online only here, so it is its own item and says what it checks (About → Privacy says so too) */}
+        <Row label={t("settings.general.updateCheck")} desc={t("settings.general.updateCheckDesc")}>
+          <Switch on={prefs.updateCheck} onChange={(v) => setPrefs({ updateCheck: v })} />
+        </Row>
+      </Section>
+      <Section title={t("settings.general.projects")}>
+        <Row label={t("settings.general.initialSelect")}>
+          <Choice
+            value={prefs.initialSelect}
+            options={[
+              { value: "first", label: t("settings.general.initialFirst") },
+              { value: "firstOpen", label: t("settings.general.initialOpen") },
+            ]}
+            onChange={(v) => setPrefs({ initialSelect: v })}
+          />
+        </Row>
+        <Row
+          label={t("settings.general.storage")}
+          desc={
+            <>
+              {t("settings.general.storageDesc")}
+              <br />
+              {dataDir ? <code>{dataDir}</code> : t("settings.general.storageNone")}
+            </>
+          }
+        >
+          <Button disabled={!dataDir} onClick={() => void reveal(dataDir!, t("settings.general.storageMissing"), props.onNotify)}>
+            {t("settings.reveal")}
+          </Button>
+        </Row>
+      </Section>
+    </>
+  );
+}
+
+function Appearance() {
+  const t = useT();
+  const { prefs, setPrefs } = usePrefs();
+  const size = (which: TextSize) => (
+    <SizeField
+      name={which}
+      value={prefs[which]}
+      min={TEXT_SIZES[which].min}
+      max={TEXT_SIZES[which].max}
+      label={t(`settings.appearance.${which}`)}
+      onChange={(v) => setPrefs({ [which]: v })}
+    />
+  );
+  return (
+    <>
+      <Section title={t("settings.appearance.size")}>
+        {/* Interface size scales everything, controls included; the text sizes below change only the text, within what the controls hold */}
+        <Row label={t("settings.appearance.uiScale")}>
+          <Choice
+            value={prefs.uiScale}
+            options={[0.9, 1, 1.1, 1.25].map((v) => ({ value: v, label: `${Math.round(v * 100)}%` }))}
+            onChange={(v) => setPrefs({ uiScale: v })}
+          />
+        </Row>
+        <Row name="uiFontSize" label={t("settings.appearance.uiFontSize")} desc={t("settings.appearance.uiFontSizeDesc")}>
+          {size("uiFontSize")}
+        </Row>
+        <Row name="noteFontSize" label={t("settings.appearance.noteFontSize")} desc={t("settings.appearance.noteFontSizeDesc")}>
+          {size("noteFontSize")}
+        </Row>
+        <Row name="settingsFontSize" label={t("settings.appearance.settingsFontSize")}>
+          {size("settingsFontSize")}
+        </Row>
+      </Section>
+      <Section title={t("settings.appearance.display")}>
+        <Row label={t("settings.appearance.backdrop")}>
+          <Choice
+            value={prefs.backdrop}
+            options={[
+              { value: "blur", label: t("settings.appearance.backdropBlur") },
+              { value: "plain", label: t("settings.appearance.backdropPlain") },
+            ]}
+            onChange={(v) => setPrefs({ backdrop: v })}
+          />
+        </Row>
+        <Row label={t("settings.appearance.reduceMotion")}>
+          <Choice
+            value={prefs.reduceMotion}
+            options={[
+              { value: "system", label: t("settings.appearance.reduceMotionSystem") },
+              { value: "on", label: t("settings.appearance.reduceMotionOn") },
+              { value: "off", label: t("settings.appearance.reduceMotionOff") },
+            ]}
+            onChange={(v) => setPrefs({ reduceMotion: v })}
+          />
+        </Row>
+        <Row label={t("settings.appearance.pointerCursor")} desc={t("settings.appearance.pointerCursorDesc")}>
+          <Switch on={prefs.pointerCursor} onChange={(v) => setPrefs({ pointerCursor: v })} />
+        </Row>
+      </Section>
     </>
   );
 }
 
 function Annotate() {
+  const t = useT();
+  const { prefs, setPrefs } = usePrefs();
+  return (
+    <>
+      <Section title={t("settings.annotate.newNotes")}>
+        <Row label={t("settings.annotate.category")} desc={t("settings.annotate.categoryDesc")}>
+          <Choice
+            value={prefs.defaultCategory}
+            options={CATEGORIES.map((c) => ({ value: c, label: t(`category.${c}`) }))}
+            onChange={(v) => setPrefs({ defaultCategory: v })}
+          />
+        </Row>
+        <Row label={t("settings.annotate.autoCompose")} desc={t("settings.annotate.autoComposeDesc")}>
+          <Switch on={prefs.autoCompose} onChange={(v) => setPrefs({ autoCompose: v })} />
+        </Row>
+      </Section>
+      <Section title={t("settings.annotate.marks")}>
+        <MarkStyle />
+        <Row label={t("settings.annotate.showResolved")}>
+          <Switch on={prefs.showResolved} onChange={(v) => setPrefs({ showResolved: v })} />
+        </Row>
+      </Section>
+      <Section title={t("settings.annotate.video")}>
+        <Row label={t("settings.annotate.pause")}>
+          <Switch on={prefs.pauseOnAnnotate} onChange={(v) => setPrefs({ pauseOnAnnotate: v })} />
+        </Row>
+        <Row label={t("settings.annotate.loop")}>
+          <Switch on={prefs.loop} onChange={(v) => setPrefs({ loop: v })} />
+        </Row>
+        <Row label={t("settings.annotate.timeFormat")} desc={t("settings.annotate.timeFormatDesc")}>
+          <Choice
+            value={prefs.timeFormat}
+            options={[
+              { value: "seconds", label: t("settings.annotate.timeSeconds") },
+              { value: "timecode", label: t("settings.annotate.timeTimecode") },
+              { value: "frames", label: t("settings.annotate.timeFrames") },
+            ]}
+            onChange={(v) => setPrefs({ timeFormat: v })}
+          />
+        </Row>
+      </Section>
+    </>
+  );
+}
+
+/** The mark color and line width (Settings → Annotations → Marks) */
+function MarkStyle() {
   const t = useT();
   const intl = useIntl();
   const { prefs, setPrefs } = usePrefs();
@@ -447,36 +654,6 @@ function Annotate() {
   );
   return (
     <>
-      <Row label={t("settings.annotate.category")} desc={t("settings.annotate.categoryDesc")}>
-        <Choice
-          value={prefs.defaultCategory}
-          options={CATEGORIES.map((c) => ({ value: c, label: t(`category.${c}`) }))}
-          onChange={(v) => setPrefs({ defaultCategory: v })}
-        />
-      </Row>
-      <Row label={t("settings.annotate.autoCompose")} desc={t("settings.annotate.autoComposeDesc")}>
-        <Switch on={prefs.autoCompose} onChange={(v) => setPrefs({ autoCompose: v })} />
-      </Row>
-      <Row label={t("settings.annotate.pause")}>
-        <Switch on={prefs.pauseOnAnnotate} onChange={(v) => setPrefs({ pauseOnAnnotate: v })} />
-      </Row>
-      <Row label={t("settings.annotate.loop")}>
-        <Switch on={prefs.loop} onChange={(v) => setPrefs({ loop: v })} />
-      </Row>
-      <Row label={t("settings.annotate.timeFormat")} desc={t("settings.annotate.timeFormatDesc")}>
-        <Choice
-          value={prefs.timeFormat}
-          options={[
-            { value: "seconds", label: t("settings.annotate.timeSeconds") },
-            { value: "timecode", label: t("settings.annotate.timeTimecode") },
-            { value: "frames", label: t("settings.annotate.timeFrames") },
-          ]}
-          onChange={(v) => setPrefs({ timeFormat: v })}
-        />
-      </Row>
-      <Row label={t("settings.annotate.showResolved")}>
-        <Switch on={prefs.showResolved} onChange={(v) => setPrefs({ showResolved: v })} />
-      </Row>
       <Row label={t("settings.annotate.color")}>
         <div className="swatches">
           {MARK_COLORS.map((c) => swatch(c, colorName(intl, c)))}
@@ -543,63 +720,80 @@ function Capture(props: { onNotify: (t: string) => void; onRecording: (on: boole
     <>
       {/* Mac only: macOS must allow the app to record the screen before any capture starts */}
       {c.screenAccess !== undefined && (
+        <Section title={t("settings.capture.access")}>
+          <Row
+            label={t("settings.capture.access")}
+            desc={
+              c.screenAccess ? (
+                t("settings.capture.accessOn")
+              ) : (
+                <span className="text-warn">{t("settings.capture.accessOff", { app: t("brand.name") })}</span>
+              )
+            }
+          >
+            {!c.screenAccess && <Button onClick={() => void openAccess()}>{t("settings.capture.openAccess")}</Button>}
+          </Row>
+        </Section>
+      )}
+      <Section title={t("settings.capture.start")}>
+        <Row label={t("settings.capture.hotkey")} desc={<HotkeyDesc c={c} />}>
+          <HotkeyInput value={c.hotkey} onChange={(v) => void save({ hotkey: v })} onRecording={props.onRecording} />
+        </Row>
+        <Row label={t("settings.capture.hide")} desc={t("settings.capture.hideDesc")}>
+          <Switch on={c.hideWindow} onChange={(v) => void save({ hideWindow: v })} />
+        </Row>
+      </Section>
+      <Section title={t("settings.capture.output")}>
+        <Row label={t("settings.capture.notes")} desc={t("settings.capture.notesDesc")}>
+          <Switch on={c.notesInImage} onChange={(v) => void save({ notesInImage: v })} />
+        </Row>
         <Row
-          label={t("settings.capture.access")}
+          label={t("settings.capture.folder")}
           desc={
-            c.screenAccess ? (
-              t("settings.capture.accessOn")
-            ) : (
-              <span className="text-warn">{t("settings.capture.accessOff", { app: t("brand.name") })}</span>
-            )
+            <>
+              <code>{folder}</code>
+              {c.folder ? "" : t("settings.capture.folderDefault")}
+            </>
           }
         >
-          {!c.screenAccess && <Button onClick={() => void openAccess()}>{t("settings.capture.openAccess")}</Button>}
+          <div className="set-actions">
+            <Button onClick={() => void pickFolder()}>{t("settings.capture.change")}</Button>
+            {c.folder && <Button onClick={() => void save({ folder: "" })}>{t("settings.capture.reset")}</Button>}
+            <Button onClick={() => void reveal(folder, t("settings.capture.folderMissing"), props.onNotify)}>{t("settings.open")}</Button>
+          </div>
         </Row>
-      )}
-      <Row
-        label={t("settings.capture.hotkey")}
-        desc={
-          c.hotkeyError ? (
-            <span className="text-danger">{c.hotkeyError}</span>
-          ) : c.hotkeyTypes ? (
-            // A recorded combination types a character on an installed keyboard layout (AltGr = Ctrl+Alt): it is used anyway, but the text says which character it blocks
-            <span className="text-warn">
-              {t("settings.capture.hotkeyTypes", { keys: keycaps(prettyKeys(c.hotkey), t), typed: c.hotkeyTypes })}
-            </span>
-          ) : (
-            t("settings.capture.hotkeyDesc")
-          )
-        }
-      >
-        <HotkeyInput value={c.hotkey} onChange={(v) => void save({ hotkey: v })} onRecording={props.onRecording} />
-      </Row>
-      <Row label={t("settings.capture.hide")} desc={t("settings.capture.hideDesc")}>
-        <Switch on={c.hideWindow} onChange={(v) => void save({ hideWindow: v })} />
-      </Row>
-      <Row label={t("settings.capture.notes")} desc={t("settings.capture.notesDesc")}>
-        <Switch on={c.notesInImage} onChange={(v) => void save({ notesInImage: v })} />
-      </Row>
-      <Row
-        label={t("settings.capture.folder")}
-        desc={
-          <>
-            <code>{folder}</code>
-            {c.folder ? "" : t("settings.capture.folderDefault")}
-          </>
-        }
-      >
-        <div className="set-actions">
-          <Button onClick={() => void pickFolder()}>{t("settings.capture.change")}</Button>
-          {c.folder && <Button onClick={() => void save({ folder: "" })}>{t("settings.capture.reset")}</Button>}
-          <Button onClick={() => void reveal(folder, t("settings.capture.folderMissing"), props.onNotify)}>{t("settings.open")}</Button>
-        </div>
-      </Row>
+      </Section>
     </>
   );
 }
 
+/**
+ * What is said under the Screen Capture shortcut: why it could not be registered, which character it blocks typing, or how to clear it.
+ * Each text goes through KeepPunctuation itself: the row's own one only sees an element here, not its text
+ */
+function HotkeyDesc({ c }: { c: CaptureSettings }) {
+  const t = useT();
+  if (c.hotkeyError)
+    return (
+      <span className="text-danger">
+        <KeepPunctuation>{c.hotkeyError}</KeepPunctuation>
+      </span>
+    );
+  // A recorded combination types a character on an installed keyboard layout (AltGr = Ctrl+Alt): it is used anyway, but the text says which character it blocks
+  if (c.hotkeyTypes)
+    return (
+      <span className="text-warn">
+        <KeepPunctuation>
+          {t("settings.capture.hotkeyTypes", { keys: keycaps(prettyKeys(c.hotkey), t), typed: c.hotkeyTypes })}
+        </KeepPunctuation>
+      </span>
+    );
+  return <KeepPunctuation>{t("settings.capture.hotkeyDesc")}</KeepPunctuation>;
+}
+
 /** Shortcut recording box: click to start recording, and pressing a combination saves it */
-function HotkeyInput(props: { value: string; onChange: (v: string) => void; onRecording: (on: boolean) => void }) {
+/** chip: drawn like the keys in Settings → Keyboard Shortcuts (that page lists the Screen Capture shortcut too) */
+function HotkeyInput(props: { value: string; onChange: (v: string) => void; onRecording: (on: boolean) => void; chip?: boolean }) {
   const t = useT();
   const [recording, setRecording] = useState(false);
   /** An unusable combination was pressed while recording: say so in the box and keep waiting */
@@ -666,14 +860,14 @@ function HotkeyInput(props: { value: string; onChange: (v: string) => void; onRe
   return (
     <button
       ref={button}
-      className={`hotkey-input${recording ? " is-recording" : ""}`}
+      className={`${props.chip ? "key-pill" : "hotkey-input"}${recording ? " is-recording" : ""}`}
       onClick={() => setRecording((r) => !r)}
       title={recording ? t("settings.hotkey.recordingTitle") : t("settings.hotkey.title")}
     >
       {recording ? (
         <span className={hint ? "text-danger" : "muted"}>{hint ?? t("settings.hotkey.recording")}</span>
       ) : props.value ? (
-        hotkeyParts(props.value).map((k) => <kbd key={k}>{keycaps(k, t)}</kbd>)
+        hotkeyParts(props.value).map((k) => (props.chip ? <span key={k}>{keycaps(k, t)}</span> : <kbd key={k}>{keycaps(k, t)}</kbd>))
       ) : (
         <span className="muted">{t("settings.hotkey.none")}</span>
       )}
@@ -686,41 +880,45 @@ function Ai() {
   const { prefs, setPrefs } = usePrefs();
   return (
     <>
-      <Row label={t("settings.ai.extra")} wide>
-        <textarea
-          name="prompt-extra"
-          className="text-area"
-          rows={3}
-          value={prefs.promptExtra}
-          onChange={(e) => setPrefs({ promptExtra: e.target.value })}
-          spellCheck={false}
-          placeholder={t("settings.ai.extraPlaceholder")}
-        />
-      </Row>
-      <Row label={t("settings.ai.images")}>
-        <Choice
-          value={prefs.copyImages}
-          options={[
-            { value: "merged", label: t("settings.ai.images.merged") },
-            { value: "each", label: t("settings.ai.images.each") },
-          ]}
-          onChange={(v) => setPrefs({ copyImages: v })}
-        />
-      </Row>
-      {/* The limit only matters when frames can share an image */}
-      {prefs.copyImages === "merged" && (
-        <Row label={t("settings.ai.imagesMax")} desc={t("settings.ai.imagesMaxDesc")}>
-          <Choice
-            value={prefs.copyImagesMax}
-            options={[
-              { value: 10, label: "10" },
-              { value: 20, label: "20" },
-              { value: 0, label: t("settings.ai.imagesMax.none") },
-            ]}
-            onChange={(v) => setPrefs({ copyImagesMax: v })}
+      <Section title={t("sc.notes.copy")}>
+        <Row label={t("settings.ai.extra")} wide>
+          <textarea
+            name="prompt-extra"
+            className="text-area"
+            rows={3}
+            value={prefs.promptExtra}
+            onChange={(e) => setPrefs({ promptExtra: e.target.value })}
+            spellCheck={false}
+            placeholder={t("settings.ai.extraPlaceholder")}
           />
         </Row>
-      )}
+      </Section>
+      <Section title={t("sc.notes.copyImages")}>
+        <Row label={t("settings.ai.imagesLayout")}>
+          <Choice
+            value={prefs.copyImages}
+            options={[
+              { value: "merged", label: t("settings.ai.images.merged") },
+              { value: "each", label: t("settings.ai.images.each") },
+            ]}
+            onChange={(v) => setPrefs({ copyImages: v })}
+          />
+        </Row>
+        {/* The limit only matters when frames can share an image */}
+        {prefs.copyImages === "merged" && (
+          <Row label={t("settings.ai.imagesMax")} desc={t("settings.ai.imagesMaxDesc")}>
+            <Choice
+              value={prefs.copyImagesMax}
+              options={[
+                { value: 10, label: "10" },
+                { value: 20, label: "20" },
+                { value: 0, label: t("settings.ai.imagesMax.none") },
+              ]}
+              onChange={(v) => setPrefs({ copyImagesMax: v })}
+            />
+          </Row>
+        )}
+      </Section>
     </>
   );
 }
@@ -733,14 +931,14 @@ function System(props: { onNotify: (t: string) => void }) {
 function MacSystem() {
   const t = useT();
   return (
-    <>
+    <Section>
       <Row label={t("settings.system.openWith")} desc={t("settings.system.openWithDesc", { app: t("brand.name") })}>
         <span className="muted">{t("settings.system.dropOn")}</span>
       </Row>
       <Row label={t("settings.system.drop")} desc={t("settings.system.dropDesc")}>
         <span className="muted">{t("settings.system.dropOn")}</span>
       </Row>
-    </>
+    </Section>
   );
 }
 
@@ -772,45 +970,50 @@ function WindowsSystem(props: { onNotify: (t: string) => void }) {
       props.onNotify((e as Error).message);
     }
   };
+  if (loadError) return <LoadError reason={loadError} onRetry={load} />;
+  if (shell === undefined) return null;
   return (
-    <>
-      {loadError ? (
-        <LoadError reason={loadError} onRetry={load} />
-      ) : (
-        shell !== undefined && (
-          <Row
-            label={t("settings.system.shell")}
-            desc={<RegistryDesc desc={t("settings.system.shellDesc", { app: t("brand.name") })} portable={portable} />}
-          >
-            <Switch on={shell} disabled={portable} onChange={toggleShell} />
-          </Row>
-        )
-      )}
-    </>
+    <Section>
+      <Row
+        label={t("settings.system.shell")}
+        desc={<RegistryDesc desc={t("settings.system.shellDesc", { app: t("brand.name") })} portable={portable} />}
+      >
+        <Switch on={shell} disabled={portable} onChange={toggleShell} />
+      </Row>
+    </Section>
   );
 }
 
-function Keys() {
-  const t = useT();
+/**
+ * Keyboard Shortcuts (ShortcutSettings.tsx). The Screen Capture shortcut is a global shortcut the shell registers, kept with the capture settings:
+ * its row records it through the same box as Settings → Screen Capture
+ */
+function Keys(props: { onNotify: (t: string) => void; onRecording: (on: boolean) => void; head: HeadSlots }) {
+  const { c, save } = useCaptureSettings(props.onNotify);
   return (
-    <>
-      <div className="keys-grid">
-        {shortcutGroups().map((g) => (
-          <section key={g.title}>
-            <div className="section-label">{t(g.title)}</div>
-            {g.items.map(([keys, label]) => (
-              <ShortcutRow key={shortcutKey(label)} keys={keys} label={label} />
-            ))}
-          </section>
-        ))}
-      </div>
-    </>
+    <ShortcutSettings
+      head={props.head}
+      onRecording={props.onRecording}
+      capture={
+        c && {
+          pill: <HotkeyInput value={c.hotkey} onChange={(v) => void save({ hotkey: v })} onRecording={props.onRecording} chip />,
+          hasKey: c.hotkey !== "",
+          clear: () => void save({ hotkey: "" }),
+        }
+      }
+    />
   );
 }
 
 function Advanced(props: { onNotify: (t: string) => void; onReset: () => void }) {
   const t = useT();
+  const intl = useIntl();
   const { prefs, setPrefs } = usePrefs();
+  /** The keys that can be held ("C, R, B or A"), as they are in Settings → Keyboard Shortcuts */
+  const holdKeys = intl.formatList(
+    holdableKeys(HOLD_TOOL_COMMANDS, prefs.keybindings).map((k) => keycaps(keyHint(k), (id) => intl.formatMessage({ id }))),
+    { type: "disjunction" },
+  );
   const { info, error: infoError, load: loadInfo } = useAppInfo();
   const [draft, setDraft] = useState("");
   const act = (p: Promise<unknown>) => p.catch((e: Error) => props.onNotify(e.message));
@@ -829,107 +1032,109 @@ function Advanced(props: { onNotify: (t: string) => void; onReset: () => void })
   return (
     <>
       {infoError && <LoadError reason={infoError} onRetry={loadInfo} />}
-
-      <Group title={t("settings.advanced.notes")} />
-      <Row
-        label={t("settings.advanced.author")}
-        desc={t("settings.advanced.authorDesc", { name: info ? t("settings.advanced.authorName", { name: info.userName }) : "" })}
-      >
-        <input
-          name="author"
-          className="text-input"
-          value={prefs.author}
-          placeholder={info?.userName ?? "user"}
-          onChange={(e) => setPrefs({ author: e.target.value })}
-          spellCheck={false}
-        />
-      </Row>
-      <Row label={t("settings.advanced.hold")} desc={t("settings.advanced.holdDesc")}>
-        <Switch on={prefs.holdTools} onChange={(v) => setPrefs({ holdTools: v })} />
-      </Row>
-
-      <Group title={t("settings.advanced.list")} />
-      {kinds.map((k) => (
-        <Row key={k.kind} label={t(`settings.advanced.kind.${k.kind}`)} desc={k.ext}>
-          <Switch on={prefs.kinds[k.kind]} onChange={(v) => setPrefs({ kinds: { ...prefs.kinds, [k.kind]: v } })} />
-        </Row>
-      ))}
-      <Row label={t("settings.advanced.kind.more")} desc={t("settings.advanced.kind.moreDesc", { exts: "tiff heic ico apng jfif mkv" })}>
-        <Switch on={prefs.moreFormats} onChange={(v) => setPrefs({ moreFormats: v })} />
-      </Row>
-      <Row label={t("settings.advanced.skip")} desc={t("settings.skipDirs.desc")} wide>
-        <div className="chips">
-          {prefs.skipDirs.map((d) => (
-            <span key={d} className="chip-tag">
-              {d}
-              <button
-                onClick={() => setPrefs({ skipDirs: prefs.skipDirs.filter((x) => x !== d) })}
-                aria-label={t("settings.advanced.skipRemove", { name: d })}
-              >
-                ×
-              </button>
-            </span>
-          ))}
+      <Section title={t("settings.advanced.notes")}>
+        <Row
+          label={t("settings.advanced.author")}
+          desc={t("settings.advanced.authorDesc", { name: info ? t("settings.advanced.authorName", { name: info.userName }) : "" })}
+        >
           <input
-            name="skip-folder"
-            className="text-input chip-input"
-            value={draft}
-            placeholder={t("settings.advanced.skipPlaceholder")}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addDir()}
+            name="author"
+            className="text-input"
+            value={prefs.author}
+            placeholder={info?.userName ?? "user"}
+            onChange={(e) => setPrefs({ author: e.target.value })}
             spellCheck={false}
           />
-        </div>
-      </Row>
-
-      <Group title={t("settings.advanced.files")} />
-      <Row label={t("settings.advanced.review")} desc={t("settings.advanced.reviewDesc")}>
-        <Switch on={prefs.reviewIncludeResolved} onChange={(v) => setPrefs({ reviewIncludeResolved: v })} />
-      </Row>
-      <Row label={t("settings.advanced.shotSize")} desc={t("settings.advanced.shotSizeDesc", { dir: `${DATA_DIR}/snapshots/` })}>
-        <Choice
-          value={prefs.snapshotMax}
-          options={[
-            { value: 1280, label: "1280" },
-            { value: 1600, label: "1600" },
-            { value: 2048, label: "2048" },
-            { value: 0, label: t("settings.advanced.shotOriginal") },
-          ]}
-          onChange={(v) => setPrefs({ snapshotMax: v })}
-        />
-      </Row>
-      <Row label={t("settings.advanced.shotFormat")} desc={t("settings.advanced.shotFormatDesc")}>
-        <Choice
-          value={prefs.snapshotFormat}
-          options={[
-            { value: "png", label: "PNG" },
-            { value: "jpeg", label: "JPEG" },
-          ]}
-          onChange={(v) => setPrefs({ snapshotFormat: v })}
-        />
-      </Row>
-
-      <Group title={t("settings.advanced.debug")} />
-      <Row label={t("settings.advanced.settingsFile")} desc={info?.settingsPath}>
-        <Button onClick={() => act(call("reveal", { path: "@settings" }))}>{t("settings.reveal")}</Button>
-      </Row>
-      <Row label={t("settings.advanced.appPath")} desc={info?.exe}>
-        <Button onClick={() => act(call("reveal", { path: "@app" }))}>{t("settings.reveal")}</Button>
-      </Row>
-      <Row label={t("settings.advanced.logs")} desc={info?.logDir}>
-        <Button onClick={() => act(call("reveal", { path: "@logs" }))}>{t("settings.open")}</Button>
-      </Row>
-      {platform !== "mac" && (
-        <Row label={t("settings.advanced.devTools")} desc={t("settings.advanced.devToolsDesc")}>
-          <Button onClick={() => act(call("openDevTools"))}>{t("settings.open")}</Button>
         </Row>
-      )}
+        <Row label={t("settings.advanced.hold")} desc={t("settings.advanced.holdDesc", { keys: holdKeys })}>
+          <Switch on={prefs.holdTools} onChange={(v) => setPrefs({ holdTools: v })} />
+        </Row>
+      </Section>
+      <Section title={t("settings.advanced.list")}>
+        {kinds.map((k) => (
+          <Row key={k.kind} label={t(`settings.advanced.kind.${k.kind}`)} desc={k.ext}>
+            <Switch on={prefs.kinds[k.kind]} onChange={(v) => setPrefs({ kinds: { ...prefs.kinds, [k.kind]: v } })} />
+          </Row>
+        ))}
+        <Row label={t("settings.advanced.kind.more")} desc={t("settings.advanced.kind.moreDesc", { exts: "tiff heic ico apng jfif mkv" })}>
+          <Switch on={prefs.moreFormats} onChange={(v) => setPrefs({ moreFormats: v })} />
+        </Row>
+        <Row label={t("settings.advanced.skip")} desc={t("settings.skipDirs.desc")} wide>
+          <div className="chips">
+            {prefs.skipDirs.map((d) => (
+              <span key={d} className="chip-tag">
+                {d}
+                <button
+                  onClick={() => setPrefs({ skipDirs: prefs.skipDirs.filter((x) => x !== d) })}
+                  aria-label={t("settings.advanced.skipRemove", { name: d })}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+            <input
+              name="skip-folder"
+              className="text-input chip-input"
+              value={draft}
+              placeholder={t("settings.advanced.skipPlaceholder")}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addDir()}
+              spellCheck={false}
+            />
+          </div>
+        </Row>
+      </Section>
+      <Section title={t("settings.advanced.files")}>
+        <Row label={t("settings.advanced.review")} desc={t("settings.advanced.reviewDesc")}>
+          <Switch on={prefs.reviewIncludeResolved} onChange={(v) => setPrefs({ reviewIncludeResolved: v })} />
+        </Row>
+        <Row label={t("settings.advanced.shotSize")} desc={t("settings.advanced.shotSizeDesc", { dir: `${DATA_DIR}/snapshots/` })}>
+          <Choice
+            value={prefs.snapshotMax}
+            options={[
+              { value: 1280, label: "1280" },
+              { value: 1600, label: "1600" },
+              { value: 2048, label: "2048" },
+              { value: 0, label: t("settings.advanced.shotOriginal") },
+            ]}
+            onChange={(v) => setPrefs({ snapshotMax: v })}
+          />
+        </Row>
+        <Row label={t("settings.advanced.shotFormat")} desc={t("settings.advanced.shotFormatDesc")}>
+          <Choice
+            value={prefs.snapshotFormat}
+            options={[
+              { value: "png", label: "PNG" },
+              { value: "jpeg", label: "JPEG" },
+            ]}
+            onChange={(v) => setPrefs({ snapshotFormat: v })}
+          />
+        </Row>
+      </Section>
+      <Section title={t("settings.advanced.debug")}>
+        <Row label={t("settings.advanced.settingsFile")} desc={info?.settingsPath}>
+          <Button onClick={() => act(call("reveal", { path: "@settings" }))}>{t("settings.reveal")}</Button>
+        </Row>
+        <Row label={t("settings.advanced.appPath")} desc={info?.exe}>
+          <Button onClick={() => act(call("reveal", { path: "@app" }))}>{t("settings.reveal")}</Button>
+        </Row>
+        <Row label={t("settings.advanced.logs")} desc={info?.logDir}>
+          <Button onClick={() => act(call("reveal", { path: "@logs" }))}>{t("settings.open")}</Button>
+        </Row>
+        {platform !== "mac" && (
+          <Row label={t("settings.advanced.devTools")} desc={t("settings.advanced.devToolsDesc")}>
+            <Button onClick={() => act(call("openDevTools"))}>{t("settings.open")}</Button>
+          </Row>
+        )}
+      </Section>
       {/* Confirm first and say exactly what gets restored (a description saying "all" would be wrong: Screen Capture and system integration are left alone) */}
-      <Row label={t("settings.reset.label")} desc={t("settings.reset.desc")}>
-        <Button danger onClick={props.onReset}>
-          {t("settings.reset.button")}
-        </Button>
-      </Row>
+      <Section>
+        <Row label={t("settings.reset.label")} desc={t("settings.reset.desc")}>
+          <Button danger onClick={props.onReset}>
+            {t("settings.reset.button")}
+          </Button>
+        </Row>
+      </Section>
     </>
   );
 }
@@ -1025,61 +1230,56 @@ function About(props: { onNotify: (t: string) => void; onNotices: () => void }) 
   const released = releaseDate(RELEASED);
   return (
     <>
-      <div className="about-mark">
+      {/* The product: the combined logo, then the version and the release date under it (the version is what people are asked for when reporting) */}
+      <div className="about-head">
         <Wordmark size="about" />
+        <div className="about-version">
+          <span>{t("settings.about.version", { version: versionText(APP_VERSION) })}</span>
+          {released && <span className="muted">{t("settings.about.released", { date: released })}</span>}
+          {info && info.version !== APP_VERSION && (
+            <span className="text-danger">{t("settings.about.shellMismatch", { version: versionLabel(info.version) })}</span>
+          )}
+        </div>
       </div>
       {infoError && <LoadError reason={infoError} onRetry={loadInfo} />}
-      {/* The version and the release date, one line each; the product name is the wordmark above */}
-      <Row
-        label={t("settings.about.version", { version: versionText(APP_VERSION) })}
-        desc={
-          <>
-            {released && t("settings.about.released", { date: released })}
-            {info && info.version !== APP_VERSION && (
-              <>
-                {released && " · "}
-                <span className="text-danger">{t("settings.about.shellMismatch", { version: versionLabel(info.version) })}</span>
-              </>
-            )}
-          </>
-        }
-      >
-        <span />
-      </Row>
-      <Row label={t("settings.about.author")} desc={AUTHOR}>
-        <span />
-      </Row>
-      <Row label={t("settings.about.license")} desc={t("settings.about.licenseName", { name: LICENSE_NAME })}>
-        <Button onClick={() => void open(LICENSE_URL)}>{t("settings.about.view")}</Button>
-      </Row>
-      <Row label={t("settings.about.notices")}>
-        <Button onClick={props.onNotices}>{t("settings.about.view")}</Button>
-      </Row>
-      {/* Privacy: nothing is collected, uploaded or sent over the network, stated plainly so users can confidently drag in confidential work files */}
-      <Row label={t("settings.about.privacy")} desc={t("settings.about.privacyDesc")}>
-        <span />
-      </Row>
-      <Row label={t("settings.about.homepage")} desc={HOMEPAGE.replace(/^https:\/\//, "")}>
-        <Button onClick={() => void open(HOMEPAGE)}>{t("settings.open")}</Button>
-      </Row>
-      <Row
-        label={t("settings.about.runtime")}
-        desc={
-          info
-            ? runtimeParts(info)
-                .map(([name, version]) => `${name} ${version}`)
-                .join(" · ")
-            : "…"
-        }
-      >
-        <span />
-      </Row>
-      <Row label={t("settings.about.feedback")} desc={t("settings.about.feedbackDesc")}>
-        <div className="set-actions">
-          <Button onClick={() => void copy()}>{t("menu.help.diagnostics")}</Button>
-          <Button onClick={() => void report()}>{t("menu.help.report")}</Button>
-        </div>
-      </Row>
+      <Section>
+        <Row label={t("settings.about.author")} desc={AUTHOR}>
+          <span />
+        </Row>
+        <Row label={t("settings.about.license")} desc={t("settings.about.licenseName", { name: LICENSE_NAME })}>
+          <Button onClick={() => void open(LICENSE_URL)}>{t("settings.about.view")}</Button>
+        </Row>
+        <Row label={t("settings.about.notices")}>
+          <Button onClick={props.onNotices}>{t("settings.about.view")}</Button>
+        </Row>
+        <Row label={t("settings.about.homepage")} desc={HOMEPAGE.replace(/^https:\/\//, "")}>
+          <Button onClick={() => void open(HOMEPAGE)}>{t("settings.open")}</Button>
+        </Row>
+        {/* Privacy: nothing is collected, uploaded or sent over the network, stated plainly so users can confidently drag in confidential work files */}
+        <Row label={t("settings.about.privacy")} desc={t("settings.about.privacyDesc")}>
+          <span />
+        </Row>
+      </Section>
+      <Section>
+        <Row
+          label={t("settings.about.runtime")}
+          desc={
+            info
+              ? runtimeParts(info)
+                  .map(([name, version]) => `${name} ${version}`)
+                  .join(" · ")
+              : "…"
+          }
+        >
+          <span />
+        </Row>
+        <Row label={t("settings.about.feedback")} desc={t("settings.about.feedbackDesc")}>
+          <div className="set-actions">
+            <Button onClick={() => void copy()}>{t("menu.help.diagnostics")}</Button>
+            <Button onClick={() => void report()}>{t("menu.help.report")}</Button>
+          </div>
+        </Row>
+      </Section>
     </>
   );
 }

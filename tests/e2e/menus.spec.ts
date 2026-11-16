@@ -4,7 +4,7 @@
 
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { escapeRegExp, expect, test, type App } from "./harness";
+import { escapeRegExp, expect, test, withKey, type App } from "./harness";
 
 const notes = (app: App, file: string) => app.annotations(file);
 const menuItem = (app: App, name: string | RegExp) => app.page.getByRole("menuitem", { name });
@@ -148,7 +148,7 @@ test("only shortcuts are shown on the right of menu items, with explanations in 
   await expect(menuItem(app, /^放大/).locator(".menu-hint")).toHaveText("Ctrl +");
   await expect(menuItem(app, /^恢复默认布局/).locator(".menu-hint")).toHaveCount(0);
   await app.page.keyboard.press("Escape");
-  await expect(app.page.locator(".zoom-btn").last()).toHaveAttribute("title", "放大（Ctrl +）");
+  await expect(app.page.locator(".zoom-btn").last()).toHaveAttribute("title", withKey("放大", "Ctrl +"));
 });
 
 test("a project without notes yet: File → Open Notes Folder is disabled (same as in the canvas context menu)", async ({ app }) => {
@@ -202,7 +202,11 @@ test("after picking a mark on the video, choosing Playback → Next Frame / Forw
   ] as const) {
     const from = await t();
     await app.page.keyboard.press("Alt+p");
+    // A menu opened from the keyboard focuses its first item a frame later (Menu.tsx): wait for that before moving on, otherwise on a
+    // slow machine it takes the focus back and Enter runs Play / Pause instead
+    await expect(app.page.locator(".menu .menu-item:focus")).toHaveCount(1);
     await menuItem(app, name).focus();
+    await expect(menuItem(app, name)).toBeFocused();
     await app.page.keyboard.press("Enter");
     await expect.poll(t).toBeGreaterThan(from + more);
   }
@@ -692,7 +696,7 @@ test("Playback menu: everything except Loop is disabled on an image; on a video 
 test("Help menu: Keyboard Shortcuts and Developer Tools", async ({ app }) => {
   await app.open();
   await openMenu(app, "帮助");
-  await expect(menuItem(app, /^快捷键一览/).locator(".menu-hint")).toHaveText("? / F1");
+  await expect(menuItem(app, /^快捷键一览/).locator(".menu-hint")).toHaveText("?");
   await menuItem(app, /^快捷键一览/).click();
   await expect(app.page.locator(".sheet")).toBeVisible();
   await app.page.keyboard.press("Escape");

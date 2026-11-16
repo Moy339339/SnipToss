@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { earlierVersions, knownSha, writtenOn, type Annotation, type MaterialFile } from "../src/index.js";
+import { earlierVersions, knownSha, mtimeStamp, writtenOn, type Annotation, type MaterialFile } from "../src/index.js";
 
 // Which version of an item a note was written on (docs/adr/0008-earlier-versions.md): the UI, the CLI and REVIEW.md share this one set of rules
 
@@ -108,6 +108,43 @@ describe("earlierVersions: which notes were written on an earlier version", () =
     ]);
     expect(knownSha(f, at(9), 100)).toBe(V1);
     expect(knownSha(f, at(9), 200)).toBe(V2);
+  });
+
+  it("replaced by a different file of the same size whose modification time is older than the notes (a BMP or an uncompressed TIFF of the same dimensions): the recorded modification time differs, so the fingerprint is computed", () => {
+    // Written on V1 at 11:00 while the file was modified at 10:00; the file is now another one of the same size, modified at 09:00
+    const f = file([note("a", 11, { material_sha256: V1, material_size: 482113, material_mtime: T(10) })]);
+    expect(knownSha(f, at(9), 482113)).toBeUndefined();
+    expect(earlierVersions(f, at(9), undefined, 482113)).toEqual({ earlier: new Set(["a"]), pending: true });
+    expect(earlierVersions(f, at(9), V2, 482113).earlier).toEqual(new Set(["a"]));
+    // Still the file the note was written on (size and modification time unchanged): taken from the note, nothing is read
+    expect(knownSha(f, at(10), 482113)).toBe(V1);
+    expect(earlierVersions(f, at(10), undefined, 482113)).toEqual({ earlier: new Set(), pending: false });
+  });
+
+  it("the modification time is compared in whole milliseconds (Node's stat gives a fraction, the shells whole milliseconds)", () => {
+    const f = file([note("a", 11, { material_sha256: V1, material_size: 100, material_mtime: "2026-10-23T10:00:00.123Z" })]);
+    expect(knownSha(f, Date.parse("2026-10-23T10:00:00.123Z") + 0.9876, 100)).toBe(V1);
+    expect(knownSha(f, Date.parse("2026-10-23T10:00:00.124Z"), 100)).toBeUndefined();
+    expect(mtimeStamp(Date.parse("2026-10-23T10:00:00.123Z") + 0.9876)).toBe("2026-10-23T10:00:00.123Z");
+  });
+
+  it("once a note of the file records a modification time, older notes without one no longer tell the current fingerprint (they can't see a same-size replacement)", () => {
+    // old: written at 12:00 by an older version on V2 (no material_mtime); new: written at 13:00 on V2 while the file was modified at
+    // 11:00. The file is now an older copy of the same size modified at 09:00: by the old rule "old" would claim V2
+    const f = file([
+      note("old", 12, { material_sha256: V2, material_size: 100 }),
+      note("new", 13, { material_sha256: V2, material_size: 100, material_mtime: T(11) }),
+    ]);
+    expect(knownSha(f, at(9), 100)).toBeUndefined();
+    expect(knownSha(f, at(11), 100)).toBe(V2);
+    // Only old notes: the older rule as before
+    expect(knownSha(file([note("old", 12, { material_sha256: V2, material_size: 100 })]), at(9), 100)).toBe(V2);
+  });
+
+  it("a note that recorded a modification time counts even if it was written before the item's last modification time (that is the time it recorded)", () => {
+    // The file's modification time is 10:00 and the note says 10:00; created_at is irrelevant once the stamp matches
+    const f = file([note("a", 9, { material_sha256: V1, material_size: 100, material_mtime: T(10) })]);
+    expect(knownSha(f, at(10), 100)).toBe(V1);
   });
 
   it("folder comments have no versions", () => {

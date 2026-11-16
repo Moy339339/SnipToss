@@ -1,5 +1,6 @@
 import { useIntl } from "react-intl";
 import type { Annotation, MaterialFile } from "@sniptoss/core";
+import { useShortcuts } from "./commandKeys";
 import { ConfirmDialog } from "./Confirm";
 import type { LibraryEntry } from "./host";
 import type { Project } from "./library";
@@ -50,6 +51,8 @@ export function AskDialog(props: {
 }) {
   const { ask: q, onClose, on } = props;
   const intl = useIntl();
+  /** The undo key as it is now, for "you can undo this with …" (none: the sentence says it can be undone without a key) */
+  const undoKey = useShortcuts().text("edit.undo") || "none";
   const then = (run: () => void) => () => {
     onClose();
     run();
@@ -91,7 +94,7 @@ export function AskDialog(props: {
         body: (
           <>
             {name(file?.material.path ?? "")}
-            {intl.formatMessage({ id: "ask.missing.body" }, { count })}
+            {intl.formatMessage({ id: "ask.missing.body" }, { count, key: undoKey })}
           </>
         ),
         confirm: intl.formatMessage({ id: "ask.missing.confirm" }),
@@ -110,7 +113,7 @@ export function AskDialog(props: {
           <>
             {snippet(q.annotation)}
             <br />
-            {intl.formatMessage({ id: "ask.delete.undo" })}
+            {intl.formatMessage({ id: "ask.delete.undo" }, { key: undoKey })}
           </>
         ),
         confirm: intl.formatMessage({ id: "ask.delete.confirm" }),
@@ -121,7 +124,7 @@ export function AskDialog(props: {
       return {
         title: intl.formatMessage({ id: "ask.deleteMany.title" }, { count: q.items.length }),
         // The title says how many: the body only says it can be undone
-        body: intl.formatMessage({ id: "ask.delete.undo" }),
+        body: intl.formatMessage({ id: "ask.delete.undo" }, { key: undoKey }),
         confirm: intl.formatMessage({ id: "ask.delete.confirm" }),
         onConfirm: then(() => on.deleteMany(q.items)),
       };
@@ -151,7 +154,7 @@ export function AskDialog(props: {
               </>
             )}
             {(q.items.length > 0 || q.hidden > 0) && <br />}
-            {intl.formatMessage({ id: "ask.delete.undo" })}
+            {intl.formatMessage({ id: "ask.delete.undo" }, { key: undoKey })}
           </>
         ),
         confirm: intl.formatMessage({ id: "ask.delete.confirm" }),

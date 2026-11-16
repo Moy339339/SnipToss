@@ -142,7 +142,11 @@ final class CaptureOverlay: NSView, OverlayView {
     ///   - defaultColor: the mark color in Settings
     ///   - defaultCategory: the category new notes start with (Settings → Annotations → Default category)
     ///   - selectHint: write how to select below the magnifier (for a newcomer who has not finished a capture yet)
-    init(session: CaptureSession, shot: FrozenScreen, windows: [CGRect], defaultColor: MarkColor, defaultCategory: String, selectHint: Bool) {
+    ///   - keys: the changeable keys as they are in Settings → Keyboard Shortcuts
+    init(
+        session: CaptureSession, shot: FrozenScreen, windows: [CGRect], defaultColor: MarkColor, defaultCategory: String, selectHint: Bool,
+        keys: CaptureKeys = .standard
+    ) {
         self.session = session
         self.shot = shot
         scale = shot.scale
@@ -158,7 +162,7 @@ final class CaptureOverlay: NSView, OverlayView {
         // The state machine first: the toolbar and the input boxes built below all act on it
         state = OverlayStateMachine(
             view: self, host: link, scale: scale, full: full, windows: windows, defaultColor: defaultColor,
-            defaultCategory: Categories.valid(defaultCategory), prefs: ToolPrefs.shared, measure: measure)
+            defaultCategory: Categories.valid(defaultCategory), prefs: ToolPrefs.shared, measure: measure, keys: keys)
 
         marksView.frame = full
         marksView.overlay = self
@@ -338,12 +342,14 @@ final class CaptureOverlay: NSView, OverlayView {
     /// category). Returns true = taken; false = the input box types it
     @discardableResult
     func routeKey(_ event: NSEvent) -> Bool {
-        guard !isClosed, let key = OverlayKey.from(keyCode: event.keyCode) else { return false }
+        guard !isClosed else { return false }
+        let key = OverlayKey.from(keyCode: event.keyCode)
         let mods = OverlayModifiers(event.modifierFlags)
         // While the color picker is open its keys come first (Return applies, Esc closes); anything else is for its digits, never a tool or
         // color key. ⌘ keys still reach the overlay (⌘W, ⌘. cancel the capture)
-        if picker.isOpen && !mods.contains(.command) { return picker.key(key) }
-        if state.press(key, mods) { return true }
+        if picker.isOpen && !mods.contains(.command) { return key.map { picker.key($0) } ?? false }
+        if state.press(key, mods, names: CaptureKeys.names(of: event)) { return true }
+        guard let key else { return false }
         // An input method in the middle of composing gets Return and Esc itself (picking a candidate is not saving the note)
         if state.noteOpen { return !noteBox.textView.hasMarkedText() && state.noteKey(key, mods) }
         if state.textOpen { return !textBox.textView.hasMarkedText() && state.textKey(key) }
@@ -363,8 +369,8 @@ final class CaptureOverlay: NSView, OverlayView {
         dismissDrawingHint()
         let flags = event.modifierFlags.intersection([.command, .option, .shift, .control])
         if flags.contains(.command) {
-            // Q
-            if event.keyCode == 0x0C { return false }
+            // ⌘Q, by the character typed as the main menu takes it (on French AZERTY Q is where a US keyboard has A)
+            if CaptureKeys.names(of: event).first == "Ctrl+Q" { return false }
             if let editor = openEditor() {
                 // The editing keys, then the overlay's (⌘W, ⌘., ⌘Return), then the box's own (⌘← to the line start, ⌘⌫ ...)
                 if !edit(event, flags, in: editor) && !routeKey(event) { editor.typeKey(event) }
@@ -783,20 +789,25 @@ final class CaptureOverlay: NSView, OverlayView {
             views.append(v)
             gaps.append(gap)
         }
-        func tool(_ t: Tool, _ id: String, _ message: String, _ icon: [String]) {
-            add(iconButton(id, icon, ShellText.t(message), act: { $0.chooseTool(t) }, on: { $0.tool == t }))
+        // The name and the key the command has now (Settings → Keyboard Shortcuts)
+        func tip(_ name: String, _ command: String) -> String { state.keys.tip(ShellText.t("capture.toolName.\(name)"), command) }
+        func tool(_ t: Tool, _ id: String, _ command: String, _ icon: [String]) {
+            add(iconButton(id, icon, tip(id, command), act: { $0.chooseTool(t) }, on: { $0.tool == t }))
         }
-        tool(.rect, "rect", "capture.tool.rect", OverlayIcons.rect)
-        tool(.ellipse, "ellipse", "capture.tool.ellipse", OverlayIcons.ellipse)
-        tool(.arrow, "arrow", "capture.tool.arrow", OverlayIcons.arrow)
-        tool(.pen, "pen", "capture.tool.pen", OverlayIcons.pen)
-        tool(.mosaic, "mosaic", "capture.tool.mosaic", OverlayIcons.mosaic)
-        tool(.text, "text", "capture.tool.text", OverlayIcons.text)
+        tool(.rect, "rect", "capture.rect", OverlayIcons.rect)
+        tool(.ellipse, "ellipse", "capture.ellipse", OverlayIcons.ellipse)
+        tool(.arrow, "arrow", "capture.arrow", OverlayIcons.arrow)
+        tool(.pen, "pen", "capture.pen", OverlayIcons.pen)
+        tool(.mosaic, "mosaic", "capture.mosaic", OverlayIcons.mosaic)
+        tool(.text, "text", "capture.text", OverlayIcons.text)
         add(OverlaySeparator())
-        tool(.note, "note", "capture.tool.note", OverlayIcons.note)
-        add(iconButton("overall", OverlayIcons.overall, ShellText.t("capture.tool.overall"), act: { $0.toggleOverall() }, on: { $0.noteOpen && $0.noteFor == nil }))
+        tool(.note, "note", "capture.point", OverlayIcons.note)
+        add(
+            iconButton(
+                "overall", OverlayIcons.overall, tip("overall", "capture.whole"), act: { $0.toggleOverall() },
+                on: { $0.noteOpen && $0.noteFor == nil }))
         add(OverlaySeparator())
-        add(iconButton("undo", OverlayIcons.undo, ShellText.t("capture.tool.undo"), act: { $0.undo() }, on: { _ in false }))
+        add(iconButton("undo", OverlayIcons.undo, tip("undo", "capture.undo"), act: { $0.undo() }, on: { _ in false }))
         // Deletes the mark picked by a click (faded until one is picked); same as delete / forward delete
         add(
             iconButton(

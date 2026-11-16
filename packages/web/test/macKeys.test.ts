@@ -75,11 +75,13 @@ describe("macifyMessages on the real catalogs", () => {
     },
   );
 
+  // The keys of commands are not written in messages any more (the code adds them as they are now, commandKeys.ts); what is left are keys
+  // that are not commands, such as Ctrl V to paste in another app
   it("English: no shortcut is left written with words, and some were rewritten", () => {
     const en = catalogs.find((c) => c.locale === "en")!.messages;
     const mac = macifyMessages(en);
     const changed = Object.keys(en).filter((id) => en[id] !== mac[id]);
-    expect(changed.length).toBeGreaterThan(20);
+    expect(changed.length).toBeGreaterThan(5);
     for (const [id, text] of Object.entries(mac)) {
       if (id.startsWith("keycap.")) continue;
       // A modifier word followed by a key is what the Mac spells with symbols
@@ -87,13 +89,11 @@ describe("macifyMessages on the real catalogs", () => {
     }
   });
 
-  it("every language: the shortcuts of the three most used messages are rewritten", () => {
-    for (const { messages } of catalogs) {
+  it("every language: a shortcut left in a message is rewritten", () => {
+    for (const { locale, messages } of catalogs) {
       const mac = macifyMessages(messages);
-      const text = mac["app.copy.title.checked"];
-      if (text !== undefined) expect(text).toContain("⇧⌘A");
-      const add = mac["library.add.files"];
-      if (add !== undefined) expect(add).toContain("⌘O");
+      const paste = mac["capture.how.plain"];
+      if (paste !== undefined) expect(paste, locale).toContain("⌘V");
     }
   });
 

@@ -14,7 +14,7 @@ const heroPath = (app: App) => join(app.project, "assets", "hero.png");
 const card = (app: App, id: string) => app.page.locator(`.card[data-annot$="|${id}"]`);
 const focusStage = (app: App) => app.page.locator(".stage").click({ position: { x: 5, y: 5 } });
 const sha = (file: string) => createHash("sha256").update(readFileSync(file)).digest("hex");
-type Note = { id: string; body: string; material_sha256?: string; material_size?: number; snapshot?: string };
+type Note = { id: string; body: string; material_sha256?: string; material_size?: number; material_mtime?: string; snapshot?: string };
 const notes = (app: App): Note[] => JSON.parse(readFileSync(join(app.project, ".sniptoss", "annotations", HERO_NOTES), "utf8")).annotations;
 
 /**
@@ -105,6 +105,7 @@ test("When an item is overwritten while the app is open, marks leave the canvas 
   await expect.poll(() => notes(app).find((a) => a.body === "新版上的意见")?.material_sha256).toBe(sha(heroPath(app)));
   const fresh = notes(app).find((a) => a.body === "新版上的意见")!;
   expect(fresh.material_size).toBe(statSync(heroPath(app)).size);
+  expect(fresh.material_mtime).toBe(new Date(Math.floor(statSync(heroPath(app)).mtimeMs)).toISOString());
   await expect(app.page.locator(`.annot-badge[data-id="${fresh.id}"]`)).toHaveText("1");
   await expect(card(app, fresh.id).locator(".card-num")).not.toHaveClass(/is-plain/);
   // The old note stays in the earlier-version section, below the new one
@@ -139,6 +140,41 @@ test("An item replaced by another file whose modified time is older than the not
   await expect(app.page.locator(".note-section.is-earlier")).toBeVisible();
   await expect(card(app, "sz0001").locator(".card-num")).toHaveClass(/is-plain/);
   await expect(app.page.locator('.annot-badge[data-id="sz0001"]')).toHaveCount(0);
+});
+
+test("An item replaced by another file of the same size whose modified time is older than the notes (a BMP or an uncompressed TIFF of the same dimensions): the note that recorded another modified time goes to the earlier-version section", async ({ app }) => {
+  // hero.png becomes version 1 (two extra bytes after the end of the PNG), and a note is written on it recording its fingerprint, size and modified time
+  writeFileSync(heroPath(app), Buffer.concat([readFileSync(heroPath(app)), Buffer.from("v1")]));
+  const v1 = statSync(heroPath(app));
+  const file = join(app.project, ".sniptoss", "annotations", HERO_NOTES);
+  const json = JSON.parse(readFileSync(file, "utf8"));
+  const now = new Date().toISOString();
+  json.annotations.push({
+    id: "mt0001",
+    status: "open",
+    category: "change",
+    body: "写在替换前的那份上",
+    anchor: { shapes: [{ type: "point", x: 0.3, y: 0.3 }] },
+    author: "user",
+    created_at: now,
+    updated_at: now,
+    material_sha256: sha(heroPath(app)),
+    material_size: v1.size,
+    material_mtime: new Date(Math.floor(v1.mtimeMs)).toISOString(),
+    replies: [],
+  });
+  writeFileSync(file, JSON.stringify(json, null, 2) + "\n");
+  // Then replaced by version 2: the same size, other bytes, and a modified time from before the note
+  const bytes = readFileSync(heroPath(app));
+  bytes.write("v2", bytes.length - 2);
+  writeFileSync(heroPath(app), bytes);
+  const old = new Date("2026-01-01T00:00:00Z");
+  utimesSync(heroPath(app), old, old);
+  expect(statSync(heroPath(app)).size).toBe(v1.size);
+  await app.open();
+  await expect(app.page.locator(".note-section.is-earlier")).toBeVisible();
+  await expect(card(app, "mt0001").locator(".card-num")).toHaveClass(/is-plain/);
+  await expect(app.page.locator('.annot-badge[data-id="mt0001"]')).toHaveCount(0);
 });
 
 test("An item whose modified time changed but whose content did not (for example touched by git checkout) is drawn on the canvas as usual and does not count as an earlier version", async ({ app }) => {

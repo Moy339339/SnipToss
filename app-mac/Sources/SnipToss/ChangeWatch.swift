@@ -202,6 +202,21 @@ final class MaterialWatcher {
     /// 20 times its duration
     static let fullEvery: TimeInterval = 10
 
+    /// Interval of the next full scan when a volume had not answered yet: soon, so that its entry gets a starting point (at startup on a
+    /// busy machine the first answer can miss the wait for it, and waiting the full interval left the entry without one for 10 seconds, so
+    /// a change in that time was taken as the starting point). Still stretched to 20 times the scan itself, so a large library is not
+    /// rescanned every second while a disconnected share takes its time to answer
+    static let retryUnanswered: TimeInterval = 1
+
+    /// When the next full scan runs, given how long this round took (waiting for volumes included), how long the scan itself took, and
+    /// whether a volume had not answered: normally `fullEvery`, stretched to 20 times a slow round; with a volume unanswered,
+    /// `retryUnanswered` stretched to 20 times the scan, never later than usual (MaterialWatcher.NextFullIn on Windows)
+    static func nextFullIn(took: TimeInterval, scanTook: TimeInterval, unanswered: Bool) -> TimeInterval {
+        let wait = max(took * 20, fullEvery)
+        if !unanswered { return wait }
+        return min(max(scanTook * 20, retryUnanswered), wait)
+    }
+
     /// Fingerprint for when the volume is not connected (a stick unplugged, a share disconnected)
     static let offline = "offline"
 
@@ -343,10 +358,12 @@ final class MaterialWatcher {
         lastFull = started
         nextFull = started + MaterialWatcher.fullEvery
         lock.unlock()
+        var scanTook: TimeInterval = 0
+        var anyUnanswered = false
         defer {
-            let took = clock() - started
+            let now = clock()
             lock.lock()
-            nextFull = clock() + (took * 20 > MaterialWatcher.fullEvery ? took * 20 : MaterialWatcher.fullEvery)
+            nextFull = now + MaterialWatcher.nextFullIn(took: now - started, scanTook: scanTook, unanswered: anyUnanswered)
             lock.unlock()
         }
 
@@ -361,6 +378,7 @@ final class MaterialWatcher {
         // query): one entry on such a volume would otherwise make a round take tens of seconds, the interval stretch to ten-odd minutes,
         // and changes to other items go unseen. When the volume comes back its fingerprint changes from offline and the page rescans it
         volumes.wait(entries)
+        let scanStarted = clock()
         for entry in entries {
             switch volumes.known(entry) {
             case true?:
@@ -369,8 +387,10 @@ final class MaterialWatcher {
                 results.append((entry: entry, signature: MaterialWatcher.offline))
             case nil:
                 results.append((entry: entry, signature: nil))
+                anyUnanswered = true
             }
         }
+        scanTook = clock() - scanStarted
 
         var dirty: [String] = []
         lock.lock()

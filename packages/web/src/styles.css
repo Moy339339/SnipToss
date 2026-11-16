@@ -67,17 +67,26 @@
   --font-cjk: "Microsoft YaHei UI";
   --font-ui: "Segoe UI Variable Text", "Segoe UI", var(--font-cjk), system-ui, sans-serif;
   --font-code: "Cascadia Mono", Consolas, var(--font-cjk), monospace;
+  /* Written at the default text size (14). Each step is at least 1.14× the one below it, so two levels side by side read as two levels; every line height is even,
+     so text centers on whole pixels in the even-height controls (S2) */
   --fs-micro: 11px; /* G1: only for pure digits and Latin text */
-  --fs-caption: 12px;
+  --fs-caption: 12px; /* also the text of every 28-high control (compact buttons, segmented controls, search boxes, toolbar and title bar text) */
   --lh-caption: 16px;
-  --lh-note: 18px; /* 12px running text */
-  --fs-body: 13px;
+  --lh-note: 18px; /* 12px running text: the descriptions under Settings rows */
+  --fs-body: 14px;
   --lh-body: 20px;
-  --fs-title: 15px;
-  --lh-title: 22px;
-  --fs-heading: 18px;
-  --lh-heading: 26px;
-  --fs-display: 30px; /* only for the logo: the product name under Settings → About (the library header's 15 × 2) */
+  --fs-label: 14px; /* running text at the body size, on a roomier line: Settings (its default), the descriptions of dialogs, hints and empty states */
+  --lh-label: 22px;
+  --fs-title: 16px;
+  --lh-title: 24px;
+  --fs-heading: 20px;
+  --lh-heading: 28px;
+  /* The levels above follow the text sizes in Settings → Appearance (typeScale.ts moves them all by the same pixels, line heights to the next even pixel). These do not follow the interface size: */
+  --fs-content: 14px; /* note text in the notes panel and the note box: follows "Note text size" on its own; a reading line (1.57) for text that runs over several lines */
+  --lh-content: 22px;
+  --fs-mark: 12px; /* numbers on the marks drawn over the item: part of the picture, they keep their size */
+  --fs-tick: 11px; /* note numbers on the playback bar: in 20-high circles, they keep their size */
+  --fs-display: 32px; /* only for the logo: the product name under Settings → About (the library header's 16 × 2) */
 
   /* ---------- Sizes (S4) ---------- */
   --h-xs: 20px; /* badges, labels */
@@ -244,10 +253,14 @@ kbd {
     background-color var(--dur-fast) var(--ease),
     color var(--dur-fast) var(--ease);
 }
+/* Text follows the control's height (S2): 32-high controls carry the body size, 28-high ones the caption size, so the chrome around a list or
+   a note reads one step quieter than what it holds */
 .btn-small {
   gap: 6px;
   height: var(--h-md);
   padding: 0 12px;
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
 }
 /* The dropdown in Settings (interface language): a small arrow on the right, same as the zoom bar */
 .set-select {
@@ -412,23 +425,37 @@ kbd {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* When Windows "Animation effects" is off (Settings → Accessibility → Visual effects): the interface plays no transitions or animations and jumps straight to the end state (accessibility).
+/* Reduce motion (Settings → Appearance; by default it follows Windows "Animation effects", Settings → Accessibility → Visual effects): App.tsx puts .reduce-motion on <html>,
+   and the interface plays no transitions or animations and jumps straight to the end state (accessibility).
    The duration stays 0.01ms rather than 0: animation and transition end events still fire, so anything that finishes up through them does not hang */
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    --dur-fast: 0.01ms;
-    --dur: 0.01ms;
-    --dur-slow: 0.01ms;
-  }
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-delay: 0ms !important;
-    transition-duration: 0.01ms !important;
-    transition-delay: 0ms !important;
-    scroll-behavior: auto !important;
-  }
+:root.reduce-motion {
+  --dur-fast: 0.01ms;
+  --dur: 0.01ms;
+  --dur-slow: 0.01ms;
+}
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0ms !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+}
+/* Pointer cursor (Settings → Appearance, off by default: Windows apps keep the arrow over buttons): App.tsx puts .pointer-cursor on <html> */
+.pointer-cursor
+  :is(
+    button,
+    a[href],
+    summary,
+    [role="menuitem"],
+    [role="menuitemradio"],
+    [role="menuitemcheckbox"],
+    [role="tab"],
+    [role="switch"],
+    label.check
+  ):not(:disabled) {
+  cursor: pointer;
 }
 
 /* Windows high contrast (forced-colors, accessibility): background colors and shadows are removed by the system and replaced with the system colors. Many of our borders are drawn with shadows
@@ -721,6 +748,8 @@ kbd {
   height: var(--h-md);
   padding: 0 12px;
   border-radius: var(--r-control);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
   color: var(--text-2);
   transition:
     background-color var(--dur-fast) var(--ease),
@@ -805,11 +834,14 @@ kbd {
   min-width: 0;
   padding: 0 8px;
 }
-/* There is no other text in the title bar, so menu names use the body font size; one level lighter in color, as they are part of the window's frame and should not compete with the content */
+/* Menu names are part of the window's frame and should not compete with the content: the caption size of every 28-high control (the menu bar
+   of a Windows app is 12 too) and one level lighter in color. The menus they open are lists and keep the body size */
 .menubar-item {
   height: var(--h-md);
   padding: 0 8px;
   border-radius: var(--r-control);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
   color: var(--text-2);
   transition:
     background-color var(--dur-fast) var(--ease),
@@ -870,6 +902,8 @@ kbd {
   height: var(--h-md);
   padding: 0 8px;
   border-radius: var(--r-control) 0 0 var(--r-control);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
   color: var(--text-2);
   transition:
     background-color var(--dur-fast) var(--ease),
@@ -900,12 +934,23 @@ kbd {
 }
 /* Update available (updates.ts): a block of its own (not a split button), text in the accent color, set slightly apart from "Capture" */
 .titlebar-update {
+  position: relative;
   margin-right: 4px;
   border-radius: var(--r-control);
 }
 .titlebar-update,
 .titlebar-update:hover {
   color: var(--accent);
+}
+.titlebar-update-label {
+  white-space: nowrap;
+}
+/* Too narrow for the menu names beside it (TitleBar's useTightUpdate): only the icon, the tooltip still says it. The text keeps its
+   layout out of the flow (its width tells when there is room again) */
+.titlebar-update.is-tight .titlebar-update-label {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
 }
 .titlebar-more {
   justify-content: center;
@@ -988,8 +1033,15 @@ kbd {
   background: var(--bg);
   /* The outline uses an inset shadow and takes no space: the icon lands exactly on the 16 line (S5) */
   box-shadow: inset 0 0 0 1px var(--border);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
   color: var(--muted);
   transition: box-shadow var(--dur-fast) var(--ease);
+}
+/* In the notes panel the search box keeps to that panel's two lines (S5): the icon on 20 with the checkboxes below it, the text on 44 with the notes */
+.panel-search {
+  gap: 8px;
+  padding-left: 12px;
 }
 .search:focus-within {
   box-shadow: inset 0 0 0 1px var(--border-strong);
@@ -1382,6 +1434,8 @@ kbd {
   height: var(--h-md);
   min-width: var(--h-md);
   padding: 0 6px;
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
 }
 .tool-btn.is-on,
 .tool-btn.is-on:hover {
@@ -1478,7 +1532,6 @@ kbd {
   line-height: var(--lh-caption);
 }
 .earlier-title {
-  font-weight: 600;
   color: var(--text);
 }
 .earlier-note {
@@ -1947,7 +2000,7 @@ kbd {
   background: var(--mark);
   color: #fff;
   color: oklch(from var(--mark) clamp(0.2, (0.9 - l) * 1000, 1) 0 0); /* dark on a light mark color, as on the canvas */
-  font-size: var(--fs-micro);
+  font-size: var(--fs-tick);
   font-weight: 600;
   line-height: var(--h-xs);
   text-align: center;
@@ -2066,7 +2119,7 @@ kbd {
   gap: 8px;
   padding: 0 8px;
 }
-/* What the notes panel lists: "This video | Entire project (| Selected)", a well (like the tool group, 32 high, options 28). Text 13, and the number is the open count (one gray level lighter, monospaced).
+/* What the notes panel lists: "This video | Entire project (| Selected)", a well (like the tool group, 32 high, options 28). Text 12 like every segmented control, and the number is the open count (one gray level lighter, monospaced).
    Options have 10 on each side = well padding 2 + 8: the first cell's text lands on the notes panel's content line 20 (S5; check-design registers this exception).
    When the panel is narrow the options can shrink, the text is ellipsized, and the number stays */
 .scope-switch {
@@ -2078,8 +2131,6 @@ kbd {
 .scope-switch .seg {
   min-width: 0;
   padding: 0 10px;
-  font-size: var(--fs-body);
-  line-height: var(--lh-body);
 }
 .scope-switch .seg:disabled {
   opacity: var(--disabled);
@@ -2117,6 +2168,7 @@ kbd {
 }
 .panel-empty {
   padding: 32px 16px;
+  line-height: var(--lh-label);
   word-break: keep-all;
   overflow-wrap: anywhere;
   text-wrap: pretty;
@@ -2261,7 +2313,6 @@ kbd {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 600;
 }
 .note-section-count {
   flex: none;
@@ -2556,6 +2607,8 @@ kbd {
 }
 .card-body {
   margin-top: 8px;
+  font-size: var(--fs-content);
+  line-height: var(--lh-content);
   text-wrap: pretty;
   user-select: text;
   white-space: pre-wrap;
@@ -2570,9 +2623,10 @@ kbd {
   line-height: var(--lh-note);
   user-select: text;
 }
+/* At 12 the name is set apart by color, not weight (S2: no bold below the body size) */
 .reply-author {
-  font-weight: 600;
   margin-right: 6px;
+  color: var(--text);
 }
 /* Actions: float at the right of the title row on hover (or when reached with Tab), like Gmail's list. They do not expand the entry: expanding a row underneath moved the entries below by 32,
    so the whole column jumped as the mouse swept down and clicks easily missed.

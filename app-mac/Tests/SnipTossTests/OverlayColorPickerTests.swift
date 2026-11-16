@@ -364,7 +364,8 @@ final class OverlayColorPickerTests: SnipTestCase {
         var calls = 0
         picker.onApply = { _ in calls += 1 }
         picker.onClose = { calls += 1 }
-        for other in [OverlayKey.a, .c, .digit(1), .keypad(2), .left, .right, .up, .down, .period, .z] {
+        // Letters other than Z are no OverlayKey at all: the overlay hands the picker only these
+        for other in [OverlayKey.z, .digit(1), .keypad(2), .left, .right, .up, .down] {
             XCTAssertFalse(picker.key(other), "\(other)")
         }
         XCTAssertEqual(calls, 0)

@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent, useRef } from "react";
 import "./demo.css";
+import { reduceMotion } from "./typeScale";
 
 /**
  * The onboarding animations: a miniature of the window acting out what to do (drag a picture in, box what should change, write the note,
@@ -749,7 +750,7 @@ function play(root: HTMLElement, scene: DemoScene, onPhase: (n: 1 | 2 | 3) => vo
       await wait(450);
     }
   };
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) still();
+  if (reduceMotion()) still();
   else
     run().catch((e: unknown) => {
       if (e !== STOP) throw e;

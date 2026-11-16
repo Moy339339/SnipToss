@@ -105,6 +105,29 @@ describe("mergePrefs", () => {
       muted: false,
     });
   });
+
+  it("text sizes: whole pixels pulled back into each range (12–16, 12–18, 13–16); anything not a number gives the default; reduce motion takes only system / on / off", () => {
+    expect(mergePrefs({ uiFontSize: 99, noteFontSize: 1, settingsFontSize: 15.6 })).toMatchObject({
+      uiFontSize: 16,
+      noteFontSize: 12,
+      settingsFontSize: 16,
+    });
+    expect(mergePrefs({ uiFontSize: 13, noteFontSize: 18, settingsFontSize: 13 })).toMatchObject({
+      uiFontSize: 13,
+      noteFontSize: 18,
+      settingsFontSize: 13,
+    });
+    expect(mergePrefs({ uiFontSize: "15", noteFontSize: NaN, settingsFontSize: null } as never)).toMatchObject({
+      uiFontSize: 14,
+      noteFontSize: 14,
+      settingsFontSize: 14,
+    });
+    expect(mergePrefs({ reduceMotion: "always", pointerCursor: "yes" } as never)).toMatchObject({
+      reduceMotion: "system",
+      pointerCursor: false,
+    });
+    expect(mergePrefs({ reduceMotion: "off", pointerCursor: true })).toMatchObject({ reduceMotion: "off", pointerCursor: true });
+  });
 });
 
 describe("default values", () => {
@@ -113,7 +136,12 @@ describe("default values", () => {
       language: "system",
       author: "",
       uiScale: 1,
+      uiFontSize: 14,
+      noteFontSize: 14,
+      settingsFontSize: 14,
       backdrop: "blur",
+      reduceMotion: "system",
+      pointerCursor: false,
       updateCheck: true,
       beginner: true,
       defaultCategory: "change",
@@ -143,6 +171,7 @@ describe("default values", () => {
       promptExtra: "",
       copyImages: "merged",
       copyImagesMax: 10,
+      keybindings: {},
     });
   });
 

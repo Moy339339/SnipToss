@@ -3,7 +3,7 @@ import { useIntl } from "react-intl";
 import { fpsLabel, type Annotation } from "@sniptoss/core";
 import { Ambient } from "./Ambient";
 import { logError } from "./host";
-import { useKeys } from "./keys";
+import { useCommands, useShortcuts } from "./commandKeys";
 import { placeStyle } from "./markColors";
 import { usePrefs } from "./prefs";
 import { scrubber, wantedTime, type Scrubber } from "./scrub";
@@ -101,6 +101,7 @@ export function VideoPlayer(props: {
   const syncNow = () => video.current && setNow(video.current.currentTime);
   const { prefs, setPrefs } = usePrefs();
   const intl = useIntl();
+  const { tip: keyTip } = useShortcuts();
 
   // Volume and mute are stored in Settings (kept across videos and restarts). While dragging the slider only the video changes; the value is stored 300ms after the drag stops, so the settings file is not written at every step
   const [volume, setVolume] = useState(prefs.volume);
@@ -368,27 +369,26 @@ export function VideoPlayer(props: {
   }, [prefs.loop]);
 
   // Holding a key makes the system repeat the press; only the first counts, otherwise it would keep toggling between play and pause
-  const toggleOnce = (e: KeyboardEvent) => {
-    if (!e.repeat) toggle();
+  const toggleOnce = (e?: KeyboardEvent) => {
+    if (!e?.repeat) toggle();
   };
 
-  useKeys({
-    Space: toggleOnce,
-    K: toggleOnce,
-    J: () => seekBy(-5),
-    L: () => seekBy(5),
-    ArrowLeft: () => step(-1),
-    ArrowRight: () => step(1),
-    "Shift+ArrowLeft": () => seekBy(-1),
-    "Shift+ArrowRight": () => seekBy(1),
-    Home: () => jump(0),
-    End: () => jump(Infinity),
-    ",": () => changeRate(-1),
-    ".": () => changeRate(1),
-    M: toggleMute,
-    ArrowUp: () => changeVolume(0.1),
-    ArrowDown: () => changeVolume(-0.1),
-    // Ctrl+L lives in Workspace: loop playback can be toggled on images too
+  useCommands({
+    "play.toggle": toggleOnce,
+    "play.back5": () => seekBy(-5),
+    "play.forward5": () => seekBy(5),
+    "play.prevFrame": () => step(-1),
+    "play.nextFrame": () => step(1),
+    "play.back1": () => seekBy(-1),
+    "play.forward1": () => seekBy(1),
+    "play.start": () => jump(0),
+    "play.end": () => jump(Infinity),
+    "play.slower": () => changeRate(-1),
+    "play.faster": () => changeRate(1),
+    "play.mute": toggleMute,
+    "play.volumeUp": () => changeVolume(0.1),
+    "play.volumeDown": () => changeVolume(-0.1),
+    // Loop playback lives in Workspace: it can be toggled on images too
   });
 
   // Dragging the progress bar
@@ -467,10 +467,10 @@ export function VideoPlayer(props: {
     ].join("\n");
 
   // The three icon-only buttons: the name also goes into aria-label. The window-wide tooltip takes the title off while the mouse rests (Tooltip.tsx), and at that moment the button would have no name
-  const playLabel = intl.formatMessage({ id: playing ? "video.pause" : "video.play" });
+  const playLabel = keyTip(intl.formatMessage({ id: playing ? "video.pause" : "video.play" }), "play.toggle");
   // Whether it is on is shown by the lit button, not in words
-  const loopLabel = intl.formatMessage({ id: "video.loopTitle" });
-  const muteLabel = intl.formatMessage({ id: silent ? "video.unmute" : "video.mute" });
+  const loopLabel = keyTip(intl.formatMessage({ id: "video.loopTitle" }), "play.loop");
+  const muteLabel = keyTip(intl.formatMessage({ id: silent ? "video.unmute" : "video.mute" }), "play.mute");
 
   return (
     <div className="video-player">
@@ -615,7 +615,11 @@ export function VideoPlayer(props: {
             </div>
           )}
           <span className="transport-gap" />
-          <button className="text-btn" onClick={cycleRate} title={intl.formatMessage({ id: "video.rate" })}>
+          <button
+            className="text-btn"
+            onClick={cycleRate}
+            title={keyTip(intl.formatMessage({ id: "video.rate" }), "play.slower", "play.faster")}
+          >
             {rate}×
           </button>
           <button
@@ -663,7 +667,11 @@ export function VideoPlayer(props: {
               setVolume(Number(e.target.value));
               if (prefs.muted) setPrefs({ muted: false });
             }}
-            title={intl.formatMessage({ id: "video.volumeTitle" }, { percent: Math.round((prefs.muted ? 0 : volume) * 100) })}
+            title={keyTip(
+              intl.formatMessage({ id: "video.volumeTitle" }, { percent: Math.round((prefs.muted ? 0 : volume) * 100) }),
+              "play.volumeUp",
+              "play.volumeDown",
+            )}
             aria-label={intl.formatMessage({ id: "video.volumeLabel" })}
           />
         </div>

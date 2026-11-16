@@ -25,6 +25,7 @@ import {
   type Shape,
 } from "@sniptoss/core";
 import { removeOldShim } from "./agent";
+import { useShortcuts } from "./commandKeys";
 import { translatorFor } from "./i18n";
 import { annotationPath, baseName, call, homeJoin, keyOf, logError, onHostEvent, parseHomeFiles, textSha256 } from "./host";
 import type { FolderTarget, useLibrary } from "./library";
@@ -151,6 +152,7 @@ export function useAnnotationStore(opts: {
   const { library, onNotify } = opts;
   const { notifyError, reasonOf, describeBad } = opts.report;
   const intl = useIntl();
+  const { text: keyText } = useShortcuts();
   const [files, setFiles] = useState(() => new Map<string, Stored>());
   const filesRef = useRef(files);
   /**
@@ -328,10 +330,15 @@ export function useAnnotationStore(opts: {
         fresh.forEach((h) => loadedHomes.current.delete(keyOf(h)));
         markRead(fresh);
         logError("reading notes", e, "warn");
-        notifyError(intl.formatMessage({ id: "app.read.failed" }, { reason: reasonOf(e, fresh.join(", ")) }), e, undefined, {
-          label: intl.formatMessage({ id: "app.read.retry" }),
-          run: () => void library.rescan(),
-        });
+        notifyError(
+          intl.formatMessage({ id: "app.read.failed" }, { reason: reasonOf(e, fresh.join(", ")), key: keyText("file.refresh") || "none" }),
+          e,
+          undefined,
+          {
+            label: intl.formatMessage({ id: "app.read.retry" }),
+            run: () => void library.rescan(),
+          },
+        );
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [library.homes]);
@@ -602,6 +609,18 @@ export function useAnnotationStore(opts: {
     return { op };
   };
 
+  /**
+   * Drops the undo / redo steps that only touched notes in this notes folder. For the tutorial's sample when it leaves the list:
+   * otherwise Ctrl+Z on the welcome page would change notes that are no longer listed, with nothing to show for it
+   */
+  const forgetHome = (home: string) => {
+    const keep = (op: Op) => !partsOf(op).every((p) => keyOf(p.home) === keyOf(home));
+    const { undo, redo } = history.current;
+    if (undo.every(keep) && redo.every(keep)) return;
+    history.current = { undo: undo.filter(keep), redo: redo.filter(keep) };
+    bump((n) => n + 1);
+  };
+
   // Undo / redo are queued and run one at a time: each step also retakes snapshots (asynchronous), and with repeated Ctrl+Z the late
   // result of an earlier step would overwrite the next one
   const historyQueue = useRef<Promise<void>>(Promise.resolve());
@@ -767,6 +786,7 @@ export function useAnnotationStore(opts: {
     enqueue,
     undo,
     redo,
+    forgetHome,
     canUndo: history.current.undo.length > 0,
     canRedo: history.current.redo.length > 0,
     noteLost,

@@ -197,6 +197,9 @@ static class Native
     [DllImport("user32.dll")]
     public static extern uint MapVirtualKeyEx(uint code, uint mapType, IntPtr layout);
 
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetKeyboardLayout(uint threadId);
+
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     public static extern int ToUnicodeEx(uint vk, uint scanCode, byte[] keyState, [Out] char[] buffer, int bufferSize, uint flags, IntPtr layout);
 

@@ -893,8 +893,9 @@ export class MockHost {
       rel: inFolder ? toSlash(path.relative(entry, file)) : path.basename(file),
       kind,
       size: st.size,
-      mtime: Math.round(st.mtimeMs),
-      ctime: Math.round(st.birthtimeMs),
+      // Truncated like the shells (ToUnixTimeMilliseconds): new notes record it as material_mtime and the CLI compares it with its own stat
+      mtime: Math.floor(st.mtimeMs),
+      ctime: Math.floor(st.birthtimeMs),
       home,
       homeRel: toSlash(path.relative(home, file)),
       url: urlOf(file),

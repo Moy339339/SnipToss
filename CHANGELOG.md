@@ -4,6 +4,27 @@ All notable changes to SnipToss Desktop are listed here: SnipToss for Windows an
 
 The annotation data format has its own version (`"schema": "sniptoss/5"`); its history is in [docs/annotation-format.md](docs/annotation-format.md).
 
+## [1.6.0] — 2026-11-16
+
+### Added
+
+- Keyboard shortcuts can be changed in **Settings → Shortcuts**. Every command is listed with its keys; search by name, or by pressing the keys. Click a key to record a new one, add a second key or remove one, and restore one command or all of them. A key that another command already uses is offered to be moved over instead of being taken silently. Menus, tooltips, the Keyboard Shortcuts list and the Screen Capture tools all follow the changed keys. Restore Defaults leaves the shortcuts as they are.
+- **Settings → Appearance**: interface text size (12–16), note text size (12–18) and Settings text size (13–16), along with the interface size and the canvas background, which moved here from General. Reduce motion follows the system or can be turned on or off, and Pointer cursor shows a hand over buttons, links and menu items.
+
+### Changed
+
+- A redesigned Settings window: it grows with the main window, each page is split into titled groups, and the page title stays in view while the content scrolls.
+- Type and spacing across the interface: text is 14 by default, compact controls (search boxes, segmented controls, menu names, the bottom bar of the notes panel) use 12, and line heights are even so text sits on whole pixels. The notes panel is a little wider by default so its bottom row fits on one line.
+
+### Fixed
+
+- Windows: the Screen Capture note box could freeze when an input method or dictation inserted a line break into text it was still composing.
+- Mac: the capture overlay went by where a key sits on a US keyboard, so on layouts such as French AZERTY the tool letters were in other places and ⌘Z cancelled the capture. Its keys now go by the letter they type, as in the main window.
+- An item replaced by an older file of the same size (an uncompressed image, or a copy that kept its timestamps) was taken as unchanged, so notes written on the earlier version stayed on the new picture. New notes also record the item's modified time (`material_mtime`, an optional field in the notes format).
+- Copy as Images with one image per note: a note without a stored snapshot came out as text only. It is now drawn from the item.
+- Right after startup, a change to an item on a drive that was slow to answer could go unnoticed for several seconds. SnipToss now looks again after one second.
+- Ending the tutorial left the Rectangle tool selected and Undo pointing at the sample picture, which had already left the library.
+
 ## [1.5.0] — 2026-11-14
 
 ### Added
@@ -179,6 +200,7 @@ First public release.
 - Portable version: with a `data` folder next to the app, all data stays in it and the registry is never touched.
 - Command-line tool `sniptoss` (list, review, resolve, wontfix); its messages follow the system display language.
 
+[1.6.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.6.0
 [1.5.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.5.0
 [1.4.0]: https://github.com/Moy339339/SnipToss/releases/tag/v1.4.0
 [1.3.1]: https://github.com/Moy339339/SnipToss/releases/tag/v1.3.1

@@ -255,7 +255,7 @@ test("Startup restores the previous state: the last viewed item, expanded folder
 /** The library width on the next load (localStorage, Panels.tsx) */
 const presetLeft = (app: App, width: number) =>
   app.page.addInitScript(
-    (w) => localStorage.setItem("sniptoss.panels", JSON.stringify({ left: { width: w, collapsed: false }, right: { width: 320, collapsed: false } })),
+    (w) => localStorage.setItem("sniptoss.panels", JSON.stringify({ left: { width: w, collapsed: false }, right: { width: 336, collapsed: false } })),
     width,
   );
 /** The project subtitle: the parent folder, with the user profile directory written as ~ */

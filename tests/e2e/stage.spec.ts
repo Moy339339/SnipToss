@@ -4,7 +4,7 @@
 
 import { copyFileSync, mkdirSync, readFileSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, ROOT, test, type App } from "./harness";
+import { expect, ROOT, test, withKey, type App } from "./harness";
 import { stripedPng } from "./png";
 
 const row = (app: App, name: string) => app.page.locator(".lib-row", { hasText: name }).first();
@@ -504,13 +504,13 @@ test("an image replaced in place (an agent exported it again): the blurred surro
 test("play / pause: the play bar button, Space, K and clicking the canvas all toggle it, and the button icon and tooltip follow; when playback ends it stops at the end and playing again starts from the beginning", async ({ app }) => {
   await app.open();
   await openClip(app);
-  await expect(playBtn(app)).toHaveAttribute("title", "播放（空格）");
+  await expect(playBtn(app)).toHaveAttribute("title", withKey("播放", "空格"));
   await press(app, playBtn(app));
   await expect.poll(async () => (await video(app)).paused).toBe(false);
-  await expect(playBtn(app)).toHaveAttribute("title", "暂停（空格）");
+  await expect(playBtn(app)).toHaveAttribute("title", withKey("暂停", "空格"));
   await press(app, playBtn(app));
   await expect.poll(async () => (await video(app)).paused).toBe(true);
-  await expect(playBtn(app)).toHaveAttribute("title", "播放（空格）");
+  await expect(playBtn(app)).toHaveAttribute("title", withKey("播放", "空格"));
 
   await focusStage(app);
   await app.page.keyboard.press("k");
@@ -523,7 +523,7 @@ test("play / pause: the play bar button, Space, K and clicking the canvas all to
   await app.page.evaluate(() => (document.querySelector("video")!.currentTime = 2.7)); // Seek while playing, without waiting for it to settle at 2.7
   await expect.poll(async () => (await video(app)).ended, { timeout: 5000 }).toBe(true);
   expect((await video(app)).paused).toBe(true);
-  await expect(playBtn(app)).toHaveAttribute("title", "播放（空格）");
+  await expect(playBtn(app)).toHaveAttribute("title", withKey("播放", "空格"));
   await focusStage(app);
   await app.page.keyboard.press("Space");
   await expect.poll(async () => {
@@ -704,7 +704,7 @@ test("a video replaced in place (an agent exported it again): the speed is kept 
   await app.page.keyboard.press(".");
   await app.page.keyboard.press(".");
   await app.page.keyboard.press("Space");
-  await expect(playBtn(app)).toHaveAttribute("title", "暂停（空格）");
+  await expect(playBtn(app)).toHaveAttribute("title", withKey("暂停", "空格"));
   // The replacement file has the same modification time as the original (Windows keeps the source's modification time when copying, and files from one checkout often share a modification time), and only the size changed: it must still be noticed
   const clip = join(app.project, "video", "clip.mp4");
   const before = statSync(clip);
@@ -714,7 +714,7 @@ test("a video replaced in place (an agent exported it again): the speed is kept 
   await expect(rateBtn(app)).toHaveText("2×");
   expect((await video(app)).rate).toBe(2);
   const s = await video(app);
-  await expect(playBtn(app)).toHaveAttribute("title", s.paused ? "播放（空格）" : "暂停（空格）");
+  await expect(playBtn(app)).toHaveAttribute("title", s.paused ? withKey("播放", "空格") : withKey("暂停", "空格"));
 });
 
 test("loop: Ctrl+L, the play bar button and the Playback menu all toggle it, flash Loop: on / off and save to settings; when on, playback restarts from the beginning after the end; nothing flashes when a video is opened", async ({
@@ -759,13 +759,13 @@ test("mute: M and the speaker button toggle it, the icon, tooltip and settings f
   await focusStage(app);
   await app.page.keyboard.press("m");
   await expect(hud(app)).toHaveText("已静音");
-  await expect(muteBtn(app)).toHaveAttribute("title", "取消静音（M）");
+  await expect(muteBtn(app)).toHaveAttribute("title", withKey("取消静音", "M"));
   await expect(muteBtn(app)).toHaveAttribute("aria-pressed", "true");
   await expect.poll(() => app.host.prefs?.muted).toBe(true);
   expect((await video(app)).muted).toBe(true);
   await press(app, muteBtn(app));
   await expect(hud(app)).toHaveText("已取消静音");
-  await expect(muteBtn(app)).toHaveAttribute("title", "静音（M）");
+  await expect(muteBtn(app)).toHaveAttribute("title", withKey("静音", "M"));
   expect((await video(app)).muted).toBe(false);
   await focusStage(app);
   await app.page.keyboard.press("m");
@@ -1095,18 +1095,18 @@ test("toolbar overall comment, undo and redo: undo / redo are disabled while the
 test("toolbar ends: collapse / expand the Library, Settings and Keyboard Shortcuts; Ctrl+,, ? and F1 open them too", async ({ app }) => {
   await app.open();
   const left = app.page.locator(".hdr-left .hdr-btn");
-  await expect(left).toHaveAttribute("title", "隐藏素材栏（Ctrl B）");
+  await expect(left).toHaveAttribute("title", withKey("隐藏素材栏", "Ctrl B"));
   await left.click();
   await expect(app.page.locator(".layout")).toHaveClass(/left-collapsed/);
-  await expect(left).toHaveAttribute("title", "显示素材栏（Ctrl B）");
+  await expect(left).toHaveAttribute("title", withKey("显示素材栏", "Ctrl B"));
   await left.click();
   await expect(app.page.locator(".layout")).not.toHaveClass(/left-collapsed/);
 
-  await app.page.locator('.hdr-btn[title="设置（Ctrl ,）"]').click();
+  await app.page.locator(`.hdr-btn[title="${withKey("设置", "Ctrl ,")}"]`).click();
   await expect(app.page.locator(".settings")).toBeVisible();
   await app.page.keyboard.press("Escape");
   await expect(app.page.locator(".settings")).toHaveCount(0);
-  await app.page.locator('.hdr-btn[title="快捷键一览（?）"]').click();
+  await app.page.locator(`.hdr-btn[title="${withKey("快捷键一览", "?")}"]`).click();
   await expect(app.page.locator(".sheet")).toBeVisible();
   await app.page.keyboard.press("Escape");
   await expect(app.page.locator(".sheet")).toHaveCount(0);

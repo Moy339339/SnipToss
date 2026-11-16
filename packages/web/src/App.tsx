@@ -6,12 +6,13 @@ import { call, inHost, logError, onHostEvent, platform, type AppInfo } from "./h
 import { loadMessages, resolveLocale, SOURCE_LOCALE } from "./i18n";
 import { macMessages } from "./macKeys";
 import { AlertIcon, CloseIcon } from "./icons";
-import { useKeys } from "./keys";
+import { useCommands } from "./commandKeys";
 import { mergePrefs, PrefsContext, storedPrefs, type Prefs } from "./prefs";
 import { startRecentColors } from "./recentColors";
 import { SECTIONS, SettingsDialog, type Section } from "./SettingsDialog";
 import { ShortcutHelp } from "./ShortcutHelp";
 import { Tooltips } from "./Tooltip";
+import { contentVars, TYPE_TOKENS, typeVars } from "./typeScale";
 import { WorkspaceView, type Notify } from "./Workspace";
 
 interface ToastState {
@@ -158,6 +159,31 @@ export function App() {
     document.documentElement.style.setProperty("--mark", prefs.markColor);
   }, [prefs.uiScale, prefs.markColor]);
 
+  // Text sizes (Settings → Appearance, typeScale.ts): the interface and the note text are set on <html>; Settings sets its own on itself
+  useEffect(() => {
+    const style = document.documentElement.style;
+    for (const name of TYPE_TOKENS) style.removeProperty(name);
+    for (const [name, value] of Object.entries({ ...typeVars("uiFontSize", prefs.uiFontSize), ...contentVars(prefs.noteFontSize) }))
+      style.setProperty(name, value);
+  }, [prefs.uiFontSize, prefs.noteFontSize]);
+
+  // Reduce motion (styles.css .reduce-motion): "system" follows Windows "Animation effects", and changes with it while the app runs
+  useEffect(() => {
+    const system = matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () =>
+      document.documentElement.classList.toggle(
+        "reduce-motion",
+        prefs.reduceMotion === "system" ? system.matches : prefs.reduceMotion === "on",
+      );
+    apply();
+    system.addEventListener("change", apply);
+    return () => system.removeEventListener("change", apply);
+  }, [prefs.reduceMotion]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("pointer-cursor", prefs.pointerCursor);
+  }, [prefs.pointerCursor]);
+
   useEffect(() => {
     if (!inHost) return;
     startRecentColors();
@@ -221,13 +247,13 @@ export function App() {
     void call("ready").catch((e) => logError("startup", e));
   }, [messages]);
 
-  useKeys(
+  useCommands(
     {
-      "Ctrl+,": () => openSettings("general"),
-      "?": () => setHelp(true),
-      F1: () => setHelp(true),
+      "app.settings": () => openSettings("general"),
+      "app.shortcuts": () => setHelp(true),
     },
-    { enabled: error === undefined },
+    // App provides the settings context itself, so it hands the keys over instead of reading the context
+    { enabled: error === undefined, bindings: prefs.keybindings },
   );
 
   // When startup fails it still waits for the messages (the error page speaks the current language)

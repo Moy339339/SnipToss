@@ -26,7 +26,7 @@ test("Restore Defaults asks for confirmation first and says exactly what it cove
   await app.page.getByRole("button", { name: "恢复默认" }).click();
   const dialog = app.page.getByRole("alertdialog");
   await expect(dialog).toContainText("恢复默认设置？");
-  await expect(dialog).toContainText("截图批注、托盘与开机启动、系统集成、素材列表和窗口位置不变");
+  await expect(dialog).toContainText("截图批注、快捷键、托盘与开机启动、系统集成、素材列表和窗口位置不变");
   await app.page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(app.page.locator(".settings")).toBeVisible();

@@ -361,7 +361,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         return CaptureOptions(
             markColor: MarkColor(hexText: values.markColor) ?? ToolPrefs.colors[0], defaultCategory: values.defaultCategory,
             selectHint: !values.capture.selectHintDone, notesInImage: values.capture.notesInImage, promptExtra: values.promptExtra,
-            folder: folder?.isEmpty == false ? folder : nil)
+            folder: folder?.isEmpty == false ? folder : nil, keys: CaptureKeys.from(values.prefs?["keybindings"]))
     }
 
     private func languageChanged() {

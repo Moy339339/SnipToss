@@ -170,7 +170,8 @@ test("a note's snapshot is retaken with the drawing in it, and Copy as Text says
   const before = statSync(shotPath()).mtimeMs;
   await app.page.keyboard.press("a");
   await drag(app, at(box, 0.7, 0.9), at(box, 0.5, 0.7));
-  await app.page.mouse.click(...at(box, 0.05, 0.95));
+  // Somewhere clear of the note box, which opens to the left of the arrow (the bottom left corner is under it when the canvas is a little narrower)
+  await app.page.mouse.click(...at(box, 0.95, 0.1));
   await expect.poll(() => drawings(app).length).toBe(1);
   await expect.poll(() => statSync(shotPath()).mtimeMs).toBeGreaterThan(before);
 

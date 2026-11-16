@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
+import { useShortcuts } from "./commandKeys";
 import { cssZoom } from "./cssZoom";
 import { Demo, type DemoScene } from "./Demo";
 import { KeepPunctuation } from "./KeepPunctuation";
@@ -44,6 +45,7 @@ const DEMOS: Partial<Record<HintId, DemoScene>> = {
  */
 export function Hint(props: { id: HintId; target?: string; captureKeys?: string; onClose: () => void; onBeginnerOff?: () => void }) {
   const intl = useIntl();
+  const { text } = useShortcuts();
   const el = useRef<HTMLDivElement>(null);
   const close = useEffectEvent(() => props.onClose());
 
@@ -103,7 +105,12 @@ export function Hint(props: { id: HintId; target?: string; captureKeys?: string;
           {intl.formatMessage(
             { id: props.id === "capture" && !props.captureKeys ? "hint.captureNoKey" : `hint.${props.id}` },
             // Do not break the shortcut in the middle ("Ctrl Alt" / "A"): non-breaking spaces between key names
-            { app: intl.formatMessage({ id: "brand.name" }), keys: (props.captureKeys ?? "").replaceAll(" ", String.fromCharCode(0xa0)) },
+            {
+              app: intl.formatMessage({ id: "brand.name" }),
+              keys: (props.captureKeys ?? "").replaceAll(" ", String.fromCharCode(0xa0)),
+              // The timestamped comment's key, for the hint on videos
+              key: text("note.timed").replaceAll(" ", String.fromCharCode(0xa0)) || "none",
+            },
           )}
         </KeepPunctuation>
       </div>

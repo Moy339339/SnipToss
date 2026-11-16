@@ -263,6 +263,13 @@ final class MaterialScannerTests: SnipTestCase {
 
     // MARK: What a result carries
 
+    func testTimesAreWholeMillisecondsCutOffNeverRounded() {
+        XCTAssertEqual(MaterialScanner.milliseconds(timespec(tv_sec: 1, tv_nsec: 999_999_999)), 1_999)
+        XCTAssertEqual(MaterialScanner.milliseconds(timespec(tv_sec: 0, tv_nsec: 500_000)), 0)
+        // Before 1970 a nanosecond short of a second is the millisecond before it (the floor, as .NET's ToUnixTimeMilliseconds on Windows)
+        XCTAssertEqual(MaterialScanner.milliseconds(timespec(tv_sec: -1, tv_nsec: 999_999_999)), -1)
+    }
+
     func testResultsCarryTheFilesSizeModifiedTimeAndCreatedTime() throws {
         let dir = makeTempDir()
         let file = touch(dir, "子/a.png")
@@ -280,6 +287,11 @@ final class MaterialScannerTests: SnipTestCase {
         XCTAssertEqual(Double(item.ctime), created.timeIntervalSince1970 * 1000, accuracy: 2)
         XCTAssertEqual(MaterialScanner.describe(file), item)
         XCTAssertNil(MaterialScanner.describe(dir + "/没有.png"))
+        // Sub-millisecond parts are cut off, never rounded up (the same number the Windows shell gives for the same file)
+        let late = timespec(tv_sec: 1_790_843_415, tv_nsec: 123_999_999)
+        var times = [late, late]  // accessed, modified
+        XCTAssertEqual(utimensat(AT_FDCWD, file, &times, 0), 0)
+        XCTAssertEqual(MaterialScanner.describe(file)?.mtime, 1_790_843_415_123)
         XCTAssertNil(MaterialScanner.describe(dir + "/子"), "a folder is not an item")
         XCTAssertNil(MaterialScanner.describe(touch(dir, "说明.txt")), "an unsupported extension is not an item")
     }

@@ -33,6 +33,7 @@ import {
 import { Menu, type MenuItem } from "./Menu";
 import { itemId, type Item, type usePanelScope } from "./panelScope";
 import { usePrefs } from "./prefs";
+import { useShortcuts } from "./commandKeys";
 
 // The notes panel on the right (split out of Workspace): the scope switch on top (this video / whole project / selected), search and
 // filter, notices for files that cannot be read, cards grouped by item (sections inside a group: canvas marks, overall comments,
@@ -80,6 +81,7 @@ export function AnnotationPanel(props: {
 }) {
   const intl = useIntl();
   const { prefs, setPrefs } = usePrefs();
+  const { tip } = useShortcuts();
   const {
     scopeKind,
     setPanelScope,
@@ -297,7 +299,7 @@ export function AnnotationPanel(props: {
             onKeyDown={onPanelSearchKey}
             placeholder={intl.formatMessage({ id: "panel.search.placeholder" })}
             spellCheck={false}
-            title={intl.formatMessage({ id: "panel.search.title" })}
+            title={tip(intl.formatMessage({ id: "panel.search.title" }), "note.find")}
           />
           {panelQuery && (
             <button className="search-clear" onClick={() => setPanelQuery("")} title={intl.formatMessage({ id: "panel.search.clear" })}>
@@ -533,7 +535,10 @@ export function AnnotationPanel(props: {
                   type="button"
                   className="btn btn-ghost btn-small"
                   onClick={() => applyStatus(checkedList, s)}
-                  title={intl.formatMessage({ id: "panel.batch.title" }, { status: s, count: checkedList.length })}
+                  title={tip(
+                    intl.formatMessage({ id: "panel.batch.title" }, { status: s, count: checkedList.length }),
+                    ...(s === "resolved" ? ["note.done" as const] : s === "wontfix" ? ["note.wontfix" as const] : []),
+                  )}
                 >
                   {icon}
                   <span>{intl.formatMessage({ id: "menu.note.status" }, { status: s })}</span>
@@ -577,7 +582,7 @@ export function AnnotationPanel(props: {
               className="btn btn-secondary btn-small dock-images"
               onClick={() => void copyCurrent("images")}
               disabled={toCopy.length === 0}
-              title={intl.formatMessage({ id: "app.copy.asImages.title" })}
+              title={tip(intl.formatMessage({ id: "app.copy.asImages.title" }), "note.copyImages")}
             >
               {copied === "images" ? <CheckIcon /> : <KindIcon kind="image" />}
               <CopyLabel copied={copied === "images"} label={intl.formatMessage({ id: "app.copy.asImages.button" })} />

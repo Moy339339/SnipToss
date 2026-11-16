@@ -203,12 +203,21 @@ sealed class MaterialWatcher : IDisposable
         }
     }
 
+    /// <summary>
+    /// Interval of the next full scan when a drive hadn't answered yet: soon, so that its entry gets a baseline (at startup on a busy machine the first
+    /// answer can miss Volumes.Patience, and waiting the full interval left the entry without a baseline for 10 seconds, so a change in that time was taken as the baseline).
+    /// Still stretched to 20 times the scan itself, so a large library isn't rescanned every second while a disconnected network drive takes its time to answer
+    /// </summary>
+    static readonly TimeSpan RetryUnanswered = TimeSpan.FromSeconds(1);
+
     async void FullCheck()
     {
         if (scanning) return;
         scanning = true;
         var started = lastFull = DateTime.UtcNow;
         nextFull = started + FullEvery;
+        var unanswered = false;
+        var scanTook = TimeSpan.Zero;
         try
         {
             var entries = settings.Library.Select(e => e.Path).ToList();
@@ -219,11 +228,17 @@ sealed class MaterialWatcher : IDisposable
             // the interval stretched to ten-odd minutes, and changes to other items went unseen. When the drive comes back its fingerprint changes from Offline and the UI rescans it (the list entry recovers with it)
             await Volumes.WaitAsync(entries, Volumes.Patience);
             var there = entries.Select(e => Volumes.Known(e)).ToList();
+            var scanStarted = DateTime.UtcNow;
             var now = await Task.Run(() => entries.Select((e, i) => (entry: e, sig: SignatureFor(there[i], () => EntrySignature(e, kinds, skip, seen)))).ToList());
+            scanTook = DateTime.UtcNow - scanStarted;
             var dirty = new List<string>();
             foreach (var (entry, sig) in now)
             {
-                if (sig is null) continue; // its drive hasn't answered yet: keep what was recorded and decide next round
+                if (sig is null)
+                {
+                    unanswered = true; // its drive hasn't answered yet: keep what was recorded and decide next round
+                    continue;
+                }
                 if (signatures.TryGetValue(entry, out var old) && old != sig) dirty.Add(entry);
                 signatures[entry] = sig;
             }
@@ -238,10 +253,21 @@ sealed class MaterialWatcher : IDisposable
         }
         finally
         {
-            var took = DateTime.UtcNow - started;
-            nextFull = DateTime.UtcNow + (took * 20 > FullEvery ? took * 20 : FullEvery);
+            nextFull = DateTime.UtcNow + NextFullIn(DateTime.UtcNow - started, scanTook, unanswered);
             scanning = false;
         }
+    }
+
+    /// <summary>
+    /// When the next full scan runs, given how long this round took (waiting for drives included), how long the scan itself took, and whether a drive hadn't answered:
+    /// normally FullEvery, stretched to 20 times a slow round; with a drive unanswered, RetryUnanswered stretched to 20 times the scan, never later than usual
+    /// </summary>
+    internal static TimeSpan NextFullIn(TimeSpan took, TimeSpan scanTook, bool unanswered)
+    {
+        var wait = took * 20 > FullEvery ? took * 20 : FullEvery;
+        if (!unanswered) return wait;
+        var retry = scanTook * 20 > RetryUnanswered ? scanTook * 20 : RetryUnanswered;
+        return retry < wait ? retry : wait;
     }
 
     /// <summary>Fingerprint for when the drive isn't connected (USB stick unplugged, network drive disconnected)</summary>

@@ -111,6 +111,12 @@ export interface Annotation {
    */
   material_size?: number;
   /**
+   * The item file's modification time when this note was written, ISO 8601 UTC truncated to whole milliseconds, recorded with
+   * material_sha256 (optional, from 1.6.0): with material_size it tells a same-size replacement with an older modification time apart
+   * (knownSha in versions.ts)
+   */
+  material_mtime?: string;
+  /**
    * A color #rrggbb for this note's marks alone; without it, the mark color in Settings is used. It only affects drawing, not the comment
    * (optional)
    */

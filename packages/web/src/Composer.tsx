@@ -5,7 +5,8 @@ import { cssZoom } from "./cssZoom";
 import { afterToolHold } from "./hold";
 import { keycaps } from "./hotkey";
 import { CloseIcon, GripIcon, PlusIcon, UndoIcon } from "./icons";
-import { pressesControl, useKeys } from "./keys";
+import { commandKeyMap, useCommands, useShortcuts, type CommandMap } from "./commandKeys";
+import { keyName, pressesControl } from "./keys";
 import { usePrefs } from "./prefs";
 import { clock, formatFor } from "./timeFormat";
 
@@ -96,6 +97,7 @@ export function Composer(props: {
 }) {
   const intl = useIntl();
   const { prefs } = usePrefs();
+  const { tip } = useShortcuts();
   // In frames the chips hold bare frame numbers, so the label in front says "Frame" instead of "Time"
   const showAt = (t: number) => clock(t, prefs.timeFormat, props.fps);
   const timeLabel = intl.formatMessage({ id: formatFor(prefs.timeFormat, props.fps) === "frames" ? "composer.frame" : "composer.time" });
@@ -223,12 +225,19 @@ export function Composer(props: {
     setTime(now > start ? { start, end: now } : { start: now, end: start });
   };
 
-  // I / O alone also work when the caret is not in the input box (typing in the box is unaffected, see keys.ts); inside the box use Alt+I
-  // / Alt+O (onKeyDown)
-  useKeys(props.currentTime ? { I: setStart, O: setEnd } : {});
-  // After clicking the canvas or the video, focus is outside the composer: Ctrl+Enter still saves (keys pressed inside are handled first
-  // by onKeyDown below)
-  useKeys({ "Ctrl+Enter": save, ...(places > 1 ? { "Alt+Z": undoPlace } : {}) });
+  // The range keys (Alt+I / Alt+O by default) work in and outside the input box; a bare I / O too while the caret is not in it (typing in
+  // the box is unaffected, see keys.ts). Keys with a modifier pressed inside the box are handled first by onKeyDown below
+  const own: CommandMap = {
+    ...(props.currentTime ? { "play.rangeIn": setStart, "play.rangeOut": setEnd } : {}),
+    ...(places > 1 ? { "note.undoPlace": undoPlace } : {}),
+  };
+  // After clicking the canvas or the video, focus is outside the composer: Ctrl+Enter still saves
+  useCommands(own, {}, { "Ctrl+Enter": save });
+  /** The command a key pressed inside the composer runs: only keys with Ctrl or Alt (a bare letter is typed) */
+  const ownKey = (e: KeyboardEvent) => {
+    if (!(e.ctrlKey || e.altKey || e.metaKey)) return undefined;
+    return commandKeyMap(own, prefs.keybindings)[keyName(e)];
+  };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
@@ -252,16 +261,13 @@ export function Composer(props: {
       e.preventDefault();
       e.stopPropagation();
       setCategory(CATEGORIES[Number(e.code.slice(5)) - 1]);
-    } else if (e.altKey && e.code === "KeyZ" && places > 1) {
-      e.preventDefault();
-      e.stopPropagation();
-      undoPlace();
-    } else if (e.altKey && (e.code === "KeyI" || e.code === "KeyO")) {
-      // While typing the caret is in the input box and a bare I / O types a letter, hence Alt
-      e.preventDefault();
-      e.stopPropagation();
-      if (e.code === "KeyI") setStart();
-      else setEnd();
+    } else {
+      // Undo the last mark, set the range (while typing a bare I / O types a letter, hence a key with a modifier)
+      const run = e.nativeEvent.isComposing ? undefined : ownKey(e.nativeEvent);
+      if (run && run(e.nativeEvent) !== false) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
     }
   };
 
@@ -286,7 +292,7 @@ export function Composer(props: {
               type="button"
               className="icon-btn composer-undo-place"
               onClick={undoPlace}
-              title={intl.formatMessage({ id: "composer.undoPlaceTitle" })}
+              title={tip(intl.formatMessage({ id: "composer.undoPlaceTitle" }), "note.undoPlace")}
               aria-label={intl.formatMessage({ id: "composer.undoPlace" })}
             >
               <UndoIcon />
@@ -319,15 +325,19 @@ export function Composer(props: {
               onClick={setStart}
               title={
                 time.end === undefined
-                  ? intl.formatMessage({ id: "composer.timeTitle" })
-                  : intl.formatMessage({ id: "composer.startTitle" })
+                  ? tip(intl.formatMessage({ id: "composer.timeTitle" }), "play.rangeIn")
+                  : tip(intl.formatMessage({ id: "composer.startTitle" }), "play.rangeIn")
               }
             >
               {showAt(time.start)}
             </button>
             {time.end === undefined ? (
               <>
-                <button className="link-btn" onClick={setEnd} title={intl.formatMessage({ id: "composer.rangeTitle" })}>
+                <button
+                  className="link-btn"
+                  onClick={setEnd}
+                  title={tip(intl.formatMessage({ id: "composer.rangeTitle" }), "play.rangeOut")}
+                >
                   <PlusIcon />
                   {intl.formatMessage({ id: "composer.makeRange" })}
                 </button>
@@ -347,7 +357,11 @@ export function Composer(props: {
             ) : (
               <>
                 <span className="muted">{intl.formatMessage({ id: "composer.to" })}</span>
-                <button className="time-chip" onClick={setEnd} title={intl.formatMessage({ id: "composer.endTitle" })}>
+                <button
+                  className="time-chip"
+                  onClick={setEnd}
+                  title={tip(intl.formatMessage({ id: "composer.endTitle" }), "play.rangeOut")}
+                >
                   {showAt(time.end)}
                 </button>
                 <button
@@ -368,7 +382,7 @@ export function Composer(props: {
         <div className="composer-time">
           <span className="muted">{intl.formatMessage({ id: "composer.time" })}</span>
           <span>{intl.formatMessage({ id: "composer.wholeVideo" })}</span>
-          <button className="link-btn" onClick={setStart} title={intl.formatMessage({ id: "composer.addTimeTitle" })}>
+          <button className="link-btn" onClick={setStart} title={tip(intl.formatMessage({ id: "composer.addTimeTitle" }), "play.rangeIn")}>
             <PlusIcon />
             {intl.formatMessage({ id: "composer.addTime" })}
           </button>

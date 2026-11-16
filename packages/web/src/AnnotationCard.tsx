@@ -2,6 +2,7 @@ import { useEffect, useEffectEvent, useRef } from "react";
 import { useIntl } from "react-intl";
 import { shapesOf, type Annotation, type NoteSection } from "@sniptoss/core";
 import { CheckBox } from "./Checkbox";
+import { useShortcuts } from "./commandKeys";
 import { Highlight } from "./Highlight";
 import { EyeIcon, EyeOffIcon, MoreIcon, SparkIcon } from "./icons";
 import { placeStyle } from "./markColors";
@@ -70,6 +71,7 @@ export function AnnotationCard(props: {
   const { a } = props;
   const time = a.anchor.time;
   const intl = useIntl();
+  const { tip, text } = useShortcuts();
   const { prefs } = usePrefs();
   // If the card disappears while hovered (searched out, filtered out, status changed) it never gets the leave event:
   // send one on unmount so the mark on the canvas does not stay lit
@@ -126,7 +128,11 @@ export function AnnotationCard(props: {
           role="checkbox"
           aria-checked={props.checked}
           className="card-check"
-          title={intl.formatMessage({ id: props.checked ? "card.uncheck" : "card.check" })}
+          title={
+            props.checked
+              ? tip(intl.formatMessage({ id: "card.uncheck" }), "note.check")
+              : intl.formatMessage({ id: "card.check" }, { key: text("note.check") || "none" })
+          }
           onClick={(e) => {
             e.stopPropagation();
             props.onCheck(e.shiftKey);

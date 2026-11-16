@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cp, mkdir, mkdtemp, open, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, open, readdir, readFile, rename, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,6 +18,8 @@ import {
   writeAtomic,
   writeReview,
 } from "../src/fs-store.js";
+
+import { mtimeStamp } from "@sniptoss/core";
 
 const FIXTURE = fileURLToPath(new URL("../../core/test/fixture/", import.meta.url));
 
@@ -191,6 +193,40 @@ describe("fs-store", () => {
           (await loadAll(root)).files.map((f) => f.file),
         ),
       ).toEqual({});
+    });
+  });
+
+  it("an item replaced by another file of the same size with an older modified time counts as an earlier version: the note's recorded modified time no longer matches (stat gives fractional milliseconds, compared truncated)", async () => {
+    await withProject(async (root, dir) => {
+      await mkdir(join(root, "assets"), { recursive: true });
+      const item = join(root, "assets", "hero.png");
+      await writeFile(item, "第一版");
+      const v1 = await stat(item);
+      const hero = await read(dir, "assets__hero.png.json");
+      const now = new Date().toISOString();
+      hero.annotations.push({
+        id: "mt0001",
+        status: "open",
+        category: "change",
+        body: "on version 1",
+        anchor: {},
+        author: "user",
+        created_at: now,
+        updated_at: now,
+        material_sha256: createHash("sha256").update("第一版").digest("hex"),
+        material_size: v1.size,
+        material_mtime: mtimeStamp(v1.mtimeMs),
+        replies: [],
+      });
+      await writeFile(join(dir, "assets__hero.png.json"), JSON.stringify(hero, null, 2) + "\n");
+      const files = async () => (await loadAll(root)).files.map((f) => f.file);
+      expect((await earlierAll(root, await files()))["assets/hero.png"] ?? []).not.toContain("mt0001"); // still version 1
+
+      await writeFile(item, "第二版"); // the same number of bytes
+      const old = new Date("2026-01-01T00:00:00Z");
+      await utimes(item, old, old);
+      expect((await stat(item)).size).toBe(v1.size);
+      expect((await earlierAll(root, await files()))["assets/hero.png"]).toContain("mt0001");
     });
   });
 

@@ -433,19 +433,23 @@ jobs:
             const s = r.settings || {};
             const pages = s.pages || [];
             const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+            // The header stays put from page to page; only on the Shortcuts page is it taller (its search box sits in it, under the title)
+            const place = (box) => (box || []).slice(0, 3);
+            const keys = pages.find((p) => p.section === "keys") || {};
             const problems = [];
             if (pages.length !== 8) problems.push("pages measured: " + pages.length);
             for (const p of pages) {
               if (!p.heading || p.heading !== p.tab) problems.push(p.section + ": heading " + JSON.stringify(p.heading) + ", tab " + JSON.stringify(p.tab));
               if (p.headLine !== "1px") problems.push(p.section + ": no line under the header (" + p.headLine + ")");
-              if (!same(p.head, pages[0].head)) problems.push(p.section + ": the header moved: " + JSON.stringify(p.head));
+              if (!same(place(p.head), place(pages[0].head))) problems.push(p.section + ": the header moved: " + JSON.stringify(p.head));
+              else if (p.section !== "keys" && !same(p.head, pages[0].head)) problems.push(p.section + ": the header changed height: " + JSON.stringify(p.head));
               if (p.scrollTop !== 0) problems.push(p.section + ": opened scrolled down by " + p.scrollTop);
               if (!p.closeHit) problems.push(p.section + ": a press on the close button does not reach it");
               if (p.onWindowButtons) problems.push(p.section + ": the window buttons sit on the dialog: " + JSON.stringify([s.windowButtons, p.dialog]));
             }
             const k = s.keysScrolled || {};
             if (!(k.scrollTop > 0)) problems.push("the Shortcuts page did not scroll: " + JSON.stringify(k));
-            else if (!same(k.head, (pages[0] || {}).head)) problems.push("the header moved while the page scrolled: " + JSON.stringify(k.head));
+            else if (!same(k.head, keys.head)) problems.push("the header moved while the page scrolled: " + JSON.stringify([k.head, keys.head]));
             if ((s.afterScrolled || {}).scrollTop !== 0) problems.push("the next page did not open at its top: " + JSON.stringify(s.afterScrolled));
             if ((r.pageErrors || []).length) problems.push("page errors: " + JSON.stringify(r.pageErrors));
             if (problems.length) { console.error(problems.join(String.fromCharCode(10))); process.exit(1); }

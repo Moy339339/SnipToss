@@ -1036,57 +1036,66 @@
     },
     {
       "locale": "de",
-      "key": "capture.tool.rect",
+      "key": "capture.toolName.rect",
       "args": {},
-      "text": "Rechteck (R)"
+      "text": "Rechteck"
     },
     {
       "locale": "de",
-      "key": "capture.tool.ellipse",
+      "key": "capture.toolName.ellipse",
       "args": {},
-      "text": "Ellipse (O)"
+      "text": "Ellipse"
     },
     {
       "locale": "de",
-      "key": "capture.tool.arrow",
+      "key": "capture.toolName.arrow",
       "args": {},
-      "text": "Pfeil (A)"
+      "text": "Pfeil"
     },
     {
       "locale": "de",
-      "key": "capture.tool.pen",
+      "key": "capture.toolName.pen",
       "args": {},
-      "text": "Stift (B)"
+      "text": "Stift"
     },
     {
       "locale": "de",
-      "key": "capture.tool.mosaic",
+      "key": "capture.toolName.mosaic",
       "args": {},
-      "text": "Verpixeln (M)"
+      "text": "Verpixeln"
     },
     {
       "locale": "de",
-      "key": "capture.tool.text",
+      "key": "capture.toolName.text",
       "args": {},
-      "text": "Text (T)"
+      "text": "Text"
     },
     {
       "locale": "de",
-      "key": "capture.tool.note",
+      "key": "capture.toolName.note",
       "args": {},
-      "text": "Stecknadel (C)"
+      "text": "Stecknadel"
     },
     {
       "locale": "de",
-      "key": "capture.tool.overall",
+      "key": "capture.toolName.overall",
       "args": {},
-      "text": "Gesamtkommentar (N)"
+      "text": "Gesamtkommentar"
     },
     {
       "locale": "de",
-      "key": "capture.tool.undo",
+      "key": "capture.toolName.undo",
       "args": {},
-      "text": "Rückgängig (Strg Z)"
+      "text": "Rückgängig"
+    },
+    {
+      "locale": "de",
+      "key": "capture.tip.withKey",
+      "args": {
+        "label": "<label>",
+        "key": "<key>"
+      },
+      "text": "<label> (<key>)"
     },
     {
       "locale": "de",
@@ -3657,57 +3666,66 @@
     },
     {
       "locale": "en",
-      "key": "capture.tool.rect",
+      "key": "capture.toolName.rect",
       "args": {},
-      "text": "Rectangle (R)"
+      "text": "Rectangle"
     },
     {
       "locale": "en",
-      "key": "capture.tool.ellipse",
+      "key": "capture.toolName.ellipse",
       "args": {},
-      "text": "Ellipse (O)"
+      "text": "Ellipse"
     },
     {
       "locale": "en",
-      "key": "capture.tool.arrow",
+      "key": "capture.toolName.arrow",
       "args": {},
-      "text": "Arrow (A)"
+      "text": "Arrow"
     },
     {
       "locale": "en",
-      "key": "capture.tool.pen",
+      "key": "capture.toolName.pen",
       "args": {},
-      "text": "Pen (B)"
+      "text": "Pen"
     },
     {
       "locale": "en",
-      "key": "capture.tool.mosaic",
+      "key": "capture.toolName.mosaic",
       "args": {},
-      "text": "Pixelate (M)"
+      "text": "Pixelate"
     },
     {
       "locale": "en",
-      "key": "capture.tool.text",
+      "key": "capture.toolName.text",
       "args": {},
-      "text": "Text (T)"
+      "text": "Text"
     },
     {
       "locale": "en",
-      "key": "capture.tool.note",
+      "key": "capture.toolName.note",
       "args": {},
-      "text": "Pin (C)"
+      "text": "Pin"
     },
     {
       "locale": "en",
-      "key": "capture.tool.overall",
+      "key": "capture.toolName.overall",
       "args": {},
-      "text": "Overall comment (N)"
+      "text": "Overall comment"
     },
     {
       "locale": "en",
-      "key": "capture.tool.undo",
+      "key": "capture.toolName.undo",
       "args": {},
-      "text": "Undo (Ctrl Z)"
+      "text": "Undo"
+    },
+    {
+      "locale": "en",
+      "key": "capture.tip.withKey",
+      "args": {
+        "label": "<label>",
+        "key": "<key>"
+      },
+      "text": "<label> (<key>)"
     },
     {
       "locale": "en",
@@ -6278,57 +6296,66 @@
     },
     {
       "locale": "es",
-      "key": "capture.tool.rect",
+      "key": "capture.toolName.rect",
       "args": {},
-      "text": "Rectángulo (R)"
+      "text": "Rectángulo"
     },
     {
       "locale": "es",
-      "key": "capture.tool.ellipse",
+      "key": "capture.toolName.ellipse",
       "args": {},
-      "text": "Elipse (O)"
+      "text": "Elipse"
     },
     {
       "locale": "es",
-      "key": "capture.tool.arrow",
+      "key": "capture.toolName.arrow",
       "args": {},
-      "text": "Flecha (A)"
+      "text": "Flecha"
     },
     {
       "locale": "es",
-      "key": "capture.tool.pen",
+      "key": "capture.toolName.pen",
       "args": {},
-      "text": "Bolígrafo (B)"
+      "text": "Bolígrafo"
     },
     {
       "locale": "es",
-      "key": "capture.tool.mosaic",
+      "key": "capture.toolName.mosaic",
       "args": {},
-      "text": "Pixelar (M)"
+      "text": "Pixelar"
     },
     {
       "locale": "es",
-      "key": "capture.tool.text",
+      "key": "capture.toolName.text",
       "args": {},
-      "text": "Texto (T)"
+      "text": "Texto"
     },
     {
       "locale": "es",
-      "key": "capture.tool.note",
+      "key": "capture.toolName.note",
       "args": {},
-      "text": "Punto (C)"
+      "text": "Punto"
     },
     {
       "locale": "es",
-      "key": "capture.tool.overall",
+      "key": "capture.toolName.overall",
       "args": {},
-      "text": "Comentario general (N)"
+      "text": "Comentario general"
     },
     {
       "locale": "es",
-      "key": "capture.tool.undo",
+      "key": "capture.toolName.undo",
       "args": {},
-      "text": "Deshacer (Ctrl Z)"
+      "text": "Deshacer"
+    },
+    {
+      "locale": "es",
+      "key": "capture.tip.withKey",
+      "args": {
+        "label": "<label>",
+        "key": "<key>"
+      },
+      "text": "<label> (<key>)"
     },
     {
       "locale": "es",
@@ -8899,57 +8926,66 @@
     },
     {
       "locale": "fr",
-      "key": "capture.tool.rect",
+      "key": "capture.toolName.rect",
       "args": {},
-      "text": "Rectangle (R)"
+      "text": "Rectangle"
     },
     {
       "locale": "fr",
-      "key": "capture.tool.ellipse",
+      "key": "capture.toolName.ellipse",
       "args": {},
-      "text": "Ellipse (O)"
+      "text": "Ellipse"
     },
     {
       "locale": "fr",
-      "key": "capture.tool.arrow",
+      "key": "capture.toolName.arrow",
       "args": {},
-      "text": "Flèche (A)"
+      "text": "Flèche"
     },
     {
       "locale": "fr",
-      "key": "capture.tool.pen",
+      "key": "capture.toolName.pen",
       "args": {},
-      "text": "Stylo (B)"
+      "text": "Stylo"
     },
     {
       "locale": "fr",
-      "key": "capture.tool.mosaic",
+      "key": "capture.toolName.mosaic",
       "args": {},
-      "text": "Pixelliser (M)"
+      "text": "Pixelliser"
     },
     {
       "locale": "fr",
-      "key": "capture.tool.text",
+      "key": "capture.toolName.text",
       "args": {},
-      "text": "Texte (T)"
+      "text": "Texte"
     },
     {
       "locale": "fr",
-      "key": "capture.tool.note",
+      "key": "capture.toolName.note",
       "args": {},
-      "text": "Épingle (C)"
+      "text": "Épingle"
     },
     {
       "locale": "fr",
-      "key": "capture.tool.overall",
+      "key": "capture.toolName.overall",
       "args": {},
-      "text": "Commentaire général (N)"
+      "text": "Commentaire général"
     },
     {
       "locale": "fr",
-      "key": "capture.tool.undo",
+      "key": "capture.toolName.undo",
       "args": {},
-      "text": "Annuler (Ctrl Z)"
+      "text": "Annuler"
+    },
+    {
+      "locale": "fr",
+      "key": "capture.tip.withKey",
+      "args": {
+        "label": "<label>",
+        "key": "<key>"
+      },
+      "text": "<label> (<key>)"
     },
     {
       "locale": "fr",
@@ -11520,57 +11556,66 @@
     },
     {
       "locale": "it",
-      "key": "capture.tool.rect",
+      "key": "capture.toolName.rect",
       "args": {},
-      "text": "Rettangolo (R)"
+      "text": "Rettangolo"
     },
     {
       "locale": "it",
-      "key": "capture.tool.ellipse",
+      "key": "capture.toolName.ellipse",
       "args": {},
-      "text": "Ellisse (O)"
+      "text": "Ellisse"
     },
     {
       "locale": "it",
-      "key": "capture.tool.arrow",
+      "key": "capture.toolName.arrow",
       "args": {},
-      "text": "Freccia (A)"
+      "text": "Freccia"
     },
     {
       "locale": "it",
-      "key": "capture.tool.pen",
+      "key": "capture.toolName.pen",
       "args": {},
-      "text": "Penna (B)"
+      "text": "Penna"
     },
     {
       "locale": "it",
-      "key": "capture.tool.mosaic",
+      "key": "capture.toolName.mosaic",
       "args": {},
-      "text": "Pixelizza (M)"
+      "text": "Pixelizza"
     },
     {
       "locale": "it",
-      "key": "capture.tool.text",
+      "key": "capture.toolName.text",
       "args": {},
-      "text": "Testo (T)"
+      "text": "Testo"
     },
     {
       "locale": "it",
-      "key": "capture.tool.note",
+      "key": "capture.toolName.note",
       "args": {},
-      "text": "Puntina (C)"
+      "text": "Puntina"
     },
     {
       "locale": "it",
-      "key": "capture.tool.overall",
+      "key": "capture.toolName.overall",
       "args": {},
-      "text": "Commento generale (N)"
+      "text": "Commento generale"
     },
     {
       "locale": "it",
-      "key": "capture.tool.undo",
+      "key": "capture.toolName.undo",
       "args": {},
-      "text": "Annulla (Ctrl Z)"
+      "text": "Annulla"
+    },
+    {
+      "locale": "it",
+      "key": "capture.tip.withKey",
+      "args": {
+        "label": "<label>",
+        "key": "<key>"
+      },
+      "text": "<label> (<key>)"
     },
     {
       "locale": "it",
@@ -14087,57 +14132,66 @@
     },
     {
       "locale": "ja",
-      "key": "capture.tool.rect",
+      "key": "capture.toolName.rect",
       "args": {},
-      "text": "四角形（R）"
+      "text": "四角形"
     },
     {
       "locale": "ja",
-      "key": "capture.tool.ellipse",
+      "key": "capture.toolName.ellipse",
       "args": {},
-      "text": "楕円（O）"
+      "text": "楕円"
     },
     {
       "locale": "ja",
-      "key": "capture.tool.arrow",
+      "key": "capture.toolName.arrow",
       "args": {},
-      "text": "矢印（A）"
+      "text": "矢印"
     },
     {
       "locale": "ja",
-      "key": "capture.tool.pen",
+      "key": "capture.toolName.pen",
       "args": {},
-      "text": "ペン（B）"
+      "text": "ペン"
     },
     {
       "locale": "ja",
-      "key": "capture.tool.mosaic",
+      "key": "capture.toolName.mosaic",
       "args": {},
-      "text": "モザイク（M）"
+      "text": "モザイク"
     },
     {
       "locale": "ja",
-      "key": "capture.tool.text",
+      "key": "capture.toolName.text",
       "args": {},
-      "text": "テキスト（T）"
+      "text": "テキスト"
     },
     {
       "locale": "ja",
-      "key": "capture.tool.note",
+      "key": "capture.toolName.note",
       "args": {},
-      "text": "ピン（C）"
+      "text": "ピン"
     },
     {
       "locale": "ja",
-      "key": "capture.tool.overall",
+      "key": "capture.toolName.overall",
       "args": {},
-      "text": "全体コメント（N）"
+      "text": "全体コメント"
     },
     {
       "locale": "ja",
-      "key": "capture.tool.undo",
+      "key": "capture.toolName.undo",
       "args": {},
-      "text": "元に戻す（Ctrl Z）"
+      "text": "元に戻す"
+    },
+    {
+      "locale": "ja",
+      "key": "capture.tip.withKey",
+      "args": {
+        "label": "<label>",
+        "key": "<key>"
+      },
+      "text": "<label>（<key>）"
     },
     {
       "locale": "ja",
@@ -16654,57 +16708,66 @@
     },
     {
       "locale": "ko",
-      "key": "capture.tool.rect",
+      "key": "capture.toolName.rect",
       "args": {},
-      "text": "사각형(R)"
+      "text": "사각형"
     },
     {
       "locale": "ko",
-      "key": "capture.tool.ellipse",
+      "key": "capture.toolName.ellipse",
       "args": {},
-      "text": "타원(O)"
+      "text": "타원"
     },
     {
       "locale": "ko",
-      "key": "capture.tool.arrow",
+      "key": "capture.toolName.arrow",
       "args": {},
-      "text": "화살표(A)"
+      "text": "화살표"
     },
     {
       "locale": "ko",
-      "key": "capture.tool.pen",
+      "key": "capture.toolName.pen",
       "args": {},
-      "text": "펜(B)"
+      "text": "펜"
     },
     {
       "locale": "ko",
-      "key": "capture.tool.mosaic",
+      "key": "capture.toolName.mosaic",
       "args": {},
-      "text": "모자이크(M)"
+      "text": "모자이크"
     },
     {
       "locale": "ko",
-      "key": "capture.tool.text",
+      "key": "capture.toolName.text",
       "args": {},
-      "text": "텍스트(T)"
+      "text": "텍스트"
     },
     {
       "locale": "ko",
-      "key": "capture.tool.note",
+      "key": "capture.toolName.note",
       "args": {},
-      "text": "핀(C)"
+      "text": "핀"
     },
     {
       "locale": "ko",
-      "key": "capture.tool.overall",
+      "key": "capture.toolName.overall",
       "args": {},
-      "text": "전체 의견(N)"
+      "text": "전체 의견"
     },
     {
       "locale": "ko",
-      "key": "capture.tool.undo",
+      "key": "capture.toolName.undo",
       "args": {},
-      "text": "실행 취소(Ctrl Z)"
+      "text": "실행 취소"
+    },
+    {
+      "locale": "ko",
+      "key": "capture.tip.withKey",
+      "args": {
+        "label": "<label>",
+        "key": "<key>"
+      },
+      "text": "<label>(<key>)"
     },
     {
       "locale": "ko",
@@ -19275,57 +19338,66 @@
     },
     {
       "locale": "pt-BR",
-      "key": "capture.tool.rect",
+      "key": "capture.toolName.rect",
       "args": {},
-      "text": "Retângulo (R)"
+      "text": "Retângulo"
     },
     {
       "locale": "pt-BR",
-      "key": "capture.tool.ellipse",
+      "key": "capture.toolName.ellipse",
       "args": {},
-      "text": "Elipse (O)"
+      "text": "Elipse"
     },
     {
       "locale": "pt-BR",
-      "key": "capture.tool.arrow",
+      "key": "capture.toolName.arrow",
       "args": {},
-      "text": "Seta (A)"
+      "text": "Seta"
     },
     {
       "locale": "pt-BR",
-      "key": "capture.tool.pen",
+      "key": "capture.toolName.pen",
       "args": {},
-      "text": "Caneta (B)"
+      "text": "Caneta"
     },
     {
       "locale": "pt-BR",
-      "key": "capture.tool.mosaic",
+      "key": "capture.toolName.mosaic",
       "args": {},
-      "text": "Pixelizar (M)"
+      "text": "Pixelizar"
     },
     {
       "locale": "pt-BR",
-      "key": "capture.tool.text",
+      "key": "capture.toolName.text",
       "args": {},
-      "text": "Texto (T)"
+      "text": "Texto"
     },
     {
       "locale": "pt-BR",
-      "key": "capture.tool.note",
+      "key": "capture.toolName.note",
       "args": {},
-      "text": "Alfinete (C)"
+      "text": "Alfinete"
     },
     {
       "locale": "pt-BR",
-      "key": "capture.tool.overall",
+      "key": "capture.toolName.overall",
       "args": {},
-      "text": "Comentário geral (N)"
+      "text": "Comentário geral"
     },
     {
       "locale": "pt-BR",
-      "key": "capture.tool.undo",
+      "key": "capture.toolName.undo",
       "args": {},
-      "text": "Desfazer (Ctrl Z)"
+      "text": "Desfazer"
+    },
+    {
+      "locale": "pt-BR",
+      "key": "capture.tip.withKey",
+      "args": {
+        "label": "<label>",
+        "key": "<key>"
+      },
+      "text": "<label> (<key>)"
     },
     {
       "locale": "pt-BR",
@@ -21950,57 +22022,66 @@
     },
     {
       "locale": "ru",
-      "key": "capture.tool.rect",
+      "key": "capture.toolName.rect",
       "args": {},
-      "text": "Прямоугольник (R)"
+      "text": "Прямоугольник"
     },
     {
       "locale": "ru",
-      "key": "capture.tool.ellipse",
+      "key": "capture.toolName.ellipse",
       "args": {},
-      "text": "Эллипс (O)"
+      "text": "Эллипс"
     },
     {
       "locale": "ru",
-      "key": "capture.tool.arrow",
+      "key": "capture.toolName.arrow",
       "args": {},
-      "text": "Стрелка (A)"
+      "text": "Стрелка"
     },
     {
       "locale": "ru",
-      "key": "capture.tool.pen",
+      "key": "capture.toolName.pen",
       "args": {},
-      "text": "Перо (B)"
+      "text": "Перо"
     },
     {
       "locale": "ru",
-      "key": "capture.tool.mosaic",
+      "key": "capture.toolName.mosaic",
       "args": {},
-      "text": "Пикселизация (M)"
+      "text": "Пикселизация"
     },
     {
       "locale": "ru",
-      "key": "capture.tool.text",
+      "key": "capture.toolName.text",
       "args": {},
-      "text": "Текст (T)"
+      "text": "Текст"
     },
     {
       "locale": "ru",
-      "key": "capture.tool.note",
+      "key": "capture.toolName.note",
       "args": {},
-      "text": "Булавка (C)"
+      "text": "Булавка"
     },
     {
       "locale": "ru",
-      "key": "capture.tool.overall",
+      "key": "capture.toolName.overall",
       "args": {},
-      "text": "Общий комментарий (N)"
+      "text": "Общий комментарий"
     },
     {
       "locale": "ru",
-      "key": "capture.tool.undo",
+      "key": "capture.toolName.undo",
       "args": {},
-      "text": "Отменить (Ctrl Z)"
+      "text": "Отменить"
+    },
+    {
+      "locale": "ru",
+      "key": "capture.tip.withKey",
+      "args": {
+        "label": "<label>",
+        "key": "<key>"
+      },
+      "text": "<label> (<key>)"
     },
     {
       "locale": "ru",
@@ -24517,57 +24598,66 @@
     },
     {
       "locale": "zh-CN",
-      "key": "capture.tool.rect",
+      "key": "capture.toolName.rect",
       "args": {},
-      "text": "矩形（R）"
+      "text": "矩形"
     },
     {
       "locale": "zh-CN",
-      "key": "capture.tool.ellipse",
+      "key": "capture.toolName.ellipse",
       "args": {},
-      "text": "椭圆（O）"
+      "text": "椭圆"
     },
     {
       "locale": "zh-CN",
-      "key": "capture.tool.arrow",
+      "key": "capture.toolName.arrow",
       "args": {},
-      "text": "箭头（A）"
+      "text": "箭头"
     },
     {
       "locale": "zh-CN",
-      "key": "capture.tool.pen",
+      "key": "capture.toolName.pen",
       "args": {},
-      "text": "画笔（B）"
+      "text": "画笔"
     },
     {
       "locale": "zh-CN",
-      "key": "capture.tool.mosaic",
+      "key": "capture.toolName.mosaic",
       "args": {},
-      "text": "马赛克（M）"
+      "text": "马赛克"
     },
     {
       "locale": "zh-CN",
-      "key": "capture.tool.text",
+      "key": "capture.toolName.text",
       "args": {},
-      "text": "文字（T）"
+      "text": "文字"
     },
     {
       "locale": "zh-CN",
-      "key": "capture.tool.note",
+      "key": "capture.toolName.note",
       "args": {},
-      "text": "图钉（C）"
+      "text": "图钉"
     },
     {
       "locale": "zh-CN",
-      "key": "capture.tool.overall",
+      "key": "capture.toolName.overall",
       "args": {},
-      "text": "整体意见（N）"
+      "text": "整体意见"
     },
     {
       "locale": "zh-CN",
-      "key": "capture.tool.undo",
+      "key": "capture.toolName.undo",
       "args": {},
-      "text": "撤销（Ctrl Z）"
+      "text": "撤销"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "capture.tip.withKey",
+      "args": {
+        "label": "<label>",
+        "key": "<key>"
+      },
+      "text": "<label>（<key>）"
     },
     {
       "locale": "zh-CN",
@@ -26574,57 +26664,66 @@
     },
     {
       "locale": "zh-TW",
-      "key": "capture.tool.rect",
+      "key": "capture.toolName.rect",
       "args": {},
-      "text": "矩形（R）"
+      "text": "矩形"
     },
     {
       "locale": "zh-TW",
-      "key": "capture.tool.ellipse",
+      "key": "capture.toolName.ellipse",
       "args": {},
-      "text": "橢圓（O）"
+      "text": "橢圓"
     },
     {
       "locale": "zh-TW",
-      "key": "capture.tool.arrow",
+      "key": "capture.toolName.arrow",
       "args": {},
-      "text": "箭頭（A）"
+      "text": "箭頭"
     },
     {
       "locale": "zh-TW",
-      "key": "capture.tool.pen",
+      "key": "capture.toolName.pen",
       "args": {},
-      "text": "畫筆（B）"
+      "text": "畫筆"
     },
     {
       "locale": "zh-TW",
-      "key": "capture.tool.mosaic",
+      "key": "capture.toolName.mosaic",
       "args": {},
-      "text": "馬賽克（M）"
+      "text": "馬賽克"
     },
     {
       "locale": "zh-TW",
-      "key": "capture.tool.text",
+      "key": "capture.toolName.text",
       "args": {},
-      "text": "文字（T）"
+      "text": "文字"
     },
     {
       "locale": "zh-TW",
-      "key": "capture.tool.note",
+      "key": "capture.toolName.note",
       "args": {},
-      "text": "圖釘（C）"
+      "text": "圖釘"
     },
     {
       "locale": "zh-TW",
-      "key": "capture.tool.overall",
+      "key": "capture.toolName.overall",
       "args": {},
-      "text": "整體意見（N）"
+      "text": "整體意見"
     },
     {
       "locale": "zh-TW",
-      "key": "capture.tool.undo",
+      "key": "capture.toolName.undo",
       "args": {},
-      "text": "復原（Ctrl Z）"
+      "text": "復原"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "capture.tip.withKey",
+      "args": {
+        "label": "<label>",
+        "key": "<key>"
+      },
+      "text": "<label>（<key>）"
     },
     {
       "locale": "zh-TW",

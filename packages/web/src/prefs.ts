@@ -1,6 +1,7 @@
 import { createContext, useContext } from "react";
 import { isMarkColor, NOTE_SECTIONS, type AnnotationCategory, type MaterialKind, type NoteSection } from "@sniptoss/core";
 import { TIME_FORMATS, type TimeFormat } from "./timeFormat";
+import { clampTextSize, TEXT_SIZES, type TextSize } from "./typeScale";
 
 // Settings. Stored in the shell's settings.json (Prefs in %APPDATA%\SnipToss\settings.json).
 // The shell itself reads some of them: kinds, moreFormats, skipDirs, markColor, defaultCategory, promptExtra, language, updateCheck (app/Settings.cs); renaming one means changing both sides.
@@ -11,10 +12,22 @@ export interface Prefs {
   language: string;
   /** Note author name; empty = use the Windows user name */
   author: string;
+  // Appearance
   /** Interface zoom */
   uiScale: number;
+  /**
+   * Text sizes in pixels (typeScale.ts): the interface (menus, library, toolbar, notes panel, buttons), the note text (notes panel and the
+   * note box), the Settings dialog. Each moves every type level of its part by the same pixels; the ranges are in TEXT_SIZES
+   */
+  uiFontSize: number;
+  noteFontSize: number;
+  settingsFontSize: number;
   /** What is shown around the picture when it does not fill the canvas: the current picture blurred and spread to fill / a plain color */
   backdrop: "blur" | "plain";
+  /** Reduce motion: follow Windows "Animation effects" / always / never */
+  reduceMotion: "system" | "on" | "off";
+  /** The hand cursor over buttons, links and menu items (Windows apps keep the arrow, so it is off by default) */
+  pointerCursor: boolean;
   /** Check for updates automatically after startup (shell app/Updates.cs, at most once a day); the shell reads this item itself (Settings.UpdateCheck) */
   updateCheck: boolean;
   /** Beginner mode: the first-run dialog, the tutorial and the first-use hints show (onboarding.ts). Off: none of them appears by itself; Tutorial on the welcome page and in Help still starts it */
@@ -79,6 +92,10 @@ export interface Prefs {
   copyImages: "merged" | "each";
   /** Copy as Images, merged: the most images one copy makes (several frames then share an image); 0 = no limit */
   copyImagesMax: number;
+
+  // Keyboard shortcuts
+  /** Shortcuts changed in Settings → Keyboard Shortcuts: command id (commands.ts) → its keys, [] = none. Commands not listed keep their defaults */
+  keybindings: Record<string, string[]>;
 }
 
 /**
@@ -93,7 +110,12 @@ export const DEFAULT_PREFS: Prefs = {
   language: "system",
   author: "",
   uiScale: 1,
+  uiFontSize: TEXT_SIZES.uiFontSize.base,
+  noteFontSize: TEXT_SIZES.noteFontSize.base,
+  settingsFontSize: TEXT_SIZES.settingsFontSize.base,
   backdrop: "blur",
+  reduceMotion: "system",
+  pointerCursor: false,
   updateCheck: true,
   beginner: true,
   defaultCategory: "change",
@@ -125,6 +147,7 @@ export const DEFAULT_PREFS: Prefs = {
   copyImages: "merged",
   // Web-based AI takes about this many images in one message
   copyImagesMax: 10,
+  keybindings: {},
 };
 
 /**
@@ -140,6 +163,8 @@ export const NOT_SETTINGS: (keyof Prefs)[] = [
   "muted",
   "fresh",
   "onboarding",
+  // Keyboard Shortcuts has its own "Reset All" (the confirm dialog says shortcuts stay)
+  "keybindings",
 ];
 
 /**
@@ -157,6 +182,7 @@ export function storedPrefs(prefs: Prefs): Record<string, unknown> {
 /** Settings that can only take these values: any other value (broken by hand editing, or added by a later version) falls back to the default */
 const CHOICES: Partial<Record<keyof Prefs, readonly unknown[]>> = {
   backdrop: ["blur", "plain"],
+  reduceMotion: ["system", "on", "off"],
   defaultCategory: ["change", "remove", "add", "question"],
   panelScope: ["material", "project"],
   snapshotFormat: ["png", "jpeg"],
@@ -187,6 +213,7 @@ export function mergePrefs(saved: Partial<Prefs> | null | undefined): Prefs {
     if (v === undefined) continue;
     const choices = CHOICES[k as keyof Prefs];
     if (k === "fresh") merged[k] = mergeFresh(v);
+    else if (k === "keybindings") merged[k] = mergeBindings(v);
     else if (choices) merged[k] = choices.includes(v) ? v : def;
     else if (typeof def === "number") {
       const range = RANGES[k as keyof Prefs];
@@ -202,6 +229,16 @@ export function mergePrefs(saved: Partial<Prefs> | null | undefined): Prefs {
   for (const [k, v] of Object.entries(raw)) if (!(k in DEFAULT_PREFS)) merged[k] = v;
   for (const k of DROPPED_KEYS) delete merged[k];
   return finish(merged as unknown as Prefs);
+}
+
+/** Each command's keys must be a list of key names (strings); anything else is dropped and the command keeps its defaults */
+function mergeBindings(v: unknown): Prefs["keybindings"] {
+  const o = v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+  return Object.fromEntries(
+    Object.entries(o)
+      .filter(([, keys]) => Array.isArray(keys) && keys.every((k) => typeof k === "string" && k !== ""))
+      .map(([id, keys]) => [id, [...new Set(keys as string[])]]),
+  );
 }
 
 /** Each entry in fresh is checked on its own: start times must be numbers and seen items strings, and anything else is dropped (so a hand-edited mistake does not mark the whole library "New" or break it) */
@@ -220,6 +257,8 @@ function mergeFresh(v: unknown): Prefs["fresh"] {
 function finish(merged: Prefs): Prefs {
   // The mark color is interpolated into SVG (AnnotationLayer), so even a settings file broken by hand editing must not smuggle anything else in
   if (!isMarkColor(merged.markColor)) merged.markColor = DEFAULT_PREFS.markColor;
+  // Text sizes: whole pixels within their ranges (a size outside them would push text out of fixed-height controls)
+  for (const k of Object.keys(TEXT_SIZES) as TextSize[]) merged[k] = clampTextSize(k, merged[k]);
   // The notes panel filter: only the known sections count; if everything is filtered out (by hand editing), nothing is filtered, so the notes panel never ends up empty
   const hidden = NOTE_SECTIONS.filter((s) => merged.panelHidden.includes(s));
   merged.panelHidden = hidden.length < NOTE_SECTIONS.length ? hidden : [];

@@ -50,6 +50,49 @@ test("a new version found automatically after startup: the title bar pill shows 
   await expect.poll(() => app.host.opened.at(-1)).toBe("https://github.com/Moy339339/SnipToss/releases/tag/v1.1.0");
 });
 
+test("when the menu names would not fit beside it (narrowest window, German, largest interface text at 110%), the pill shows only its icon and keeps its name and tooltip; with room again its text comes back", async ({ app }) => {
+  app.host.prefs = { language: "de", uiFontSize: 16, uiScale: 1.1 };
+  await app.page.setViewportSize({ width: 960, height: 600 });
+  await app.open();
+  await expect(app.page.locator("html")).toHaveAttribute("lang", "de");
+  const pill = app.page.locator(".titlebar-update");
+  const label = pill.locator(".titlebar-update-label");
+  const last = app.page.locator(".menubar-item").last();
+  // Every menu name stays whole and clickable, inside the menu bar and clear of the pill
+  const fits = () =>
+    app.page.evaluate(() => {
+      const items = [...document.querySelectorAll(".menubar-item")];
+      const right = items.at(-1)!.getBoundingClientRect().right;
+      const bar = document.querySelector(".menubar")!.getBoundingClientRect().right;
+      const pillLeft = document.querySelector(".titlebar-update")?.getBoundingClientRect().left ?? Infinity;
+      return right <= bar + 0.5 && right <= pillLeft;
+    });
+  expect(await fits()).toBe(true);
+  app.host.announceUpdate({ version: "1.1.0", url: "https://github.com/Moy339339/SnipToss/releases/tag/v1.1.0", prerelease: false });
+  await expect(pill).toHaveClass(/is-tight/);
+  await expect(label).toBeHidden();
+  await expect(pill).toHaveAccessibleName("Update verfügbar");
+  await expect(pill).toHaveAttribute("title", "v1.1.0 herunterladen");
+  expect(await fits()).toBe(true);
+  await last.click();
+  await expect(app.page.getByRole("menu")).toBeVisible();
+  await app.page.keyboard.press("Escape");
+  // A wider window: the text is back
+  await app.page.setViewportSize({ width: 1280, height: 600 });
+  await expect(pill).not.toHaveClass(/is-tight/);
+  await expect(label).toBeVisible();
+  expect(await fits()).toBe(true);
+  // At the default text size the narrowest window has room for the text in Chinese
+  app.host.prefs = { language: "zh-CN" };
+  await app.page.setViewportSize({ width: 960, height: 600 });
+  await app.page.reload();
+  await expect(app.page.locator("html")).toHaveAttribute("lang", "zh-CN");
+  await expect(last).toBeVisible();
+  app.host.announceUpdate({ version: "1.1.0", url: "https://github.com/Moy339339/SnipToss/releases/tag/v1.1.0", prerelease: false });
+  await expect(label).toBeVisible();
+  await expect(pill).not.toHaveClass(/is-tight/);
+});
+
 test("a version skipped from the tray (or the automatic check turned off): the title bar pill goes away and the Help menu offers Check for Updates again", async ({ app }) => {
   await app.open();
   app.host.announceUpdate({ version: "1.1.1", url: "https://github.com/Moy339339/SnipToss/releases/tag/v1.1.1", prerelease: false });

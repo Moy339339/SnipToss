@@ -10,6 +10,7 @@ import { itemId, numbered, type Item } from "./panelScope";
 import type { Prefs } from "./prefs";
 import type { Notify, Report } from "./report";
 import { shortWhen } from "./shortWhen";
+import { useShortcuts } from "./commandKeys";
 
 // Handing over to AI (split out of Workspace): the checks in the notes panel (useChecks), and copy as text / images (useHandoff).
 // ---------- Handing over to AI ----------
@@ -108,6 +109,7 @@ export function useHandoff(opts: {
   const { filesRef, unreadableRef, missing, commit, earlierOf, current, grouped, openList, checkedList, prefs, onNotify } = opts;
   const { notifyError, copyReason } = opts.report;
   const intl = useIntl();
+  const { tip } = useShortcuts();
   /** The text handed over follows the UI language (core's renderHandoff and describeWhere fetch messages through it) */
   const translate: Translate = (id, values) => intl.formatMessage({ id }, values);
   /** What the bottom button and Ctrl+Shift+A hand over: the checked notes if any are checked, otherwise all open notes the notes panel lists */
@@ -332,10 +334,16 @@ export function useHandoff(opts: {
     toCopy.length === 0
       ? intl.formatMessage({ id: "app.copy.title.none" })
       : checkedList.length > 0
-        ? intl.formatMessage({ id: "app.copy.title.checked" }, { count: toCopy.length })
+        ? tip(intl.formatMessage({ id: "app.copy.title.checked" }, { count: toCopy.length }), "note.copyText")
         : grouped
-          ? intl.formatMessage({ id: "app.copy.title.allMaterials" }, { materials: copyMaterialCount, count: toCopy.length })
-          : intl.formatMessage({ id: "app.copy.title.allThis" }, { this: thisKind(current?.kind ?? ""), count: toCopy.length });
+          ? tip(
+              intl.formatMessage({ id: "app.copy.title.allMaterials" }, { materials: copyMaterialCount, count: toCopy.length }),
+              "note.copyText",
+            )
+          : tip(
+              intl.formatMessage({ id: "app.copy.title.allThis" }, { this: thisKind(current?.kind ?? ""), count: toCopy.length }),
+              "note.copyText",
+            );
   /** The open notes in this notes folder whose item can't be found (the last group of "Entire Project" in the notes panel) */
   const missingItems = (home: string): HandoffMaterial[] =>
     [...missing].flatMap((key) => {

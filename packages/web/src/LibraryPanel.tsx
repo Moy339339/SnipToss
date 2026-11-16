@@ -4,6 +4,7 @@ import type { MaterialKind } from "@sniptoss/core";
 import type { AppInfo, LibraryEntry, MaterialEntry } from "./host";
 import { CloseIcon, FilePlusIcon, FilterIcon, FolderPlusIcon, SearchIcon } from "./icons";
 import { usePrefs } from "./prefs";
+import { useShortcuts } from "./commandKeys";
 import { prevProjectPinned, type FolderTarget, type Library, type Project } from "./library";
 import { ContextMenu } from "./Menu";
 import { Wordmark } from "./Wordmark";
@@ -97,6 +98,7 @@ export function LibraryPanel(props: {
 }) {
   const { library, openCount } = props;
   const intl = useIntl();
+  const { tip } = useShortcuts();
   const [query, setQuery] = useState("");
   const list = useRef<HTMLDivElement>(null);
   const search = useRef<HTMLInputElement>(null);
@@ -217,10 +219,18 @@ export function LibraryPanel(props: {
         {/* Always-visible add buttons (once the list has content there is no other add button in the window). Two icons you click
             directly, no dropdown (no dropdown buttons in the title bar) */}
         <div className="lib-header-actions">
-          <button className="hdr-btn" onClick={props.onAddFiles} title={intl.formatMessage({ id: "library.add.files" })}>
+          <button
+            className="hdr-btn"
+            onClick={props.onAddFiles}
+            title={tip(intl.formatMessage({ id: "library.add.files" }), "file.addFiles")}
+          >
             <FilePlusIcon />
           </button>
-          <button className="hdr-btn" onClick={props.onAddFolder} title={intl.formatMessage({ id: "library.add.folder" })}>
+          <button
+            className="hdr-btn"
+            onClick={props.onAddFolder}
+            title={tip(intl.formatMessage({ id: "library.add.folder" }), "file.addFolder")}
+          >
             <FolderPlusIcon />
           </button>
         </div>
@@ -236,7 +246,7 @@ export function LibraryPanel(props: {
             onKeyDown={onSearchKey}
             placeholder={intl.formatMessage({ id: "library.search.placeholder" })}
             spellCheck={false}
-            title={intl.formatMessage({ id: "library.search.title" })}
+            title={tip(intl.formatMessage({ id: "library.search.title" }), "file.find")}
           />
           {query && (
             <button className="search-clear" onClick={() => setQuery("")} title={intl.formatMessage({ id: "panel.search.clear" })}>

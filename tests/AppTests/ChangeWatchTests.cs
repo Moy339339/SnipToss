@@ -142,6 +142,19 @@ public class ChangeWatchTests
     }
 
     [Theory]
+    [InlineData(0.5, 0.01, false, 10)] // normal round: every 10 seconds
+    [InlineData(1.0, 0.9, false, 20)] // slow round: stretched to 20 times its duration
+    [InlineData(0.5, 0.01, true, 1)] // a drive hadn't answered (the 0.4 s wait for it doesn't count): look again in a second
+    [InlineData(0.5, 0.2, true, 4)] // ...but scanning stays at most a twentieth of the time
+    [InlineData(2.0, 1.5, true, 30)] // ...a slow scan still stretches it
+    public void A_drive_that_has_not_answered_is_looked_at_again_soon_without_scanning_more_than_a_twentieth_of_the_time(
+        double took,
+        double scanTook,
+        bool unanswered,
+        double expected
+    ) => Assert.Equal(TimeSpan.FromSeconds(expected), MaterialWatcher.NextFullIn(TimeSpan.FromSeconds(took), TimeSpan.FromSeconds(scanTook), unanswered));
+
+    [Theory]
     [InlineData("")]
     [InlineData("E:\\a\u0000b.png")]
     public void Paths_corrupted_by_hand_editing_the_settings_file_count_as_missing_and_do_not_throw(string path) => Assert.Equal("missing", MaterialWatcher.FileSignature(path));

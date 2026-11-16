@@ -3,7 +3,7 @@
 
 import { join } from "node:path";
 import type { Locator } from "@playwright/test";
-import { expect, test, type App } from "./harness";
+import { expect, test, withKey, type App } from "./harness";
 
 const toast = (app: App) => app.page.locator(".toast");
 const capture = (app: App) => app.page.locator(".titlebar-action").first();
@@ -217,7 +217,7 @@ test("the three window buttons: the actions they send, hover tips, screen reader
   await expect(max).toHaveAttribute("aria-label", "退出全屏");
   await expect(max.locator("path")).toHaveCount(1);
   await app.page.mouse.move(600, 500);
-  await expect(max).toHaveAttribute("title", "退出全屏（F11）");
+  await expect(max).toHaveAttribute("title", withKey("退出全屏", "F11"));
   await max.click();
   await expect(max).toHaveAttribute("aria-label", "最大化");
   await close.click();

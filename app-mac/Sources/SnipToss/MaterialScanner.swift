@@ -162,7 +162,10 @@ enum MaterialScanner {
             mtime: milliseconds(st.st_mtimespec), ctime: milliseconds(st.st_birthtimespec))
     }
 
-    private static func milliseconds(_ time: timespec) -> Int64 {
+    /// Unix milliseconds truncated to the whole millisecond, as the Windows shell gives them (docs/host-api.md, scan): the page compares
+    /// them with the time a note recorded, so rounding would make a file look changed a millisecond later. timespec keeps the nanoseconds
+    /// at 0…999 999 999 also before 1970, so this is the floor there too
+    static func milliseconds(_ time: timespec) -> Int64 {
         Int64(time.tv_sec) * 1000 + Int64(time.tv_nsec) / 1_000_000
     }
 }

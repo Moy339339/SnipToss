@@ -35,6 +35,8 @@ export async function walkScreens(app: App, visit: (screen: string) => Promise<v
   // The most crowded title bar: the shell has found a new version (the "new version" pill is squeezed between the menu bar and the Capture button)
   app.host.announceUpdate({ version: "1.0.0-beta.99", url: "https://example.com/", prerelease: true });
   await expect(page.locator(".titlebar-update")).toBeVisible();
+  // The pill gives way to the menus (only its icon) a frame after it appears: look at what settles, not the frame in between
+  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
   await visit("主界面");
 
   // With the Mac's native menus the page has no menu bar of its own: there are no menus to click through, Command is the key of Settings, and
@@ -118,6 +120,7 @@ export async function walkScreens(app: App, visit: (screen: string) => Promise<v
   for (let i = 0; i < (await tabs.count()); i++) {
     await tabs.nth(i).click();
     await visit(`设置 ${i + 1}`);
+    if ((await page.locator(".key-row").count()) > 0) await keyStates(app, (what) => visit(`设置 ${i + 1} ${what}`));
   }
   await page.keyboard.press("Escape");
 
@@ -185,6 +188,33 @@ export async function walkScreens(app: App, visit: (screen: string) => Promise<v
   await expect(page.locator(".welcome")).toBeVisible();
   await expect(hint("capture")).toBeVisible();
   await visit("截图批注的提示");
+}
+
+/**
+ * The states of Settings → Keyboard Shortcuts that carry the most words: a key being recorded, a key another command has (the row says
+ * whose, with Replace / Cancel), a changed row (the circular arrow) and a search that finds nothing. Leaves the page as it found it
+ */
+async function keyStates(app: App, visit: (what: string) => Promise<void>) {
+  const page = app.page;
+  const row = page.locator('.key-row[data-command="file.refresh"]');
+  await row.locator(".key-pill").first().click();
+  await expect(row.locator(".key-pill.is-recording")).toHaveCount(1);
+  await visit("录键");
+  // A key another command has: on the Mac its key is Command B
+  await page.keyboard.press((await page.locator(".menubar").count()) === 0 ? "Meta+B" : "Control+B");
+  await expect(row.locator(".key-clash")).toBeVisible();
+  await visit("冲突");
+  await page.keyboard.press("Escape");
+  await row.locator(".key-pill").first().click();
+  await page.keyboard.press("Control+Shift+F5");
+  await expect(row.locator(".key-reset")).toBeVisible();
+  await visit("改过");
+  await row.locator(".key-reset").click();
+  await expect(row.locator(".key-reset")).toHaveCount(0);
+  await page.locator(".keys-search input").fill("zzzz");
+  await expect(page.locator(".keys-empty")).toBeVisible();
+  await visit("搜索无结果");
+  await page.locator(".keys-search input").fill("");
 }
 
 /** The welcome page in the middle of the canvas with an empty library (the first-run dialog counts as seen). Call it before app.open(): the library is empty */

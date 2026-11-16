@@ -1,4 +1,5 @@
 import { useIntl } from "react-intl";
+import { useShortcuts } from "./commandKeys";
 import { Demo } from "./Demo";
 import { FilePlusIcon, FolderPlusIcon, KindIcon } from "./icons";
 import { KeepPunctuation } from "./KeepPunctuation";
@@ -47,6 +48,7 @@ const MAIN_FORMATS = { image: ["PNG", "JPG", "WebP", "GIF", "SVG"], video: ["MP4
 export function Welcome(props: { onAddFiles: () => void; onAddFolder: () => void; onSample?: () => void; captureKeys: string }) {
   const intl = useIntl();
   const t = (id: string) => intl.formatMessage({ id });
+  const { tip } = useShortcuts();
   return (
     <KeepPunctuation>
       <div className="welcome">
@@ -71,11 +73,11 @@ export function Welcome(props: { onAddFiles: () => void; onAddFolder: () => void
         </div>
         <div className="welcome-actions">
           {/* The hover tooltip is the same as the one at the top of the library (its shortcut) */}
-          <button className="btn btn-primary" onClick={props.onAddFiles} title={t("library.add.files")}>
+          <button className="btn btn-primary" onClick={props.onAddFiles} title={tip(t("library.add.files"), "file.addFiles")}>
             <FilePlusIcon />
             {t("welcome.addFiles")}
           </button>
-          <button className="btn btn-secondary" onClick={props.onAddFolder} title={t("library.add.folder")}>
+          <button className="btn btn-secondary" onClick={props.onAddFolder} title={tip(t("library.add.folder"), "file.addFolder")}>
             <FolderPlusIcon />
             {t("welcome.addFolder")}
           </button>

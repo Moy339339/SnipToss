@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { BackdropIcon, CheckIcon, ChevronIcon, MinusIcon, PlusIcon } from "./icons";
-import { useKeys } from "./keys";
+import { useCommands, useShortcuts } from "./commandKeys";
 import { Menu } from "./Menu";
 import { handHold } from "./pan";
 import { usePrefs } from "./prefs";
@@ -66,6 +66,7 @@ export function ZoomView(props: {
   vector?: boolean;
 }) {
   const intl = useIntl();
+  const { tip } = useShortcuts();
   const { size, margin = 16 } = props;
   const unit = useRef(1);
   unit.current = props.unit ?? 1;
@@ -316,14 +317,12 @@ export function ZoomView(props: {
     else zoomToActual(1, e.clientX - b.left, e.clientY - b.top);
   };
 
-  useKeys({
-    "Shift+1": fit,
-    "Ctrl+0": fit,
-    "Shift+2": fill,
-    "Shift+0": () => zoomToActual(1),
-    "Ctrl+=": () => zoomBy(1.25),
-    "Ctrl++": () => zoomBy(1.25),
-    "Ctrl+-": () => zoomBy(0.8),
+  useCommands({
+    "view.fit": fit,
+    "view.fill": fill,
+    "view.actual": () => zoomToActual(1),
+    "view.zoomIn": () => zoomBy(1.25),
+    "view.zoomOut": () => zoomBy(0.8),
   });
 
   return (
@@ -355,7 +354,7 @@ export function ZoomView(props: {
         </button>
         {extras}
         <span className="zoom-sep" />
-        <button className="zoom-btn" onClick={() => zoomBy(0.8)} title={intl.formatMessage({ id: "zoom.out" })}>
+        <button className="zoom-btn" onClick={() => zoomBy(0.8)} title={tip(intl.formatMessage({ id: "zoom.out" }), "view.zoomOut")}>
           <MinusIcon />
         </button>
         <Menu
@@ -392,7 +391,7 @@ export function ZoomView(props: {
             },
           ]}
         />
-        <button className="zoom-btn" onClick={() => zoomBy(1.25)} title={intl.formatMessage({ id: "zoom.in" })}>
+        <button className="zoom-btn" onClick={() => zoomBy(1.25)} title={tip(intl.formatMessage({ id: "zoom.in" }), "view.zoomIn")}>
           <PlusIcon />
         </button>
       </div>

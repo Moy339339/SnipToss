@@ -132,8 +132,12 @@ public class OverlayStateMachineTests
         public readonly OverlayStateMachine State;
 
         public Layer(params Rect[] windows)
+            : this(null, windows) { }
+
+        /// <param name="keys">The keys changed in Settings → Keyboard Shortcuts (null = the defaults)</param>
+        public Layer(CaptureKeys? keys, params Rect[] windows)
         {
-            State = new OverlayStateMachine(View, Host, 1, Screen, [.. windows], ToolPrefs.Colors[0], "change", new ToolPrefs());
+            State = new OverlayStateMachine(View, Host, 1, Screen, [.. windows], ToolPrefs.Colors[0], "change", new ToolPrefs(), keys);
             View.State = State;
             Host.State = State;
         }
@@ -428,6 +432,35 @@ public class OverlayStateMachineTests
         Assert.Single(a.State.Marks);
         Assert.True(a.Press(Key.Z, ModifierKeys.Control));
         Assert.Empty(a.State.Marks);
+    }
+
+    [Fact]
+    public void Changed_keys_pick_the_tools_and_undo_and_the_old_keys_no_longer_do()
+    {
+        var keys = CaptureKeys.From(System.Text.Json.Nodes.JsonNode.Parse("""{ "capture.rect": ["Q"], "capture.undo": ["Ctrl+Y"], "capture.whole": [] }"""));
+        var a = new Layer(keys).Selected();
+        Assert.False(a.Press(Key.R));
+        Assert.Equal(Tool.None, a.State.Tool);
+        Assert.True(a.Press(Key.Q));
+        Assert.Equal(Tool.Rect, a.State.Tool);
+        // Shift held still picks it (Shift is about to make a square)
+        a.State.ChooseTool(Tool.Pen);
+        Assert.True(a.Press(Key.Q, ModifierKeys.Shift));
+        Assert.Equal(Tool.Rect, a.State.Tool);
+        // Untouched commands keep their defaults
+        Assert.True(a.Press(Key.O));
+        Assert.Equal(Tool.Ellipse, a.State.Tool);
+        a.State.ChooseTool(Tool.Rect);
+        a.Drag((250, 250), (300, 300));
+        a.View.NoteDraft = "框";
+        a.State.CommitNote();
+        Assert.False(a.Press(Key.Z, ModifierKeys.Control));
+        Assert.Single(a.State.Marks);
+        Assert.True(a.Press(Key.Y, ModifierKeys.Control));
+        Assert.Empty(a.State.Marks);
+        // The overall comment was left without a key: N does nothing
+        Assert.False(a.Press(Key.N));
+        Assert.False(a.State.NoteOpen);
     }
 
     [Fact]

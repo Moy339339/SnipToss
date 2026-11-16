@@ -82,7 +82,7 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
             .ToList();
         ToolPrefs.Shared.Start(defaultColor);
         // Build the state machine first: the handlers attached below when building the toolbar and input boxes all use it
-        state = new OverlayStateMachine(this, this, scale, full, windows, defaultColor, defaultCategory, ToolPrefs.Shared);
+        state = new OverlayStateMachine(this, this, scale, full, windows, defaultColor, defaultCategory, ToolPrefs.Shared, session.Keys);
 
         WindowStyle = WindowStyle.None;
         ResizeMode = ResizeMode.NoResize;
@@ -132,6 +132,9 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
 
         (noteBox, noteInput) = BuildNoteEditor();
         root.Children.Add(noteBox);
+        // The input method's composition underline is drawn by us, not by WPF (ImeUnderline: WPF's freezes on a composition with a line break)
+        ImeUnderline.Attach(noteInput);
+        ImeUnderline.Attach(textInput);
 
         picker = BuildPicker();
         root.Children.Add(picker);
@@ -741,17 +744,19 @@ sealed partial class CaptureOverlay : Window, IOverlayView, IOverlayHost
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal };
         void Tool_(Tool t, string tip, params string[] icon) => row.Children.Add(IconButton(t.ToString().ToLowerInvariant(), icon, tip, () => state.ChooseTool(t), () => state.Tool == t));
-        Tool_(Tool.Rect, Locale.T("capture.tool.rect"), Icons.Rect);
-        Tool_(Tool.Ellipse, Locale.T("capture.tool.ellipse"), Icons.Ellipse);
-        Tool_(Tool.Arrow, Locale.T("capture.tool.arrow"), Icons.Arrow);
-        Tool_(Tool.Pen, Locale.T("capture.tool.pen"), Icons.Pen);
-        Tool_(Tool.Mosaic, Locale.T("capture.tool.mosaic"), Icons.Mosaic);
-        Tool_(Tool.Text, Locale.T("capture.tool.text"), Icons.Text);
+        // The name and the key the command has now (Settings → Keyboard Shortcuts)
+        string tip(string name, string command) => state.Keys.Tip(Locale.T($"capture.toolName.{name}"), command);
+        Tool_(Tool.Rect, tip("rect", "capture.rect"), Icons.Rect);
+        Tool_(Tool.Ellipse, tip("ellipse", "capture.ellipse"), Icons.Ellipse);
+        Tool_(Tool.Arrow, tip("arrow", "capture.arrow"), Icons.Arrow);
+        Tool_(Tool.Pen, tip("pen", "capture.pen"), Icons.Pen);
+        Tool_(Tool.Mosaic, tip("mosaic", "capture.mosaic"), Icons.Mosaic);
+        Tool_(Tool.Text, tip("text", "capture.text"), Icons.Text);
         row.Children.Add(Separator());
-        Tool_(Tool.Note, Locale.T("capture.tool.note"), Icons.Note);
-        row.Children.Add(IconButton("overall", Icons.Overall, Locale.T("capture.tool.overall"), state.ToggleOverall, () => state.NoteOpen && state.NoteFor is null));
+        Tool_(Tool.Note, tip("note", "capture.point"), Icons.Note);
+        row.Children.Add(IconButton("overall", Icons.Overall, tip("overall", "capture.whole"), state.ToggleOverall, () => state.NoteOpen && state.NoteFor is null));
         row.Children.Add(Separator());
-        row.Children.Add(IconButton("undo", Icons.Undo, Locale.T("capture.tool.undo"), state.Undo, () => false));
+        row.Children.Add(IconButton("undo", Icons.Undo, tip("undo", "capture.undo"), state.Undo, () => false));
         // Deletes the mark picked by a click (grayed out until one is picked); same as Delete / Backspace
         row.Children.Add(IconButton("delete", Icons.Trash, Locale.T("capture.tool.delete"), state.DeletePicked, () => false, () => state.Picked is not null));
         row.Children.Add(IconButton("cancel", Icons.Close, Locale.T("capture.tool.cancel"), session.RequestCancel, () => false));

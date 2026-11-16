@@ -51,6 +51,8 @@ struct CaptureOptions {
     /// The folder the user chose for saved captures; nil = the default one, which is cleaned of pictures older than 30 days
     var folder: String?
     var defaultFolder = AppPaths.capturesDir
+    /// Settings → Keyboard Shortcuts: the overlay's changeable keys
+    var keys = CaptureKeys.standard
 }
 
 /// Where the capture layer's colors are kept between captures and restarts (the app's settings): the color last chosen on the layer with the
@@ -285,7 +287,7 @@ final class CaptureSession {
             let panel = OverlayPanel(frame: screen.frame)
             let overlay = CaptureOverlay(
                 session: self, shot: screen, windows: WindowList.onLayer(windows, screen: screen.frame, mainHeight: mainHeight),
-                defaultColor: chosen.markColor, defaultCategory: chosen.defaultCategory, selectHint: chosen.selectHint)
+                defaultColor: chosen.markColor, defaultCategory: chosen.defaultCategory, selectHint: chosen.selectHint, keys: chosen.keys)
             panel.contentView = overlay
             panel.orderFrontRegardless()
             if screen.frame.contains(under) || keyPanel == nil { keyPanel = panel }

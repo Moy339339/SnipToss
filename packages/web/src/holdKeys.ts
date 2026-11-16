@@ -1,13 +1,24 @@
 import { useEffect, useEffectEvent, useState } from "react";
 import type { Tool } from "./annotate";
-import { endToolHold, HOLD_TOOLS, toolHold } from "./hold";
-import { pressesControl } from "./keys";
+import { commandById, keysOf, type Bindings, type CommandId } from "./commands";
+import { endToolHold, toolHold } from "./hold";
+import { keyName, pressesControl } from "./keys";
 import { handHold, isTypingTarget } from "./pan";
 
 // "Hold" tool keys (split out of Workspace): useKeys only handles key presses, so keydown / keyup are attached separately here.
-// Holding H = temporary Hand tool, and releasing returns to the previous tool; tapping H = properly switch to the Hand tool (pan.ts).
-// Holding C / R / B / A = hold mode (hold.ts): the press switches the tool as usual through useKeys, and this code only records "held"
-// and decides on release whether to return to Select
+// Holding the Hand key (H) = temporary Hand tool, and releasing returns to the previous tool; tapping it = properly switch to the Hand tool (pan.ts).
+// Holding a drawing tool's key (C / R / B / A) = hold mode (hold.ts): the press switches the tool as usual through Workspace's shortcuts, and
+// this code only records "held" and decides on release whether to return to Select.
+// Only keys without modifiers can be held this way (holding Ctrl while drawing means something else); the keys follow Settings → Keyboard
+// Shortcuts. The release is matched by the physical key (e.code) the hold started with: the modifiers may have changed by then
+
+/** The drawing tools that can be held (point / rectangle / pen / arrow) */
+export const HOLD_TOOL_COMMANDS: CommandId[] = ["tool.point", "tool.rect", "tool.pen", "tool.arrow"];
+
+/** The keys of these commands that can be held: the ones without modifiers */
+export function holdableKeys(ids: CommandId[], bindings: Bindings): string[] {
+  return ids.flatMap((id) => keysOf(commandById(id), bindings)).filter((k) => !/^(Ctrl|Alt|Shift|Control)\+./.test(k));
+}
 
 export function useHoldKeys(opts: {
   chooseTool: (t: Tool) => void;
@@ -15,14 +26,19 @@ export function useHoldKeys(opts: {
   /** "Hold to switch tools" is on in Settings */
   holdTools: boolean;
   canDraw: boolean;
+  bindings: Bindings;
 }): { handHeld: boolean } {
   const [handHeld, setHandHeld] = useState(false);
   const tapHand = useEffectEvent(() => opts.chooseTool("hand"));
   const holdState = useEffectEvent(() => ({ enabled: opts.holdTools, canDraw: opts.canDraw }));
   const backToSelect = useEffectEvent(() => opts.setTool("select"));
+  const isHandKey = useEffectEvent((e: KeyboardEvent) => holdableKeys(["tool.hand"], opts.bindings).includes(keyName(e)));
+  const isToolKey = useEffectEvent((e: KeyboardEvent) => holdableKeys(HOLD_TOOL_COMMANDS, opts.bindings).includes(keyName(e)));
 
   useEffect(() => {
     let since = 0;
+    /** The physical key the hold started with */
+    let code = "";
     const release = (tap: boolean) => {
       if (!handHold.held) return;
       handHold.held = false;
@@ -33,18 +49,23 @@ export function useHoldKeys(opts: {
       // Space only toggles play / pause (VideoPlayer); here it is merely stopped from "clicking" a button that the mouse clicked and that
       // still has focus (a button reached with Tab can still be pressed)
       if (e.code === "Space" && !isTypingTarget(e.target) && !pressesControl(e)) e.preventDefault();
-      if (e.code !== "KeyH" || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+      if (handHold.held && e.code === code) {
+        e.preventDefault();
+        return;
+      }
+      if (e.isComposing || !isHandKey(e)) return;
       if (isTypingTarget(e.target) || document.querySelector(".overlay")) return;
       e.preventDefault();
       if (e.repeat || handHold.held) return;
       handHold.held = true;
       handHold.panned = false;
+      code = e.code;
       since = performance.now();
       setHandHeld(true);
     };
     const up = (e: KeyboardEvent) => {
       if (e.code === "Space" && !isTypingTarget(e.target) && !pressesControl(e)) e.preventDefault();
-      if (e.code !== "KeyH") return;
+      if (!handHold.held || e.code !== code) return;
       // No drag and a short press = a tap
       release(!handHold.panned && performance.now() - since < 350);
     };
@@ -71,7 +92,7 @@ export function useHoldKeys(opts: {
         e.stopImmediatePropagation();
         return;
       }
-      if (e.repeat || !HOLD_TOOLS.includes(e.code) || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+      if (e.repeat || e.isComposing || !isToolKey(e)) return;
       if (!holdState().canDraw) return;
       if (isTypingTarget(e.target) || document.querySelector(".overlay")) return;
       // One tool key held and another pressed (hold C, then press R): the one pressed later counts, and releasing the earlier one doesn't

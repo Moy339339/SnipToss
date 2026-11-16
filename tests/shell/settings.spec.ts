@@ -17,6 +17,7 @@ async function openSettings(shell: Shell) {
 test("A changed setting is written to settings.json (changed items only) and survives quit and reopen", async ({ shell }) => {
   await shell.launch();
   await openSettings(shell);
+  await shell.page.locator(".settings-tab", { hasText: /^外观$/ }).click();
   await shell.page.locator(".set-row", { hasText: "界面大小" }).getByRole("button", { name: "125%" }).click();
   await waitFor("the setting to be written to the settings file", () => prefsOnDisk(shell)?.uiScale === 1.25);
   // Defaults that were never touched are not written (if a later version changes a default, people who never changed it follow the new one)

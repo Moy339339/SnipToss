@@ -308,7 +308,7 @@ test("Turning off Video and adding a skipped folder in Settings updates the list
   await expect(row(app, "poster.jpg")).toHaveCount(0);
   await video.click();
   await expect(row(app, "clip.mp4")).toBeVisible();
-  await expect(app.page.locator(".set-group", { hasText: "素材列表" })).not.toContainText("F5"); // the description no longer tells people to press F5
+  await expect(app.page.locator(".set-section", { has: app.page.locator(".set-section-title", { hasText: /^素材列表$/ }) })).not.toContainText("F5"); // the description no longer tells people to press F5
 });
 
 test("F5 when the shell pushed no change: new files appear, deleted ones disappear, and a deleted standalone entry turns gray", async ({ app }) => {

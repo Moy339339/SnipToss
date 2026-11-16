@@ -189,6 +189,16 @@ describe("validation", () => {
     expect(parseMaterialFile(minimal({ ...ok, material_size: 482113 })).annotations[0].material_size).toBe(482113);
   });
 
+  it("a malformed item modification time (not a parseable time): counts as not recorded and the file is read as usual (the note then follows the rules for notes from before 1.6.0)", () => {
+    for (const bad of [1729850321237, "yesterday", "", null, { at: "2026-10-25T11:58:41.237Z" }]) {
+      const a = parseMaterialFile(minimal({ ...ok, material_mtime: bad })).annotations[0];
+      expect("material_mtime" in a).toBe(false);
+    }
+    expect(parseMaterialFile(minimal({ ...ok, material_mtime: "2026-10-25T11:58:41.237Z" })).annotations[0].material_mtime).toBe(
+      "2026-10-25T11:58:41.237Z",
+    );
+  });
+
   it("a malformed mark color (not #rrggbb): counts as not changed, the Settings color is used and the file is read as usual; either case is accepted (it is put into SVG)", () => {
     for (const bad of [123, null, "red", "#fff", "#12345g", '#123456" onload="x', "rgb(1,2,3)"]) {
       const a = parseMaterialFile(minimal({ ...ok, color: bad })).annotations[0];

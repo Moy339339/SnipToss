@@ -195,6 +195,20 @@ describe("planPages", () => {
     ).toBe(30);
   });
 
+  it("with separate images, a note without a stored snapshot on this version is drawn from the item instead of coming out as text only", () => {
+    const bare = (n: ReturnType<typeof note>) => ({ ...n, annotation: { ...n.annotation, snapshot: undefined } });
+    const image = group("image", "a.png", [bare(note("marked")), bare(note("overall")), bare(note("earlier")), note("marked")]);
+    expect(shape(planPages([image], { each: true, max: 10 }).pages)).toEqual(["frame:1", "frame:1", "snapshot:1", "snapshot:1"]);
+    const video = group("video", "v.mp4", [bare(note("marked", { time: 2.5 })), bare(note("timed", { time: 4 })), bare(note("overall"))]);
+    const plan = planPages([video], { each: true, max: 10 });
+    expect(shape(plan.pages)).toEqual(["frame:1", "frame:1", "snapshot:1"]); // an overall comment on a video has no moment to draw
+    expect(plan.pages.map((p) => p[0].time)).toEqual([2.5, 4, undefined]);
+    // The item is gone: nothing to draw from
+    expect(shape(planPages([group("image", "a.png", [bare(note("marked"))], { missing: true })], { each: true, max: 10 }).pages)).toEqual([
+      "snapshot:1",
+    ]);
+  });
+
   it("mixes items on a grid image when frames must be grouped; text takes no cell", () => {
     const images = many(12, (i) => group("image", `${i}.png`, [note("marked")]));
     const folder = group("folder", ".", [note("overall")]);

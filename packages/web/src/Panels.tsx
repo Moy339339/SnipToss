@@ -12,12 +12,20 @@ export interface PanelState {
   collapsed: boolean;
 }
 
+/** The notes panel's default width: at the 14px default text its bottom row ("Select all" + two copy buttons) fits on one line */
+const RIGHT_DEFAULT = 336;
+/** The notes panel's default before the interface was written at 14: a stored 320 is that default (a drag almost never lands on it), so it moves with it */
+const RIGHT_OLD_DEFAULT = 320;
+
 const LIMITS: Record<Side, { min: number; max: number; initial: number }> = {
   left: { min: 180, max: 520, initial: 260 },
-  right: { min: 240, max: 640, initial: 320 },
+  right: { min: 240, max: 640, initial: RIGHT_DEFAULT },
 };
-/** The canvas keeps at least this width: both panels at their widest (520 + 640) are wider than the minimum window width (960), which would squeeze the canvas to 0 */
-export const STAGE_MIN = 360;
+/**
+ * The canvas keeps at least this width: both panels at their widest (520 + 640) are wider than the minimum window width (960), which would squeeze the canvas to 0.
+ * 380 holds the note box (360) with its 12 from the canvas edge; at the minimum window the default panels give a little to make it
+ */
+export const STAGE_MIN = 380;
 /** Dragging this far below the minimum width counts as a request to collapse (like VS Code) */
 const SNAP = 72;
 const STORE_KEY = "sniptoss.panels";
@@ -29,7 +37,9 @@ function load(): Record<Side, PanelState> {
   };
   try {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY) ?? "null");
-    return saved?.left && saved?.right ? saved : fallback;
+    if (!(saved?.left && saved?.right)) return fallback;
+    if (saved.right.width === RIGHT_OLD_DEFAULT) saved.right.width = RIGHT_DEFAULT;
+    return saved;
   } catch {
     return fallback;
   }
@@ -46,7 +56,12 @@ export function fitWidths(panels: Record<Side, PanelState>, layoutWidth: number)
   const spare = (s: Side) => (w[s] ? w[s] - LIMITS[s].min : 0);
   const total = spare("left") + spare("right");
   const k = total > 0 ? Math.min(1, over / total) : 0;
-  return { left: w.left - spare("left") * k, right: w.right - spare("right") * k };
+  // Whole pixels, so what the panels hold does not land between pixels; the right one takes the rounding, so the sum still leaves STAGE_MIN
+  const left = Math.round(w.left - spare("left") * k);
+  const right = w.right
+    ? Math.max(LIMITS.right.min, Math.min(Math.round(w.right - spare("right") * k), layoutWidth - STAGE_MIN - left))
+    : 0;
+  return { left, right };
 }
 
 export function usePanels(layout: RefObject<HTMLDivElement | null>) {

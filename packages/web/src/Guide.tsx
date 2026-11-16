@@ -6,6 +6,7 @@ import { cssZoom } from "./cssZoom";
 import { Demo } from "./Demo";
 import { KeepPunctuation } from "./KeepPunctuation";
 import { GUIDE_STEPS, SAMPLE_BOX, placeNear, visibleBox, type GuideState, type Side } from "./onboarding";
+import { reduceMotion } from "./typeScale";
 
 /** The lit area is this much larger than the control it holds on every side; the card is this far from the window's edges and from what it explains; its caret stays this far from its corners (all scale with the interface size) */
 const PAD = 4;
@@ -344,7 +345,7 @@ function Finish() {
   const burst = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const root = burst.current;
-    if (!root || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!root || reduceMotion()) return;
     const pieces = Array.from(root.children) as HTMLElement[];
     // Out in a fan upward, slowing down; then falling, turning and fading. After the card has slid into the middle
     const flying = pieces.map((piece, n) => {

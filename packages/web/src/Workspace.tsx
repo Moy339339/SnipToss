@@ -18,7 +18,7 @@ import { folderAt, folderOfMaterial, useLibrary } from "./library";
 import { LibraryPanel } from "./LibraryPanel";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { keycaps, prettyKeys } from "./hotkey";
-import { useKeys } from "./keys";
+import { useCommands, useShortcuts } from "./commandKeys";
 import { Sash, usePanels } from "./Panels";
 import { MARK_COLORS, usePrefs } from "./prefs";
 import { StageHeader } from "./StageHeader";
@@ -69,6 +69,7 @@ export function WorkspaceView(props: {
 }) {
   const { onNotify } = props;
   const intl = useIntl();
+  const { tip } = useShortcuts();
   const { prefs, setPrefs } = usePrefs();
   // The color rows in the menus (built on each render) show the recent custom colors: render again when they change
   useRecentColors();
@@ -361,7 +362,12 @@ export function WorkspaceView(props: {
     onboarding.closeTour();
     const dir = props.appInfo?.sampleDir;
     const entry = onSample && dir ? library.entries.find((e) => keyOf(e.path) === keyOf(dir)) : undefined;
-    if (entry) removeEntries([entry]);
+    if (!entry || !dir) return;
+    removeEntries([entry]);
+    // Nothing of the tutorial is left behind: no undo steps on the sample (Undo would light up on an empty list), and the tool it
+    // picked goes back to Select
+    store.forgetHome(dir);
+    setTool("select");
   };
   // The guide moves on by what is done (onboarding.ts): the composer is open on a new note
   const composingNow = !!draft?.composing && !draft.id;
@@ -435,7 +441,7 @@ export function WorkspaceView(props: {
       : undefined;
 
   // Hold H = temporary Hand tool, hold-to-use mode (hold C / R / B / A): holdKeys.ts
-  const { handHeld } = useHoldKeys({ chooseTool, setTool, holdTools: prefs.holdTools, canDraw });
+  const { handHeld } = useHoldKeys({ chooseTool, setTool, holdTools: prefs.holdTools, canDraw, bindings: prefs.keybindings });
   const videoTime = () => mediaTime(mediaRef.current);
 
   const {
@@ -690,72 +696,77 @@ export function WorkspaceView(props: {
     applyStatus(pending.length > 0 ? pending : statusTargets, pending.length > 0 ? status : "open");
   };
 
-  useKeys({
-    "Ctrl+O": addFiles,
-    "Ctrl+Shift+O": addFolder,
-    F5: () => void library.rescan(),
-    "Ctrl+ArrowDown": () => stepMaterial(1),
-    "Ctrl+ArrowUp": () => stepMaterial(-1),
-    "Ctrl+\\": toggleBoth,
-    "Ctrl+B": () => toggle("left"),
-    "Ctrl+P": () => findMaterial(),
-    "Ctrl+F": () => findAnnotation(),
-    "Ctrl+Alt+B": () => toggle("right"),
-    V: () => chooseTool("select"),
-    // H is handled separately above: a tap switches to Hand, holding is a temporary Hand
-    C: () => chooseTool("point"),
-    R: () => chooseTool("rect"),
-    B: () => chooseTool("pen"),
-    A: () => chooseTool("arrow"),
-    N: startWhole,
-    // Timestamped comment (video only): on images this key is not intercepted
-    T: () => (canTimed ? startTimed() : false),
-    // Folder comment: the folder containing the item on the canvas (other folders via right-click in the library)
-    "Shift+N": () => void startCurrentFolderNote(),
-    "[": () => stepAnnotation(-1),
-    "]": () => stepAnnotation(1),
-    "Ctrl+Z": () => void undo(),
-    "Ctrl+Shift+Z": () => void redo(),
-    "Ctrl+Y": () => void redo(),
-    "Ctrl+Shift+A": () => void copyCurrent(),
-    "Ctrl+Shift+I": () => void copyCurrent("images"),
-    // Paste an image or copied files as items (Ctrl+V in an input still pastes text; keys.ts leaves it to the input)
-    "Ctrl+V": () => void paste(),
-    // Check / uncheck the current note (like Gmail's X); with nothing selected, or when it is not in the notes panel, leave the key to others
-    X: () => (selectedItem ? toggleCheck(selectedItem) : false),
-    D: () => toggleStatus("resolved"),
-    "Shift+D": () => toggleStatus("wontfix"),
-    "Shift+H": () => setMarksHidden((h) => !h),
-    // Recolor the selected marks (the checked ones if any): 1–6 follow the order of the swatch row in Settings (like Lightroom's number keys for color labels)
-    ...Object.fromEntries(MARK_COLORS.map((_, i) => [String(i + 1), () => colorKey(i)])),
-    F11: () => windowCmd("fullscreen"),
-    // The Mac's window keys, ⌘W and ⌘M (Ctrl is ⌘ there): the native menu shows them, but a key reaches its items only after the page let
-    // it go, and then they do not run (the Mac shell's MenuPolicy), so the page handles them, as it does every shortcut
-    ...(platform === "mac" ? { "Ctrl+W": () => windowCmd("close"), "Ctrl+M": () => windowCmd("minimize") } : {}),
-    "Ctrl+L": toggleLoop,
-    Escape: () => {
-      if (draft) discardDraft();
-      else if (tool !== "select") setTool("select");
-      else if (selectedId || selectedNote) {
-        setSelectedId(undefined);
-        setSelectedNote(undefined);
-      } else if (checkedList.length > 0) setChecked([]);
+  useCommands(
+    {
+      "file.addFiles": addFiles,
+      "file.addFolder": addFolder,
+      "file.refresh": () => void library.rescan(),
+      "view.nextItem": () => stepMaterial(1),
+      "view.prevItem": () => stepMaterial(-1),
+      "view.toggleBoth": toggleBoth,
+      "view.toggleLeft": () => toggle("left"),
+      "view.toggleRight": () => toggle("right"),
+      "file.find": () => findMaterial(),
+      "note.find": () => findAnnotation(),
+      "tool.select": () => chooseTool("select"),
+      // A Hand key without modifiers is handled by useHoldKeys: a tap switches to Hand, holding is a temporary Hand
+      "tool.hand": (e) => (e && !(e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) ? false : chooseTool("hand")),
+      "tool.point": () => chooseTool("point"),
+      "tool.rect": () => chooseTool("rect"),
+      "tool.pen": () => chooseTool("pen"),
+      "tool.arrow": () => chooseTool("arrow"),
+      "note.whole": startWhole,
+      // Timestamped comment (video only): on images the key is not intercepted
+      "note.timed": () => (canTimed ? startTimed() : false),
+      // Folder comment: the folder containing the item on the canvas (other folders via right-click in the library)
+      "note.folder": () => void startCurrentFolderNote(),
+      "note.prev": () => stepAnnotation(-1),
+      "note.next": () => stepAnnotation(1),
+      "edit.undo": () => void undo(),
+      "edit.redo": () => void redo(),
+      "note.copyText": () => void copyCurrent(),
+      "note.copyImages": () => void copyCurrent("images"),
+      // Paste an image or copied files as items (Ctrl+V in an input still pastes text; keys.ts leaves it to the input)
+      "file.paste": () => void paste(),
+      // Check / uncheck the current note (like Gmail's X); with nothing selected, or when it is not in the notes panel, leave the key to others
+      "note.check": () => (selectedItem ? toggleCheck(selectedItem) : false),
+      "note.done": () => toggleStatus("resolved"),
+      "note.wontfix": () => toggleStatus("wontfix"),
+      "view.marks": () => setMarksHidden((h) => !h),
+      "window.fullscreen": () => windowCmd("fullscreen"),
+      "play.loop": toggleLoop,
     },
-    Enter: () => {
-      if (draft && !draft.composing) setDraft({ ...draft, composing: true });
-      else if (selectedNoteItem) editItem(selectedNoteItem);
-      else if (selectedAnnotation) startEdit(selectedAnnotation);
+    {},
+    {
+      // Recolor the selected marks (the checked ones if any): 1–6 follow the order of the swatch row in Settings (like Lightroom's number keys for color labels)
+      ...Object.fromEntries(MARK_COLORS.map((_, i) => [String(i + 1), () => colorKey(i)])),
+      // The Mac's window keys, ⌘W and ⌘M (Ctrl is ⌘ there): the native menu shows them, but a key reaches its items only after the page let
+      // it go, and then they do not run (the Mac shell's MenuPolicy), so the page handles them, as it does every shortcut
+      ...(platform === "mac" ? { "Ctrl+W": () => windowCmd("close"), "Ctrl+M": () => windowCmd("minimize") } : {}),
+      Escape: () => {
+        if (draft) discardDraft();
+        else if (tool !== "select") setTool("select");
+        else if (selectedId || selectedNote) {
+          setSelectedId(undefined);
+          setSelectedNote(undefined);
+        } else if (checkedList.length > 0) setChecked([]);
+      },
+      Enter: () => {
+        if (draft && !draft.composing) setDraft({ ...draft, composing: true });
+        else if (selectedNoteItem) editItem(selectedNoteItem);
+        else if (selectedAnnotation) startEdit(selectedAnnotation);
+      },
+      // Same as D: delete the checked notes if any are checked, otherwise the selected note (asks first)
+      ...(statusTargets.length > 0 && !draft
+        ? { Delete: () => removeTargets(statusTargets), Backspace: () => removeTargets(statusTargets) }
+        : {}),
+      ...(drawingOf(selectedId) && selectedKey && !draft && !currentBlocked
+        ? { Delete: () => removeDrawingAt(selectedId!), Backspace: () => removeDrawingAt(selectedId!) }
+        : {}),
+      // Images have no "internal paging", so ← → switch items directly; on video ← → step frames, handled in VideoPlayer
+      ...(current?.kind === "image" && !draft ? { ArrowLeft: () => stepMaterial(-1), ArrowRight: () => stepMaterial(1) } : {}),
     },
-    // Same as D: delete the checked notes if any are checked, otherwise the selected note (asks first)
-    ...(statusTargets.length > 0 && !draft
-      ? { Delete: () => removeTargets(statusTargets), Backspace: () => removeTargets(statusTargets) }
-      : {}),
-    ...(drawingOf(selectedId) && selectedKey && !draft && !currentBlocked
-      ? { Delete: () => removeDrawingAt(selectedId!), Backspace: () => removeDrawingAt(selectedId!) }
-      : {}),
-    // Images have no "internal paging", so ← → switch items directly; on video ← → step frames, handled in VideoPlayer
-    ...(current?.kind === "image" && !draft ? { ArrowLeft: () => stepMaterial(-1), ArrowRight: () => stepMaterial(1) } : {}),
-  });
+  );
 
   // ---------- Window (menu Window), Screen Capture (the shell's app/Capture): the state lives in the shell, see windowControls.ts ----------
   const { win, windowCmd } = useWindowState(onNotify);
@@ -1120,7 +1131,7 @@ export function WorkspaceView(props: {
       type="button"
       className={`zoom-btn zoom-marks${marksHidden ? " is-on" : ""}`}
       onClick={() => setMarksHidden((h) => !h)}
-      title={intl.formatMessage({ id: "stage.marks.toggle" }, { hidden: marksHidden ? "yes" : "no" })}
+      title={tip(intl.formatMessage({ id: "stage.marks.toggle" }, { hidden: marksHidden ? "yes" : "no" }), "view.marks")}
     >
       {marksHidden ? <EyeOffIcon /> : <EyeIcon />}
       {marksHidden && <span>{intl.formatMessage({ id: "stage.marks.hidden" })}</span>}

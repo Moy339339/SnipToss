@@ -83,6 +83,8 @@ export function checkMaterialFile(data: unknown): string[] {
     if (a.material_sha256 !== undefined && typeof a.material_sha256 !== "string") delete a.material_sha256;
     if (a.material_size !== undefined && !(Number.isSafeInteger(a.material_size) && (a.material_size as number) >= 0))
       delete a.material_size;
+    if (a.material_mtime !== undefined && (typeof a.material_mtime !== "string" || Number.isNaN(Date.parse(a.material_mtime))))
+      delete a.material_mtime;
     // Only decides the color the marks are drawn in: a malformed value counts as not changed (the Settings color is used). It is put into
     // SVG, so only #rrggbb is accepted
     if (a.color !== undefined && !isMarkColor(a.color)) delete a.color;

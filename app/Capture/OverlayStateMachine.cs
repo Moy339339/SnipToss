@@ -156,12 +156,25 @@ sealed class ToolPrefs
 /// so unit tests can run without a window (tests/AppTests/OverlayStateMachineTests.cs). Keep the order of calls to the window as is (state first or open the box first, release the mouse first or finish up first).
 /// All coordinates are DIPs in this layer; the press point is already snapped to physical pixels (<see cref="OverlayGeometry.Snap"/>)
 /// </summary>
-sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double scale, Rect full, List<Rect> windows, Color defaultColor, string defaultCategory, ToolPrefs prefs)
+sealed class OverlayStateMachine(
+    IOverlayView view,
+    IOverlayHost host,
+    double scale,
+    Rect full,
+    List<Rect> windows,
+    Color defaultColor,
+    string defaultCategory,
+    ToolPrefs prefs,
+    CaptureKeys? keys = null
+)
 {
     /// <summary>After notes have been written, the first Esc / × only warns; pressing again within this time really cancels</summary>
     public static readonly TimeSpan WarnFor = TimeSpan.FromSeconds(3);
 
     public ToolPrefs Prefs { get; } = prefs;
+
+    /// <summary>The keys of the tools, the overall comment and undo, as they are in Settings → Keyboard Shortcuts</summary>
+    public CaptureKeys Keys { get; } = keys ?? CaptureKeys.Default;
 
     /// <summary>Everything drawn, in drawing order, including deleted marks kept for undo (<see cref="Mark.Removed"/>)</summary>
     readonly List<Mark> marks = [];
@@ -1014,9 +1027,6 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
             case Key.C when ctrl:
                 host.Finish(); // works when the selection is on another display too (Finish looks for the layer that has drawings)
                 break;
-            case Key.Z when ctrl && !shift: // Ctrl+Shift+Z is redo in the main app, and the overlay has no redo: do not treat it as another undo
-                Undo();
-                break;
             case Key.Left:
                 Nudge(shift ? -10 : -1, 0);
                 break;
@@ -1030,24 +1040,35 @@ sealed class OverlayStateMachine(IOverlayView view, IOverlayHost host, double sc
                 Nudge(0, shift ? 10 : 1);
                 break;
             default:
-                var t = key switch
-                {
-                    Key.R => Tool.Rect,
-                    Key.O => Tool.Ellipse,
-                    Key.A => Tool.Arrow,
-                    Key.B => Tool.Pen,
-                    Key.M => Tool.Mosaic,
-                    Key.T => Tool.Text,
-                    Key.C => Tool.Note,
-                    _ => Tool.None,
-                };
-                if (t != Tool.None && !ctrl && Sel is not null) ChooseTool(t, toggle: false);
-                else if (key == Key.N && !ctrl && Sel is not null) OpenNote(null);
+                // The keys that can be changed (Settings → Keyboard Shortcuts): the tools, the overall comment, undo. The overlay has no redo,
+                // so Ctrl+Shift+Z (redo in the main app) is not another undo: it is a different key name
+                // With only Shift held a key still picks its tool (Shift is about to make a square or a circle), unless Shift plus the key is a command of its own
+                var command =
+                    Keys.CommandOf(CaptureKeys.NameOf(key, mods))
+                    ?? (mods == ModifierKeys.Shift ? Keys.CommandOf(CaptureKeys.NameOf(key, ModifierKeys.None)) : null);
+                if (command == "capture.undo") Undo();
+                else if (command is not null && Sel is null) return false;
+                else if (command == "capture.whole") OpenNote(null);
+                else if (ToolOf(command) is var t && t != Tool.None) ChooseTool(t, toggle: false);
                 else return false;
                 break;
         }
         return true;
     }
+
+    /// <summary>The tool a command picks; Tool.None for any other command</summary>
+    static Tool ToolOf(string? command) =>
+        command switch
+        {
+            "capture.rect" => Tool.Rect,
+            "capture.ellipse" => Tool.Ellipse,
+            "capture.arrow" => Tool.Arrow,
+            "capture.pen" => Tool.Pen,
+            "capture.mosaic" => Tool.Mosaic,
+            "capture.text" => Tool.Text,
+            "capture.point" => Tool.Note,
+            _ => Tool.None,
+        };
 
     /// <summary>
     /// The "Overall comment" button on the toolbar: the open note box and text box are committed first (same as clicking a tool button), then the overall comment opens; if the overall comment is already open = commit and close (same as clicking the selected tool again).

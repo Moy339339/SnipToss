@@ -3,7 +3,7 @@
 
 import { readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test, type App } from "./harness";
+import { expect, test, withKey, type App } from "./harness";
 
 const HERO = "标题字太细了，换成粗一点的黑体";
 const CLIP = "这段水印去掉";
@@ -508,7 +508,7 @@ test("the Copy as Text button is disabled when there is nothing to copy (and so 
   app.host.prefs = { panelResolved: true };
   await app.open();
   const copy = app.page.locator(".dock-copy");
-  await expect(copy).toHaveAttribute("title", "复制成文字（Ctrl Shift A）");
+  await expect(copy).toHaveAttribute("title", withKey("复制成文字", "Ctrl Shift A"));
   await app.page.locator(".dock-all").click();
   await app.page.locator(".panel-batch").getByRole("button", { name: /已改/ }).first().click();
   await expect.poll(() => status(app, "video__clip.mp4.json", "p0c7xe")).toBe("resolved");
@@ -527,7 +527,7 @@ test("the Copy as Text button is disabled when there is nothing to copy (and so 
 
   await card(app, "done01").locator(".card-check").click();
   await expect(copy).toBeEnabled();
-  await expect(copy).toHaveAttribute("title", "复制成文字（Ctrl Shift A）");
+  await expect(copy).toHaveAttribute("title", withKey("复制成文字", "Ctrl Shift A"));
   const width = (await copy.boundingBox())!.width;
   // After the fake clock is installed time still advances in real time (it can only be fast-forwarded): when the machine is busy a few hundred extra milliseconds pass between steps, so leave enough margin in the fast-forward amounts
   await app.page.clock.install();
@@ -795,7 +795,7 @@ test("toasts: only one at a time, a new one replaces the old; a toast without a 
   await expect(toast(app)).toHaveCount(0);
 });
 
-test("notes panel width: dragging the edge resizes it (240–640) and dragging too narrow collapses it; double-clicking the edge restores 320; the width is remembered; Ctrl+Alt+B and the toolbar button collapse / expand it", async ({
+test("notes panel width: dragging the edge resizes it (240–640) and dragging too narrow collapses it; double-clicking the edge restores 336; the width is remembered; Ctrl+Alt+B and the toolbar button collapse / expand it", async ({
   app,
 }) => {
   await app.open();
@@ -803,7 +803,7 @@ test("notes panel width: dragging the edge resizes it (240–640) and dragging t
   const sash = app.page.locator(".sash-right");
   const layout = app.page.locator(".layout");
   const width = async () => Math.round((await panel.boundingBox())!.width);
-  expect(await width()).toBe(320);
+  expect(await width()).toBe(336);
   const dragSash = async (dx: number) => {
     const b = (await sash.boundingBox())!;
     const x = b.x + b.width / 2;
@@ -814,30 +814,30 @@ test("notes panel width: dragging the edge resizes it (240–640) and dragging t
     await app.page.mouse.up();
   };
   await dragSash(-100);
-  await expect.poll(width).toBe(420);
+  await expect.poll(width).toBe(436);
   await dragSash(-400);
   await expect.poll(width).toBe(640);
   await dragSash(500);
   await expect(layout).toHaveClass(/right-collapsed/);
   await sash.dblclick();
   await expect(layout).not.toHaveClass(/right-collapsed/);
-  await expect.poll(width).toBe(320);
+  await expect.poll(width).toBe(336);
 
   await dragSash(-60);
-  await expect.poll(width).toBe(380);
+  await expect.poll(width).toBe(396);
   await app.page.reload();
   await expect(app.page.locator(".lib-row").first()).toBeVisible();
-  await expect.poll(width).toBe(380);
+  await expect.poll(width).toBe(396);
 
   await focusStage(app);
   await app.page.keyboard.press("Control+Alt+b");
   await expect(layout).toHaveClass(/right-collapsed/);
   await app.page.locator('.hdr-btn[title^="显示批注栏"]').click();
   await expect(layout).not.toHaveClass(/right-collapsed/);
-  await expect.poll(width).toBe(380);
+  await expect.poll(width).toBe(396);
 });
 
-test("the bottom row fits in the default width of 320: the Select all label isn't squeezed into an ellipsis by the two buttons (the Copy as Text label became 8 px wider after a rename)", async ({ app }) => {
+test("the bottom row fits on one line in the default width of 336 at the default text size: Select all is not squeezed into an ellipsis and the two buttons do not wrap to a second row", async ({ app }) => {
   await app.open();
   await expect(app.page.locator(".dock-copy .dock-copy-label > :not(.is-hidden)")).toHaveText("复制成文字");
   // The two buttons look alike: each holds its label and a hidden "Copied" that takes its place after copying
@@ -845,4 +845,6 @@ test("the bottom row fits in the default width of 320: the Select all label isn'
   const text = app.page.locator(".dock-all-text");
   await expect(text).toHaveText("全选");
   expect(await text.evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(true);
+  const top = async (selector: string) => Math.round((await app.page.locator(selector).boundingBox())!.y);
+  expect(await top(".dock-images")).toBe(await top(".dock-all"));
 });

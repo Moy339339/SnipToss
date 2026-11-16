@@ -680,6 +680,36 @@ test("Sub-toolbar: only when a drawing tool is picked; three thicknesses (none f
   expect(o.subbar!.y + o.subbar!.height).toBe(o.toolbar!.y - 6);
 });
 
+test("Keys changed in Settings → Keyboard Shortcuts: the overlay picks the tool and undoes with the new keys, the old ones do nothing, and the toolbar tooltips show the new keys (none for a command left without one)", async ({
+  shell,
+}) => {
+  presetPrefs(shell, { keybindings: { "capture.rect": ["Q"], "capture.undo": ["Ctrl+Y"], "capture.whole": [] } });
+  await shell.launch();
+  await open(shell);
+  await select(shell);
+  let o = await run(shell, [{ op: "key", key: "R" }]);
+  expect(o.tool).toBe("none");
+  o = await run(shell, [{ op: "key", key: "Q" }]);
+  expect(o.tool).toBe("rect");
+  const name = (id: string) => o.buttons.find((b) => b.id === id)!.name;
+  expect(name("rect")).toBe("矩形（Q）");
+  expect(name("ellipse")).toBe("椭圆（O）");
+  expect(name("undo")).toBe("撤销（Ctrl Y）");
+  expect(name("overall")).toBe("整体意见");
+  o = await run(shell, [
+    { op: "drag", from: [250, 250], to: [400, 300] },
+    { op: "type", text: "框" },
+    { op: "key", key: "Enter" },
+    { op: "key", key: "Z", ctrl: true },
+  ]);
+  expect(o.marks).toHaveLength(1);
+  o = await run(shell, [{ op: "key", key: "Y", ctrl: true }]);
+  expect(o.marks).toHaveLength(0);
+  // Nothing is left after the undo: one Esc closes it
+  await run(shell, [{ op: "key", key: "Escape" }]);
+  await closed(shell);
+});
+
 test("Clicking a tool picks it or puts it down; a tool key always picks; thickness doesn't affect drawn marks; color follows the setting, a picked color is remembered for the run, a changed setting wins", async ({
   shell,
 }) => {

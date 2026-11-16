@@ -148,14 +148,14 @@ test("Help menu: Getting Started, Open Log Folder, Copy Diagnostic Info (without
   expect(url.searchParams.get("diagnostics")).not.toContain(app.temp);
 });
 
-test("Settings: eight pages, the tray and start-at-login options on General, expert options on Advanced, and no more option to generate a snapshot for every note; the About page has the author, license and homepage", async ({
+test("Settings: nine pages, the tray and start-at-login options on General, expert options on Advanced, and no more option to generate a snapshot for every note; the About page has the author, license and homepage", async ({
   app,
 }) => {
   await app.open();
   await focusStage(app);
   await app.page.keyboard.press("Control+,");
   const tabs = app.page.locator(".settings-tab");
-  await expect(tabs).toHaveText(["常规", "批注", "截图批注", "复制批注", "系统集成", "快捷键", "高级", "关于"]);
+  await expect(tabs).toHaveText(["常规", "外观", "批注", "截图批注", "复制批注", "系统集成", "快捷键", "高级", "关于"]);
   const body = app.page.locator(".settings-body");
   await expect(body).toContainText("关闭窗口时保留在托盘");
   await expect(body).toContainText("登录 Windows 时启动");

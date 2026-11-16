@@ -464,8 +464,7 @@ export function AnnotationLayer(props: {
     hideReadout();
   }
   const nudge = (e: KeyboardEvent, dx: number, dy: number) => {
-    // Menu items like Playback → Previous Frame send simulated arrow keys (pressKey): those step frames or skip seconds, they don't
-    // move the mark (opening a menu by keyboard involves no mouse press, so the mark would still count as "hit")
+    // Only real arrow keys move the mark: a key event the page sends itself (a test, an assistive tool) is not a nudge
     const part = selected && armed.current?.id === selected.id ? armed.current.part : undefined;
     const shape = part !== undefined ? selectedParts[part] : undefined;
     if (!e.isTrusted || !selected || part === undefined || !shape || document.querySelector(".overlay")) return false;

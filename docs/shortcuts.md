@@ -6,7 +6,17 @@ Principles:
 - **Video follows the conventions of video editors**: Space / K play and pause, J / L rewind and fast-forward, I / O set a time range, ←/→ step frames.
 - **One key does “pause + start annotating”**: pressing a tool key while a video is playing first pauses on the current frame and then enters the tool (can be turned off in Settings → Annotations → “Pause video when choosing an annotation tool”).
 - **The same key means the same thing across items**: `[` `]` are always the previous / next note, and ← → are always “back / forward within this item” (a frame in a video, a page in a PDF; an image has no internal pages, so it switches items).
-- Press `?` at any time to see all shortcuts; custom shortcuts will be supported later.
+- Press `?` at any time to see all shortcuts, with the keys they have now.
+
+## Changing shortcuts
+
+The tables below list the default keys. Every action that is a command (`packages/web/src/commands.ts`) can be given other keys in Settings → Shortcuts: click a key to record a new one, `+` adds another, the trash can removes one, the circular arrow puts a changed command's defaults back, and “Reset All” does it for every command.
+
+- **What cannot be changed** is shown with a lock: mouse gestures, and keys that mean the same in every program or stand for a range — `Esc`, `Enter`, `Delete`, the arrow keys that move a mark, list navigation, `1`–`8` for mark colors, `Alt` `1`–`4` for the category, `Alt`+letter for the menus. Their keys are taken: no command can be given them.
+- **A key already in use** where the command acts is not taken silently: the row says which command has it and offers to move it over (“Replace”, or `Enter`). Keys of the capture overlay never clash with the main window's (it is a window of its own); a video key and an image key can share a key (← → step frames on a video and switch items on an image).
+- **Everything follows the keys as they are now**: the menus, the tooltips, the `?` list, the first-use hints and dialog texts that name a key (“You can undo this with `Ctrl Z`”); a command left without a key is simply not mentioned. The capture shortcut is a global one the shell registers; its row records it like Settings → Screen Capture.
+- **Holding a key** (hold `H` for the Hand tool, hold a tool key in hold mode) works with the tool's keys that have no modifier.
+- Changed keys are stored in the settings file as `keybindings` (command id → keys; only the changed commands). Settings → Advanced → “Restore Defaults” leaves them alone.
 
 ## On the Mac
 
@@ -18,6 +28,8 @@ The tables in this file are written for Windows. On the Mac the same shortcuts a
 - Enter is ↩, Delete is ⌦, Backspace is ⌫, Esc is ⎋; Space, Home and End stay words.
 - **The Screen Capture shortcut** is the one place the real Control key is a modifier, written `Control` (the Command key stays `Ctrl`): the default is `Control+Ctrl+Alt+A`, shown as ⌃⌥⌘A. Unlike the shortcuts above it needs Command or Control (Option and Shift alone type characters, so recording them is refused), and there is no Win key.
 - **The window keys are the Mac's**: ⌘W closes the window (File → Close Window, the same as the red button: with “Keep running in the menu bar when the window is closed” on, the app stays and the capture shortcut keeps working) and ⌘M minimizes it (Window → Minimize). ⌘Q quits. They take the place of `Alt F4`; the menu bar's `Alt` / `F10` have no Mac counterpart, as the menu bar is the system's.
+- **Keys no command can be given on the Mac** (Settings → Shortcuts lists them with a lock): ⌘W and ⌘M in the main window, and the app menu's ⌘H (Hide), ⌥⌘H (Hide Others) and ⌘Q (Quit), ⌘Q on the capture overlay too. On the overlay ⌘W and ⌘. cancel the capture like Esc.
+- **The capture overlay reads keys the way the main window does**: a changed key works there as it was recorded, letters by the character they type (on French AZERTY the tool key A is the key marked A).
 Status: ✅ implemented　⏳ to be done together with the corresponding feature
 
 ## General

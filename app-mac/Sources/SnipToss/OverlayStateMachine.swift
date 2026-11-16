@@ -170,6 +170,9 @@ final class OverlayStateMachine {
 
     let prefs: ToolPrefs
 
+    /// The keys of the tools, the overall comment and undo, as they are in Settings → Keyboard Shortcuts
+    let keys: CaptureKeys
+
     // Not owned: the overlay view owns this state machine (and the session the views), so owning them back would keep every capture's
     // frozen pictures alive after it ends
     private unowned let view: OverlayView
@@ -185,10 +188,12 @@ final class OverlayStateMachine {
     ///   - scale: pixels per point of this display
     ///   - windows: the windows on this display, topmost first
     ///   - measure: how big a text mark is (for hit testing)
+    ///   - keys: the changeable keys as they are in Settings, read when the capture starts
     init(
         view: OverlayView, host: OverlayHost, scale: CGFloat, full: CGRect, windows: [CGRect], defaultColor: MarkColor,
-        defaultCategory: String, prefs: ToolPrefs, measure: TextMeasuring = SystemTextMeasure()
+        defaultCategory: String, prefs: ToolPrefs, measure: TextMeasuring = SystemTextMeasure(), keys: CaptureKeys = .standard
     ) {
+        self.keys = keys
         self.view = view
         self.host = host
         self.scale = scale
@@ -1014,52 +1019,61 @@ final class OverlayStateMachine {
 
     /// A key pressed on the overlay (the view gets it first, the input boxes after). Returns true = handled (swallowed); false = leave it
     /// to the input box / the system.
+    /// - Parameters:
+    ///   - key: the key when it is one of those that cannot be changed (by its place), nil for any other
+    ///   - names: the key's names as the page writes them (`CaptureKeys.names`), tried in order: the keys that can be changed in Settings
+    ///     go by these, and so do ⌘C, ⌘W and ⌘. (by the character typed, as the main window's ⌘ keys)
     ///
     /// One difference from the Windows shell: there Alt+F4 means cancel (warn once first if notes were written), and it is handled before
     /// the input-box check because left to the system it would close only this layer without the session knowing, and Screen Capture could
     /// never open again. Alt+F4 means nothing on a Mac; ⌘W and ⌘. (command + period) do exactly that. ⌘Q is not handled: it stays with the
-    /// system
-    func press(_ key: OverlayKey, _ mods: OverlayModifiers) -> Bool {
-        if mods.contains(.command) && (key == .w || key == .period) {
+    /// system. The command table lists ⌘W, ⌘. and ⌘Q as taken on the Mac, so no changeable command has them
+    func press(_ key: OverlayKey?, _ mods: OverlayModifiers, names: [String] = []) -> Bool {
+        let name = names.first
+        if name == "Ctrl+W" || name == "Ctrl+." {
             host.requestCancel()
             return true
         }
         if noteOpen || textOpen { return false }  // the input box handles it itself
-        // ⌘ takes the place of Ctrl in the Windows shortcuts; ⌥ the place of Alt
-        let command = mods.contains(.command)
         let shift = mods.contains(.shift)
         let plain = mods.isPlain
         switch key {
-        case .escape where picked != nil:
+        case .escape? where picked != nil:
             unpick()  // first put down the picked mark; pressing again cancels the capture
-        case .escape:
+        case .escape?:
             host.requestCancel()
-        case .delete where picked != nil && plain, .forwardDelete where picked != nil && plain:
+        case .delete? where picked != nil && plain, .forwardDelete? where picked != nil && plain:
             deletePicked()  // same as the toolbar's Delete (and delete in the main app)
-        case .digit(let n) where plain && sel != nil && n >= 1 && n <= ToolPrefs.colors.count:
+        case .digit(let n)? where plain && sel != nil && n >= 1 && n <= ToolPrefs.colors.count:
             setColor(ToolPrefs.colors[n - 1])  // same order as the colors on the sub-toolbar (same as 1–8 in the main app)
-        case .keypad(let n) where plain && sel != nil && n >= 1 && n <= ToolPrefs.colors.count:
+        case .keypad(let n)? where plain && sel != nil && n >= 1 && n <= ToolPrefs.colors.count:
             setColor(ToolPrefs.colors[n - 1])
-        case .enter:
+        case .enter?:
             host.finish()  // works when the selection is on another display too (finish looks for the layer that has drawings)
-        case .c where command:
-            host.finish()
-        case .z where command && !shift:  // ⇧⌘Z is redo in the main app, and the overlay has no redo: do not treat it as another undo
-            undo()
-        case .left:
+        case .left?:
             nudge(shift ? -10 : -1, 0)
-        case .right:
+        case .right?:
             nudge(shift ? 10 : 1, 0)
-        case .up:
+        case .up?:
             nudge(0, shift ? -10 : -1)
-        case .down:
+        case .down?:
             nudge(0, shift ? 10 : 1)
         default:
-            let t = Self.toolFor(key)
-            if t != .noTool && !command && sel != nil {
-                chooseTool(t, toggle: false)
-            } else if key == .n && !command && sel != nil {
+            if name == "Ctrl+C" {
+                host.finish()
+                return true
+            }
+            // The keys that can be changed (Settings → Keyboard Shortcuts): the tools, the overall comment, undo. The overlay has no redo,
+            // so ⇧⌘Z (redo in the main app) is not another undo: it is a different key name
+            let command = keys.command(of: names)
+            if command == "capture.undo" {
+                undo()
+            } else if command != nil && sel == nil {
+                return false
+            } else if command == "capture.whole" {
                 openNote(nil)
+            } else if let t = Self.toolOf(command) {
+                chooseTool(t, toggle: false)
             } else {
                 return false
             }
@@ -1067,17 +1081,17 @@ final class OverlayStateMachine {
         return true
     }
 
-    /// The tool a letter key picks (by the key's place on the keyboard: R O A B M T C)
-    private static func toolFor(_ key: OverlayKey) -> Tool {
-        switch key {
-        case .r: return .rect
-        case .o: return .ellipse
-        case .a: return .arrow
-        case .b: return .pen
-        case .m: return .mosaic
-        case .t: return .text
-        case .c: return .note
-        default: return .noTool
+    /// The tool a command picks; nil for any other command
+    private static func toolOf(_ command: String?) -> Tool? {
+        switch command {
+        case "capture.rect"?: return .rect
+        case "capture.ellipse"?: return .ellipse
+        case "capture.arrow"?: return .arrow
+        case "capture.pen"?: return .pen
+        case "capture.mosaic"?: return .mosaic
+        case "capture.text"?: return .text
+        case "capture.point"?: return .note
+        default: return nil
         }
     }
 

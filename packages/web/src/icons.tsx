@@ -249,6 +249,27 @@ export const PlusIcon = () => (
     <path d="M8 3v10M3 8h10" />
   </I>
 );
+/** A keyboard: Settings → Keyboard Shortcuts, "search by pressing the keys" */
+export const KeyboardIcon = () => (
+  <I>
+    <rect x="1.5" y="4" width="13" height="8.5" rx="1.5" />
+    <path d="M4 6.8h.01M6.7 6.8h.01M9.3 6.8h.01M12 6.8h.01M5.5 9.8h5" strokeWidth={1.3} />
+  </I>
+);
+/** A padlock: a shortcut that can't be changed */
+export const LockIcon = () => (
+  <I>
+    <rect x="3.5" y="7" width="9" height="6.5" rx="1.5" />
+    <path d="M5.5 7V5a2.5 2.5 0 015 0v2" />
+  </I>
+);
+/** A circular arrow back: restore the default (a changed shortcut) */
+export const ResetIcon = () => (
+  <I>
+    <path d="M3 3.5v3h3" />
+    <path d="M3.4 6.4A5 5 0 113.2 10" />
+  </I>
+);
 export const MinusIcon = () => (
   <I>
     <path d="M3 8h10" />

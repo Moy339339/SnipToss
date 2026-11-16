@@ -26,7 +26,7 @@ export interface MenuItem {
    * Keyboard: ↑↓ landing on this row focuses the lit swatch (the first if none is lit), ← → move between swatches
    */
   swatches?: MenuSwatch[];
-  /** The key name this item presses (pressKey), like "Ctrl+=": the Mac's native menu shows it as the item's shortcut (menuModel.ts) */
+  /** The key name of the command this item runs, like "Ctrl+=": the Mac's native menu shows it as the item's shortcut (menuModel.ts) */
   keys?: string;
   /** Undo / redo: the Mac's native menu hands these to the text box instead when the caret is in one (menuModel.ts) */
   role?: "undo" | "redo";
@@ -177,7 +177,7 @@ export function MenuBody(props: {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const m = props.menuRef.current;
-      // Keys the app simulates itself when a menu item is clicked (pressKey) are not intercepted: the menu has not closed yet at that moment
+      // Only real key presses: a key event the page sends itself is not the user's
       if (!m || e.key === "Escape" || !e.isTrusted) return;
       // A lone Alt: close the menu without entering the menu bar (like Windows apps). Otherwise this press would be swallowed below and the menu bar
       // only recognizes an Alt it saw both pressed and released, so Alt would do nothing while a menu is open.

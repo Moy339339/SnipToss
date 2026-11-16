@@ -37,10 +37,14 @@ sealed class CaptureSession
     internal IReadOnlyList<CaptureOverlay> Overlays => overlays;
 #endif
 
+    /// <summary>The overlay's changeable keys as they are in Settings → Keyboard Shortcuts, read when the capture starts</summary>
+    internal CaptureKeys Keys { get; }
+
     CaptureSession(Settings settings, Action? done)
     {
         this.settings = settings;
         this.done = done;
+        Keys = CaptureKeys.From(settings.Prefs?["keybindings"]);
     }
 
     static bool warmed;

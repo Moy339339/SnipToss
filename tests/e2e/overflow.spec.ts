@@ -74,3 +74,17 @@ for (const locale of LOCALES) {
     expect(problems, problems.join("\n")).toEqual([]);
   });
 }
+
+// The largest text sizes in Settings → Appearance (typeScale.ts TEXT_SIZES), in every language (Italian was the first to crowd the title bar)
+for (const locale of LOCALES) {
+  test(`${locale}: at the minimum window size with every text size at its largest, no text on any UI screen overflows its box`, async ({ app }) => {
+    prepare(app, locale);
+    app.host.prefs = { ...app.host.prefs, uiFontSize: 16, noteFontSize: 18, settingsFontSize: 16 };
+    await app.page.setViewportSize({ width: 960, height: 600 });
+    await app.open();
+    await expect(app.page.locator("html")).toHaveAttribute("lang", locale);
+    const problems: string[] = [];
+    await walkScreens(app, async (screen) => void problems.push(...(await overflowing(app, screen))));
+    expect(problems, problems.join("\n")).toEqual([]);
+  });
+}

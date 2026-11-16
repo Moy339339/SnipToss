@@ -203,6 +203,9 @@ test("the first launch with an empty library shows one dialog (recorded as seen 
   await expect(app.page.locator(".welcome")).toBeVisible();
   await expect(app.page.locator(".lib-row")).toHaveCount(0);
   expect(app.host.entries).toHaveLength(0);
+  // Nothing of the tutorial is left behind: the tool is Select again, and Undo has nothing on the sample to undo
+  await expect(app.page.locator('.hdr-tools .tool-btn[data-tool="select"]')).toHaveClass(/is-on/);
+  await expect(app.page.getByRole("button", { name: "撤销", exact: true })).toBeDisabled();
   // Then, once, next to Capture: the screen can be annotated too (with its shortcut)
   const captureHint = hint(app, "capture");
   await expect(captureHint).toBeVisible();

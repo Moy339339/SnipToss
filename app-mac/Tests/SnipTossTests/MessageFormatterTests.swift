@@ -104,9 +104,14 @@ final class MessageFormatterTests: SnipTestCase {
     func testShortcutsInTheMessagesAreWrittenTheMacWay() throws {
         try requireResources()
         _ = try formatter()
-        XCTAssertEqual(ShellLocale.text("capture.tool.undo", in: "en"), "Undo (⌘Z)")
-        XCTAssertEqual(ShellLocale.text("capture.tool.undo", in: "de"), "Rückgängig (⌘Z)")
-        XCTAssertEqual(ShellLocale.text("capture.tool.undo", in: "zh-CN"), "撤销（⌘Z）")
+        // With each language's key name for Ctrl (German Strg)
+        XCTAssertEqual(ShellLocale.text("capture.how.plain", in: "en"), "Press ⌘V to paste it into another app")
+        XCTAssertEqual(ShellLocale.text("capture.how.plain", in: "de"), "Mit ⌘V in eine andere App einfügen")
+        XCTAssertEqual(ShellLocale.text("capture.how.plain", in: "zh-CN"), "可按 ⌘V 粘贴到其他程序中")
+        // The overlay's tooltips: the name and the key the command has now (CaptureKeys), in the language's way of adding it
+        let undo = CaptureKeys.standard.hint("capture.undo")
+        XCTAssertEqual(ShellLocale.text("capture.tip.withKey", in: "en", ["label": "Undo", "key": undo]), "Undo (⌘Z)")
+        XCTAssertEqual(ShellLocale.text("capture.tip.withKey", in: "zh-CN", ["label": "撤销", "key": undo]), "撤销（⌘Z）")
         // The UI rewrites the messages before formatting them, so a key that is a placeholder keeps its space (the composer's tooltip)
         XCTAssertEqual(ShellLocale.text("composer.categoryTitle", in: "en", ["name": "Change", "n": 1]), "Change (⌥ 1)")
         // The message keeps a no-break space between the keys, which stays after the modifier becomes a symbol

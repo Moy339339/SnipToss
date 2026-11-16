@@ -469,6 +469,6 @@ test("A Mac package's build number (appInfo.build) isn't shown: the About page a
   await expect(tag).toHaveAttribute("title", new RegExp(`^超级批注 ${label}${IS_BETA ? "（测试版）" : ""}\\n发布于 [A-Z][a-z]{2} \\d{1,2}, \\d{4}$`));
   await app.page.keyboard.press("Control+,");
   await app.page.locator(".settings-tab", { hasText: /^关于$/ }).click();
-  await expect(app.page.locator(".set-label", { hasText: /^版本 / }).first()).toHaveText(`版本 ${VERSION_LABEL.slice(1)}`);
+  await expect(app.page.locator(".about-version span").first()).toHaveText(`版本 ${VERSION_LABEL.slice(1)}`);
   await expect(app.page.locator(".settings-body")).not.toContainText("(44)");
 });

@@ -256,7 +256,7 @@ test("Interface size 125%: the numbers on the canvas scale with the interface (t
   const badge = app.page.locator(".annot-badge").first();
   await expect(badge).toBeVisible();
   const small = (await badge.boundingBox())!.width;
-  await openSettings(app);
+  await openSettings(app, "外观");
   await setRow(app, "界面大小").getByRole("button", { name: "125%" }).click();
   await expect.poll(() => app.page.evaluate(() => getComputedStyle(document.documentElement).zoom)).toBe("1.25");
   await expect.poll(() => app.host.prefs?.uiScale).toBe(1.25);
@@ -399,12 +399,12 @@ test("closing: the × in the top-right corner can be clicked (even with the cont
   await app.page.mouse.up();
 });
 
-test("eight tabs: clicking a tab shows its page and lights the current tab; switching pages doesn't lose text just typed; closing and reopening returns to General; there is no OK button (changes apply at once, with no line saying so)", async ({
+test("nine tabs: clicking a tab shows its page and lights the current tab; switching pages doesn't lose text just typed; closing and reopening returns to General; there is no OK button (changes apply at once, with no line saying so)", async ({
   app,
 }) => {
   await app.open();
   await openSettings(app);
-  const tabs = ["常规", "批注", "截图批注", "复制批注", "系统集成", "快捷键", "高级", "关于"];
+  const tabs = ["常规", "外观", "批注", "截图批注", "复制批注", "系统集成", "快捷键", "高级", "关于"];
   await expect(app.page.locator(".settings-tab")).toHaveText(tabs);
   for (const tab of tabs) {
     await app.page.locator(".settings-tab", { hasText: new RegExp(`^${tab}$`) }).click();
@@ -457,13 +457,130 @@ test("note author: written into the author of new notes; empty or all-whitespace
 test("canvas surround: choosing Solid in Settings removes the blur around the canvas, and switching back to Blurred brings it back", async ({ app }) => {
   await app.open();
   await expect(app.page.locator(".ambient.is-on")).toHaveCount(1);
-  await openSettings(app);
+  await openSettings(app, "外观");
   await setRow(app, "画面四周").getByRole("button", { name: "纯色" }).click();
   await expect(app.page.locator(".ambient")).toHaveCount(0);
   await expect.poll(() => app.host.prefs?.backdrop).toBe("plain");
   await setRow(app, "画面四周").getByRole("button", { name: "模糊铺满" }).click();
   await expect(app.page.locator(".ambient.is-on")).toHaveCount(1);
   await expect.poll(() => app.host.prefs?.backdrop).toBeUndefined(); // Back to the default: no longer written to the settings file
+});
+
+// ---------- The Appearance page ----------
+
+/** A computed style of the first element matching selector */
+const styleOf = (app: App, selector: string, prop: string) =>
+  app.page.evaluate(([s, p]) => getComputedStyle(document.querySelector(s)!).getPropertyValue(p).trim(), [selector, prop] as const);
+
+test("text size fields: − and + step by one and grey out at the ends of the range, a typed number is pulled back into the range, Esc closes Settings keeping what was typed; at the default the item is no longer stored", async ({ app }) => {
+  await app.open();
+  await openSettings(app, "外观");
+  const field = setRow(app, "界面字号");
+  const input = field.getByRole("textbox", { name: "界面字号" });
+  const smaller = field.getByRole("button", { name: "减小" });
+  const larger = field.getByRole("button", { name: "增大" });
+  await expect(input).toHaveValue("14");
+  await larger.click();
+  await larger.click();
+  await expect(input).toHaveValue("16");
+  await expect(larger).toBeDisabled();
+  await expect(smaller).toBeEnabled();
+  await expect.poll(() => app.host.prefs?.uiFontSize).toBe(16);
+  // Typed: Enter takes it, out of range is pulled back to the nearest end; ↑ steps
+  await input.fill("5");
+  await input.press("Enter");
+  await expect(input).toHaveValue("12");
+  await expect(smaller).toBeDisabled();
+  await input.press("ArrowUp");
+  await input.press("ArrowUp");
+  await expect(input).toHaveValue("14");
+  await expect.poll(() => app.host.prefs?.uiFontSize).toBeUndefined();
+  // Leaving the box takes it too (Note text size goes up to 18)
+  const note = setRow(app, "批注字号").getByRole("textbox");
+  await note.fill("99");
+  await setRow(app, "设置字号").getByRole("textbox").focus();
+  await expect(note).toHaveValue("18");
+  await expect.poll(() => app.host.prefs?.noteFontSize).toBe(18);
+  // Anything but digits is dropped as it is typed, and a number within the range takes effect as it is typed
+  await note.fill("");
+  await note.pressSequentially("1a5");
+  await expect(note).toHaveValue("15");
+  await expect.poll(() => app.host.prefs?.noteFontSize).toBe(15);
+  // Esc closes Settings as in its other boxes, and keeps what was typed, pulled back into the range
+  await note.fill("99");
+  await note.press("Escape");
+  await expect(settings(app)).toHaveCount(0);
+  await expect.poll(() => app.host.prefs?.noteFontSize).toBe(18);
+  await openSettings(app, "外观");
+  await expect(setRow(app, "批注字号").getByRole("textbox")).toHaveValue("18");
+});
+
+test("text sizes take effect at once and survive a reopen: the interface on its own, the note text in the notes panel and the note box, Settings on its own; numbers drawn over the item keep their size", async ({ app }) => {
+  await app.open();
+  await expect(app.page.locator(".card-body").first()).toBeVisible();
+  await expect(app.page.locator(".annot-badge").first()).toBeVisible();
+  // The defaults: interface and note text 14, Settings 14, the numbers on marks 12
+  expect(await styleOf(app, "body", "font-size")).toBe("14px");
+  expect(await styleOf(app, ".card-body", "font-size")).toBe("14px");
+  const badge = await styleOf(app, ".annot-badge", "font-size");
+  expect(badge).toBe("12px");
+  await openSettings(app, "外观");
+  expect(await styleOf(app, ".settings", "font-size")).toBe("14px");
+  await setRow(app, "界面字号").getByRole("textbox").fill("16");
+  await setRow(app, "批注字号").getByRole("textbox").fill("18");
+  await setRow(app, "设置字号").getByRole("textbox").fill("15");
+  await setRow(app, "设置字号").getByRole("textbox").press("Enter");
+  await expect.poll(() => app.host.prefs).toMatchObject({ uiFontSize: 16, noteFontSize: 18, settingsFontSize: 15 });
+  // Settings follows its own size, not the interface's
+  expect(await styleOf(app, ".settings", "font-size")).toBe("15px");
+  await app.page.keyboard.press("Escape");
+  await expect(settings(app)).toHaveCount(0);
+  expect(await styleOf(app, "body", "font-size")).toBe("16px");
+  expect(await styleOf(app, ".card-body", "font-size")).toBe("18px");
+  expect(await styleOf(app, ".annot-badge", "font-size")).toBe(badge);
+  await focusStage(app);
+  await app.page.keyboard.press("n");
+  await expect(composer(app)).toBeVisible();
+  expect(await styleOf(app, ".composer-text", "font-size")).toBe("18px");
+  await app.page.keyboard.press("Escape");
+  await app.page.reload();
+  await expect(row(app, "project")).toBeVisible();
+  expect(await styleOf(app, "body", "font-size")).toBe("16px");
+  expect(await styleOf(app, ".card-body", "font-size")).toBe("18px");
+});
+
+test("reduce motion: System follows the Windows setting, On and Off override it either way; the pointer cursor puts a hand over buttons only when switched on", async ({ app }) => {
+  const reduced = () => app.page.evaluate(() => document.documentElement.classList.contains("reduce-motion"));
+  await app.page.emulateMedia({ reducedMotion: "reduce" });
+  await app.open();
+  expect(await reduced()).toBe(true);
+  await openSettings(app, "外观");
+  const motion = setRow(app, "减少动态效果");
+  await expect(motion.locator(".seg.is-on")).toHaveText("跟随系统");
+  await motion.getByRole("button", { name: "关闭" }).click();
+  await expect.poll(reduced).toBe(false);
+  await expect.poll(() => app.host.prefs?.reduceMotion).toBe("off");
+  await app.page.emulateMedia({ reducedMotion: "no-preference" });
+  await motion.getByRole("button", { name: "开启" }).click();
+  await expect.poll(reduced).toBe(true);
+  // Back to System while Windows has animations on, then Windows turns them off while the app runs
+  await motion.getByRole("button", { name: "跟随系统" }).click();
+  await expect.poll(reduced).toBe(false);
+  await expect.poll(() => app.host.prefs?.reduceMotion).toBeUndefined();
+  await app.page.emulateMedia({ reducedMotion: "reduce" });
+  await expect.poll(reduced).toBe(true);
+  await app.page.emulateMedia({ reducedMotion: "no-preference" });
+
+  const tab = app.page.locator(".settings-tab").first();
+  expect(await tab.evaluate((el) => getComputedStyle(el).cursor)).not.toBe("pointer");
+  await setRow(app, "手形光标").getByRole("switch").click();
+  await expect.poll(() => tab.evaluate((el) => getComputedStyle(el).cursor)).toBe("pointer");
+  await expect.poll(() => app.host.prefs?.pointerCursor).toBe(true);
+  // Not over text that isn't clickable
+  expect(await setRow(app, "手形光标").locator(".set-label").evaluate((el) => getComputedStyle(el).cursor)).not.toBe("pointer");
+  await setRow(app, "手形光标").getByRole("switch").click();
+  await expect.poll(() => tab.evaluate((el) => getComputedStyle(el).cursor)).not.toBe("pointer");
+  await expect.poll(() => app.host.prefs?.pointerCursor).toBeUndefined();
 });
 
 test("Annotations page: the default category and opening the text box automatically after drawing take effect right after clicking", async ({ app }) => {
@@ -564,7 +681,7 @@ test("when the General page can't read the tray and start-at-login settings, tho
   await openSettings(app);
   await expect(app.page.locator(".settings-body .error")).toContainText("无法读取此页设置");
   await expect(setRow(app, "关闭窗口时保留在托盘")).toHaveCount(0);
-  await expect(setRow(app, "界面大小")).toBeVisible();
+  await expect(setRow(app, "界面语言")).toBeVisible();
   await expect(setRow(app, "批注保存位置")).toBeVisible();
   app.host.failMethods.delete("captureSettings");
   await app.page.locator(".settings-body").getByRole("button", { name: "重试" }).click();
@@ -769,7 +886,7 @@ test("Shortcuts page: shows the same groups as the ones you get by pressing ?", 
   // No page intro: the page is the list itself
   await expect(app.page.locator(".settings-body .set-heading")).toHaveCount(0);
   await expect(app.page.locator(".settings-body")).not.toContainText("也可查看此列表");
-  const inSettings = await app.page.locator(".keys-grid .section-label").allInnerTexts();
+  const inSettings = await app.page.locator(".settings-body .set-section-title").allInnerTexts();
   expect(inSettings.length).toBeGreaterThanOrEqual(6);
   await app.page.keyboard.press("Escape");
   await focusStage(app);
@@ -806,8 +923,8 @@ test("About page: version, author, license, homepage, runtime and issue reportin
   await openSettings(app, "关于");
   const body = app.page.locator(".settings-body");
   // The version and the release date, one line each (the product name is the wordmark above them); a date, no time of day
-  await expect(body.locator(".set-label").first()).toHaveText(`版本 ${VERSION_LABEL.slice(1)}`);
-  await expect(body.locator(".set-desc").first()).toHaveText(/^发布于 [A-Z][a-z]{2} \d{1,2}, \d{4}$/);
+  await expect(body.locator(".about-version span").first()).toHaveText(`版本 ${VERSION_LABEL.slice(1)}`);
+  await expect(body.locator(".about-version .muted")).toHaveText(/^发布于 [A-Z][a-z]{2} \d{1,2}, \d{4}$/);
   await expect(body.locator(".text-danger")).toHaveCount(0);
   await expect(setRow(app, "作者")).toContainText("MoyGoldenAge");
   await expect(setRow(app, "许可证")).toContainText("MIT 开源许可证");
@@ -916,9 +1033,11 @@ test("third-party notices follow the UI language: the intro and header use the c
   await expect(sheet.locator(".notices-text")).toContainText("Permission is hereby granted");
 });
 
-test("The page title stays above the content while it scrolls (the content never runs into the dialog's top edge), on the same ground as the left column; each page starts at its top", async ({
+test("The page title stays above the content while it scrolls (the content never runs into the dialog's top edge), on the same ground as the content below it; each page starts at its top", async ({
   app,
 }) => {
+  // A short window, so that General has content to scroll
+  await app.page.setViewportSize({ width: 1280, height: 600 });
   await app.open();
   await openSettings(app);
   const head = app.page.locator(".settings-head");
@@ -933,7 +1052,8 @@ test("The page title stays above the content while it scrolls (the content never
   // The scrolling area begins under the title bar, so scrolled content is cut there rather than at the dialog's edge
   expect((await body.boundingBox())!.y).toBeGreaterThanOrEqual(before.y + before.height - 1);
   const ground = (sel: string) => app.page.locator(sel).evaluate((el) => getComputedStyle(el).backgroundColor);
-  expect(await ground(".settings-head")).toBe(await ground(".settings-nav"));
+  // The title strip has no ground of its own: it sits on the content's ground
+  expect(await ground(".settings-head")).toBe("rgba(0, 0, 0, 0)");
   await app.page.locator(".settings-tab", { hasText: /^高级$/ }).click();
   await expect(head.locator("h2")).toHaveText("高级");
   expect(await body.evaluate((el) => el.scrollTop)).toBe(0);

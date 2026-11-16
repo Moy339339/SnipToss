@@ -485,11 +485,9 @@
 .guide-ring:is([data-step="tools"], [data-step="whole"]) {
   animation: none;
 }
-@media (prefers-reduced-motion: reduce) {
-  .guide-ring,
-  .guide-callout {
-    animation: none;
-  }
+.reduce-motion .guide-ring,
+.reduce-motion .guide-callout {
+  animation: none;
 }
 /* Hint: looks like a floating layer (same as menus), no dimming. Above the composer and the color bar, below dialogs */
 .hint {
@@ -520,6 +518,7 @@
   margin-right: auto;
 }
 .hint-text {
+  line-height: var(--lh-label);
   word-break: keep-all;
   overflow-wrap: anywhere;
   text-wrap: pretty;
@@ -598,7 +597,7 @@
   color: #fff;
   /* On a light mark color (white, a pale custom color) the number is dark: oklch lightness above 0.9 (same rule as isLightMark in core) */
   color: oklch(from var(--mark) clamp(0.2, (0.9 - l) * 1000, 1) 0 0);
-  font-size: var(--fs-caption);
+  font-size: var(--fs-mark);
   font-weight: 600;
   line-height: var(--h-xs);
   text-align: center;
@@ -969,8 +968,10 @@
   margin-top: 8px;
   resize: none;
   field-sizing: content;
-  min-height: calc(3 * var(--lh-body) + 14px);
-  max-height: calc(8 * var(--lh-body) + 14px);
+  font-size: var(--fs-content);
+  line-height: var(--lh-content);
+  min-height: calc(3 * var(--lh-content) + 14px);
+  max-height: calc(8 * var(--lh-content) + 14px);
 }
 .composer-text:focus,
 .text-area:focus,
@@ -1274,7 +1275,6 @@ html[data-guided] .titlebar :is(.menubar, .titlebar-split, .titlebar-update) {
   border-bottom: 1px solid var(--border);
   font-size: var(--fs-caption);
   line-height: var(--lh-caption);
-  font-weight: 600;
   color: var(--muted);
 }
 .notice-row {
@@ -1356,8 +1356,7 @@ html[data-guided] .titlebar :is(.menubar, .titlebar-split, .titlebar-update) {
   margin-bottom: 4px;
   font-size: var(--fs-caption);
   line-height: var(--lh-caption);
-  font-weight: 600;
-  color: var(--muted);
+  color: var(--text-2);
 }
 /* The description keeps at least 140: when the keycaps are too wide ("Alt", "F / E / V / N / P / W / H", German "C R B A gedrückt halten") the whole group moves to the next line, right-aligned,
    instead of squeezing the description into one character per line */
@@ -1384,9 +1383,14 @@ html[data-guided] .titlebar :is(.menubar, .titlebar-split, .titlebar-update) {
 }
 .shortcut-keys {
   display: flex;
+  align-items: center;
   gap: 4px;
   flex: none;
   margin-left: auto;
+}
+/* Between two keys of one command ("Space / K") */
+.shortcut-or {
+  color: var(--muted);
 }
 .sheet-foot {
   margin-top: 16px;
@@ -1425,6 +1429,7 @@ html[data-guided] .titlebar :is(.menubar, .titlebar-split, .titlebar-update) {
   font-weight: 600;
 }
 .confirm-body {
+  line-height: var(--lh-label);
   color: var(--text-2);
   word-break: keep-all;
   overflow-wrap: anywhere;
@@ -1443,11 +1448,13 @@ html[data-guided] .titlebar :is(.menubar, .titlebar-split, .titlebar-update) {
 
 /* ---------- Settings (SettingsDialog.tsx) ---------- */
 
+/* As large as the window allows, 48 clear of its edges, up to 976 × 800: the page list (200) + the content column (680) with the body's 48 on both
+   sides, so at full size the column fills the right part instead of floating in a wide empty one */
 .settings {
   position: relative;
   display: flex;
-  width: min(900px, calc(var(--vw) - 64px));
-  height: min(640px, calc(var(--vh) - 64px));
+  width: min(976px, calc(var(--vw) - 96px));
+  height: min(800px, calc(var(--vh) - 96px));
   border-radius: var(--r-dialog);
   background: var(--surface);
   box-shadow:
@@ -1455,26 +1462,42 @@ html[data-guided] .titlebar :is(.menubar, .titlebar-split, .titlebar-update) {
     var(--shadow-dialog);
   overflow: hidden;
   animation: sheet-in var(--dur) var(--ease) both;
+  /* The window's own sizes (S2): rows and the page list at the body size, descriptions and 28-high controls at the caption size.
+     Settings → Appearance → Settings text size moves them all; what inherits gets the body size on a reading line */
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+}
+/* The one text box in Settings holds sentences the user writes for the AI: the body size, like note text */
+.settings .text-area {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
 }
 .settings-nav {
   flex: none;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  width: 192px;
-  padding: 16px 8px;
+  width: 200px;
+  padding: 40px 8px 16px;
   background: var(--bg);
   border-right: 1px solid var(--border);
 }
+/* "Settings" above the pages: a quiet label on the dialog's one title line, centered on the same line as the page title on the right
+   (both rows start 40 from the top and are 32 high), so the two columns read as one header: Settings · General */
 .settings-title {
-  padding: 0 8px 12px;
-  font-size: var(--fs-title);
-  line-height: var(--lh-title);
+  display: flex;
+  align-items: center;
+  height: var(--h-lg);
+  margin-bottom: 8px;
+  padding: 0 12px;
   font-weight: 600;
+  color: var(--muted);
 }
+/* A list, so it is set like the window's lists (body size); the content on the right is what is read, one step larger.
+   Text 12 inside a 32 block, the inset of every 32-high control (S5), so the label and the pages start on one line */
 .settings-tab {
   height: var(--h-lg);
-  padding: 0 8px;
+  padding: 0 12px;
   border-radius: var(--r-control);
   text-align: left;
   color: var(--text-2);
@@ -1491,9 +1514,7 @@ html[data-guided] .titlebar :is(.menubar, .titlebar-split, .titlebar-update) {
 }
 .settings-nav-foot {
   margin-top: auto;
-  padding: 0 8px;
-  font-size: var(--fs-caption);
-  line-height: var(--lh-caption);
+  padding: 0 12px;
 }
 /* The right of the dialog: the page title fixed at the top, the page's content scrolling below it */
 .settings-main {
@@ -1502,14 +1523,37 @@ html[data-guided] .titlebar :is(.menubar, .titlebar-split, .titlebar-update) {
   display: flex;
   flex-direction: column;
 }
-/* The page title, level with the dialog's own title on the left (both 16 from the top) and clear of the × in the top right corner.
-   On the same ground and with the same edge line as the column on the left, so the two frame the content: the content scrolls under it
-   instead of running into the dialog's top edge with nothing above it */
+/* The title and the content of a page share one column, centered in the right part and at most 680 wide, so lines stay readable in a large dialog
+   and the column has room on both sides (about 120 each at the dialog's full width; at least the body's padding, 48, in a small window).
+   The title stays put; the line under it shows only once the content has scrolled under it. The title reserves the same 8 on the right as the
+   content's scrollbar, so both columns line up */
+.settings-column {
+  max-width: 680px;
+  margin: 0 auto;
+}
 .settings-head {
   flex: none;
-  padding: 16px 48px 12px 32px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
+  padding: 40px 48px 16px;
+  overflow: hidden;
+  scrollbar-gutter: stable;
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--dur-fast) var(--ease);
+}
+.settings-head.is-scrolled {
+  border-bottom-color: var(--border);
+}
+/* The title and, on the right, a page's own actions; 32 high whether or not there is one, so the title does not move and stays centered on
+   the same line as "Settings" in the page list */
+.settings-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: var(--h-lg);
+}
+.settings-head-actions {
+  display: flex;
+  gap: 8px;
 }
 .settings-head h2 {
   margin: 0;
@@ -1517,14 +1561,14 @@ html[data-guided] .titlebar :is(.menubar, .titlebar-split, .titlebar-update) {
   line-height: var(--lh-heading);
   font-weight: 600;
 }
-/* Right 24 + an always-present scrollbar 8 = 32: some pages scroll and some do not, and the right column does not jump by 8 when switching pages */
 .settings-body {
   position: relative;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   scrollbar-gutter: stable;
-  padding: 8px 24px 32px 32px;
+  /* 16 + the head's 16 below the title: the page title stands 32 above the first group, the same as between groups */
+  padding: 16px 48px 48px;
 }
 /* The × at the top right of the dialog: shared by Settings and the confirm dialog */
 .dialog-close {
@@ -1563,39 +1607,72 @@ html[data-guided] .titlebar :is(.menubar, .titlebar-split, .titlebar-update) {
   word-break: keep-all;
   overflow-wrap: anywhere;
 }
-/* Settings → About: the combined logo, 40 high */
-.about-mark {
-  padding: 16px 0 24px;
-  border-bottom: 1px solid var(--border);
+/* Settings → About: the combined logo (40 high), the version and release date under it */
+.about-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 8px 0 32px;
 }
-/* A group within a page (Settings → Advanced): the group name is a subheading, like the group names in the shortcut list; 24 of space from the previous group */
-.set-group {
-  padding: 24px 0 4px;
+.about-version {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: var(--text-2);
 }
-.set-group-title {
-  font-size: var(--fs-caption);
-  line-height: var(--lh-caption);
+/* A group of rows: a heading, then a box with a 1px outline holding the rows, one line between them (tight inside, 32 between groups) */
+.set-section + .set-section {
+  margin-top: 32px;
+}
+/* A box without a heading belongs with the one above it (About, "Restore Defaults" under Advanced) */
+.set-section + .set-section.is-plain {
+  margin-top: 16px;
+}
+/* A group heading is set apart from the rows by weight and by standing outside the box, not by size */
+.set-section-title {
+  margin: 0 0 8px;
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
   font-weight: 600;
-  color: var(--muted);
 }
+.set-card {
+  border-radius: var(--r-dialog);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+/* A control too wide for the row (long button names in some languages) goes on a line of its own, right-aligned, rather than squeezing the label */
 .set-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 24px;
-  padding: 16px 0;
+  gap: 8px 24px;
+}
+/* Every one-line row is 56 high whatever its control (a switch 20, a choice 28, a button 32), and a row with a description 64: two heights only,
+   so a box of mixed rows has an even rhythm */
+.set-card > .set-row {
+  min-height: 56px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border);
+}
+.set-card > .set-row:last-child {
+  border-bottom: 0;
+}
+/* The flash of a pointed-out row follows the box's corners */
+.set-card > :first-child {
+  border-top-left-radius: var(--r-dialog);
+  border-top-right-radius: var(--r-dialog);
+}
+.set-card > :last-child {
+  border-bottom-left-radius: var(--r-dialog);
+  border-bottom-right-radius: var(--r-dialog);
 }
 /* Settings was opened to point out this row (SettingsDialog's row): it flashes a few times */
 .set-row.is-pointed {
-  border-radius: var(--r-control);
   animation: row-pointed 0.8s var(--ease) 4 alternate;
 }
 @keyframes row-pointed {
   to {
     background: var(--accent-soft);
-    box-shadow:
-      -8px 0 0 var(--accent-soft),
-      8px 0 0 var(--accent-soft);
   }
 }
 .set-row.is-wide {
@@ -1604,16 +1681,19 @@ html[data-guided] .titlebar :is(.menubar, .titlebar-split, .titlebar-update) {
   gap: 12px;
 }
 .set-text {
-  flex: 1;
+  flex: 1 1 160px;
   min-width: 0;
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
 }
+/* 12 under a 14 name, as in Windows Settings; one gray level lighter than the name rather than the muted gray, so the smaller text still reads easily */
 .set-desc {
   margin-top: 2px;
   word-break: keep-all;
   text-wrap: pretty;
   font-size: var(--fs-caption);
   line-height: var(--lh-note);
-  color: var(--muted);
+  color: var(--text-2);
   user-select: text;
   overflow-wrap: anywhere;
 }
@@ -1632,9 +1712,11 @@ html[data-guided] .titlebar :is(.menubar, .titlebar-split, .titlebar-update) {
 }
 .set-control {
   flex: none;
+  margin-left: auto;
 }
 .set-row.is-wide .set-control {
   flex: auto;
+  margin-left: 0;
 }
 .switch {
   position: relative;
@@ -1663,6 +1745,61 @@ html[data-guided] .titlebar :is(.menubar, .titlebar-split, .titlebar-update) {
 }
 .switch:disabled {
   opacity: var(--disabled);
+}
+/* A size in pixels (Settings → Appearance): − number px +, in a well like the segmented control beside it */
+.size-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--r-group);
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1px var(--border);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+}
+.size-step {
+  display: grid;
+  place-items: center;
+  width: var(--h-md);
+  height: var(--h-md);
+  border-radius: var(--r-control);
+  color: var(--text-2);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.size-step:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--text);
+}
+.size-step:disabled {
+  opacity: var(--disabled);
+}
+/* The number and its unit: the number can be typed; the box shows the focus ring around both */
+.size-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: var(--h-md);
+  padding: 0 6px;
+  border-radius: var(--r-control);
+  color: var(--muted);
+  cursor: text;
+}
+.size-value:focus-within {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.size-value input {
+  width: 2.2ch;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 .swatches {
   display: flex;
@@ -1777,10 +1914,143 @@ html[data-guided] .titlebar :is(.menubar, .titlebar-split, .titlebar-update) {
   height: 16px;
   margin: 0;
 }
-.keys-grid {
-  columns: 2 240px;
-  column-gap: 32px;
-  margin-top: 12px;
+
+/* Settings → Keyboard Shortcuts (ShortcutSettings.tsx): the search box sits in the fixed title area, so it stays in view while the list scrolls */
+.keys-bar {
+  display: flex;
+  margin-top: 16px;
+}
+.keys-search {
+  flex: 1;
+  height: var(--h-lg);
+  margin: 0;
+}
+/* Searching by pressing the keys: the box waits for keys like the shortcut recording box */
+.keys-search.is-recording {
+  box-shadow:
+    inset 0 0 0 1px var(--accent),
+    0 0 0 3px var(--accent-soft);
+}
+.set-card > .key-row {
+  min-height: var(--h-header);
+  padding-block: 8px;
+  gap: 8px;
+}
+/* The keys of a command, one line each, stacked on the right: the pill, its trash can, and on the first line the + (on hover).
+   The trash and + columns are kept on every line, so all pills end on one line */
+/* What follows the name (the circular arrow, or the keys) keeps to the right when a long name pushes it onto a line of its own */
+.key-row > :nth-child(2) {
+  margin-left: auto;
+}
+.key-lines {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.key-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.key-spacer,
+.key-lock,
+.key-line .icon-btn {
+  flex: none;
+  width: var(--h-sm);
+  height: var(--h-sm);
+}
+/* One key: its parts (Ctrl Shift O) in a round-ended outline; click it to record another key in its place */
+.key-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--h-sm);
+  padding: 0 12px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+  white-space: nowrap;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+button.key-pill:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+/* A key that can't be changed: a quieter outline, nothing happens on hover */
+.key-pill.is-fixed {
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.key-pill.is-empty {
+  color: var(--muted);
+  box-shadow: none;
+  outline: 1px dashed var(--border-strong);
+  outline-offset: -1px;
+}
+.key-pill.is-recording {
+  min-width: 128px;
+  justify-content: center;
+  box-shadow:
+    inset 0 0 0 1px var(--accent),
+    0 0 0 3px var(--accent-soft);
+}
+.key-pill.is-clash {
+  box-shadow: inset 0 0 0 1px var(--warn);
+}
+.key-line .icon-btn {
+  color: var(--muted);
+}
+.key-line .icon-btn svg {
+  width: 14px;
+  height: 14px;
+}
+.key-lock {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+.key-lock svg {
+  width: 14px;
+  height: 14px;
+}
+/* + is a filled round button, shown while the row is hovered or has focus */
+.key-line .key-add {
+  border-radius: 50%;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  color: var(--text-2);
+  opacity: 0;
+}
+.key-row:hover .key-add,
+.key-row:focus-within .key-add {
+  opacity: 1;
+}
+.key-row .key-reset {
+  flex: none;
+  width: var(--h-sm);
+  height: var(--h-sm);
+  color: var(--muted);
+}
+.key-row .key-reset svg {
+  width: 14px;
+  height: 14px;
+}
+.key-clash {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+.keys-empty {
+  padding: 48px 0;
+  text-align: center;
+  color: var(--muted);
 }
 
 .boot-error {

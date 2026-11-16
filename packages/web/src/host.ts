@@ -67,7 +67,10 @@ export interface MaterialEntry {
   rel: string;
   kind: MaterialKind;
   size: number;
-  /** Millisecond timestamp, appended to the item URL so an old file is not served from cache */
+  /**
+   * Modified time, Unix milliseconds truncated to whole milliseconds (both shells truncate): appended to the item URL so an old file is
+   * not served from cache, and recorded in new notes (material_mtime)
+   */
   mtime: number;
   /** Creation time (ms): files that appeared only after the folder was added to the library get the "New" marker; older shells don't provide it */
   ctime?: number;

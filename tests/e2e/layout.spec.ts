@@ -9,7 +9,7 @@ const layout = (app: App) => app.page.locator(".layout");
 const focusStage = (app: App) => app.page.locator(".stage").click({ position: { x: 5, y: 5 } });
 const width = async (app: App) => Math.round((await sidebar(app).boundingBox())!.width);
 /** The widths of the side panels on the next load (localStorage, Panels.tsx) */
-const presetPanels = (app: App, left: number, right = 320) =>
+const presetPanels = (app: App, left: number, right = 336) =>
   app.page.addInitScript(
     ([l, r]) => localStorage.setItem("sniptoss.panels", JSON.stringify({ left: { width: l, collapsed: false }, right: { width: r, collapsed: false } })),
     [left, right],
@@ -135,7 +135,7 @@ test("Hide both side panels: Ctrl+\\ collapses both if either is open and expand
   await expect(app.page.locator(".menu .menu-label", { hasText: "隐藏两侧面板" })).toBeVisible();
 });
 
-test("Restore Default Layout returns the side panels to 260 / 320 and expands them, and leaves the window size to the shell", async ({ app }) => {
+test("Restore Default Layout returns the side panels to 260 / 336 and expands them, and leaves the window size to the shell", async ({ app }) => {
   await presetPanels(app, 400, 500);
   await app.open();
   await focusStage(app);
@@ -145,15 +145,26 @@ test("Restore Default Layout returns the side panels to 260 / 320 and expands th
   await app.page.locator(".menu .menu-item", { hasText: "恢复默认布局" }).click();
   await expect(layout(app)).not.toHaveClass(/right-collapsed/);
   await expect.poll(() => width(app)).toBe(260);
-  expect(Math.round((await app.page.locator("aside.panel").boundingBox())!.width)).toBe(320);
+  expect(Math.round((await app.page.locator("aside.panel").boundingBox())!.width)).toBe(336);
   expect(app.host.calls.some((c) => c.method === "window" && (c.params as { action: string }).action === "resetLayout")).toBe(true);
 });
 
-test("In a narrow window the side panels shrink so that the canvas area keeps at least 360, both in proportion; the stored widths stay unchanged and return when the window grows", async ({ app }) => {
+test("a stored notes panel width of 320 (the default before the interface was written at 14) moves to the new default 336; any other stored width stays", async ({
+  app,
+}) => {
+  await presetPanels(app, 260, 320);
+  await app.open();
+  await expect.poll(async () => Math.round((await app.page.locator("aside.panel").boundingBox())!.width)).toBe(336);
+  await presetPanels(app, 260, 330);
+  await app.page.reload();
+  await expect.poll(async () => Math.round((await app.page.locator("aside.panel").boundingBox())!.width)).toBe(330);
+});
+
+test("In a narrow window the side panels shrink so that the canvas area keeps at least 380 (the note box fits), both in proportion; the stored widths stay unchanged and return when the window grows", async ({ app }) => {
   await presetPanels(app, 520, 640);
   await app.page.setViewportSize({ width: 960, height: 700 });
   await app.open();
-  await expect.poll(async () => (await app.page.locator(".stage-col").boundingBox())!.width).toBeGreaterThanOrEqual(359);
+  await expect.poll(async () => (await app.page.locator(".stage-col").boundingBox())!.width).toBeGreaterThanOrEqual(379);
   expect(await width(app)).toBeGreaterThanOrEqual(180);
   expect((await app.page.locator("aside.panel").boundingBox())!.width).toBeGreaterThanOrEqual(240);
   await app.page.setViewportSize({ width: 1700, height: 900 });

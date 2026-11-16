@@ -49,6 +49,8 @@ static class Program
         {
             Log.Warn("Failed to tidy the context menu registration (deleting what was registered for PDF and PPT earlier, adding the extensions recognized newly in this version)", ex);
         }
+        // Before any text box exists: WPF's own underline under an input method's composition can freeze the UI thread (ImeUnderline)
+        Capture.ImeUnderline.DisableWpfUnderline();
         var app = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
         Crash.Install(app);
         var window = new MainWindow(args) { StartedInTray = toTray };

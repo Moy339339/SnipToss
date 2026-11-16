@@ -20,7 +20,7 @@ Schema 表达不了的一条：同一个文件里批注的 `id` 不能重复。
 | `pizhu/1` | 最初版本。新版本的子集，照常能读；程序改动过的文件写回时变成当前版本 |
 
 只加可选内容的不升版本号，从 1.0.0 起写明是程序哪一版加的。本文写到的 1.0.0 都已经有，包括可选的 `project.json`（REVIEW.md 的语言）、单条批注的 `material_sha256`（写在素材哪一版上）、单条批注的 `color`（标记单独换的颜色）、`anchor.shapes` 每一处的 `color`（几处分别换的颜色）。
-之后加的：单条批注的 `material_size`（写这条批注时素材的大小；1.2.3 起）；视频的 `material.frame_rate`（每秒帧数；1.3.0 起）；`drawings`（没写批注的线和框；1.3.0 起）。
+之后加的：单条批注的 `material_size`（写这条批注时素材的大小；1.2.3 起）；视频的 `material.frame_rate`（每秒帧数；1.3.0 起）；`drawings`（没写批注的线和框；1.3.0 起）；单条批注的 `material_mtime`（写这条批注时素材文件的修改时间；1.6.0 起）。
 
 ## 放在哪
 
@@ -141,6 +141,7 @@ Schema 表达不了的一条：同一个文件里批注的 `id` 不能重复。
   "handed_off_at": "2026-10-13T10:32:00Z",  // 可选：最近一次复制出去（复制成文字、复制成图片）的时间；没复制过就没有
   "material_sha256": "9f2c…",           // 可选：写这条批注时素材的 SHA-256；和素材现在的不一样 = 这条写在旧版本上，见下
   "material_size": 482113,              // 可选（1.2.3 起）：写这条批注时素材的大小（字节），和 material_sha256 一起记，见下
+  "material_mtime": "2026-10-13T09:58:41.237Z",  // 可选（1.6.0 起）：写这条批注时素材文件的修改时间（UTC，精确到毫秒），和 material_sha256 一起记，见下
   "color": "#5b8cff",                   // 可选：这条的标记单独换的颜色 #rrggbb；没有 = 用设置里的标记颜色，见下
   "replies": [                          // agent 改完回一句，或提问
     { "author": "codex", "body": "已换成思源黑体 Bold", "at": "2026-10-13T11:02:00Z" }
@@ -184,9 +185,12 @@ x 看 `width`、y 看 `height`）；乘回 `width`/`height` 后四舍五入就�
 - 超级批注新写的批注都带它（指纹算不出来时没有）；改文字、改状态不动它。
 - 没有它的批注（比如别的程序写的）：`created_at` 晚于素材文件的修改时间 = 写它之后素材没改过，就是现在这一版；早于的按文件的 `material.sha256` 算。
   规则在 core 的 `versions.ts`（`writtenOn`、`earlierVersions`），界面和命令行共用。
-- `material_size`（1.2.3 起，可选）：写这条批注时素材的大小（字节），和 `material_sha256` 一起记。想不读文件就知道素材现在的指纹时，
-  可以拿「素材最后一次修改之后写的、最晚的那条批注」的 `material_sha256`，**但那条的 `material_size` 要和文件现在的大小一样**（没记的不看这一条）。
-  被换成一份旧文件时（从压缩包解出来、保留时间复制过来）修改时间可能早于批注；大小不一样就说明不是写批注时那份文件，要重新算指纹（`versions.ts` 的 `knownSha`）。
+- `material_size`（1.2.3 起）、`material_mtime`（1.6.0 起），都是可选：写这条批注时素材的大小（字节）和文件的修改时间（UTC，截到整毫秒），和 `material_sha256` 一起记。
+  想不读文件就知道素材现在的指纹时，可以拿**`material_size`、`material_mtime` 都和文件现在的大小、修改时间一样**的那条批注的 `material_sha256`：
+  这时就当文件还是写那条批注时那份（和 rsync 默认的快速比对同一个假设）。没有对得上的就算一次指纹。
+  被换成一份旧文件时（从压缩包解出来、保留时间复制过来）修改时间可能早于批注，大小只由尺寸决定的格式（BMP、不压缩的 TIFF）连大小也一样；但修改时间和记下的对不上。
+- 没有 `material_mtime` 的批注（1.6.0 之前写的）只在**这个文件没有一条批注记了它**时才这样用：拿「素材最后一次修改之后写的、最晚的那条」，它的 `material_size` 要和文件现在的大小一样（没记大小的照用）。
+  一旦有批注记了 `material_mtime`，对不上就可能是文件被换过，旧批注看不出来，就改成算指纹（`versions.ts` 的 `knownSha`）。
 - 超级批注不在画面上画旧版本上的批注，批注栏里单独列成一节；复制成文字时单独一节、说明以截图为准；`REVIEW.md` 和 `sniptoss list` 每条后面注明。
   批注本身不改、不删，状态由用户管（docs/adr/0008-earlier-versions.md）。
 
@@ -251,7 +255,7 @@ x 看 `width`、y 看 `height`）；乘回 `width`/`height` 后四舍五入就�
 - **不认识的字段原样保留**：文件、`material`、单条批注、`anchor` 上多出来的字段，程序改动后写回时都还在。自己的工具可以往里加东西。
 - **旧写法照样认**：`anchor.shape`（一个形状，`sniptoss/4` 及以前）读成只有一项的 `shapes`，写回时是 `shapes`。
   `sniptoss/5` 的文件里写了 `shape`、没写 `shapes` 的（照旧文档手改的 JSON）也这样认；两个都写了的以 `shapes` 为准，`shape` 当不认识的字段留着。
-- **可以省略、读时补上的**：`anchor`（当 `{}`）、`anchor.shapes` 是空数组时当没有（写回时去掉）、`replies`（当 `[]`）、`author` / `created_at` / `updated_at`（当空字符串）、回复里的 `author` / `at`（当空字符串）；`handed_off_at` 不是能解析的时间时当没有（写回时去掉）；`material_sha256` 不是字符串时当没有（写回时去掉）；`material_size` 不是 0 或以上的整数时当没有（写回时去掉）；`color`（这条的、每一处的）不是 `#rrggbb`（大小写都认）时当没有（写回时去掉）。
+- **可以省略、读时补上的**：`anchor`（当 `{}`）、`anchor.shapes` 是空数组时当没有（写回时去掉）、`replies`（当 `[]`）、`author` / `created_at` / `updated_at`（当空字符串）、回复里的 `author` / `at`（当空字符串）；`handed_off_at` 不是能解析的时间时当没有（写回时去掉）；`material_sha256` 不是字符串时当没有（写回时去掉）；`material_size` 不是 0 或以上的整数时当没有（写回时去掉）；`material_mtime` 不是能解析的时间时当没有（写回时去掉）；`color`（这条的、每一处的）不是 `#rrggbb`（大小写都认）时当没有（写回时去掉）。
 - **必须对的**（不对就整份文件读不了，见下）：`material.path`、`material.kind` 是非空字符串；`annotations` 是数组；
   每条批注的 `id` 非空且在本文件里不重复，`status` 是 `open | resolved | wontfix` 之一，`category` 是 `change | remove | add | question` 之一，`body` 是字符串；
   `anchor.page` 是 ≥ 1 的整数；`anchor.time.start`（和 `end`，有的话）是数字；回复的 `body` 是字符串；

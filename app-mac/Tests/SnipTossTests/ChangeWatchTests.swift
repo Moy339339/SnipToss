@@ -735,6 +735,50 @@ final class ChangeWatchTests: SnipTestCase {
         XCTAssertEqual(scans.value, 2)
     }
 
+    /// The same cases as the Windows shell's ChangeWatchTests (MaterialWatcher.NextFullIn)
+    func testAVolumeThatHasNotAnsweredIsLookedAtAgainSoonWithoutScanningMoreThanATwentiethOfTheTime() {
+        let cases: [(took: TimeInterval, scanTook: TimeInterval, unanswered: Bool, expected: TimeInterval)] = [
+            (0.5, 0.01, false, 10),  // normal round: every 10 seconds
+            (1.0, 0.9, false, 20),  // slow round: stretched to 20 times its duration
+            (0.5, 0.01, true, 1),  // a volume had not answered (the wait for it does not count): look again in a second
+            (0.5, 0.2, true, 4),  // ...but scanning stays at most a twentieth of the time
+            (2.0, 1.5, true, 30),  // ...a slow scan still stretches it
+        ]
+        for c in cases {
+            XCTAssertEqual(
+                MaterialWatcher.nextFullIn(took: c.took, scanTook: c.scanTook, unanswered: c.unanswered), c.expected, accuracy: 1e-9,
+                "\(c)")
+        }
+    }
+
+    func testAVolumeThatDidNotAnswerAtTheFirstScanIsScannedAgainASecondLaterAndGetsItsStartingPoint() {
+        let dir = makeTempDir()
+        let folder = dir + "/assets"
+        writeText(bytes(10), to: folder + "/a.png")
+        let answer = Answer(nil)
+        let clock = FakeClock()
+        let scans = Counter()
+        let entries = Entries()
+        let watcher = MaterialWatcher(
+            settings: makeSettings(library: [folder]), clock: { clock.now() },
+            volumes: WatchVolumes(wait: { _ in scans.increment() }, known: { _ in answer.value }), changed: { entries.record($0) })
+        watcher.start()
+        watcher.flush()
+        XCTAssertEqual(scans.value, 1)
+
+        answer.value = true
+        clock.advance(1)
+        watcher.tick()
+        watcher.flush()
+        XCTAssertEqual(scans.value, 2, "not the full ten seconds later")
+        // That round recorded the starting point: a change after it is announced at the next full scan
+        writeText(bytes(20), to: folder + "/a.png")
+        clock.advance(10)
+        watcher.tick()
+        watcher.flush()
+        XCTAssertEqual(entries.all, [[folder]])
+    }
+
     func testTheOpenFileAndTheFullScanDoNotAnnounceTheSameChangeTwice() {
         let dir = makeTempDir()
         let folder = dir + "/assets"

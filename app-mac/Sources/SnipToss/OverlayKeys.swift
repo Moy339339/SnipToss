@@ -1,11 +1,12 @@
 import AppKit
 import Foundation
 
-/// The keys the capture overlay reacts to. They are told apart by the key's place on the keyboard (its virtual key code), not by the
-/// character it types, so a keyboard layout or an input method does not change which key picks which tool
+/// The keys of the capture overlay that cannot be changed, told apart by the key's place on the keyboard (its virtual key code): the
+/// digits for colors, Return, Esc, the delete keys, the arrows, and Z for ⌥Z in the note box (Option goes by the key's place, as in the
+/// page). The keys that can be changed in Settings (the tools, the overall comment, undo), and ⌘C, ⌘W, ⌘., go by their names as the page
+/// writes them (`CaptureKeys.name`): a letter by the character it types on a Latin layout, as in the main window
 enum OverlayKey: Equatable {
-    case a, b, c, m, n, o, r, t, w, z
-    case period
+    case z
     /// A digit on the main row, 1…8
     case digit(Int)
     /// A digit on the keypad, 1…8
@@ -31,21 +32,10 @@ enum OverlayKey: Equatable {
         return nil
     }
 
-    /// The key for a virtual key code (Carbon's kVK_ANSI_* values), or nil for a key the overlay does not use (⌘Q among them: it stays with
-    /// the system)
+    /// The key for a virtual key code (Carbon's kVK_ANSI_* values), or nil for any other key
     static func from(keyCode: UInt16) -> OverlayKey? {
         switch keyCode {
-        case 0x00: return .a
-        case 0x0B: return .b
-        case 0x08: return .c
-        case 0x2E: return .m
-        case 0x2D: return .n
-        case 0x1F: return .o
-        case 0x0F: return .r
-        case 0x11: return .t
-        case 0x0D: return .w
         case 0x06: return .z
-        case 0x2F: return .period
         // The main row's digits (the codes are not in order: 5 is 0x17, 6 is 0x16, 7 is 0x1A, 8 is 0x1C)
         case 0x12: return .digit(1)
         case 0x13: return .digit(2)
