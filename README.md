@@ -2,7 +2,7 @@
 
 [![Latest release](https://img.shields.io/github/v/release/Moy339339/SnipToss)](https://github.com/Moy339339/SnipToss/releases/latest) [![CI](https://github.com/Moy339339/SnipToss/actions/workflows/ci.yml/badge.svg)](https://github.com/Moy339339/SnipToss/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/github/license/Moy339339/SnipToss)](LICENSE) ![Windows 11](https://img.shields.io/badge/Windows-11-0078D4) ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-000000)
 
-Telling your AI what to fix shouldn't be a writing test. Mark it on the image or on the exact video frame, then paste one picture: your AI gets the spot, a snapshot and your note.
+Telling your AI what to fix shouldn't be a writing test. Mark it on the image, on the exact video frame or anywhere on your screen, even on the AI's own reply, then paste one picture: your AI gets the spot, a snapshot and your note.
 
 ![The headline "Telling your AI what to fix shouldn't be a writing test". Below it, on the left a chat box with a long typed description of three things to change in an illustration; on the right the same three things as one picture: the illustration with three numbered marks and the three notes underneath.](docs/images/hero.png)
 
@@ -139,7 +139,7 @@ For agents and scripts the repository also has a command-line tool, `sniptoss` (
 
 ## How it compares
 
-SnipToss reviews the **files** your agent produced — images and videos on disk, or anything on screen via screen capture. It doesn't inspect a running web page.
+SnipToss reviews what your AI produced: image and video files on disk, or anything on the screen via screen capture, including the AI's own replies. It doesn't inspect a running web page.
 
 | | SnipToss | Web page annotators<br>([Agentation](https://github.com/benjitaylor/agentation), [Drawbridge](https://github.com/breschio/drawbridge), [Vibe Annotations](https://github.com/RaphaelRegnier/vibe-annotations)) | Media review for agents<br>([Rushes](https://github.com/iamredmh/rushes), [Telestrator](https://github.com/itsloukman/telestrator)) | Screenshot tools<br>(ShareX, Snagit, CleanShot X) |
 |---|---|---|---|---|
